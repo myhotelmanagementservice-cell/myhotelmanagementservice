@@ -5,7 +5,9 @@
  * Hotel Management System API
  * OpenAPI spec version: 0.1.0
  */
+import type { ListRoomsStatus } from './listRoomsStatus';
 
-export interface HealthStatus {
-  status: string;
-}
+export type ListRoomsParams = {
+status?: ListRoomsStatus;
+type?: string;
+};
