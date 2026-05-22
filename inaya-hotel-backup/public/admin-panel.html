@@ -1,0 +1,174 @@
+cat > public/admin-panel.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel - Crown Plaza</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card { transition: transform 0.2s; }
+        .card:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <nav class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-bold">👑 Crown Plaza - Admin Panel</h1>
+            <div class="flex gap-4">
+                <span id="hotelIdDisplay" class="bg-white/20 px-3 py-1 rounded-full text-sm"></span>
+                <button onclick="logout()" class="bg-white/20 px-3 py-1 rounded-lg text-sm">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Tabs -->
+        <div class="flex gap-2 mb-6 flex-wrap">
+            <button onclick="showTab('rooms')" id="tabRoomsBtn" class="px-4 py-2 rounded-lg bg-purple-600 text-white">🏨 Rooms</button>
+            <button onclick="showTab('food')" id="tabFoodBtn" class="px-4 py-2 rounded-lg bg-gray-200">🍽️ Food Menu</button>
+            <button onclick="showTab('settings')" id="tabSettingsBtn" class="px-4 py-2 rounded-lg bg-gray-200">⚙️ Settings</button>
+            <button onclick="showTab('requests')" id="tabRequestsBtn" class="px-4 py-2 rounded-lg bg-gray-200">📋 Requests</button>
+        </div>
+
+        <!-- Rooms Tab -->
+        <div id="roomsTab" class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">🏨 Room Management</h2>
+                <button onclick="openRoomModal()" class="gradient-bg text-white px-4 py-2 rounded-lg">+ Add Room</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-100">
+                        <tr><th class="p-2">Room #</th><th>Type</th><th>Price</th><th>Status</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="roomsList"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Food Tab -->
+        <div id="foodTab" class="hidden bg-white rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">🍽️ Food Menu</h2>
+                <button onclick="openFoodModal()" class="gradient-bg text-white px-4 py-2 rounded-lg">+ Add Item</button>
+            </div>
+            <div id="foodList" class="grid md:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settingsTab" class="hidden bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-2xl font-bold mb-4">⚙️ Hotel Settings</h2>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div><label>Hotel Name</label><input id="hotelName" class="w-full border rounded p-2"></div>
+                <div><label>Currency Symbol</label><input id="currencySymbol" class="w-full border rounded p-2"></div>
+                <div><label>Primary Color</label><input id="primaryColor" class="w-full border rounded p-2"></div>
+                <div><label>WiFi Password</label><input id="wifiPassword" class="w-full border rounded p-2"></div>
+            </div>
+            <button onclick="saveSettings()" class="mt-4 gradient-bg text-white px-4 py-2 rounded-lg">Save Settings</button>
+        </div>
+
+        <!-- Requests Tab -->
+        <div id="requestsTab" class="hidden bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-2xl font-bold mb-4">📋 Service Requests</h2>
+            <div id="requestsList" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Room Modal -->
+    <div id="roomModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Add/Edit Room</h3>
+            <input id="roomNumber" placeholder="Room Number" class="w-full border rounded p-2 mb-2">
+            <select id="roomType" class="w-full border rounded p-2 mb-2">
+                <option>Standard</option><option>Deluxe</option><option>Suite</option><option>Presidential</option>
+            </select>
+            <input id="roomPrice" type="number" placeholder="Price" class="w-full border rounded p-2 mb-2">
+            <div class="flex gap-2">
+                <button onclick="saveRoom()" class="bg-green-600 text-white px-4 py-2 rounded">Save</button>
+                <button onclick="closeRoomModal()" class="bg-gray-600 text-white px-4 py-2 rounded">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '/api';
+        const HOTEL_ID = localStorage.getItem('hotelId') || 'CPH001';
+        document.getElementById('hotelIdDisplay').innerText = `Hotel: ${HOTEL_ID}`;
+
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json', 'X-Hotel-Id': HOTEL_ID } };
+            if (data) options.body = JSON.stringify(data);
+            const res = await fetch(`${API_BASE_URL}${endpoint}`, options);
+            return res.json();
+        }
+
+        async function loadRooms() {
+            const data = await apiCall('/admin/rooms');
+            document.getElementById('roomsList').innerHTML = (data.data || []).map(room => `
+                <tr class="border-b">
+                    <td class="p-2">${room.roomNumber}</td><td>${room.type}</td><td>$${room.price}</td>
+                    <td><span class="px-2 py-1 rounded text-sm ${room.status === 'Vacant' ? 'bg-green-100 text-green-700' : 'bg-yellow-100'}">${room.status}</span></td>
+                    <td><button onclick="editRoom('${room._id}')" class="text-blue-600">✏️</button> <button onclick="deleteRoom('${room._id}')" class="text-red-600">🗑️</button></td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadFood() {
+            const data = await apiCall('/admin/food');
+            document.getElementById('foodList').innerHTML = (data.data || []).map(item => `
+                <div class="border rounded-lg p-4 card">
+                    <h3 class="font-bold">${item.name}</h3>
+                    <p class="text-gray-600">${item.category}</p>
+                    <p class="text-purple-600 font-bold">$${item.price}</p>
+                    <button onclick="editFood('${item._id}')" class="text-blue-600 mt-2">✏️ Edit</button>
+                    <button onclick="deleteFood('${item._id}')" class="text-red-600 ml-2">🗑️ Delete</button>
+                </div>
+            `).join('');
+        }
+
+        async function loadRequests() {
+            const data = await apiCall('/requests');
+            document.getElementById('requestsList').innerHTML = (data.data || []).map(req => `
+                <div class="border-l-4 border-purple-600 bg-gray-50 p-3 rounded">
+                    <strong>${req.guestName}</strong> - Room ${req.roomNumber}<br>
+                    <span class="text-sm text-gray-600">${req.category}: ${req.description}</span>
+                    <span class="text-xs ml-2 px-2 py-1 rounded ${req.status === 'pending' ? 'bg-yellow-100' : 'bg-green-100'}">${req.status}</span>
+                </div>
+            `).join('');
+        }
+
+        async function saveRoom() { /* Implement */ }
+        async function deleteRoom(id) { if(confirm('Delete?')) await apiCall(`/admin/rooms/${id}`, 'DELETE'); loadRooms(); }
+        async function saveSettings() { /* Implement */ }
+
+        let currentTab = 'rooms';
+        function showTab(tab) {
+            currentTab = tab;
+            document.getElementById('roomsTab').classList.add('hidden');
+            document.getElementById('foodTab').classList.add('hidden');
+            document.getElementById('settingsTab').classList.add('hidden');
+            document.getElementById('requestsTab').classList.add('hidden');
+            document.getElementById(`${tab}Tab`).classList.remove('hidden');
+            if (tab === 'rooms') loadRooms();
+            if (tab === 'food') loadFood();
+            if (tab === 'requests') loadRequests();
+            if (tab === 'settings') loadSettings();
+        }
+
+        async function loadSettings() {
+            const data = await apiCall('/admin/settings');
+            if (data.data) {
+                document.getElementById('hotelName').value = data.data.name || '';
+                document.getElementById('currencySymbol').value = data.data.currencySymbol || '$';
+                document.getElementById('primaryColor').value = data.data.theme?.primaryColor || '#667eea';
+                document.getElementById('wifiPassword').value = data.data.wifiPassword || '';
+            }
+        }
+
+        function logout() { localStorage.clear(); window.location.href = '/'; }
+
+        showTab('rooms');
+    </script>
+</body>
+</html>
+EOF
