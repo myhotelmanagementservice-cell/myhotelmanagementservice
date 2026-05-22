@@ -1,16 +1,42 @@
 {
-  "name": "workspace",
-  "version": "0.0.0",
-  "license": "MIT",
+  "name": "inaya-hotel",
+  "version": "4.0.0",
+  "description": "Inaya Hotel - Complete Hotel Management System with Multi-Hotel Support",
+  "main": "server/server.js",
   "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
+    "install-all": "npm install",
+    "clean": "rm -rf node_modules package-lock.json && npm install"
   },
-  "private": true,
+  "keywords": [
+    "hotel-management",
+    "multi-hotel",
+    "mongodb",
+    "express",
+    "nodejs",
+    "inaya-hotel"
+  ],
+  "author": "Inaya Hotel",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "compression": "^1.7.4",
+    "uuid": "^9.0.0"
+  },
   "devDependencies": {
-    "prettier": "^3.8.3",
-    "typescript": "~5.9.3"
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
