@@ -629,6 +629,111 @@ function t(key, params = {}) {
   return text;
 }
 
+// ============ LOGIN TAB SWITCHING ============
+function switchLoginType(type) {
+  const guestForm = document.getElementById('guestLoginForm');
+  const adminForm = document.getElementById('adminLoginForm');
+  const guestBtn  = document.getElementById('guestTabBtn');
+  const adminBtn  = document.getElementById('adminTabBtn');
+
+  if (type === 'guest') {
+    guestForm?.classList.remove('hidden');
+    adminForm?.classList.add('hidden');
+    guestBtn?.classList.replace('bg-gray-100', 'bg-purple-100');
+    guestBtn?.classList.replace('text-gray-700', 'text-purple-700');
+    adminBtn?.classList.replace('bg-purple-100', 'bg-gray-100');
+    adminBtn?.classList.replace('text-purple-700', 'text-gray-700');
+  } else {
+    adminForm?.classList.remove('hidden');
+    guestForm?.classList.add('hidden');
+    adminBtn?.classList.replace('bg-gray-100', 'bg-purple-100');
+    adminBtn?.classList.replace('text-gray-700', 'text-purple-700');
+    guestBtn?.classList.replace('bg-purple-100', 'bg-gray-100');
+    guestBtn?.classList.replace('text-purple-700', 'text-gray-700');
+  }
+}
+window.switchLoginType = switchLoginType;
+
+// ============ GUEST LOGIN HANDLER (name + room only) ============
+document.addEventListener('DOMContentLoaded', () => {
+  // Guest login form submit
+  document.getElementById('guestLoginForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('guestNameInput')?.value.trim();
+    const room = document.getElementById('guestRoomInput')?.value.trim();
+    if (!name || !room) { showToast(t('fillRequired'), 'error'); return; }
+
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Logging in...'; }
+
+    try {
+      const res = await apiCall('/auth/guest-login', 'POST', { name, room }, false);
+      if (res.success) {
+        state.token     = res.data.token;
+        state.hotelId   = res.data.hotelId;
+        state.hotelName = res.data.hotelName;
+        state.role      = 'guest';
+        state.currentGuest = { name: res.data.name, room: res.data.room };
+        saveToLocalStorage(LS.TOKEN, state.token);
+        saveToLocalStorage(LS.HOTEL_ID, state.hotelId);
+        saveToLocalStorage(LS.HOTEL_NAME, state.hotelName);
+        saveToLocalStorage(LS.ROLE, 'guest');
+        saveToLocalStorage(LS.GUEST_SESSION, { token: state.token, hotelId: state.hotelId, guest: state.currentGuest, timestamp: Date.now() });
+
+        showToast(t('loginSuccess'), 'success');
+        await loadAllDataFromMongo();
+        showGuestLogin();
+      } else {
+        showToast(res.error || t('invalidCredentials'), 'error');
+        if (btn) { btn.disabled = false; btn.textContent = '🔐 Login as Guest'; }
+      }
+    } catch (err) {
+      showToast(t('connectionError'), 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '🔐 Login as Guest'; }
+    }
+  });
+
+  // Admin login form submit
+  document.getElementById('adminLoginForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email    = document.getElementById('adminEmailInput')?.value.trim();
+    const password = document.getElementById('adminPasswordInput')?.value;
+    if (!email || !password) { showToast(t('fillRequired'), 'error'); return; }
+
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Logging in...'; }
+
+    try {
+      const res = await apiCall('/auth/login', 'POST', { email, password }, false);
+      if (res.success) {
+        state.token          = res.data.token;
+        state.hotelId        = res.data.hotelId;
+        state.hotelName      = res.data.hotelName;
+        state.role           = res.data.role;
+        state.currentAdminRole = res.data.role;
+        saveToLocalStorage(LS.TOKEN, state.token);
+        saveToLocalStorage(LS.HOTEL_ID, state.hotelId);
+        saveToLocalStorage(LS.HOTEL_NAME, state.hotelName);
+        saveToLocalStorage(LS.ROLE, state.role);
+        saveToLocalStorage(LS.ADMIN_SESSION, { token: state.token, hotelId: state.hotelId, role: state.role, timestamp: Date.now() });
+
+        showToast(t('loginSuccess'), 'success');
+        await loadAllDataFromMongo();
+
+        // Show role selection for admin
+        document.getElementById('loginSelectionPage')?.classList.add('hidden');
+        showRoleSelection();
+      } else {
+        showToast(res.error || t('invalidCredentials'), 'error');
+        if (btn) { btn.disabled = false; btn.textContent = '🔐 Login as Admin'; }
+      }
+    } catch (err) {
+      showToast(t('connectionError'), 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '🔐 Login as Admin'; }
+    }
+  });
+});
+
 function changeLanguage(lang) {
   state.language = lang;
   saveToLocalStorage(LS.LANGUAGE, lang);
@@ -638,11 +743,16 @@ function changeLanguage(lang) {
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   document.body.classList.toggle('rtl', lang === 'ar');
 
+  // Update active lang button
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.querySelector(`.lang-btn[onclick*="'${lang}'"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+
   // Re-render UI
   refreshAllUI();
   updateLiveClock();
 
-  showToast(`${t('languageChanged')} ${lang}`, 'info');
+  showToast(`${t('languageChanged')} ${lang.toUpperCase()}`, 'info');
 }
 
 function toggleDarkMode() {

@@ -1,0 +1,4 @@
+[[services]]
+localPort = 5000
+name = "Crown Plaza Hotel"
+paths = ["/"]
