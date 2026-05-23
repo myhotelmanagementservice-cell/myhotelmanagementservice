@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const path = require('path');
 const mongoose = require('mongoose');
 
 const app = express();
@@ -24,13 +25,21 @@ app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Health Check
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, '../public')));
+
+// API Routes
 app.get('/api/health', (req, res) => {
   res.json({ success: true, status: 'OK', timestamp: new Date().toISOString() });
 });
 
 app.get('/api', (req, res) => {
   res.json({ name: 'Inaya Hotel System', version: '4.0.0', status: 'running' });
+});
+
+// Serve index.html for root path
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
 
 // Start Server
@@ -40,5 +49,6 @@ app.listen(PORT, '0.0.0.0', () => {
   🏨 Inaya Hotel Server
   🚀 Running on port: ${PORT}
   🏥 Health: http://localhost:${PORT}/api/health
+  🖥️  UI: http://localhost:${PORT}
   `);
 });
