@@ -1,29 +1,30 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const router = express.Router();
 
-// Login route
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password required' });
+    }
     
-    // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
     
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
     
-    // Create token
+    user.lastLogin = new Date();
+    await user.save();
+    
     const token = jwt.sign(
-      { userId: user._id, role: user.role, hotelId: user.hotelId },
+      { userId: user._id, email: user.email, role: user.role, hotelId: user.hotelId },
       process.env.JWT_SECRET || 'inaya_hotel_super_secret_key_2025_secure',
       { expiresIn: '7d' }
     );
@@ -31,52 +32,37 @@ router.post('/login', async (req, res) => {
     res.json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, hotelId: user.hotelId }
     });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
 
-// Register route (for first admin)
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
-    
-    // Check if user exists
+    const { name, email, password, role, hotelId } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ success: false, error: 'User already exists' });
     }
-    
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    
-    // Create user
-    const user = new User({
-      name,
-      email,
-      password: hashedPassword,
-      role: role || 'admin',
-      hotelId: req.body.hotelId || process.env.DEFAULT_HOTEL_ID || 'INH001'
-    });
-    
+    const user = new User({ name, email, password, role: role || 'staff', hotelId: hotelId || 'INH001' });
     await user.save();
-    
-    res.json({
-      success: true,
-      message: 'User created successfully'
-    });
+    res.json({ success: true, message: 'User created successfully', user: { id: user._id, name, email, role: user.role } });
   } catch (error) {
-    console.error('Register error:', error);
     res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+router.get('/me', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ success: false, error: 'No token provided' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'inaya_hotel_super_secret_key_2025_secure');
+    const user = await User.findById(decoded.userId).select('-password');
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(401).json({ success: false, error: 'Invalid token' });
   }
 });
 
