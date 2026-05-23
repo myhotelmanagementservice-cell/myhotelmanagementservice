@@ -1,18 +1,11 @@
-cat > server/models/Room.js << 'EOF'
 const mongoose = require('mongoose');
 
-const RoomSchema = new mongoose.Schema({
-  hotelId: { type: String, required: true, index: true },
-  roomNumber: { type: String, required: true },
-  type: { type: String, enum: ['Standard', 'Deluxe', 'Suite', 'Presidential'], default: 'Standard' },
-  price: { type: Number, default: 0 },
-  status: { type: String, enum: ['Vacant', 'Occupied', 'Cleaning', 'Maintenance'], default: 'Vacant' },
-  floor: { type: Number, default: 1 },
-  amenities: [{ type: String }],
-  isActive: { type: Boolean, default: true }
-}, { timestamps: true });
+const roomSchema = new mongoose.Schema({
+  number: { type: Number, required: true, unique: true },
+  type: { type: String, default: 'Standard' },
+  status: { type: String, default: 'Vacant' },
+  guestName: { type: String, default: '' },
+  price: { type: Number, default: 100 }
+});
 
-RoomSchema.index({ hotelId: 1, roomNumber: 1 }, { unique: true });
-
-module.exports = mongoose.model('Room', RoomSchema);
-EOF
+module.exports = mongoose.model('Room', roomSchema);

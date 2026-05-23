@@ -58,3 +58,20 @@ function startServer() {
 }
 
 startServer();
+
+// API Routes
+app.use('/api/rooms', require('./routes/rooms'));
+app.use('/api/inventory', require('./routes/inventory'));
+app.use('/api/maintenance', require('./routes/maintenance'));
+app.use('/api/blacklist', require('./routes/blacklist'));
+app.use('/api/food', require('./routes/food'));
+app.use('/api/requests', require('./routes/requests'));
+
+// Register all API routes
+app.use('/api/rooms', require('./routes/rooms'));
+app.use('/api/requests', require('./routes/requests'));
+app.use('/api/guests', require('./routes/guests'));
+app.use('/api/food', require('./routes/food'));
+app.use('/api/inventory', require('./routes/inventory'));
+app.use('/api/maintenance', require('./routes/maintenance'));
+app.use('/api/blacklist', require('./routes/blacklist'));
