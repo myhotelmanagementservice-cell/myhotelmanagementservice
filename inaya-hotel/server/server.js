@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require("path");
 const mongoose = require('mongoose');
 const app = express();
 const DEFAULT_PORT = process.env.PORT || 3000;
@@ -54,3 +55,12 @@ function startServer() {
 
 // Start server with auto fallback
 startServer();
+
+// Serve static files from public directory
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Serve index.html for root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public', 'index.html'));
+});
