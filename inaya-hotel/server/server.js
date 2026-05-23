@@ -53,3 +53,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('UI: http://localhost:' + PORT);
   console.log('Admin: admin@crownplaza.com / admin123');
 });
+
+// Auth Routes - Make sure this is present
+app.use('/api/auth', require('./routes/auth'));
