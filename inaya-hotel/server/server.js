@@ -9,10 +9,10 @@ const mongoose = require('mongoose');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB
+// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/inaya_hotel')
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => console.error('❌ MongoDB Error:', err.message));
+  .then(() => console.log('MongoDB Connected'))
+  .catch(err => console.error('MongoDB Error:', err.message));
 
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -33,24 +33,23 @@ app.get('/api', (req, res) => {
 });
 
 // Auth Routes
-app.use('/api/auth', require('./routes/auth'));
+try {
+  app.use('/api/auth', require('./routes/auth'));
+  console.log('Auth routes loaded');
+} catch(err) {
+  console.log('Auth routes not yet created');
+}
 
 // Serve UI
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
 
-app.get('/admin-panel.html', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public', 'admin-panel.html'));
-});
-
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`
-  👑 Crown Plaza Hotel Server
-  🚀 Port: ${PORT}
-  🏥 Health: http://localhost:${PORT}/api/health
-  🖥️  UI: http://localhost:${PORT}
-  🔐 Admin: admin@crownplaza.com / admin123
-  `);
+  console.log('Crown Plaza Hotel Server');
+  console.log('Port: ' + PORT);
+  console.log('Health: http://localhost:' + PORT + '/api/health');
+  console.log('UI: http://localhost:' + PORT);
+  console.log('Admin: admin@crownplaza.com / admin123');
 });

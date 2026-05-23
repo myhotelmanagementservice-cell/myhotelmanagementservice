@@ -1,1834 +1,424 @@
-// ============ HOTEL QMS - FULL STACK - CORRECT ARCHITECTURE - PART 1/3 ============
-// ✅ MongoDB: bookings, rooms, inventory, users, hotelSettings (PRIMARY SOURCE)
-// ✅ LocalStorage: token, hotelId, language, darkMode, theme, session (TEMP ONLY)
-// ✅ ALL Features: Multi-hotel, EN/HI/AR, Admin/Guest, Food Cart, QR, Charts, PWA, Voice, etc.
-// ✅ NO data in localStorage except session/temp - everything synced to MongoDB
+// ============ MULTI-HOTEL CONFIGURATION ============
+const API_BASE_URL = '/api';
 
-// ============ CONFIG & CONSTANTS ============
-const API_BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3000/api' 
-  : '/api';
-
-// ✅ LocalStorage Keys - SESSION/TEMP ONLY (NO BUSINESS DATA)
-const LS = {
-  TOKEN: 'hqms_token',
-  HOTEL_ID: 'hqms_hotelId', 
-  HOTEL_NAME: 'hqms_hotelName',
-  ROLE: 'hqms_role',
-  LANGUAGE: 'hqms_language',
-  DARK_MODE: 'hqms_darkMode',
-  THEME: 'hqms_theme',
-  OFFLINE: 'hqms_offline',
-  ADMIN_SESSION: 'hqms_admin_session',
-  GUEST_SESSION: 'hqms_guest_session',
-  CART: 'hqms_cart_temp' // temp cart recovery only
-};
-
-// ✅ MongoDB Collections (via API endpoints)
-const DB = {
-  BOOKINGS: '/requests',        // service requests/bookings
-  ROOMS: '/rooms',
-  INVENTORY: '/inventory',
-  USERS: '/users',              // guests + staff
-  SETTINGS: '/settings',        // hotelSettings
-  FOOD: '/food',
-  REVIEWS: '/reviews',
-  MAINTENANCE: '/maintenance',
-  BLACKLIST: '/blacklist',
-  LOYALTY: '/loyalty',
-  STAFF: '/staff',
-  LOGS: '/logs',
-  HOTELS: '/hotels',
-  SYNC: '/sync'
-};
-
-// ============ GLOBAL STATE (In-Memory, NOT localStorage) ============
-// ✅ These are runtime variables - fetched from MongoDB, NOT saved to localStorage
-let state = {
-  // Auth & Session
-  token: null,
-  hotelId: null,
-  hotelName: null,
-  role: null,
-  currentGuest: null,
-  currentAdminRole: null,
-
-  // UI State
-  language: 'en',
-  darkMode: false,
-  theme: 'default',
-  offlineMode: false,
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-
-  // Data (loaded from MongoDB, cached in memory for performance)
-  bookings: [],      // service requests
-  rooms: [],
-  inventory: [],
-  users: [],         // guests list
-  settings: {},      // hotel settings
-  foodMenu: [],
-  reviews: [],
-  maintenance: [],
-  blacklist: [],
-  loyalty: [],
-  staff: [],
-  logs: [],
-  hotels: [],
-
-  // UI Helpers
-  cart: [],
-  selectedRequests: new Set(),
-  adminFilter: 'all',
-  adminSearch: '',
-  currentPage: 0,
-  isLoading: false,
-  hasMore: true,
-
-  // Ratings & Forms
-  ratingData: { overall: 0, cleanliness: 0, staff: 0, recommend: null },
-  isClockedIn: false,
-  dndEnabled: false
-};
-
-// ============ API HELPER - MongoDB Communication ============
-// ✅ ALL data operations go through this - NEVER localStorage for business data
-async function apiCall(endpoint, method = 'GET', data = null, useAuth = true) {
-  const headers = { 'Content-Type': 'application/json' };
-
-  // Add auth token if required
-  if (useAuth && state.token) {
-    headers['Authorization'] = `Bearer ${state.token}`;
-  }
-
-  // Add hotel context for multi-tenant
-  if (state.hotelId) {
-    headers['X-Hotel-Id'] = state.hotelId;
-  }
-
-  const options = { method, headers };
-  if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
-    options.body = JSON.stringify(data);
-  }
-
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-
-    // Handle auth errors
-    if (response.status === 401) {
-      handleAuthError();
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    // Handle not found
-    if (response.status === 404) {
-      return { success: false, error: 'Not Found' };
-    }
-
-    const result = await response.json();
-    return result;
-
-  } catch (error) {
-    console.error(`API Error [${method} ${endpoint}]:`, error);
-
-    // Offline fallback - show indicator but don't save to localStorage
-    if (!state.offlineMode) {
-      state.offlineMode = true;
-      saveToLocalStorage(LS.OFFLINE, true);
-      showToast(t('offlineModeActive'), 'warning');
-    }
-
-    return { success: false, error: error.message, offline: true };
-  }
+// Get current hotelId from localStorage
+function getCurrentHotelId() {
+    return localStorage.getItem('hotelId') || 'CPH001';
 }
 
-// ============ LOCALSTORAGE HELPERS - SESSION/TEMP ONLY ============
-// ✅ ONLY use these for session/temp data - NEVER for business data
-function saveToLocalStorage(key, value) {
-  try {
-    if (value === null || value === undefined) {
-      localStorage.removeItem(key);
-    } else {
-      localStorage.setItem(key, JSON.stringify(value));
-    }
-  } catch (e) {
-    console.warn('localStorage save failed:', e);
-  }
+// Set current hotelId
+function setCurrentHotelId(hotelId) {
+    localStorage.setItem('hotelId', hotelId);
+    // Reload data for new hotel
+    loadAllDataFromBackend();
 }
 
-function getFromLocalStorage(key, defaultValue = null) {
-  try {
-    const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
-  } catch (e) {
-    console.warn('localStorage get failed:', e);
-    return defaultValue;
-  }
-}
-
-function clearSessionStorage() {
-  // ✅ Clear ONLY session/temp keys - NEVER touch MongoDB data
-  [LS.TOKEN, LS.HOTEL_ID, LS.HOTEL_NAME, LS.ROLE, LS.LANGUAGE, 
-   LS.DARK_MODE, LS.THEME, LS.OFFLINE, LS.ADMIN_SESSION, LS.GUEST_SESSION, LS.CART]
-    .forEach(key => localStorage.removeItem(key));
-}
-
-// ============ AUTH & SESSION MANAGEMENT ============
-async function login(email, password, hotelId, role = 'guest') {
-  const response = await apiCall('/auth/login', 'POST', { email, password, hotelId }, false);
-
-  if (response.success && response.data) {
-    // ✅ Save ONLY session data to localStorage
-    state.token = response.data.token;
-    state.hotelId = response.data.hotelId || hotelId;
-    state.hotelName = response.data.hotelName;
-    state.role = response.data.role || role;
-
-    saveToLocalStorage(LS.TOKEN, state.token);
-    saveToLocalStorage(LS.HOTEL_ID, state.hotelId);
-    saveToLocalStorage(LS.HOTEL_NAME, state.hotelName);
-    saveToLocalStorage(LS.ROLE, state.role);
-
-    // Save session object for quick restore
-    const session = {
-      token: state.token,
-      hotelId: state.hotelId,
-      role: state.role,
-      timestamp: Date.now()
+// Enhanced API call with hotelId header
+async function apiCall(endpoint, method = 'GET', data = null) {
+    const options = {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Hotel-Id': getCurrentHotelId()
+        }
     };
-    if (state.role !== 'guest') {
-      saveToLocalStorage(LS.ADMIN_SESSION, session);
-    } else {
-      saveToLocalStorage(LS.GUEST_SESSION, { ...session, guest: state.currentGuest });
-    }
-
-    // ✅ Load ALL data from MongoDB (NOT localStorage)
-    await loadAllDataFromMongo();
-
-    return true;
-  }
-
-  return false;
-}
-
-function logout() {
-  // ✅ Clear session from localStorage
-  clearSessionStorage();
-
-  // ✅ Clear in-memory state
-  state = {
-    ...state,
-    token: null,
-    hotelId: null,
-    hotelName: null,
-    role: null,
-    currentGuest: null,
-    currentAdminRole: null,
-    bookings: [],
-    rooms: [],
-    inventory: [],
-    users: [],
-    settings: {},
-    foodMenu: [],
-    reviews: [],
-    maintenance: [],
-    blacklist: [],
-    loyalty: [],
-    staff: [],
-    logs: [],
-    cart: [],
-    selectedRequests: new Set()
-  };
-
-  // Redirect to login
-  window.location.reload();
-}
-
-function handleAuthError() {
-  showToast(t('sessionExpired'), 'error');
-  logout();
-}
-
-// Check for saved session on app start
-function checkSavedSession() {
-  const TTL = 24 * 60 * 60 * 1000; // 24 hours
-
-  // Check admin session
-  const adminSession = getFromLocalStorage(LS.ADMIN_SESSION);
-  if (adminSession && (Date.now() - adminSession.timestamp < TTL)) {
-    state.token = adminSession.token;
-    state.hotelId = adminSession.hotelId;
-    state.role = adminSession.role;
-    state.currentAdminRole = adminSession.role;
-
-    // Load session helpers
-    state.hotelName = getFromLocalStorage(LS.HOTEL_NAME);
-    state.language = getFromLocalStorage(LS.LANGUAGE, 'en');
-    state.darkMode = getFromLocalStorage(LS.DARK_MODE, false);
-    state.theme = getFromLocalStorage(LS.THEME, 'default');
-    state.offlineMode = getFromLocalStorage(LS.OFFLINE, false);
-
-    // ✅ Load data from MongoDB (NOT localStorage)
-    loadAllDataFromMongo();
-    return 'admin';
-  }
-
-  // Check guest session
-  const guestSession = getFromLocalStorage(LS.GUEST_SESSION);
-  if (guestSession && (Date.now() - guestSession.timestamp < TTL)) {
-    state.token = guestSession.token;
-    state.hotelId = guestSession.hotelId;
-    state.role = 'guest';
-    state.currentGuest = guestSession.guest;
-
-    // Load session helpers
-    state.hotelName = getFromLocalStorage(LS.HOTEL_NAME);
-    state.language = getFromLocalStorage(LS.LANGUAGE, 'en');
-    state.darkMode = getFromLocalStorage(LS.DARK_MODE, false);
-    state.theme = getFromLocalStorage(LS.THEME, 'default');
-    state.offlineMode = getFromLocalStorage(LS.OFFLINE, false);
-
-    // ✅ Load data from MongoDB
-    loadAllDataFromMongo();
-    return 'guest';
-  }
-
-  return null;
-}
-
-// ============ MONGODB DATA OPERATIONS ============
-// ✅ ALL data loaded from/saved to MongoDB - localStorage NOT used for data
-
-// Load ALL collections from MongoDB
-async function loadAllDataFromMongo() {
-  if (state.offlineMode) {
-    console.log('⚠️ Offline mode - using cached data');
-    return;
-  }
-
-  state.isLoading = true;
-  showSyncIndicator();
-
-  try {
-    // ✅ Fetch all data from MongoDB via API
-    const [bookingsRes, roomsRes, inventoryRes, usersRes, settingsRes, 
-           foodRes, reviewsRes, maintRes, blacklistRes, loyaltyRes, staffRes, logsRes] = await Promise.all([
-      apiCall(DB.BOOKINGS),
-      apiCall(DB.ROOMS),
-      apiCall(DB.INVENTORY),
-      apiCall(DB.USERS),
-      apiCall(DB.SETTINGS),
-      apiCall(DB.FOOD),
-      apiCall(DB.REVIEWS),
-      apiCall(DB.MAINTENANCE),
-      apiCall(DB.BLACKLIST),
-      apiCall(DB.LOYALTY),
-      apiCall(DB.STAFF),
-      apiCall(DB.LOGS)
-    ]);
-
-    // ✅ Update in-memory state (NOT localStorage)
-    if (bookingsRes.success) state.bookings = bookingsRes.data || [];
-    if (roomsRes.success) state.rooms = roomsRes.data || [];
-    if (inventoryRes.success) state.inventory = inventoryRes.data || [];
-    if (usersRes.success) state.users = usersRes.data || [];
-    if (settingsRes.success) state.settings = { ...state.settings, ...settingsRes.data };
-    if (foodRes.success) state.foodMenu = foodRes.data || [];
-    if (reviewsRes.success) state.reviews = reviewsRes.data || [];
-    if (maintRes.success) state.maintenance = maintRes.data || [];
-    if (blacklistRes.success) state.blacklist = blacklistRes.data || [];
-    if (loyaltyRes.success) state.loyalty = loyaltyRes.data || [];
-    if (staffRes.success) state.staff = staffRes.data || [];
-    if (logsRes.success) state.logs = logsRes.data || [];
-
-    console.log('✅ Data loaded from MongoDB:', {
-      bookings: state.bookings.length,
-      rooms: state.rooms.length,
-      inventory: state.inventory.length,
-      users: state.users.length,
-      food: state.foodMenu.length
-    });
-
-    // ✅ Refresh UI with fresh data
-    refreshAllUI();
-
-  } catch (error) {
-    console.error('Failed to load from MongoDB:', error);
-    showToast(t('connectionError'), 'error');
-  } finally {
-    state.isLoading = false;
-    hideSyncIndicator();
-  }
-}
-
-// Save booking/service request to MongoDB
-async function saveBookingToMongo(booking) {
-  if (state.offlineMode) {
-    // Queue for sync when online
-    queueOfflineAction('saveBooking', booking);
-    return { success: true, offline: true };
-  }
-
-  const endpoint = booking.id ? `${DB.BOOKINGS}/${booking.id}` : DB.BOOKINGS;
-  const method = booking.id ? 'PUT' : 'POST';
-
-  const result = await apiCall(endpoint, method, booking);
-
-  if (result.success) {
-    // ✅ Update in-memory cache
-    if (booking.id) {
-      const idx = state.bookings.findIndex(b => b.id === booking.id);
-      if (idx >= 0) state.bookings[idx] = { ...booking, ...result.data };
-    } else {
-      state.bookings.unshift({ ...booking, id: result.data?.id || Date.now() });
-    }
-    refreshUIForBookings();
-  }
-
-  return result;
-}
-
-// Save room to MongoDB
-async function saveRoomToMongo(room) {
-  if (state.offlineMode) {
-    queueOfflineAction('saveRoom', room);
-    return { success: true, offline: true };
-  }
-
-  const endpoint = room.id ? `${DB.ROOMS}/${room.id}` : DB.ROOMS;
-  const method = room.id ? 'PUT' : 'POST';
-
-  const result = await apiCall(endpoint, method, room);
-
-  if (result.success) {
-    if (room.id) {
-      const idx = state.rooms.findIndex(r => r.id === room.id);
-      if (idx >= 0) state.rooms[idx] = { ...room, ...result.data };
-    } else {
-      state.rooms.push({ ...room, id: result.data?.id || Date.now() });
-    }
-    refreshUIForRooms();
-  }
-
-  return result;
-}
-
-// Save inventory item to MongoDB
-async function saveInventoryToMongo(item) {
-  if (state.offlineMode) {
-    queueOfflineAction('saveInventory', item);
-    return { success: true, offline: true };
-  }
-
-  const endpoint = item.id ? `${DB.INVENTORY}/${item.id}` : DB.INVENTORY;
-  const method = item.id ? 'PUT' : 'POST';
-
-  const result = await apiCall(endpoint, method, item);
-
-  if (result.success) {
-    if (item.id) {
-      const idx = state.inventory.findIndex(i => i.id === item.id);
-      if (idx >= 0) state.inventory[idx] = { ...item, ...result.data };
-    } else {
-      state.inventory.push({ ...item, id: result.data?.id || Date.now() });
-    }
-    refreshUIForInventory();
-  }
-
-  return result;
-}
-
-// Save user/guest to MongoDB
-async function saveUserToMongo(user) {
-  if (state.offlineMode) {
-    queueOfflineAction('saveUser', user);
-    return { success: true, offline: true };
-  }
-
-  const result = await apiCall(DB.USERS, 'POST', user);
-
-  if (result.success) {
-    state.users.push({ ...user, id: result.data?.id || Date.now() });
-    refreshUIForUsers();
-  }
-
-  return result;
-}
-
-// Save hotel settings to MongoDB
-async function saveSettingsToMongo(settings) {
-  if (state.offlineMode) {
-    queueOfflineAction('saveSettings', settings);
-    return { success: true, offline: true };
-  }
-
-  const result = await apiCall(DB.SETTINGS, 'PUT', settings);
-
-  if (result.success) {
-    state.settings = { ...state.settings, ...result.data };
-    updateAllDisplays();
-  }
-
-  return result;
-}
-
-// Save food item to MongoDB
-async function saveFoodToMongo(food) {
-  if (state.offlineMode) {
-    queueOfflineAction('saveFood', food);
-    return { success: true, offline: true };
-  }
-
-  const endpoint = food.id ? `${DB.FOOD}/${food.id}` : DB.FOOD;
-  const method = food.id ? 'PUT' : 'POST';
-
-  const result = await apiCall(endpoint, method, food);
-
-  if (result.success) {
-    if (food.id) {
-      const idx = state.foodMenu.findIndex(f => f.id === food.id);
-      if (idx >= 0) state.foodMenu[idx] = { ...food, ...result.data };
-    } else {
-      state.foodMenu.push({ ...food, id: result.data?.id || Date.now() });
-    }
-    refreshUIForFood();
-  }
-
-  return result;
-}
-
-// Save review to MongoDB
-async function saveReviewToMongo(review) {
-  if (state.offlineMode) {
-    queueOfflineAction('saveReview', review);
-    return { success: true, offline: true };
-  }
-
-  const result = await apiCall(DB.REVIEWS, 'POST', review);
-
-  if (result.success) {
-    state.reviews.unshift({ ...review, id: result.data?.id || Date.now() });
-    refreshUIForReviews();
-  }
-
-  return result;
-}
-
-// Delete operations
-async function deleteFromMongo(collection, id) {
-  if (state.offlineMode) {
-    queueOfflineAction('delete', { collection, id });
-    return { success: true, offline: true };
-  }
-
-  const result = await apiCall(`${collection}/${id}`, 'DELETE');
-
-  if (result.success) {
-    // Remove from in-memory cache
-    const key = collection.replace('/', '');
-    if (state[key] && Array.isArray(state[key])) {
-      state[key] = state[key].filter(item => item.id !== id);
-      refreshUIForKey(key);
-    }
-  }
-
-  return result;
-}
-
-// ============ OFFLINE QUEUE ============
-// ✅ Queue actions when offline, sync when back online
-let offlineQueue = [];
-
-function queueOfflineAction(action, data) {
-  offlineQueue.push({ action, data, timestamp: Date.now() });
-  console.log('📦 Queued offline action:', action);
-
-  // Limit queue size
-  if (offlineQueue.length > 100) {
-    offlineQueue.shift();
-  }
-
-  // Save queue to localStorage TEMPORARILY (for recovery)
-  saveToLocalStorage('hqms_offline_queue_temp', offlineQueue);
-}
-
-async function syncOfflineQueue() {
-  if (!navigator.onLine || offlineQueue.length === 0) return;
-
-  console.log('🔄 Syncing offline queue:', offlineQueue.length, 'actions');
-
-  for (const { action, data } of offlineQueue) {
+    if (data) options.body = JSON.stringify(data);
     try {
-      switch (action) {
-        case 'saveBooking': await saveBookingToMongo(data); break;
-        case 'saveRoom': await saveRoomToMongo(data); break;
-        case 'saveInventory': await saveInventoryToMongo(data); break;
-        case 'saveUser': await saveUserToMongo(data); break;
-        case 'saveSettings': await saveSettingsToMongo(data); break;
-        case 'saveFood': await saveFoodToMongo(data); break;
-        case 'saveReview': await saveReviewToMongo(data); break;
-        case 'delete': await deleteFromMongo(data.collection, data.id); break;
-      }
-    } catch (e) {
-      console.error('Failed to sync action:', action, e);
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+        return await response.json();
+    } catch (error) {
+        console.error(`API Error (${endpoint}):`, error);
+        return { success: false, error: error.message };
     }
-  }
-
-  // Clear queue after sync
-  offlineQueue = [];
-  saveToLocalStorage('hqms_offline_queue_temp', null);
-  showToast(t('syncComplete'), 'success');
 }
 
-// Listen for online/offline events
-window.addEventListener('online', () => {
-  state.offlineMode = false;
-  saveToLocalStorage(LS.OFFLINE, false);
-  showToast(t('backOnline'), 'success');
-  syncOfflineQueue();
-  loadAllDataFromMongo(); // Refresh data
-});
-
-window.addEventListener('offline', () => {
-  state.offlineMode = true;
-  saveToLocalStorage(LS.OFFLINE, true);
-  showToast(t('offlineModeActive'), 'warning');
-});
-
-// ============ HOTEL SWITCHING (Multi-Tenant) ============
-async function switchHotel(hotelId) {
-  // ✅ Update session in localStorage
-  state.hotelId = hotelId;
-  saveToLocalStorage(LS.HOTEL_ID, hotelId);
-
-  // Fetch hotel details
-  const hotelRes = await apiCall(`${DB.HOTELS}/${hotelId}`);
-  if (hotelRes.success) {
-    state.hotelName = hotelRes.data.name;
-    saveToLocalStorage(LS.HOTEL_NAME, state.hotelName);
-  }
-
-  // ✅ Reload ALL data from MongoDB for new hotel
-  await loadAllDataFromMongo();
-
-  showToast(`${t('switchedTo')} ${state.hotelName}`, 'success');
-  refreshAllUI();
+// Login function that saves hotelId
+async function loginUser(email, password, hotelId) {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, hotelId })
+    });
+    const result = await response.json();
+    if (result.success) {
+        localStorage.setItem('token', result.data.token);
+        localStorage.setItem('hotelId', result.data.hotelId);
+        localStorage.setItem('hotelName', result.data.hotelName);
+        localStorage.setItem('role', result.data.role);
+        return true;
+    }
+    return false;
 }
 
+// Get all hotels list for hotel switching
 async function getHotelsList() {
-  const result = await apiCall(DB.HOTELS);
-  return result.success ? result.data : [];
+    const response = await apiCall('/hotels');
+    return response.success ? response.data : [];
 }
 
-// ============ UTILITY FUNCTIONS ============
-function t(key, params = {}) {
-  // Translation logic (same as before, using translations object)
-  let text = translations[state.language]?.[key] || translations['en'][key] || key;
-  for (const [k, v] of Object.entries(params)) {
-    text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
-  }
-  return text;
+// Render hotel switcher in UI
+function renderHotelSwitcher() {
+    const currentHotelId = getCurrentHotelId();
+    const hotelName = localStorage.getItem('hotelName') || 'Crown Plaza';
+
+    // Add hotel selector to header if not exists
+    let hotelSelector = document.getElementById('hotelSelector');
+    if (!hotelSelector) {
+        const header = document.querySelector('header .flex.justify-between');
+        if (header) {
+            const selectorHtml = `
+                <div id="hotelSelector" class="relative">
+                    <button onclick="toggleHotelMenu()" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-sm flex items-center gap-2">
+                        🏨 <span id="currentHotelName">${hotelName}</span> ▼
+                    </button>
+                    <div id="hotelMenu" class="hidden absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-50 min-w-[200px]">
+                        <div id="hotelList" class="p-2"></div>
+                    </div>
+                </div>
+            `;
+            header.insertAdjacentHTML('beforeend', selectorHtml);
+        }
+    }
 }
 
-// ============ LOGIN TAB SWITCHING ============
-function switchLoginType(type) {
-  const guestForm = document.getElementById('guestLoginForm');
-  const adminForm = document.getElementById('adminLoginForm');
-  const guestBtn  = document.getElementById('guestTabBtn');
-  const adminBtn  = document.getElementById('adminTabBtn');
-
-  if (type === 'guest') {
-    guestForm?.classList.remove('hidden');
-    adminForm?.classList.add('hidden');
-    guestBtn?.classList.replace('bg-gray-100', 'bg-purple-100');
-    guestBtn?.classList.replace('text-gray-700', 'text-purple-700');
-    adminBtn?.classList.replace('bg-purple-100', 'bg-gray-100');
-    adminBtn?.classList.replace('text-purple-700', 'text-gray-700');
-  } else {
-    adminForm?.classList.remove('hidden');
-    guestForm?.classList.add('hidden');
-    adminBtn?.classList.replace('bg-gray-100', 'bg-purple-100');
-    adminBtn?.classList.replace('text-gray-700', 'text-purple-700');
-    guestBtn?.classList.replace('bg-purple-100', 'bg-gray-100');
-    guestBtn?.classList.replace('text-purple-700', 'text-gray-700');
-  }
+async function toggleHotelMenu() {
+    const menu = document.getElementById('hotelMenu');
+    if (menu.classList.contains('hidden')) {
+        const hotels = await getHotelsList();
+        const listHtml = hotels.map(hotel => `
+            <button onclick="switchHotel('${hotel.hotelId}')" class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm">
+                🏨 ${hotel.name} (${hotel.countryCode})
+            </button>
+        `).join('');
+        document.getElementById('hotelList').innerHTML = listHtml || '<div class="px-3 py-2 text-sm">No hotels</div>';
+        menu.classList.remove('hidden');
+    } else {
+        menu.classList.add('hidden');
+    }
 }
-window.switchLoginType = switchLoginType;
 
-// ============ GUEST LOGIN HANDLER (name + room only) ============
-document.addEventListener('DOMContentLoaded', () => {
-  // Guest login form submit
-  document.getElementById('guestLoginForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('guestNameInput')?.value.trim();
-    const room = document.getElementById('guestRoomInput')?.value.trim();
-    if (!name || !room) { showToast(t('fillRequired'), 'error'); return; }
+async function switchHotel(hotelId) {
+    const hotel = await apiCall(`/hotels/${hotelId}`);
+    if (hotel.success && hotel.data) {
+        setCurrentHotelId(hotelId);
+        localStorage.setItem('hotelName', hotel.data.name);
+        document.getElementById('currentHotelName').innerText = hotel.data.name;
+        document.getElementById('hotelMenu').classList.add('hidden');
+        showToast(`Switched to ${hotel.data.name}`, 'success');
+        // Reload all data
+        await loadAllDataFromBackend();
+        if (typeof refreshAllUI === 'function') refreshAllUI();
+    }
+}
 
-    const btn = e.target.querySelector('button[type="submit"]');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Logging in...'; }
+// Enhanced loadAllDataFromBackend (already uses apiCall with hotelId)
+// Your existing loadAllDataFromBackend function already works with the new apiCall!
+
+// Add to window for global access
+window.switchHotel = switchHotel;
+window.toggleHotelMenu = toggleHotelMenu;
+window.getCurrentHotelId = getCurrentHotelId;
+window.setCurrentHotelId = setCurrentHotelId;
+
+console.log('✅ Multi-hotel support enabled');
+// Translations dictionary
+const translations = {
+    en: {
+        connectionError: "Connection error! Using local data.",
+        offlineModeActive: "Offline mode - using local storage",
+        backendConnected: "Connected to server!",
+        welcomeBack: "Welcome back!",
+        guestWelcome: "Welcome",
+        adminWelcome: "Welcome",
+        loginSuccess: "Login successful",
+        invalidCredentials: "Invalid credentials",
+        languageChanged: "Language changed to "
+    },
+    hi: {
+        connectionError: "कनेक्शन त्रुटि! स्थानीय डेटा उपयोग हो रहा है।",
+        offlineModeActive: "ऑफलाइन मोड - स्थानीय स्टोरेज उपयोग हो रहा है",
+        backendConnected: "सर्वर से कनेक्ट हो गया!",
+        welcomeBack: "वापसी पर स्वागत है!",
+        guestWelcome: "स्वागत है",
+        adminWelcome: "स्वागत है",
+        loginSuccess: "लॉगिन सफल",
+        invalidCredentials: "अमान्य क्रेडेंशियल",
+        languageChanged: "भाषा बदलकर हुई "
+    },
+    ar: {
+        connectionError: "خطأ في الاتصال! استخدام البيانات المحلية.",
+        offlineModeActive: "وضع عدم الاتصال - استخدام التخزين المحلي",
+        backendConnected: "متصل بالخادم!",
+        welcomeBack: "مرحبًا بعودتك!",
+        guestWelcome: "مرحبًا",
+        adminWelcome: "مرحبًا",
+        loginSuccess: "تسجيل الدخول ناجح",
+        invalidCredentials: "بيانات الاعتماد غير صالحة",
+        languageChanged: "تم تغيير اللغة إلى "
+    }
+};
+// ============ TRANSLATIONS ============
+
+// ============ GLOBAL CONFIG & DATA ============
+let timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+let currentLanguage = 'en';
+let offlineMode = false;
+let isClockedIn = false;
+let currentAdminRole = 'super_admin';
+let currentGuest = null;
+let currentAdminFilter = 'all';
+let currentPage = 0;
+let isLoading = false;
+let hasMore = true;
+let selectedRequests = new Set();
+let adminSearchQuery = '';
+let cart = [];
+let ratingData = { overall: 0, cleanliness: 0, staff: 0, recommend: null };
+let currentLoginType = 'guest'; // 'guest' or 'admin'
+
+// ============ BACKEND API CONFIGURATION ============
+// Auto-detect API URL (works on localhost and Replit)
+const API_BASE_URL = '/api';
+    ? 'http://localhost:3000/api' 
+    : '/api';
+
+// API Helper Functions
+async function apiCall(endpoint, method = 'GET', data = null) {
+    const options = {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    };
+
+    if (data) {
+        options.body = JSON.stringify(data);
+    }
 
     try {
-      const res = await apiCall('/auth/guest-login', 'POST', { name, room }, false);
-      if (res.success) {
-        state.token     = res.data.token;
-        state.hotelId   = res.data.hotelId;
-        state.hotelName = res.data.hotelName;
-        state.role      = 'guest';
-        state.currentGuest = { name: res.data.name, room: res.data.room };
-        saveToLocalStorage(LS.TOKEN, state.token);
-        saveToLocalStorage(LS.HOTEL_ID, state.hotelId);
-        saveToLocalStorage(LS.HOTEL_NAME, state.hotelName);
-        saveToLocalStorage(LS.ROLE, 'guest');
-        saveToLocalStorage(LS.GUEST_SESSION, { token: state.token, hotelId: state.hotelId, guest: state.currentGuest, timestamp: Date.now() });
-
-        showToast(t('loginSuccess'), 'success');
-        await loadAllDataFromMongo();
-        showGuestLogin();
-      } else {
-        showToast(res.error || t('invalidCredentials'), 'error');
-        if (btn) { btn.disabled = false; btn.textContent = '🔐 Login as Guest'; }
-      }
-    } catch (err) {
-      showToast(t('connectionError'), 'error');
-      if (btn) { btn.disabled = false; btn.textContent = '🔐 Login as Guest'; }
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error(`API Error (${endpoint}):`, error);
+        showToast(t('connectionError') || 'Connection error! Using local data.', 'error');
+        return { success: false, error: error.message };
     }
-  });
+}
 
-  // Admin login form submit
-  document.getElementById('adminLoginForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email    = document.getElementById('adminEmailInput')?.value.trim();
-    const password = document.getElementById('adminPasswordInput')?.value;
-    if (!email || !password) { showToast(t('fillRequired'), 'error'); return; }
-
-    const btn = e.target.querySelector('button[type="submit"]');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Logging in...'; }
-
+// Load all data from backend
+async function loadAllDataFromBackend() {
     try {
-      const res = await apiCall('/auth/login', 'POST', { email, password }, false);
-      if (res.success) {
-        state.token          = res.data.token;
-        state.hotelId        = res.data.hotelId;
-        state.hotelName      = res.data.hotelName;
-        state.role           = res.data.role;
-        state.currentAdminRole = res.data.role;
-        saveToLocalStorage(LS.TOKEN, state.token);
-        saveToLocalStorage(LS.HOTEL_ID, state.hotelId);
-        saveToLocalStorage(LS.HOTEL_NAME, state.hotelName);
-        saveToLocalStorage(LS.ROLE, state.role);
-        saveToLocalStorage(LS.ADMIN_SESSION, { token: state.token, hotelId: state.hotelId, role: state.role, timestamp: Date.now() });
+        showSyncIndicator();
+        const response = await apiCall('/sync');
 
-        showToast(t('loginSuccess'), 'success');
-        await loadAllDataFromMongo();
+        if (response.success && response.data) {
+            // Update global arrays with backend data
+            requests = response.data.requests || [];
+            rooms = response.data.rooms || [];
+            guests = response.data.guests || [];
+            foodMenu = response.data.foodMenu || [];
+            reviews = response.data.reviews || [];
 
-        // Show role selection for admin
-        document.getElementById('loginSelectionPage')?.classList.add('hidden');
-        showRoleSelection();
-      } else {
-        showToast(res.error || t('invalidCredentials'), 'error');
-        if (btn) { btn.disabled = false; btn.textContent = '🔐 Login as Admin'; }
-      }
-    } catch (err) {
-      showToast(t('connectionError'), 'error');
-      if (btn) { btn.disabled = false; btn.textContent = '🔐 Login as Admin'; }
+            console.log('✅ Data loaded from backend:', {
+                requests: requests.length,
+                rooms: rooms.length,
+                guests: guests.length,
+                foodMenu: foodMenu.length,
+                reviews: reviews.length
+            });
+
+            // Save to localStorage as backup
+            saveToLocal();
+
+            // Refresh UI
+            refreshAllUI();
+
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Failed to load from backend:', error);
+        // Fallback to localStorage
+        loadFromLocal();
+        return false;
     }
-  });
+}
+
+// Save single request to backend
+async function saveRequestToBackend(request) {
+    const existing = requests.find(r => r.id === request.id);
+    if (existing) {
+        // Update existing request
+        return await apiCall(`/requests/${request.id}`, 'PUT', request);
+    } else {
+        // Create new request
+        return await apiCall('/requests', 'POST', request);
+    }
+}
+
+// Save all requests to backend
+async function syncAllRequestsToBackend() {
+    for (const request of requests) {
+        await saveRequestToBackend(request);
+    }
+    console.log('✅ All requests synced to backend');
+}
+
+// Save room to backend
+async function saveRoomToBackend(room) {
+    const existing = rooms.find(r => r.id === room.id);
+    if (existing) {
+        return await apiCall(`/rooms/${room.id}`, 'PUT', room);
+    } else {
+        return await apiCall('/rooms', 'POST', room);
+    }
+}
+
+// Save guest to backend
+async function saveGuestToBackend(guest) {
+    return await apiCall('/guests', 'POST', guest);
+}
+
+// Save food item to backend
+async function saveFoodToBackend(food) {
+    const existing = foodMenu.find(f => f.id === food.id);
+    if (existing) {
+        return await apiCall(`/food/${food.id}`, 'PUT', food);
+    } else {
+        return await apiCall('/food', 'POST', food);
+    }
+}
+
+// Save review to backend
+async function saveReviewToBackend(review) {
+    return await apiCall('/reviews', 'POST', review);
+}
+
+// Enhanced saveToLocal - now also syncs to backend
+const originalSaveToLocal = saveToLocal;
+saveToLocal = function() {
+    // Save to localStorage
+    if (typeof originalSaveToLocal === 'function') {
+        originalSaveToLocal();
+    }
+
+    // Also sync to backend (async, don't wait)
+    if (!offlineMode) {
+        syncAllRequestsToBackend().catch(console.error);
+    }
+};
+
+// Enhanced loadFromLocal - now loads from backend first
+const originalLoadFromLocal = loadFromLocal;
+loadFromLocal = function() {
+    if (!offlineMode) {
+        // Try to load from backend first
+        loadAllDataFromBackend().then(success => {
+            if (!success && typeof originalLoadFromLocal === 'function') {
+                originalLoadFromLocal();
+                refreshAllUI();
+            }
+        }).catch(() => {
+            if (typeof originalLoadFromLocal === 'function') {
+                originalLoadFromLocal();
+                refreshAllUI();
+            }
+        });
+    } else if (typeof originalLoadFromLocal === 'function') {
+        originalLoadFromLocal();
+        refreshAllUI();
+    }
+};
+
+// Refresh all UI components after data load
+function refreshAllUI() {
+    // Refresh admin dashboard if visible
+    if (document.getElementById('adminDashboard') && !document.getElementById('adminDashboard').classList.contains('hidden')) {
+        updateAdminDashboard();
+        renderAdminRequests();
+        renderRooms();
+        renderGuests();
+        renderFoodMenu();
+        renderReviews();
+        renderQRCodes();
+    }
+
+    // Refresh guest dashboard if visible
+    if (document.getElementById('guestDashboard') && !document.getElementById('guestDashboard').classList.contains('hidden')) {
+        updateGuestDashboard();
+        renderGuestRequests();
+        renderDynamicFoodMenu();
+    }
+}
+
+// Check backend health on startup
+async function checkBackendHealth() {
+    try {
+        const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`);
+        const data = await response.json();
+        console.log('✅ Backend health:', data);
+        return data.database === 'Connected';
+    } catch (error) {
+        console.warn('⚠️ Backend not reachable, using localStorage only');
+        return false;
+    }
+}
+
+// Initialize with backend connection
+async function initWithBackend() {
+    const backendAvailable = await checkBackendHealth();
+
+    if (backendAvailable) {
+        showToast(t('backendConnected') || '✅ Connected to server!', 'success');
+        await loadAllDataFromBackend();
+    } else {
+        showToast(t('offlineModeActive') || '⚠️ Offline mode - using local storage', 'info');
+        loadFromLocal();
+    }
+
+    // Continue with normal initialization
+    if (typeof initApp === 'function') {
+        initApp();
+    }
+}
+
+// Call this after DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    initWithBackend();
 });
 
-function changeLanguage(lang) {
-  state.language = lang;
-  saveToLocalStorage(LS.LANGUAGE, lang);
-
-  // Update HTML attributes
-  document.documentElement.lang = lang;
-  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-  document.body.classList.toggle('rtl', lang === 'ar');
-
-  // Update active lang button
-  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-  const activeBtn = document.querySelector(`.lang-btn[onclick*="'${lang}'"]`);
-  if (activeBtn) activeBtn.classList.add('active');
-
-  // Re-render UI
-  refreshAllUI();
-  updateLiveClock();
-
-  showToast(`${t('languageChanged')} ${lang.toUpperCase()}`, 'info');
-}
-
-function toggleDarkMode() {
-  state.darkMode = !state.darkMode;
-  saveToLocalStorage(LS.DARK_MODE, state.darkMode);
-  document.body.classList.toggle('dark', state.darkMode);
-
-  const toggle = document.getElementById('darkModeToggle');
-  if (toggle) toggle.innerHTML = state.darkMode ? '☀️' : '🌙';
-}
-
-function setTheme(themeName) {
-  state.theme = themeName;
-  saveToLocalStorage(LS.THEME, themeName);
-
-  const gradients = {
-    default: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    sunset: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
-    forest: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-    ocean: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-    royal: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)'
-  };
-
-  document.querySelectorAll('.gradient-bg').forEach(el => {
-    el.style.background = gradients[themeName] || gradients.default;
-  });
-}
-
-function formatPrice(amount) {
-  const { currencySymbol = '$', priceFormat = 'symbol-first' } = state.settings;
-  const formatted = parseFloat(amount).toFixed(2);
-
-  switch (priceFormat) {
-    case 'symbol-first': return `${currencySymbol}${formatted}`;
-    case 'symbol-last': return `${formatted}${currencySymbol}`;
-    case 'space': return `${formatted} ${currencySymbol}`;
-    default: return `${currencySymbol}${formatted}`;
-  }
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>"']/g, m => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[m]));
-}
-
-// Show/hide sync indicator
-function showSyncIndicator() {
-  const el = document.getElementById('syncIndicator');
-  if (el) {
-    el.classList.remove('hidden');
-    el.innerHTML = '🔄 Syncing...';
-  }
-}
-
-function hideSyncIndicator() {
-  const el = document.getElementById('syncIndicator');
-  if (el) {
-    el.classList.add('hidden');
-  }
-}
-
-// Toast notifications
-function showToast(message, type = 'success') {
-  const container = document.getElementById('toastContainer');
-  if (!container) return;
-
-  const toast = document.createElement('div');
-  const colors = {
-    success: 'border-green-500 bg-green-50',
-    error: 'border-red-500 bg-red-50',
-    warning: 'border-yellow-500 bg-yellow-50',
-    info: 'border-blue-500 bg-blue-50'
-  };
-  const icons = { success: '✅', error: '❌', warning: '⚠️', info: '🔔' };
-
-  toast.className = `border-l-4 ${colors[type] || colors.info} rounded-lg shadow p-3 mb-2 fade-in`;
-  toast.innerHTML = `
-    <div class="flex items-center">
-      <span class="text-xl mr-2">${icons[type] || icons.info}</span>
-      <p class="text-sm font-medium">${message}</p>
-      <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-gray-400 hover:text-gray-600">✕</button>
-    </div>
-  `;
-
-  container.appendChild(toast);
-  setTimeout(() => toast.remove(), 5000);
-
-  // Optional: voice feedback
-  if (state.language && 'speechSynthesis' in window) {
-    speakText(message);
-  }
-}
-
-function speakText(text) {
-  if (!text || !('speechSynthesis' in window)) return;
-  try {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1.1;
-
-    // Try to match voice to language
-    const voices = speechSynthesis.getVoices();
-    const langMap = { en: 'en-', hi: 'hi-', ar: 'ar-' };
-    const preferred = voices.find(v => v.lang.startsWith(langMap[state.language] || 'en-'));
-    if (preferred) utterance.voice = preferred;
-
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
-  } catch (e) {
-    console.log('Speech not available');
-  }
-}
-
-// Update live clock
-function updateLiveClock() {
-  const now = new Date();
-  const options = {
-    timeZone: state.timezone,
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
-  };
-  const locale = state.language === 'hi' ? 'hi-IN' : state.language === 'ar' ? 'ar-SA' : 'en-US';
-  const formatted = now.toLocaleString(locale, options);
-
-  ['liveDateTime', 'liveClockAdmin', 'liveClockGuest', 'guestLocalTime'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = formatted;
-  });
-
-  const tzEl = document.getElementById('timezoneDisplay');
-  if (tzEl) tzEl.innerText = state.timezone;
-}
-setInterval(updateLiveClock, 1000);
-
-// ============ UI REFRESH HELPERS ============
-function refreshAllUI() {
-  // Admin dashboard
-  if (document.getElementById('adminDashboard')?.classList.contains('hidden') === false) {
-    updateAdminDashboard();
-    renderAdminRequests();
-    renderRooms();
-    renderUsers();
-    renderFoodMenu();
-    renderReviews();
-    renderInventory();
-    renderMaintenance();
-    renderBlacklist();
-    renderLoyalty();
-    renderStaff();
-    renderQRCodes();
-    renderActivityLogs();
-  }
-
-  // Guest dashboard
-  if (document.getElementById('guestDashboard')?.classList.contains('hidden') === false) {
-    updateGuestDashboard();
-    renderGuestRequests();
-    renderDynamicFoodMenu();
-  }
-
-  // Global displays
-  updateAllDisplays();
-  updateLiveClock();
-}
-
-function refreshUIForKey(key) {
-  const map = {
-    bookings: () => { renderAdminRequests(); updateAdminDashboard(); if (state.currentGuest) renderGuestRequests(); },
-    rooms: () => { renderRooms(); renderQRCodes(); updateAdminDashboard(); },
-    inventory: renderInventory,
-    users: renderUsers,
-    settings: updateAllDisplays,
-    food: () => { renderFoodMenu(); renderDynamicFoodMenu(); },
-    reviews: renderReviews,
-    maintenance: renderMaintenance,
-    blacklist: renderBlacklist,
-    loyalty: renderLoyalty,
-    staff: () => { renderStaff(); updateSLAStats(); },
-    logs: renderActivityLogs
-  };
-
-  if (map[key]) map[key]();
-}
-
-function refreshUIForBookings() { refreshUIForKey('bookings'); }
-function refreshUIForRooms() { refreshUIForKey('rooms'); }
-function refreshUIForInventory() { refreshUIForKey('inventory'); }
-function refreshUIForUsers() { refreshUIForKey('users'); }
-function refreshUIForFood() { refreshUIForKey('food'); }
-function refreshUIForReviews() { refreshUIForKey('reviews'); }
-
-// ============ INITIALIZATION ============
-async function initApp() {
-  // ✅ Load session from localStorage ONLY
-  state.token = getFromLocalStorage(LS.TOKEN);
-  state.hotelId = getFromLocalStorage(LS.HOTEL_ID, 'CPH001');
-  state.hotelName = getFromLocalStorage(LS.HOTEL_NAME, 'Crown Plaza Hotel');
-  state.role = getFromLocalStorage(LS.ROLE);
-  state.language = getFromLocalStorage(LS.LANGUAGE, 'en');
-  state.darkMode = getFromLocalStorage(LS.DARK_MODE, false);
-  state.theme = getFromLocalStorage(LS.THEME, 'default');
-  state.offlineMode = getFromLocalStorage(LS.OFFLINE, false);
-
-  // ✅ Apply UI preferences from localStorage
-  if (state.darkMode) document.body.classList.add('dark');
-  setTheme(state.theme);
-
-  // ✅ Check for saved session
-  const sessionType = checkSavedSession();
-
-  // ✅ Load data from MongoDB (NOT localStorage)
-  if (state.token) {
-    await loadAllDataFromMongo();
-  } else {
-    // No auth - load public data only
-    const [settingsRes, foodRes] = await Promise.all([
-      apiCall(DB.SETTINGS, 'GET', null, false),
-      apiCall(DB.FOOD, 'GET', null, false)
-    ]);
-    if (settingsRes.success) state.settings = settingsRes.data || {};
-    if (foodRes.success) state.foodMenu = foodRes.data || [];
-    updateAllDisplays();
-    renderDynamicFoodMenu();
-  }
-
-  // ✅ Setup event listeners
-  setupEventListeners();
-
-  // ✅ Render hotel switcher
-  renderHotelSwitcher();
-
-  console.log('✅ Hotel QMS Initialized - MongoDB Primary, LocalStorage Session Only');
-}
-
-function setupEventListeners() {
-  // Language buttons
-  document.querySelectorAll('.lang-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const lang = e.currentTarget.dataset.lang;
-      if (lang) changeLanguage(lang);
-
-      document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-    });
-  });
-
-  // Dark mode toggle
-  const darkToggle = document.getElementById('darkModeToggle');
-  if (darkToggle) {
-    darkToggle.addEventListener('click', toggleDarkMode);
-    darkToggle.innerHTML = state.darkMode ? '☀️' : '🌙';
-  }
-
-  // Theme selector
-  document.querySelectorAll('[data-theme]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const theme = e.currentTarget.dataset.theme;
-      if (theme) setTheme(theme);
-    });
-  });
-
-  // Modal close on outside click
-  document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.classList.remove('active');
-    });
-  });
-
-  // Online/offline handling
-  window.addEventListener('online', () => {
-    state.offlineMode = false;
-    saveToLocalStorage(LS.OFFLINE, false);
-    showToast(t('backOnline'), 'success');
-    syncOfflineQueue();
-    loadAllDataFromMongo();
-  });
-
-  window.addEventListener('offline', () => {
-    state.offlineMode = true;
-    saveToLocalStorage(LS.OFFLINE, true);
-    showToast(t('offlineModeActive'), 'warning');
-  });
-}
-
-// Start app when DOM ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  initApp();
-}
-
-// Expose global functions for HTML onclick handlers
-window.switchHotel = switchHotel;
-window.logout = logout;
-window.changeLanguage = changeLanguage;
-window.toggleDarkMode = toggleDarkMode;
-window.setTheme = setTheme;
-window.formatPrice = formatPrice;
-window.showToast = showToast;
-window.speakText = speakText;
-// ============ HOTEL QMS - FULL STACK - PART 2/3 ============
-// ✅ MongoDB Primary + LocalStorage Session Only + ALL Features
-
-// ============ TRANSLATIONS DICTIONARY ============
-const translations = {
-  en: {
-    // Auth & Session
-    sessionExpired: "Session expired. Please login again.",
-    offlineModeActive: "📴 Offline mode - changes will sync when online",
-    backOnline: "✅ Back online - syncing changes...",
-    syncComplete: "✅ All changes synced to server",
-    connectionError: "Connection error - using cached data",
-    switchedTo: "Switched to",
-    languageChanged: "Language changed to ",
-
-    // Welcome & Login
-    welcomeTitle: "Crown Plaza Hotel",
-    guestWelcome: "Welcome",
-    adminWelcome: "Welcome",
-    loginSuccess: "Login successful!",
-    invalidCredentials: "Invalid email or password",
-    yourName: "Your Name",
-    roomNumber: "Room Number",
-    enterName: "Enter your name",
-    emailAddress: "Email Address",
-    password: "Password",
-    passwordPlaceholder: "••••••••",
-    loginGuest: "🔐 Guest Login",
-    loginAdmin: "🔐 Admin Login",
-
-    // Navigation
-    guestTab: "🏨 Guest",
-    adminTab: "👑 Admin",
-    newRequest: "📝 New Request",
-    myRequests: "My Requests",
-    pending: "Pending",
-    resolved: "Resolved",
-    notRated: "Not Rated",
-    foodMenu: "🍕 Food Menu",
-    placeOrder: "Place Order",
-    transport: "🚗 Transport",
-    bookNow: "Book Now",
-    hotelInfo: "ℹ️ Hotel Info",
-    logout: "Logout",
-
-    // Request Form
-    selectDepartment: "Select Department",
-    selectService: "Select Service",
-    describeIssue: "Describe your issue...",
-    submitRequest: "Submit Request",
-    sosEmergency: "🚨 SOS Emergency",
-    fillRequired: "Please fill all required fields",
-    requestSubmitted: "Request submitted successfully!",
-
-    // Hotel Info
-    wifi: "📶 WiFi:",
-    localTime: "🌍 Local Time:",
-    restaurant: "🍽️ Restaurant:",
-    gym: "💪 Gym:",
-    emergency: "🚨 Emergency:",
-    checkout: "🕐 Checkout:",
-    wakeUpCall: "⏰ Set Wake-up Call",
-    dnd: "🔕 DND: OFF",
-    localGuide: "🗺️ Local Guide",
-    events: "📅 Events",
-    emergencyContacts: "📞 Emergency Contacts",
-    firstAid: "🚑 First Aid",
-    evacuationMap: "🗺️ Evacuation Map",
-    concierge: "🤖 Concierge",
-    checkoutRate: "⭐ Checkout & Rate",
-
-    // Cart & Orders
-    cartIsEmpty: "Your cart is empty",
-    itemAddedCart: " added to cart!",
-    cartEmpty: "Cart is empty!",
-    orderPlaced: "Order placed successfully!",
-
-    // Rating & Review
-    provideRating: "Please provide at least an overall rating",
-    thankYouReview: "Thank you for your review!",
-    thankYouStay: "Thank you for staying at ",
-    seeYouAgain: "! We hope to see you again soon!",
-
-    // Admin Panel
-    selectRole: "👑 Select Your Role",
-    roleSuperAdmin: "Super Admin",
-    roleFrontDesk: "Front Desk",
-    roleHousekeeping: "Housekeeping",
-    roleMaintenance: "Maintenance",
-    roleRestaurant: "Restaurant",
-    roleLaundry: "Laundry",
-    roleSecurity: "Security",
-    roleIT: "IT Support",
-    back: "← Back",
-    tabOverview: "📊 Overview",
-    tabRequests: "📋 Requests",
-    tabRooms: "🏨 Rooms",
-    totalRooms: "Total Rooms",
-    occupied: "Occupied",
-    vacant: "Vacant",
-    cleaning: "Cleaning",
-    open: "Open",
-    inProgress: "In Progress",
-    emergency: "Emergency",
-    addNewRoom: "+ Add Room",
-    noRooms: "No rooms available",
-    roomUpdated: "Room #",
-    updated: " updated!",
-    roomAdded: "Room #",
-    added: " added!",
-    roomExists: "Room number already exists!",
-    roomDeleted: "Room #",
-    deleted: " deleted!",
-    deleteRoom: "Delete this room?",
-
-    // Food Menu
-    noFood: "No food items available",
-    foodUpdated: "Item '",
-    foodAdded: "Item '",
-    addedToMenu: "' added to menu!",
-    deleteFood: "Delete this item?",
-    foodRemoved: "Item '",
-    removedFromMenu: "' removed from menu!",
-    menuUpdating: "Menu updating...",
-
-    // Settings
-    hotelNameUpdated: "Hotel name updated!",
-    invalidHotelName: "Please enter a valid hotel name (min 3 characters)",
-    currencySaved: "Currency settings saved!",
-    transportUpdated: "Transport prices updated!",
-    wifiUpdated: "WiFi password updated!",
-    wifiCopied: "WiFi password copied!",
-
-    // QR Codes
-    qrDownloaded: "QR code downloaded!",
-    qrWait: "Please wait for QR to generate",
-    roomLabel: "Room ",
-
-    // Admin Requests
-    requestCreated: "Request created!",
-    noRequests: "No requests found",
-    complete: "Complete",
-    delete: "Delete",
-    noDescription: "No description",
-    noEmergency: "No emergency requests",
-    noGuestRequests: "No requests yet",
-    completedFor: "Completed for ",
-    deleteRequest: "Delete this request?",
-    deleted: "Deleted!",
-
-    // Bulk Actions
-    completeSelected: "Complete ",
-    deleteSelected: "Delete ",
-    deleteSelectedWarn: " selected requests? This cannot be undone.",
-    requestsCompleted: " requests marked complete!",
-    requestsDeleted: " requests deleted!",
-
-    // Inventory
-    itemName: "Item name",
-    quantity: "Quantity",
-    unit: "Unit",
-    itemAdded: " added to inventory!",
-    deleteItem: "Delete this item?",
-    itemDeleted: " deleted from inventory!",
-
-    // Maintenance
-    task: "Task description",
-    date: "Date (YYYY-MM-DD)",
-    priority: "Priority",
-    maintenanceScheduled: "Task scheduled!",
-    maintenanceCompleted: "Task completed!",
-    deleteTask: "Delete this task?",
-    taskDeleted: "Task deleted!",
-
-    // Blacklist
-    reason: "Reason",
-    blacklistAdded: " added to blacklist!",
-    blacklistRemoved: "Removed from blacklist!",
-
-    // Loyalty
-    pointsRedeemed: " redeemed 100 points for ",
-    discount: " discount",
-    needPoints: "Need 100+ points to redeem",
-    pointsAdded: "Points added! +",
-
-    // Staff
-    rated: "Rated ",
-
-    // Export
-    excelExported: "Excel exported!",
-    dataExported: "Backup exported!",
-
-    // UI Controls
-    save: "Save",
-    cancel: "Cancel",
-    close: "Close",
-    copy: "Copy",
-
-    // Live Features
-    liveUpdates: "Live Updates",
-    voiceEnabled: "Voice Enabled",
-    pwaReady: "PWA Ready",
-    selectTheme: "Select Theme",
-    offlineActive: "📴 Offline Active",
-    highContrast: "🔆",
-    fontSizeSmall: "A-",
-    fontSizeReset: "A",
-    fontSizeLarge: "A+",
-    offlineMode: "📴",
-    pushNotify: "🔔",
-    haptic: "📳",
-    darkMode: "🌙",
-    langEN: "🇬🇧 EN",
-    langHI: "🇮🇳 हिंदी",
-    langAR: "🇸🇦 العربية",
-
-    // DND & Wake-up
-    wakeUpSet: "Wake-up set for ",
-    dndOn: "Do Not Disturb: ON",
-    dndOff: "Do Not Disturb: OFF",
-
-    // Staff Attendance
-    clockedIn: "Clocked In!",
-    clockedOut: "Clocked Out!",
-
-    // Notifications
-    referralCopied: "Referral code copied!",
-    vibrationTest: "Vibration test!",
-    offlineEnabled: "Offline mode enabled",
-    onlineRestored: "Back online!",
-    notificationsEnabled: "Push notifications enabled!",
-
-    // Activity Log Actions
-    logSystemStart: "System Started",
-    logGuestLogin: "Guest Logged In",
-    logAdminLogin: "Admin Logged In",
-    logAdminLogout: "Admin Logged Out",
-    logGuestLogout: "Guest Logged Out",
-    logHotelNameChange: "Hotel Name Changed",
-    logCurrencyChange: "Currency Settings Changed",
-    logTransportChange: "Transport Prices Changed",
-    logRoomAdd: "Room Added",
-    logRoomEdit: "Room Edited",
-    logRoomDelete: "Room Deleted",
-    logQRDownload: "QR Downloaded",
-    logFoodAdd: "Food Item Added",
-    logFoodEdit: "Food Item Edited",
-    logFoodDelete: "Food Item Deleted",
-    logInventoryAdd: "Inventory Added",
-    logInventoryDelete: "Inventory Deleted",
-    logMaintenanceAdd: "Maintenance Task Added",
-    logMaintenanceComplete: "Maintenance Completed",
-    logBlacklistAdd: "Guest Blacklisted",
-    logBlacklistRemove: "Removed from Blacklist",
-    logLoyaltyRedeem: "Points Redeemed",
-    logLoyaltyAdd: "Points Added",
-    logRequestCreate: "Request Created",
-    logRequestComplete: "Request Completed",
-    logRequestDelete: "Request Deleted",
-    logGuestRequest: "Guest Request Submitted",
-    logTransport: "Transport Booked",
-    logWakeUp: "Wake-up Call Set",
-    logSOS: "SOS Emergency Alert",
-    logReview: "Review Submitted",
-    logExportExcel: "Excel Exported",
-    logExportAll: "Backup Exported",
-    logBulkComplete: "Bulk Complete",
-    logBulkDelete: "Bulk Delete",
-    logStaffAttendance: "Staff Attendance",
-    logWifiChange: "WiFi Password Changed",
-    logGenerateReport: "Report Generated",
-
-    // Service Categories
-    catRoomCleaning: "Room Cleaning",
-    catExtraTowels: "Extra Towels",
-    catDeepCleaning: "Deep Cleaning",
-    catBedSheets: "Bed Sheets Change",
-    catACNotWorking: "AC Not Working",
-    catTVIssue: "TV Issue",
-    catPlumbing: "Plumbing",
-    catElectrical: "Electrical",
-    catFurnitureRepair: "Furniture Repair",
-    catOrderFood: "Order Food",
-    catRoomService: "Room Service",
-    catSpecialRequest: "Special Request",
-    catBreakfast: "Breakfast",
-    catLaundryPickup: "Laundry Pickup",
-    catIronOnly: "Iron Only",
-    catDryCleaning: "Dry Cleaning",
-    catWiFiIssue: "WiFi Issue",
-    catTVHelp: "TV Help",
-    catChargingProblem: "Charging Problem"
-  },
-
-  hi: {
-    sessionExpired: "सत्र समाप्त। कृपया फिर से लॉगिन करें।",
-    offlineModeActive: "📴 ऑफलाइन मोड - ऑनलाइन होने पर सिंक होगा",
-    backOnline: "✅ ऑनलाइन - बदलाव सिंक हो रहे...",
-    syncComplete: "✅ सभी बदलाव सर्वर पर सिंक हो गए",
-    connectionError: "कनेक्शन त्रुटि - कैश डेटा उपयोग हो रहा",
-    switchedTo: "स्विच किया गया:",
-    languageChanged: "भाषा बदलकर हुई ",
-    welcomeTitle: "क्राउन प्लाज़ा होटल",
-    guestWelcome: "स्वागत है",
-    adminWelcome: "स्वागत है",
-    loginSuccess: "लॉगिन सफल!",
-    invalidCredentials: "अमान्य ईमेल या पासवर्ड",
-    yourName: "आपका नाम",
-    roomNumber: "कमरा संख्या",
-    enterName: "अपना नाम दर्ज करें",
-    emailAddress: "ईमेल पता",
-    password: "पासवर्ड",
-    passwordPlaceholder: "••••••••",
-    loginGuest: "🔐 अतिथि लॉगिन",
-    loginAdmin: "🔐 व्यवस्थापक लॉगिन",
-    guestTab: "🏨 अतिथि",
-    adminTab: "👑 व्यवस्थापक",
-    newRequest: "📝 नया अनुरोध",
-    myRequests: "मेरे अनुरोध",
-    pending: "लंबित",
-    resolved: "हल किए गए",
-    notRated: "रेटेड नहीं",
-    foodMenu: "🍕 फूड मेनू",
-    placeOrder: "ऑर्डर करें",
-    transport: "🚗 ट्रांसपोर्ट",
-    bookNow: "अभी बुक करें",
-    hotelInfo: "ℹ️ होटल जानकारी",
-    logout: "लॉगआउट",
-    selectDepartment: "विभाग चुनें",
-    selectService: "सेवा चुनें",
-    describeIssue: "अपनी समस्या बताएं...",
-    submitRequest: "अनुरोध जमा करें",
-    sosEmergency: "🚨 SOS आपातकालीन",
-    fillRequired: "कृपया सभी आवश्यक फ़ील्ड भरें",
-    requestSubmitted: "अनुरोध सफलतापूर्वक जमा!",
-    wifi: "📶 वाईफाई:",
-    localTime: "🌍 स्थानीय समय:",
-    restaurant: "🍽️ रेस्तरां:",
-    gym: "💪 जिम:",
-    emergency: "🚨 आपातकालीन:",
-    checkout: "🕐 चेकआउट:",
-    wakeUpCall: "⏰ वेक-अप कॉल सेट करें",
-    dnd: "🔕 डीएनडी: बंद",
-    localGuide: "🗺️ स्थानीय गाइड",
-    events: "📅 इवेंट्स",
-    emergencyContacts: "📞 आपातकालीन संपर्क",
-    firstAid: "🚑 प्राथमिक उपचार",
-    evacuationMap: "🗺️ निकासी मानचित्र",
-    concierge: "🤖 कॉन्सियर्ज",
-    checkoutRate: "⭐ चेकआउट और रेट करें",
-    cartIsEmpty: "आपकी कार्ट खाली है",
-    itemAddedCart: " कार्ट में जोड़ा गया!",
-    cartEmpty: "कार्ट खाली है!",
-    orderPlaced: "ऑर्डर सफलतापूर्वक रखा गया!",
-    provideRating: "कृपया कम से कम एक समग्र रेटिंग दें",
-    thankYouReview: "आपकी समीक्षा के लिए धन्यवाद!",
-    thankYouStay: "पर रहने के लिए धन्यवाद ",
-    seeYouAgain: "! हम जल्द ही आपको फिर देखना चाहेंगे!",
-    selectRole: "👑 अपनी भूमिका चुनें",
-    roleSuperAdmin: "सुपर व्यवस्थापक",
-    roleFrontDesk: "फ्रंट डेस्क",
-    roleHousekeeping: "हाउसकीपिंग",
-    roleMaintenance: "मेंटेनेंस",
-    roleRestaurant: "रेस्तरां",
-    roleLaundry: "लॉन्ड्री",
-    roleSecurity: "सुरक्षा",
-    roleIT: "आईटी सपोर्ट",
-    back: "← वापस",
-    tabOverview: "📊 अवलोकन",
-    tabRequests: "📋 अनुरोध",
-    tabRooms: "🏨 कमरे",
-    totalRooms: "कुल कमरे",
-    occupied: "भरे हुए",
-    vacant: "खाली",
-    cleaning: "सफाई",
-    open: "खुले",
-    inProgress: "प्रगति पर",
-    emergency: "आपातकालीन",
-    addNewRoom: "+ कमरा जोड़ें",
-    noRooms: "कोई कमरा उपलब्ध नहीं",
-    roomUpdated: "कमरा #",
-    updated: " अपडेट किया गया!",
-    roomAdded: "कमरा #",
-    added: " जोड़ा गया!",
-    roomExists: "कमरा नंबर पहले से मौजूद है!",
-    roomDeleted: "कमरा #",
-    deleted: " हटा दिया गया!",
-    deleteRoom: "इस कमरे को हटाएं?",
-    noFood: "कोई भोजन आइटम उपलब्ध नहीं",
-    foodUpdated: "आइटम '",
-    foodAdded: "आइटम '",
-    addedToMenu: "' मेनू में जोड़ा गया!",
-    deleteFood: "इस आइटम को हटाएं?",
-    foodRemoved: "आइटम '",
-    removedFromMenu: "' मेनू से हटा दिया गया!",
-    menuUpdating: "मेनू अपडेट हो रहा...",
-    hotelNameUpdated: "होटल का नाम अपडेट किया गया!",
-    invalidHotelName: "कृपया वैध होटल नाम दर्ज करें (कम से कम 3 अक्षर)",
-    currencySaved: "मुद्रा सेटिंग्स सहेजी गईं!",
-    transportUpdated: "ट्रांसपोर्ट कीमतें अपडेट की गईं!",
-    wifiUpdated: "WiFi पासवर्ड अपडेट किया गया!",
-    wifiCopied: "WiFi पासवर्ड कॉपी किया गया!",
-    qrDownloaded: "QR कोड डाउनलोड किया गया!",
-    qrWait: "कृपया QR जनरेट होने का इंतज़ार करें",
-    roomLabel: "कमरा ",
-    requestCreated: "अनुरोध बनाया गया!",
-    noRequests: "कोई अनुरोध नहीं मिला",
-    complete: "पूरा करें",
-    delete: "हटाएं",
-    noDescription: "कोई विवरण नहीं",
-    noEmergency: "कोई आपातकालीन अनुरोध नहीं",
-    noGuestRequests: "अभी तक कोई अनुरोध नहीं",
-    completedFor: "पूरा किया गया: ",
-    deleteRequest: "इस अनुरोध को हटाएं?",
-    deleted: "हटा दिया गया!",
-    completeSelected: "पूरा करें ",
-    deleteSelected: "हटाएं ",
-    deleteSelectedWarn: " चयनित अनुरोध? यह वापस नहीं हो सकता।",
-    requestsCompleted: " अनुरोध पूरे किए गए!",
-    requestsDeleted: " अनुरोध हटा दिए गए!",
-    itemName: "आइटम का नाम",
-    quantity: "मात्रा",
-    unit: "इकाई",
-    itemAdded: " इन्वेंटरी में जोड़ा गया!",
-    deleteItem: "इस आइटम को हटाएं?",
-    itemDeleted: " इन्वेंटरी से हटा दिया गया!",
-    task: "कार्य विवरण",
-    date: "तारीख (साल-महीना-दिन)",
-    priority: "प्राथमिकता",
-    maintenanceScheduled: "कार्य अनुसूचित किया गया!",
-    maintenanceCompleted: "कार्य पूरा किया गया!",
-    deleteTask: "इस कार्य को हटाएं?",
-    taskDeleted: "कार्य हटा दिया गया!",
-    reason: "कारण",
-    blacklistAdded: " ब्लैकलिस्ट में जोड़ा गया!",
-    blacklistRemoved: "ब्लैकलिस्ट से हटा दिया गया!",
-    pointsRedeemed: " ने 100 पॉइंट्स रिडीम किए ",
-    discount: " छूट के लिए",
-    needPoints: "रिडीम करने के लिए 100+ पॉइंट्स चाहिए",
-    pointsAdded: "पॉइंट्स जोड़े गए! +",
-    rated: "रेट किया गया ",
-    excelExported: "Excel एक्सपोर्ट किया गया!",
-    dataExported: "बैकअप एक्सपोर्ट किया गया!",
-    save: "सहेजें",
-    cancel: "रद्द करें",
-    close: "बंद करें",
-    copy: "कॉपी",
-    liveUpdates: "लाइव अपडेट",
-    voiceEnabled: "वॉइस सक्षम",
-    pwaReady: "PWA तैयार",
-    selectTheme: "थीम चुनें",
-    offlineActive: "📴 ऑफलाइन सक्रिय",
-    highContrast: "🔆",
-    fontSizeSmall: "A-",
-    fontSizeReset: "A",
-    fontSizeLarge: "A+",
-    offlineMode: "📴",
-    pushNotify: "🔔",
-    haptic: "📳",
-    darkMode: "🌙",
-    langEN: "🇬🇧 EN",
-    langHI: "🇮🇳 हिंदी",
-    langAR: "🇸🇦 العربية",
-    wakeUpSet: "वेक-अप कॉल सेट किया गया: ",
-    dndOn: "डू नॉट डिस्टर्ब: चालू",
-    dndOff: "डू नॉट डिस्टर्ब: बंद",
-    clockedIn: "क्लॉक इन किया गया!",
-    clockedOut: "क्लॉक आउट किया गया!",
-    referralCopied: "रेफरल कोड कॉपी किया गया!",
-    vibrationTest: "वाइब्रेशन टेस्ट!",
-    offlineEnabled: "ऑफलाइन मोड सक्रिय",
-    onlineRestored: "वापस ऑनलाइन!",
-    notificationsEnabled: "पुश नोटिफिकेशन सक्रिय!",
-    logSystemStart: "सिस्टम शुरू",
-    logGuestLogin: "अतिथि लॉगिन",
-    logAdminLogin: "व्यवस्थापक लॉगिन",
-    logAdminLogout: "व्यवस्थापक लॉगआउट",
-    logGuestLogout: "अतिथि लॉगआउट",
-    logHotelNameChange: "होटल नाम बदला",
-    logCurrencyChange: "मुद्रा सेटिंग्स बदली",
-    logTransportChange: "ट्रांसपोर्ट कीमतें बदली",
-    logRoomAdd: "कमरा जोड़ा",
-    logRoomEdit: "कमरा संपादित",
-    logRoomDelete: "कमरा हटाया",
-    logQRDownload: "QR डाउनलोड",
-    logFoodAdd: "भोजन आइटम जोड़ा",
-    logFoodEdit: "भोजन आइटम संपादित",
-    logFoodDelete: "भोजन आइटम हटाया",
-    logInventoryAdd: "इन्वेंटरी जोड़ा",
-    logInventoryDelete: "इन्वेंटरी हटाया",
-    logMaintenanceAdd: "मेंटेनेंस कार्य जोड़ा",
-    logMaintenanceComplete: "मेंटेनेंस पूरा",
-    logBlacklistAdd: "अतिथि ब्लैकलिस्ट",
-    logBlacklistRemove: "ब्लैकलिस्ट से हटाया",
-    logLoyaltyRedeem: "पॉइंट्स रिडीम",
-    logLoyaltyAdd: "पॉइंट्स जोड़े",
-    logRequestCreate: "अनुरोध बनाया",
-    logRequestComplete: "अनुरोध पूरा",
-    logRequestDelete: "अनुरोध हटाया",
-    logGuestRequest: "अतिथि अनुरोध जमा",
-    logTransport: "ट्रांसपोर्ट बुक",
-    logWakeUp: "वेक-अप कॉल सेट",
-    logSOS: "SOS आपातकालीन",
-    logReview: "समीक्षा जमा",
-    logExportExcel: "Excel एक्सपोर्ट",
-    logExportAll: "बैकअप एक्सपोर्ट",
-    logBulkComplete: "बल्क पूरा",
-    logBulkDelete: "बल्क हटाया",
-    logStaffAttendance: "स्टाफ उपस्थिति",
-    logWifiChange: "WiFi पासवर्ड बदला",
-    logGenerateReport: "रिपोर्ट जनरेट",
-    catRoomCleaning: "कमरा सफाई",
-    catExtraTowels: "अतिरिक्त तौलिए",
-    catDeepCleaning: "गहरी सफाई",
-    catBedSheets: "बेड शीट बदलें",
-    catACNotWorking: "AC काम नहीं कर रहा",
-    catTVIssue: "TV समस्या",
-    catPlumbing: "प्लंबिंग",
-    catElectrical: "इलेक्ट्रिकल",
-    catFurnitureRepair: "फर्नीचर मरम्मत",
-    catOrderFood: "खाना ऑर्डर करें",
-    catRoomService: "रूम सर्विस",
-    catSpecialRequest: "विशेष अनुरोध",
-    catBreakfast: "नाश्ता",
-    catLaundryPickup: "लॉन्ड्री पिकअप",
-    catIronOnly: "केवल इस्त्री",
-    catDryCleaning: "ड्राई क्लीनिंग",
-    catWiFiIssue: "WiFi समस्या",
-    catTVHelp: "TV मदद",
-    catChargingProblem: "चार्जिंग समस्या"
-  },
-
-  ar: {
-    sessionExpired: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
-    offlineModeActive: "📴 وضع عدم الاتصال - سيتم المزامنة عند الاتصال",
-    backOnline: "✅ عدت للاتصال - جاري مزامنة التغييرات...",
-    syncComplete: "✅ تمت مزامنة جميع التغييرات مع الخادم",
-    connectionError: "خطأ في الاتصال - استخدام البيانات المخزنة مؤقتًا",
-    switchedTo: "تم التبديل إلى",
-    languageChanged: "تم تغيير اللغة إلى ",
-    welcomeTitle: "فندق كراون بلازا",
-    guestWelcome: "مرحبًا",
-    adminWelcome: "مرحبًا",
-    loginSuccess: "تم تسجيل الدخول بنجاح!",
-    invalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
-    yourName: "اسمك",
-    roomNumber: "رقم الغرفة",
-    enterName: "أدخل اسمك",
-    emailAddress: "عنوان البريد الإلكتروني",
-    password: "كلمة المرور",
-    passwordPlaceholder: "••••••••",
-    loginGuest: "🔐 تسجيل دخول ضيف",
-    loginAdmin: "🔐 تسجيل دخول مسؤول",
-    guestTab: "🏨 ضيف",
-    adminTab: "👑 مسؤول",
-    newRequest: "📝 طلب جديد",
-    myRequests: "طلباتي",
-    pending: "قيد الانتظار",
-    resolved: "تم الحل",
-    notRated: "لم يتم التقييم",
-    foodMenu: "🍕 قائمة الطعام",
-    placeOrder: "تقديم الطلب",
-    transport: "🚗 النقل",
-    bookNow: "احجز الآن",
-    hotelInfo: "ℹ️ معلومات الفندق",
-    logout: "تسجيل خروج",
-    selectDepartment: "اختر القسم",
-    selectService: "اختر الخدمة",
-    describeIssue: "صف مشكلتك...",
-    submitRequest: "إرسال الطلب",
-    sosEmergency: "🚨 SOS طوارئ",
-    fillRequired: "يرجى ملء جميع الحقول المطلوبة",
-    requestSubmitted: "تم إرسال الطلب بنجاح!",
-    wifi: "📶 الواي فاي:",
-    localTime: "🌍 الوقت المحلي:",
-    restaurant: "🍽️ المطعم:",
-    gym: "💪 الصالة الرياضية:",
-    emergency: "🚨 طوارئ:",
-    checkout: "🕐 تسجيل الخروج:",
-    wakeUpCall: "⏰ تعيين مكالمة إيقاظ",
-    dnd: "🔕 عدم الإزعاج: إيقاف",
-    localGuide: "🗺️ الدليل المحلي",
-    events: "📅 الفعاليات",
-    emergencyContacts: "📞 جهات اتصال الطوارئ",
-    firstAid: "🚑 الإسعافات الأولية",
-    evacuationMap: "🗺️ خريطة الإخلاء",
-    concierge: "🤖 الكونسيرج",
-    checkoutRate: "⭐ تسجيل الخروج والتقييم",
-    cartIsEmpty: "سلة التسوق الخاصة بك فارغة",
-    itemAddedCart: " تمت إضافته إلى السلة!",
-    cartEmpty: "السلة فارغة!",
-    orderPlaced: "تم تقديم الطلب بنجاح!",
-    provideRating: "يرجى تقديم تقييم عام على الأقل",
-    thankYouReview: "شكرًا لمراجعتك!",
-    thankYouStay: "شكرًا لإقامتك في ",
-    seeYouAgain: "! نأمل أن نراك قريبًا مرة أخرى!",
-    selectRole: "👑 اختر دورك",
-    roleSuperAdmin: "مدير عام",
-    roleFrontDesk: "مكتب الاستقبال",
-    roleHousekeeping: "التنظيف",
-    roleMaintenance: "الصيانة",
-    roleRestaurant: "المطعم",
-    roleLaundry: "الغسيل",
-    roleSecurity: "الأمن",
-    roleIT: "دعم تقنية المعلومات",
-    back: "← عودة",
-    tabOverview: "📊 نظرة عامة",
-    tabRequests: "📋 الطلبات",
-    tabRooms: "🏨 الغرف",
-    totalRooms: "إجمالي الغرف",
-    occupied: "مشغولة",
-    vacant: "فارغة",
-    cleaning: "تنظيف",
-    open: "مفتوحة",
-    inProgress: "قيد التنفيذ",
-    emergency: "طارئ",
-    addNewRoom: "+ إضافة غرفة",
-    noRooms: "لا توجد غرف متاحة",
-    roomUpdated: "غرفة #",
-    updated: " تم تحديثها!",
-    roomAdded: "غرفة #",
-    added: " تمت إضافتها!",
-    roomExists: "رقم الغرفة موجود بالفعل!",
-    roomDeleted: "غرفة #",
-    deleted: " تم حذفها!",
-    deleteRoom: "حذف هذه الغرفة؟",
-    noFood: "لا توجد عناصر طعام متاحة",
-    foodUpdated: "العنصر '",
-    foodAdded: "العنصر '",
-    addedToMenu: "' تمت إضافته إلى القائمة!",
-    deleteFood: "حذف هذا العنصر؟",
-    foodRemoved: "العنصر '",
-    removedFromMenu: "' تمت إزالته من القائمة!",
-    menuUpdating: "جاري تحديث القائمة...",
-    hotelNameUpdated: "تم تحديث اسم الفندق!",
-    invalidHotelName: "يرجى إدخال اسم فندق صالح (3 أحرف على الأقل)",
-    currencySaved: "تم حفظ إعدادات العملة!",
-    transportUpdated: "تم تحديث أسعار النقل!",
-    wifiUpdated: "تم تحديث كلمة مرور الواي فاي!",
-    wifiCopied: "تم نسخ كلمة مرور الواي فاي!",
-    qrDownloaded: "تم تنزيل رمز الاستجابة السريعة!",
-    qrWait: "يرجى الانتظار حتى يتم إنشاء رمز الاستجابة السريعة",
-    roomLabel: "غرفة ",
-    requestCreated: "تم إنشاء الطلب!",
-    noRequests: "لم يتم العثور على طلبات",
-    complete: "إكمال",
-    delete: "حذف",
-    noDescription: "لا يوجد وصف",
-    noEmergency: "لا توجد طلبات طارئة",
-    noGuestRequests: "لا توجد طلبات بعد",
-    completedFor: "تم الإكمال لـ ",
-    deleteRequest: "حذف هذا الطلب؟",
-    deleted: "تم الحذف!",
-    completeSelected: "إكمال ",
-    deleteSelected: "حذف ",
-    deleteSelectedWarn: " طلبات محددة؟ لا يمكن التراجع عن هذا.",
-    requestsCompleted: " تم تحديد الطلبات كمكتملة!",
-    requestsDeleted: " تم حذف الطلبات!",
-    itemName: "اسم العنصر",
-    quantity: "الكمية",
-    unit: "الوحدة",
-    itemAdded: " تمت إضافته إلى المخزون!",
-    deleteItem: "حذف هذا العنصر؟",
-    itemDeleted: " تم حذفه من المخزون!",
-    task: "وصف المهمة",
-    date: "التاريخ (سنة-شهر-يوم)",
-    priority: "الأولوية",
-    maintenanceScheduled: "تم جدولة المهمة!",
-    maintenanceCompleted: "تم إكمال المهمة!",
-    deleteTask: "حذف هذه المهمة؟",
-    taskDeleted: "تم حذف المهمة!",
-    reason: "السبب",
-    blacklistAdded: " تمت إضافته إلى القائمة السوداء!",
-    blacklistRemoved: "تمت إزالته من القائمة السوداء!",
-    pointsRedeemed: " استبدل 100 نقطة لـ ",
-    discount: " خصم",
-    needPoints: "تحتاج إلى 100+ نقطة للاستبدال",
-    pointsAdded: "تمت إضافة النقاط! +",
-    rated: "تم التقييم ",
-    excelExported: "تم تصدير Excel!",
-    dataExported: "تم تصدير النسخة الاحتياطية!",
-    save: "حفظ",
-    cancel: "إلغاء",
-    close: "إغلاق",
-    copy: "نسخ",
-    liveUpdates: "تحديثات مباشرة",
-    voiceEnabled: "تمكين الصوت",
-    pwaReady: "PWA جاهز",
-    selectTheme: "اختر سمة",
-    offlineActive: "📴 عدم الاتصال نشط",
-    highContrast: "🔆",
-    fontSizeSmall: "A-",
-    fontSizeReset: "A",
-    fontSizeLarge: "A+",
-    offlineMode: "📴",
-    pushNotify: "🔔",
-    haptic: "📳",
-    darkMode: "🌙",
-    langEN: "🇬🇧 EN",
-    langHI: "🇮🇳 हिंदी",
-    langAR: "🇸🇦 العربية",
-    wakeUpSet: "تم تعيين مكالمة الإيقاظ لـ ",
-    dndOn: "عدم الإزعاج: تشغيل",
-    dndOff: "عدم الإزعاج: إيقاف",
-    clockedIn: "تم تسجيل الدخول!",
-    clockedOut: "تم تسجيل الخروج!",
-    referralCopied: "تم نسخ رمز الإحالة!",
-    vibrationTest: "اختبار الاهتزاز!",
-    offlineEnabled: "تم تفعيل وضع عدم الاتصال",
-    onlineRestored: "العودة إلى الإنترنت!",
-    notificationsEnabled: "تم تفعيل إشعارات الدفع!",
-    logSystemStart: "بدأ النظام",
-    logGuestLogin: "تسجيل دخول الضيف",
-    logAdminLogin: "تسجيل دخول المسؤول",
-    logAdminLogout: "تسجيل خروج المسؤول",
-    logGuestLogout: "تسجيل خروج الضيف",
-    logHotelNameChange: "تم تغيير اسم الفندق",
-    logCurrencyChange: "تم تغيير إعدادات العملة",
-    logTransportChange: "تم تغيير أسعار النقل",
-    logRoomAdd: "تمت إضافة غرفة",
-    logRoomEdit: "تم تعديل الغرفة",
-    logRoomDelete: "تم حذف الغرفة",
-    logQRDownload: "تم تنزيل رمز الاستجابة السريعة",
-    logFoodAdd: "تمت إضافة عنصر طعام",
-    logFoodEdit: "تم تعديل عنصر الطعام",
-    logFoodDelete: "تم حذف عنصر الطعام",
-    logInventoryAdd: "تمت إضافة عنصر مخزون",
-    logInventoryDelete: "تم حذف عنصر المخزون",
-    logMaintenanceAdd: "تمت إضافة مهمة صيانة",
-    logMaintenanceComplete: "تم إكمال الصيانة",
-    logBlacklistAdd: "تم وضع الضيف في القائمة السوداء",
-    logBlacklistRemove: "تمت الإزالة من القائمة السوداء",
-    logLoyaltyRedeem: "تم استبدال النقاط",
-    logLoyaltyAdd: "تمت إضافة النقاط",
-    logRequestCreate: "تم إنشاء الطلب",
-    logRequestComplete: "تم إكمال الطلب",
-    logRequestDelete: "تم حذف الطلب",
-    logGuestRequest: "تم إرسال طلب الضيف",
-    logTransport: "تم حجز النقل",
-    logWakeUp: "تم تعيين مكالمة إيقاظ",
-    logSOS: "تنبيه طوارئ SOS",
-    logReview: "تم إرسال المراجعة",
-    logExportExcel: "تم تصدير Excel",
-    logExportAll: "تم تصدير النسخة الاحتياطية",
-    logBulkComplete: "إكمال الدفعات",
-    logBulkDelete: "حذف الدفعات",
-    logStaffAttendance: "حضور الموظفين",
-    logWifiChange: "تم تغيير كلمة مرور الواي فاي",
-    logGenerateReport: "تم إنشاء التقرير",
-    catRoomCleaning: "تنظيف الغرفة",
-    catExtraTowels: "مناشف إضافية",
-    catDeepCleaning: "تنظيف عميق",
-    catBedSheets: "تغيير ملاءات السرير",
-    catACNotWorking: "مكيف الهواء لا يعمل",
-    catTVIssue: "مشكلة في التلفزيون",
-    catPlumbing: "السباكة",
-    catElectrical: "كهربائي",
-    catFurnitureRepair: "إصلاح الأثاث",
-    catOrderFood: "طلب طعام",
-    catRoomService: "خدمة الغرف",
-    catSpecialRequest: "طلب خاص",
-    catBreakfast: "الإفطار",
-    catLaundryPickup: "استلام الغسيل",
-    catIronOnly: "كي فقط",
-    catDryCleaning: "التنظيف الجاف",
-    catWiFiIssue: "مشكلة في الواي فاي",
-    catTVHelp: "مساعدة التلفزيون",
-    catChargingProblem: "مشكلة في الشحن"
-  }
+// Settings with defaults
+let hotelSettings = {
+  name: 'Crown Plaza Hotel',
+  currencySymbol: '$',
+  priceFormat: 'symbol-first',
+  transportPrices: { airport: 30, local: 15 },
+  wifiPassword: 'CrownPlaza@2024'
 };
-// ============ HOTEL QMS - FULL STACK - PART 3/3 ============
-// ✅ MongoDB Primary + LocalStorage Session Only + ALL Features Complete
 
-// ============ SERVICE CATEGORIES WITH TRANSLATION KEYS ============
+// Data arrays
+let requests = [];
+let rooms = [];
+let guests = [];
+let reviews = [];
+let inventory = [];
+let maintenanceTasks = [];
+let blacklist = [];
+let loyaltyPoints = [];
+let staffAttendance = [];
+let staffPerformance = [];
+let activityLogs = [];
+let foodMenu = [];
+
+// Admin credentials (for demo - in production use backend)
+const adminCredentials = {
+  'admin@crownplaza.com': 'admin123',
+  'manager@crownplaza.com': 'manager123',
+  'staff@crownplaza.com': 'staff123'
+};
+
+// 🔹 FIXED: Service Categories with translation keys
 const serviceCategories = {
   housekeeping: [
     { key: 'catRoomCleaning', default: 'Room Cleaning' },
@@ -1861,58 +451,6 @@ const serviceCategories = {
   ]
 };
 
-// ============ SAMPLE DATA FOR DEMO (Only if MongoDB empty) ============
-const demoData = {
-  rooms: Array.from({length: 50}, (_, i) => ({
-    id: `room_${101+i}`,
-    number: 101 + i,
-    type: i % 3 === 0 ? 'Suite' : i % 2 === 0 ? 'Deluxe' : 'Standard',
-    status: i % 4 === 0 ? 'Vacant' : i % 3 === 0 ? 'Cleaning' : 'Occupied',
-    guestName: i % 4 === 0 ? '' : `Guest ${101+i}`
-  })),
-
-  users: [
-    { id: 'guest_1', name: 'John Smith', room: 101, email: 'john@example.com', phone: '+1234567890', points: 120, type: 'guest' },
-    { id: 'guest_2', name: 'Sarah Johnson', room: 102, email: 'sarah@example.com', phone: '+1234567891', points: 75, type: 'guest' },
-    { id: 'guest_3', name: 'Michael Brown', room: 103, email: 'michael@example.com', phone: '+1234567892', points: 200, type: 'guest' }
-  ],
-
-  inventory: [
-    { id: 'inv_1', item: 'Towels', quantity: 150, unit: 'pcs', minStock: 50 },
-    { id: 'inv_2', item: 'Linen Sheets', quantity: 80, unit: 'sets', minStock: 30 },
-    { id: 'inv_3', item: 'Pillows', quantity: 60, unit: 'pcs', minStock: 20 },
-    { id: 'inv_4', item: 'Bathrobes', quantity: 45, unit: 'pcs', minStock: 15 },
-    { id: 'inv_5', item: 'Toiletries Kit', quantity: 200, unit: 'pcs', minStock: 80 }
-  ],
-
-  foodMenu: [
-    { id: 'food_1', name: 'Burger', price: 12, category: 'Main Course', description: 'Juicy beef burger with fries' },
-    { id: 'food_2', name: 'Pizza', price: 15, category: 'Main Course', description: 'Margherita pizza' },
-    { id: 'food_3', name: 'Pasta', price: 14, category: 'Main Course', description: 'Creamy Alfredo pasta' },
-    { id: 'food_4', name: 'Coffee', price: 4, category: 'Beverage', description: 'Freshly brewed coffee' },
-    { id: 'food_5', name: 'Caesar Salad', price: 10, category: 'Appetizer', description: 'Fresh greens with parmesan' },
-    { id: 'food_6', name: 'Chocolate Cake', price: 8, category: 'Dessert', description: 'Rich chocolate layer cake' }
-  ],
-
-  maintenance: [
-    { id: 'maint_1', room: 105, task: 'AC Service', date: '2024-01-25', status: 'Scheduled', priority: 'high' },
-    { id: 'maint_2', room: 108, task: 'TV Repair', date: '2024-01-26', status: 'Pending', priority: 'medium' },
-    { id: 'maint_3', room: 112, task: 'Plumbing Leak', date: '2024-01-27', status: 'Scheduled', priority: 'high' }
-  ],
-
-  blacklist: [
-    { id: 'black_1', name: 'Fraud User', room: 999, reason: 'Payment default', date: '2024-01-10', phone: '1234567890' }
-  ],
-
-  staff: [
-    { id: 'staff_1', name: 'John (Housekeeping)', completed: 45, pending: 2, rating: 4.8, department: 'housekeeping' },
-    { id: 'staff_2', name: 'Mike (Maintenance)', completed: 32, pending: 5, rating: 4.5, department: 'maintenance' },
-    { id: 'staff_3', name: 'Sarah (Restaurant)', completed: 28, pending: 1, rating: 4.9, department: 'restaurant' },
-    { id: 'staff_4', name: 'David (Front Desk)', completed: 56, pending: 3, rating: 4.7, department: 'front_desk' }
-  ]
-};
-
-// ============ LOCAL ATTRACTIONS & EVENTS ============
 const localAttractions = [
   {name:'City Mall', distance:'2 km', type:'🛍️'},
   {name:'Beach', distance:'5 km', type:'🏖️'},
@@ -1929,74 +467,433 @@ const hotelEvents = [
   {name:'Business Conference', date:'Monthly', time:'9AM-5PM'}
 ];
 
-// ============ HOTEL SETTINGS DEFAULTS ============
-const defaultSettings = {
-  name: 'Crown Plaza Hotel',
-  currencySymbol: '$',
-  priceFormat: 'symbol-first',
-  transportPrices: { airport: 30, local: 15 },
-  wifiPassword: 'CrownPlaza@2024',
-  checkoutTime: '12:00',
-  restaurantHours: '6AM-11PM',
-  gymHours: '24/7',
-  emergencyContact: '+1-800-HOTEL-911'
-};
+const defaultFoodMenu = [
+  { id: 1, name: 'Burger', price: 12, category: 'Main Course', description: 'Juicy beef burger with fries' },
+  { id: 2, name: 'Pizza', price: 15, category: 'Main Course', description: 'Margherita pizza' },
+  { id: 3, name: 'Pasta', price: 14, category: 'Main Course', description: 'Creamy Alfredo pasta' },
+  { id: 4, name: 'Coffee', price: 4, category: 'Beverage', description: 'Freshly brewed coffee' },
+  { id: 5, name: 'Caesar Salad', price: 10, category: 'Appetizer', description: 'Fresh greens with parmesan' },
+  { id: 6, name: 'Chocolate Cake', price: 8, category: 'Dessert', description: 'Rich chocolate layer cake' }
+];
 
-// ============ DISPLAY & SETTINGS FUNCTIONS ============
+// 🔹 TRANSLATIONS DICTIONARY - COMPLETE WITH ALL CATEGORIES
+
+// 🔹 TRANSLATION HELPER FUNCTION
+function t(key, params = {}) {
+  let text = translations[currentLanguage]?.[key] || translations['en'][key] || key;
+  for (const [k, v] of Object.entries(params)) {
+    text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+  }
+  return text;
+}
+
+// 🔹 ENHANCED CHANGE LANGUAGE FUNCTION
+function changeLanguage(lang) {
+  currentLanguage = lang;
+
+  // Update HTML lang and direction attributes
+  document.documentElement.lang = lang;
+  document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+
+  // Update body class for RTL styling
+  if (lang === 'ar') {
+    document.body.classList.add('rtl');
+    document.body.style.textAlign = 'right';
+  } else {
+    document.body.classList.remove('rtl');
+    document.body.style.textAlign = '';
+  }
+
+  // Update active button state
+  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+  if (event && event.target && event.target.classList.contains('lang-btn')) {
+    event.target.classList.add('active');
+  }
+
+  // Update currency symbols
+  updateCurrencyForLanguage(lang);
+
+  // Re-render dynamic content with new language
+  if (document.getElementById('adminDashboard') && !document.getElementById('adminDashboard').classList.contains('hidden')) {
+    renderAdminRequests();
+    renderRooms();
+    renderFoodMenu();
+    renderInventory();
+    renderMaintenance();
+    renderBlacklist();
+    renderLoyalty();
+    renderStaffPerformance();
+    renderActivityLogs();
+    renderQRCodes();
+    updateAdminDashboard();
+  }
+
+  if (document.getElementById('guestDashboard') && !document.getElementById('guestDashboard').classList.contains('hidden')) {
+    renderGuestRequests();
+    renderDynamicFoodMenu();
+    updateGuestDashboard();
+    updateAllDisplays();
+  }
+
+  // Update live clock with new language format
+  updateLiveClock();
+
+  // Save preference
+  localStorage.setItem('preferredLanguage', lang);
+
+  // Speak confirmation
+  speakText(t('languageChanged') + lang);
+}
+
+// 🔹 CURRENCY UPDATE FOR LANGUAGE
+function updateCurrencyForLanguage(lang) {
+  const currencyMap = { en: '$', hi: '₹', ar: 'ر.س' };
+  const newSymbol = currencyMap[lang] || '$';
+
+  // Update hotel settings
+  hotelSettings.currencySymbol = newSymbol;
+
+  // Update all currency displays
+  document.querySelectorAll('.currency-badge').forEach(el => el.textContent = newSymbol);
+
+  const elements = [
+    'currencyDisplay', 'loyaltyCurrencyDisplay', 'foodCurrencyBadge',
+    'transportCurrency1', 'transportCurrency2'
+  ];
+  elements.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = newSymbol;
+  });
+
+  // Re-render price-dependent content
+  updateTransportPriceDisplays();
+  renderFoodMenu();
+  renderDynamicFoodMenu();
+}
+
+// ============ SESSION PERSISTENCE & AUTH ============
+function checkSavedSession() {
+  const TTL = 24 * 60 * 60 * 1000; // 24 hours
+  const savedAdmin = localStorage.getItem('crown_plaza_admin_session');
+  const savedGuest = localStorage.getItem('crown_plaza_customer_session');
+
+  // Check Admin Session
+  if (savedAdmin) {
+    try {
+      const session = JSON.parse(savedAdmin);
+      if (session.role && session.timestamp && (Date.now() - session.timestamp < TTL)) {
+        currentAdminRole = session.role;
+        const roleNames = { 
+          super_admin:'Super Admin', front_desk:'Front Desk', 
+          housekeeping:'Housekeeping', maintenance:'Maintenance', 
+          restaurant:'Restaurant', laundry:'Laundry', 
+          security:'Security', it_support:'IT Support' 
+        };
+
+        // Update UI
+        document.getElementById('roleDisplay').innerText = roleNames[session.role] || session.role;
+        document.getElementById('adminRoleBadge').innerHTML = roleNames[session.role] || session.role;
+
+        // Show admin dashboard
+        document.getElementById('loginSelectionPage').classList.add('hidden');
+        document.getElementById('roleSelectionPage').classList.add('hidden');
+        document.getElementById('adminDashboard').classList.remove('hidden');
+
+        document.documentElement.setAttribute('data-session','admin');
+
+        // Initialize admin features
+        setTimeout(() => {
+          showAdminTab('overview');
+          updateAdminDashboard();
+          initCharts();
+          renderHeatMap();
+          renderInventory();
+          renderMaintenance();
+          renderBlacklist();
+          renderLoyalty();
+          renderStaffPerformance();
+          updateSLAStats();
+          renderQRCodes();
+          renderRooms();
+          renderFoodMenu();
+          updateAllDisplays();
+          showToast(t('welcomeBack'), 'success');
+        }, 100);
+
+        return true;
+      } else {
+        localStorage.removeItem('crown_plaza_admin_session');
+        document.documentElement.removeAttribute('data-session');
+      }
+    } catch(e) { 
+      console.error('Admin session error:', e);
+      localStorage.removeItem('crown_plaza_admin_session');
+      document.documentElement.removeAttribute('data-session');
+    }
+  }
+
+  // Check Guest Session
+  if (savedGuest) {
+    try {
+      const session = JSON.parse(savedGuest);
+      if (session.name && session.room && session.timestamp && (Date.now() - session.timestamp < TTL)) {
+        currentGuest = { name: session.name, room: session.room };
+
+        // Show guest dashboard
+        document.getElementById('loginSelectionPage').classList.add('hidden');
+        document.getElementById('guestDashboard').classList.remove('hidden');
+        document.getElementById('guestInfo').innerHTML = `👤 ${currentGuest.name} | Room ${currentGuest.room}`;
+
+        document.documentElement.setAttribute('data-session','guest');
+
+        // Initialize guest features
+        setTimeout(() => {
+          showGuestTab('newRequest');
+          updateGuestDashboard();
+          updateAllDisplays();
+          renderDynamicFoodMenu();
+          showToast(`${t('guestWelcome')} ${currentGuest.name}!`, 'success');
+        }, 100);
+
+        return true;
+      } else {
+        localStorage.removeItem('crown_plaza_customer_session');
+        document.documentElement.removeAttribute('data-session');
+      }
+    } catch(e) { 
+      console.error('Guest session error:', e);
+      localStorage.removeItem('crown_plaza_customer_session');
+      document.documentElement.removeAttribute('data-session');
+    }
+  }
+
+  return false;
+}
+
+function switchLoginType(type) {
+  currentLoginType = type;
+  document.getElementById('guestTabBtn').className = type === 'guest' ? 'flex-1 py-2 rounded-lg font-semibold bg-purple-100 text-purple-700 transition' : 'flex-1 py-2 rounded-lg font-semibold bg-gray-100 text-gray-700 transition';
+  document.getElementById('adminTabBtn').className = type === 'admin' ? 'flex-1 py-2 rounded-lg font-semibold bg-purple-100 text-purple-700 transition' : 'flex-1 py-2 rounded-lg font-semibold bg-gray-100 text-gray-700 transition';
+
+  if(type === 'guest') {
+    document.getElementById('guestLoginForm').classList.remove('hidden');
+    document.getElementById('adminLoginForm').classList.add('hidden');
+  } else {
+    document.getElementById('guestLoginForm').classList.add('hidden');
+    document.getElementById('adminLoginForm').classList.remove('hidden');
+  }
+}
+
+// Guest Login Handler
+document.getElementById('guestLoginForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = document.getElementById('guestNameInput').value.trim();
+  const room = document.getElementById('guestRoomInput').value.trim();
+
+  if(name && room) {
+    currentGuest = { name, room };
+
+    // Save session
+    localStorage.setItem('crown_plaza_customer_session', JSON.stringify({
+      name, room, timestamp: Date.now()
+    }));
+
+    // Show guest dashboard
+    document.getElementById('loginSelectionPage').classList.add('hidden');
+    document.getElementById('guestDashboard').classList.remove('hidden');
+    document.getElementById('guestInfo').innerHTML = `👤 ${name} | Room ${room}`;
+
+    document.documentElement.setAttribute('data-session','guest');
+
+    // Initialize
+    showGuestTab('newRequest');
+    updateGuestDashboard();
+    updateAllDisplays();
+    renderDynamicFoodMenu();
+
+    showToast(`${t('guestWelcome')} ${name}!`, 'success');
+    addActivityLog(t('logGuestLogin'), `${name} - Room ${room}`);
+  }
+});
+
+// Admin Login Handler
+document.getElementById('adminLoginForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = document.getElementById('adminEmailInput').value.trim();
+  const password = document.getElementById('adminPasswordInput').value;
+
+  // Simple validation (in production, use backend)
+  if(adminCredentials[email] && adminCredentials[email] === password) {
+    // Show role selection
+    document.getElementById('loginSelectionPage').classList.add('hidden');
+    document.getElementById('roleSelectionPage').classList.remove('hidden');
+
+    showToast(t('loginSuccess'), 'success');
+    addActivityLog('ADMIN_LOGIN_ATTEMPT', email);
+  } else {
+    showToast(t('invalidCredentials'), 'error');
+  }
+});
+
+function loginAsRole(role) {
+  currentAdminRole = role;
+  const roleNames = { 
+    super_admin: 'Super Admin', front_desk: 'Front Desk', 
+    housekeeping: 'Housekeeping', maintenance: 'Maintenance', 
+    restaurant: 'Restaurant', laundry: 'Laundry', 
+    security: 'Security', it_support: 'IT Support' 
+  };
+
+  document.getElementById('roleDisplay').innerText = roleNames[role];
+  document.getElementById('adminRoleBadge').innerHTML = roleNames[role];
+
+  document.getElementById('roleSelectionPage').classList.add('hidden');
+  document.getElementById('adminDashboard').classList.remove('hidden');
+
+  document.documentElement.setAttribute('data-session','admin');
+
+  // Save admin session
+  localStorage.setItem('crown_plaza_admin_session', JSON.stringify({
+    role, timestamp: Date.now()
+  }));
+
+  // Remove guest session if exists
+  localStorage.removeItem('crown_plaza_customer_session');
+
+  // Initialize admin features
+  showAdminTab('overview');
+  updateAdminDashboard();
+  initCharts();
+  renderHeatMap();
+  renderInventory();
+  renderMaintenance();
+  renderBlacklist();
+  renderLoyalty();
+  renderStaffPerformance();
+  updateSLAStats();
+  renderQRCodes();
+  renderRooms();
+  renderFoodMenu();
+
+  showToast(`${t('adminWelcome')} ${roleNames[role]}!`, 'success');
+  addActivityLog(t('logAdminLogin'), roleNames[role]);
+  updateAllDisplays();
+}
+
+// ============ INITIALIZATION ============
+function initSampleData() {
+  if(rooms.length === 0) {
+    for(let i=101; i<=150; i++) rooms.push({ 
+      id:i, number:i, 
+      type:i%3===0?'Suite':(i%2===0?'Deluxe':'Standard'), 
+      status:i%4===0?'Vacant':(i%3===0?'Cleaning':'Occupied'), 
+      guestName:i%4===0?'':`Guest ${i}` 
+    });
+  }
+  if(guests.length === 0) {
+    guests.push({ name:'John Smith', room:101, checkIn:'2024-01-15', checkOut:'2024-01-20', points:120, phone:'+1234567890', email:'john@example.com' });
+    guests.push({ name:'Sarah Johnson', room:102, checkIn:'2024-01-16', checkOut:'2024-01-21', points:75, phone:'+1234567891', email:'sarah@example.com' });
+    guests.push({ name:'Michael Brown', room:103, checkIn:'2024-01-17', checkOut:'2024-01-22', points:200, phone:'+1234567892', email:'michael@example.com' });
+  }
+  if(reviews.length === 0) {
+    reviews.push({ guestName:'John Smith', room:101, overall:5, cleanliness:5, staff:5, recommend:true, comment:'Excellent stay! Very helpful staff.', date:'2024-01-20' });
+  }
+  if(inventory.length === 0) {
+    inventory = [
+      { item:'Towels', quantity:150, unit:'pcs', minStock:50 },
+      { item:'Linen Sheets', quantity:80, unit:'sets', minStock:30 },
+      { item:'Pillows', quantity:60, unit:'pcs', minStock:20 },
+      { item:'Bathrobes', quantity:45, unit:'pcs', minStock:15 },
+      { item:'Toiletries Kit', quantity:200, unit:'pcs', minStock:80 }
+    ];
+  }
+  if(maintenanceTasks.length === 0) {
+    maintenanceTasks = [
+      { id:1, room:105, task:'AC Service', date:'2024-01-25', status:'Scheduled', priority:'high'},
+      { id:2, room:108, task:'TV Repair', date:'2024-01-26', status:'Pending', priority:'medium'},
+      { id:3, room:112, task:'Plumbing Leak', date:'2024-01-27', status:'Scheduled', priority:'high'}
+    ];
+  }
+  if(blacklist.length === 0) {
+    blacklist = [{ name:'Fraud User', room:999, reason:'Payment default', date:'2024-01-10', phone:'1234567890'}];
+  }
+  if(loyaltyPoints.length === 0) {
+    loyaltyPoints = guests.map(g => ({ name:g.name, points:g.points || 0, phone:g.phone }));
+  }
+  if(staffPerformance.length === 0) {
+    staffPerformance = [
+      { name:'John (Housekeeping)', completed:45, pending:2, rating:4.8, department:'housekeeping'},
+      { name:'Mike (Maintenance)', completed:32, pending:5, rating:4.5, department:'maintenance'},
+      { name:'Sarah (Restaurant)', completed:28, pending:1, rating:4.9, department:'restaurant'},
+      { name:'David (Front Desk)', completed:56, pending:3, rating:4.7, department:'front_desk'}
+    ];
+  }
+  if(requests.length === 0) {
+    requests.push({ id:1, guestName:'John Smith', roomNumber:'101', department:'maintenance', category:'AC Not Working', description:'AC not cooling properly', priority:'high', status:'in_progress', createdAt:new Date().toISOString() });
+    requests.push({ id:2, guestName:'Sarah Johnson', roomNumber:'102', department:'housekeeping', category:'Extra Towels', description:'Need extra towels', priority:'medium', status:'open', createdAt:new Date(Date.now() - 3600000).toISOString() });
+    requests.push({ id:3, guestName:'Michael Brown', roomNumber:'103', department:'restaurant', category:'Room Service', description:'Dinner for 2', priority:'normal', status:'completed', createdAt:new Date(Date.now() - 86400000).toISOString(), completedAt:new Date(Date.now() - 43200000).toISOString() });
+  }
+  if(foodMenu.length === 0) {
+    foodMenu = JSON.parse(JSON.stringify(defaultFoodMenu));
+  }
+
+  let savedLogs = localStorage.getItem('crown_plaza_activity_logs');
+  if(savedLogs) activityLogs = JSON.parse(savedLogs);
+  else activityLogs = [{ id:1, action:t('logSystemStart'), details:'System initialized', timestamp:new Date().toLocaleString() }];
+}
+
+// ============ SETTINGS & DISPLAY UPDATES ============
 function updateAllDisplays() {
-  const s = state.settings;
+  const hotelName = hotelSettings.name;
+  document.getElementById('welcomeTitle').innerText = hotelName;
+  document.getElementById('headerHotelName').innerText = hotelName.split(' ')[0];
+  document.getElementById('guestHeaderHotelName').innerText = hotelName.split(' ')[0];
+  document.getElementById('hotelNameDisplay').innerText = hotelName;
+  document.getElementById('hotelNameInput').value = hotelName;
+  document.getElementById('pageTitle').innerText = `${hotelName} - Ultimate Management System`;
 
-  // Hotel name
-  ['welcomeTitle', 'headerHotelName', 'guestHeaderHotelName', 'hotelNameDisplay'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = s.name || defaultSettings.name;
-  });
-  const nameInput = document.getElementById('hotelNameInput');
-  if (nameInput) nameInput.value = s.name || defaultSettings.name;
+  const currency = hotelSettings.currencySymbol;
+  document.getElementById('currencySymbolInput').value = currency;
+  document.getElementById('currencyDisplay').innerText = currency;
+  document.getElementById('loyaltyCurrencyDisplay').innerText = currency;
+  document.getElementById('foodCurrencyBadge').innerText = currency;
+  document.getElementById('transportCurrency1').innerText = currency;
+  document.getElementById('transportCurrency2').innerText = currency;
 
-  // Page title
-  const pageTitle = document.getElementById('pageTitle');
-  if (pageTitle) pageTitle.innerText = `${s.name || defaultSettings.name} - Ultimate Management System`;
+  document.getElementById('priceFormatInput').value = hotelSettings.priceFormat;
 
-  // Currency
-  const currency = s.currencySymbol || defaultSettings.currencySymbol;
-  ['currencySymbolInput', 'currencyDisplay', 'loyaltyCurrencyDisplay', 'foodCurrencyBadge', 'transportCurrency1', 'transportCurrency2'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = currency;
-  });
-
-  // Price format
-  const priceFormatEl = document.getElementById('priceFormatInput');
-  if (priceFormatEl) priceFormatEl.value = s.priceFormat || defaultSettings.priceFormat;
-
-  // Transport prices
-  ['airportPriceInput', 'localCabPriceInput'].forEach(id => {
-    const el = document.getElementById(id);
-    const key = id.includes('airport') ? 'airport' : 'local';
-    if (el) el.value = s.transportPrices?.[key] || defaultSettings.transportPrices[key];
-  });
+  document.getElementById('airportPriceInput').value = hotelSettings.transportPrices.airport;
+  document.getElementById('localCabPriceInput').value = hotelSettings.transportPrices.local;
   updateTransportPriceDisplays();
 
-  // WiFi password
-  ['wifiPasswordInput', 'guestWifiPassword', 'faqWifiPassword'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = s.wifiPassword || defaultSettings.wifiPassword;
-  });
+  document.getElementById('wifiPasswordInput').value = hotelSettings.wifiPassword;
+  document.getElementById('guestWifiPassword').innerText = hotelSettings.wifiPassword;
+  document.getElementById('faqWifiPassword').innerText = hotelSettings.wifiPassword;
+}
+
+function formatPrice(amount) {
+  const { currencySymbol, priceFormat } = hotelSettings;
+  const formatted = parseFloat(amount).toFixed(2);
+  switch(priceFormat) {
+    case 'symbol-first': return `${currencySymbol}${formatted}`;
+    case 'symbol-last': return `${formatted}${currencySymbol}`;
+    case 'space': return `${formatted} ${currencySymbol}`;
+    default: return `${currencySymbol}${formatted}`;
+  }
 }
 
 function updateTransportPriceDisplays() {
-  const s = state.settings;
-  ['airportPriceDisplay', 'localPriceDisplay'].forEach((id, i) => {
-    const el = document.getElementById(id);
-    const key = i === 0 ? 'airport' : 'local';
-    if (el) el.innerText = formatPrice(s.transportPrices?.[key] || defaultSettings.transportPrices[key]);
-  });
+  document.getElementById('airportPriceDisplay').innerText = formatPrice(hotelSettings.transportPrices.airport);
+  document.getElementById('localPriceDisplay').innerText = formatPrice(hotelSettings.transportPrices.local);
 }
 
+// ============ HOTEL NAME FUNCTIONS ============
 function saveHotelName() {
-  const newName = document.getElementById('hotelNameInput')?.value.trim();
-  if (newName && newName.length >= 3) {
-    saveSettingsToMongo({ ...state.settings, name: newName });
+  const newName = document.getElementById('hotelNameInput').value.trim();
+  if(newName && newName.length >= 3) {
+    hotelSettings.name = newName;
+    saveSettings();
+    updateAllDisplays();
     showToast(t('hotelNameUpdated'), 'success');
     speakText(`Hotel name changed to ${newName}`);
     addActivityLog(t('logHotelNameChange'), `Changed to: ${newName}`);
@@ -2005,10 +902,14 @@ function saveHotelName() {
   }
 }
 
+// ============ CURRENCY FUNCTIONS ============
 function saveCurrencySettings() {
-  const symbol = document.getElementById('currencySymbolInput')?.value.trim() || '$';
-  const format = document.getElementById('priceFormatInput')?.value;
-  saveSettingsToMongo({ ...state.settings, currencySymbol: symbol, priceFormat: format });
+  const symbol = document.getElementById('currencySymbolInput').value.trim() || '$';
+  const format = document.getElementById('priceFormatInput').value;
+  hotelSettings.currencySymbol = symbol;
+  hotelSettings.priceFormat = format;
+  saveSettings();
+  updateAllDisplays();
   renderFoodMenu();
   renderDynamicFoodMenu();
   updateTransportPriceDisplays();
@@ -2016,176 +917,134 @@ function saveCurrencySettings() {
   addActivityLog(t('logCurrencyChange'), `Symbol: ${symbol}, Format: ${format}`);
 }
 
+// ============ TRANSPORT PRICE FUNCTIONS ============
 function saveTransportPrices() {
-  const airport = parseFloat(document.getElementById('airportPriceInput')?.value) || 30;
-  const local = parseFloat(document.getElementById('localCabPriceInput')?.value) || 15;
-  saveSettingsToMongo({ ...state.settings, transportPrices: { airport, local } });
+  const airport = parseFloat(document.getElementById('airportPriceInput').value) || 30;
+  const local = parseFloat(document.getElementById('localCabPriceInput').value) || 15;
+  hotelSettings.transportPrices = { airport, local };
+  saveSettings();
+  updateAllDisplays();
   updateTransportPriceDisplays();
   showToast(t('transportUpdated'), 'success');
   addActivityLog(t('logTransportChange'), `Airport: ${formatPrice(airport)}, Local: ${formatPrice(local)}/hr`);
 }
 
-function saveWifiPassword() {
-  const newPassword = document.getElementById('wifiPasswordInput')?.value.trim();
-  if (newPassword) {
-    saveSettingsToMongo({ ...state.settings, wifiPassword: newPassword });
-    ['guestWifiPassword', 'faqWifiPassword'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.innerText = newPassword;
-    });
-    showToast(t('wifiUpdated'), 'success');
-    speakText('WiFi password has been updated');
-    addActivityLog(t('logWifiChange'), 'Admin updated WiFi password');
-  }
-}
-
-function copyWifiPassword() {
-  navigator.clipboard.writeText(state.settings.wifiPassword || defaultSettings.wifiPassword);
-  showToast(t('wifiCopied'), 'success');
-  speakText('WiFi password copied to clipboard');
-}
-
-// ============ ROOM MANAGEMENT ============
+// ============ ROOM MANAGEMENT FUNCTIONS ============
 function openAddRoomModal() {
   document.getElementById('roomModalTitle').innerText = 'Add New Room';
-  document.getElementById('roomForm')?.reset();
-  document.getElementById('roomEditId').value = '';
-  document.getElementById('roomModal')?.classList.add('active');
+  document.getElementById('roomForm').reset();
+  document.getElementById('roomEditIndex').value = '-1';
+  document.getElementById('roomModal').classList.add('active');
 }
 
-function openEditRoomModal(roomId) {
-  const room = state.rooms.find(r => r.id === roomId);
-  if (!room) return;
-
+function openEditRoomModal(index) {
+  const room = rooms[index];
   document.getElementById('roomModalTitle').innerText = 'Edit Room #' + room.number;
   document.getElementById('roomNumberInput').value = room.number;
   document.getElementById('roomTypeInput').value = room.type;
   document.getElementById('roomStatusInput').value = room.status;
   document.getElementById('roomGuestInput').value = room.guestName || '';
-  document.getElementById('roomEditId').value = room.id;
-  document.getElementById('roomModal')?.classList.add('active');
+  document.getElementById('roomEditIndex').value = index;
+  document.getElementById('roomModal').classList.add('active');
 }
 
 function closeRoomModal() {
-  document.getElementById('roomModal')?.classList.remove('active');
+  document.getElementById('roomModal').classList.remove('active');
 }
 
-document.getElementById('roomForm')?.addEventListener('submit', async (e) => {
+document.getElementById('roomForm')?.addEventListener('submit', (e) => {
   e.preventDefault();
-
-  const roomId = document.getElementById('roomEditId')?.value;
+  const index = parseInt(document.getElementById('roomEditIndex').value);
   const newRoom = {
-    number: parseInt(document.getElementById('roomNumberInput')?.value),
-    type: document.getElementById('roomTypeInput')?.value,
-    status: document.getElementById('roomStatusInput')?.value,
-    guestName: document.getElementById('roomGuestInput')?.value.trim() || ''
+    id: index >= 0 ? rooms[index].id : Date.now(),
+    number: parseInt(document.getElementById('roomNumberInput').value),
+    type: document.getElementById('roomTypeInput').value,
+    status: document.getElementById('roomStatusInput').value,
+    guestName: document.getElementById('roomGuestInput').value.trim() || ''
   };
-
-  if (roomId) {
-    // Update existing
-    newRoom.id = roomId;
-    await saveRoomToMongo(newRoom);
+  if(index >= 0) {
+    rooms[index] = newRoom;
     showToast(`${t('roomUpdated')}${newRoom.number} ${t('updated')}`, 'success');
     addActivityLog(t('logRoomEdit'), `Room #${newRoom.number} modified`);
   } else {
-    // Check for duplicate
-    if (state.rooms.some(r => r.number === newRoom.number)) {
+    if(rooms.some(r => r.number === newRoom.number)) {
       showToast(t('roomExists'), 'error');
       return;
     }
-    await saveRoomToMongo(newRoom);
+    rooms.push(newRoom);
+    document.getElementById('statTotalRooms').innerText = rooms.length;
     showToast(`${t('roomAdded')}${newRoom.number} ${t('added')}`, 'success');
     addActivityLog(t('logRoomAdd'), `New room #${newRoom.number} created`);
   }
-
+  saveToLocal();
+  renderRooms();
+  renderQRCodes();
   closeRoomModal();
+  updateAdminDashboard();
 });
 
-async function deleteRoom(roomId) {
-  if (confirm(t('deleteRoom'))) {
-    const room = state.rooms.find(r => r.id === roomId);
-    await deleteFromMongo(DB.ROOMS, roomId);
-    showToast(`${t('roomDeleted')}${room?.number} ${t('deleted')}`, 'info');
-    addActivityLog(t('logRoomDelete'), `Room #${room?.number} removed`);
+function deleteRoom(index) {
+  if(confirm(t('deleteRoom'))) {
+    const room = rooms[index];
+    rooms.splice(index, 1);
+    saveToLocal();
+    renderRooms();
+    renderQRCodes();
+    document.getElementById('statTotalRooms').innerText = rooms.length;
+    showToast(`${t('roomDeleted')}${room.number} ${t('deleted')}`, 'info');
+    addActivityLog(t('logRoomDelete'), `Room #${room.number} removed`);
+    updateAdminDashboard();
   }
 }
 
 function renderRooms() {
-  const tbody = document.getElementById('roomsList');
-  if (!tbody) return;
-
-  if (state.rooms.length === 0) {
+  let tbody = document.getElementById('roomsList');
+  if(!tbody) return;
+  if(rooms.length === 0) {
     tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">${t('noRooms')}</td></tr>`;
     return;
   }
-
-  tbody.innerHTML = state.rooms.map(room => `
+  tbody.innerHTML = rooms.map((r, i) => `
     <tr class="border-b hover:bg-gray-50 dark:hover:bg-gray-700">
-      <td class="p-2 font-semibold">#${room.number}</td>
-      <td class="p-2">${room.type}</td>
+      <td class="p-2 font-semibold">#${r.number}</td>
+      <td class="p-2">${r.type}</td>
+      <td class="p-2"><span class="badge ${r.status === 'Occupied' ? 'bg-green-100 text-green-700' : r.status === 'Vacant' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}">${r.status === 'Occupied' ? t('occupied') : r.status === 'Vacant' ? t('vacant') : t('cleaning')}</span></td>
+      <td class="p-2">${r.guestName || '-'}</td>
+      <td class="p-2"><button onclick="showQRForRoom(${r.number})" class="room-action-btn qr">📷 View</button></td>
       <td class="p-2">
-        <span class="badge ${
-          room.status === 'Occupied' ? 'bg-green-100 text-green-700' :
-          room.status === 'Vacant' ? 'bg-blue-100 text-blue-700' :
-          'bg-yellow-100 text-yellow-700'
-        }">${t(room.status.toLowerCase()) || room.status}</span>
-      </td>
-      <td class="p-2">${room.guestName || '-'}</td>
-      <td class="p-2">
-        <button onclick="showQRForRoom(${room.number})" class="room-action-btn qr">📷 View</button>
-      </td>
-      <td class="p-2">
-        <button onclick="openEditRoomModal('${room.id}')" class="room-action-btn edit">✏️</button>
-        <button onclick="deleteRoom('${room.id}')" class="room-action-btn delete">🗑️</button>
+        <button onclick="openEditRoomModal(${i})" class="room-action-btn edit">✏️</button>
+        <button onclick="deleteRoom(${i})" class="room-action-btn delete">🗑️</button>
       </td>
     </tr>
   `).join('');
 }
 
-function refreshUIForRooms() {
-  renderRooms();
-  renderQRCodes();
-  updateAdminDashboard();
-}
-
-// ============ QR CODE FUNCTIONS ============
-function generateQRData(roomNumber) {
-  return JSON.stringify({ 
-    room: roomNumber, 
-    hotel: state.settings.name || defaultSettings.name,
-    hotelId: state.hotelId 
-  });
+// ============ QR CODE FUNCTIONS WITH DOWNLOAD ============
+function generateQRForRoom(roomNumber) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(JSON.stringify({ room: roomNumber, hotel: hotelSettings.name }))}`;
 }
 
 function showQRForRoom(roomNumber) {
   const container = document.getElementById('qrPreviewContainer');
-  if (container) container.innerHTML = `<div id="qrCodePreview" class="qr-code-container"></div>`;
-
-  const label = document.getElementById('qrRoomLabel');
-  if (label) label.innerText = `${t('roomLabel')}${roomNumber} - ${state.settings.name || defaultSettings.name}`;
-
+  container.innerHTML = `<div id="qrCodePreview" class="qr-code-container"></div>`;
+  document.getElementById('qrRoomLabel').innerText = `${t('roomLabel')}${roomNumber} - ${hotelSettings.name}`;
   setTimeout(() => {
-    const preview = document.getElementById('qrCodePreview');
-    if (preview && typeof QRCode !== 'undefined') {
-      new QRCode(preview, {
-        text: generateQRData(roomNumber),
-        width: 150,
-        height: 150
-      });
-    }
+    new QRCode(document.getElementById('qrCodePreview'), {
+      text: JSON.stringify({ room: roomNumber, hotel: hotelSettings.name }),
+      width: 150,
+      height: 150
+    });
   }, 100);
-
   window.currentQRRoom = roomNumber;
-  document.getElementById('qrDownloadModal')?.classList.add('active');
+  document.getElementById('qrDownloadModal').classList.add('active');
 }
 
 function downloadQRCode() {
   const qrContainer = document.getElementById('qrCodePreview');
-  const canvas = qrContainer?.querySelector('canvas');
-
-  if (canvas) {
+  const canvas = qrContainer.querySelector('canvas');
+  if(canvas) {
     const link = document.createElement('a');
-    link.download = `QR-Room${window.currentQRRoom}-${(state.settings.name || 'Hotel').replace(/\s+/g, '-')}.png`;
+    link.download = `QR-Room${window.currentQRRoom}-${hotelSettings.name.replace(/\s+/g, '-')}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
     showToast(t('qrDownloaded'), 'success');
@@ -2196,33 +1055,30 @@ function downloadQRCode() {
 }
 
 function renderQRCodes() {
-  const container = document.getElementById('qrCodesContainer');
-  if (!container) return;
-
-  if (state.rooms.length === 0) {
+  let container = document.getElementById('qrCodesContainer');
+  if(!container) return;
+  if(rooms.length === 0) {
     container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">No rooms to display QR codes</div>';
     return;
   }
-
-  container.innerHTML = state.rooms.slice(0, 16).map(room => `
+  container.innerHTML = rooms.slice(0, 16).map(r => `
     <div class="border rounded-xl p-3 text-center bg-gray-50 dark:bg-gray-700">
-      <div id="qr-${room.number}" class="mx-auto mb-2"></div>
-      <div class="font-bold text-sm">Room ${room.number}</div>
-      <div class="text-xs text-gray-500">${room.type}</div>
+      <div id="qr-${r.number}" class="mx-auto mb-2"></div>
+      <div class="font-bold text-sm">Room ${r.number}</div>
+      <div class="text-xs text-gray-500">${r.type}</div>
       <div class="flex justify-center gap-1 mt-2">
-        <button onclick="showQRForRoom(${room.number})" class="room-action-btn qr text-xs">📷 View</button>
-        <button onclick="showGuestLoginWithRoom(${room.number})" class="room-action-btn edit text-xs">🔗 Use</button>
+        <button onclick="showQRForRoom(${r.number})" class="room-action-btn qr text-xs">📷 View</button>
+        <button onclick="showGuestLoginWithRoom(${r.number})" class="room-action-btn edit text-xs">🔗 Use</button>
       </div>
     </div>
   `).join('');
-
   setTimeout(() => {
-    state.rooms.slice(0, 16).forEach(room => {
-      const container = document.getElementById(`qr-${room.number}`);
-      if (container && typeof QRCode !== 'undefined') {
+    rooms.slice(0, 16).forEach(r => {
+      const container = document.getElementById(`qr-${r.number}`);
+      if(container) {
         container.innerHTML = '';
         new QRCode(container, {
-          text: generateQRData(room.number),
+          text: JSON.stringify({ room: r.number, hotel: hotelSettings.name }),
           width: 80,
           height: 80
         });
@@ -2231,75 +1087,74 @@ function renderQRCodes() {
   }, 100);
 }
 
-// ============ FOOD MENU CRUD ============
+// ============ FOOD MENU CRUD FUNCTIONS ============
 function openAddFoodModal() {
   document.getElementById('foodModalTitle').innerText = 'Add New Dish';
-  document.getElementById('foodForm')?.reset();
-  document.getElementById('foodEditId').value = '';
-  document.getElementById('foodModal')?.classList.add('active');
+  document.getElementById('foodForm').reset();
+  document.getElementById('foodEditIndex').value = '-1';
+  document.getElementById('foodModal').classList.add('active');
 }
 
-function openEditFoodModal(foodId) {
-  const item = state.foodMenu.find(f => f.id === foodId);
-  if (!item) return;
-
+function openEditFoodModal(index) {
+  const item = foodMenu[index];
   document.getElementById('foodModalTitle').innerText = 'Edit: ' + item.name;
   document.getElementById('foodNameInput').value = item.name;
   document.getElementById('foodPriceInput').value = item.price;
   document.getElementById('foodCategoryInput').value = item.category;
   document.getElementById('foodDescInput').value = item.description || '';
-  document.getElementById('foodEditId').value = item.id;
-  document.getElementById('foodModal')?.classList.add('active');
+  document.getElementById('foodEditIndex').value = index;
+  document.getElementById('foodModal').classList.add('active');
 }
 
 function closeFoodModal() {
-  document.getElementById('foodModal')?.classList.remove('active');
+  document.getElementById('foodModal').classList.remove('active');
 }
 
-document.getElementById('foodForm')?.addEventListener('submit', async (e) => {
+document.getElementById('foodForm')?.addEventListener('submit', (e) => {
   e.preventDefault();
-
-  const foodId = document.getElementById('foodEditId')?.value;
+  const index = parseInt(document.getElementById('foodEditIndex').value);
   const newItem = {
-    name: document.getElementById('foodNameInput')?.value.trim(),
-    price: parseFloat(document.getElementById('foodPriceInput')?.value) || 0,
-    category: document.getElementById('foodCategoryInput')?.value,
-    description: document.getElementById('foodDescInput')?.value.trim()
+    id: index >= 0 ? foodMenu[index].id : Date.now(),
+    name: document.getElementById('foodNameInput').value.trim(),
+    price: parseFloat(document.getElementById('foodPriceInput').value) || 0,
+    category: document.getElementById('foodCategoryInput').value,
+    description: document.getElementById('foodDescInput').value.trim()
   };
-
-  if (foodId) {
-    newItem.id = foodId;
-    await saveFoodToMongo(newItem);
+  if(index >= 0) {
+    foodMenu[index] = newItem;
     showToast(`${t('foodUpdated')}${newItem.name}" ${t('updated')}`, 'success');
     addActivityLog(t('logFoodEdit'), `Updated: ${newItem.name}`);
   } else {
-    await saveFoodToMongo(newItem);
+    foodMenu.push(newItem);
     showToast(`${t('foodAdded')}${newItem.name}" ${t('addedToMenu')}`, 'success');
     addActivityLog(t('logFoodAdd'), `Added: ${newItem.name}`);
   }
-
+  saveToLocal();
+  renderFoodMenu();
+  renderDynamicFoodMenu();
   closeFoodModal();
 });
 
-async function deleteFoodItem(foodId) {
-  if (confirm(t('deleteFood'))) {
-    const item = state.foodMenu.find(f => f.id === foodId);
-    await deleteFromMongo(DB.FOOD, foodId);
-    showToast(`${t('foodRemoved')}${item?.name}" ${t('removedFromMenu')}`, 'info');
-    addActivityLog(t('logFoodDelete'), `Removed: ${item?.name}`);
+function deleteFoodItem(index) {
+  if(confirm(t('deleteFood'))) {
+    const item = foodMenu[index];
+    foodMenu.splice(index, 1);
+    saveToLocal();
+    renderFoodMenu();
+    renderDynamicFoodMenu();
+    showToast(`${t('foodRemoved')}${item.name}" ${t('removedFromMenu')}`, 'info');
+    addActivityLog(t('logFoodDelete'), `Removed: ${item.name}`);
   }
 }
 
 function renderFoodMenu() {
-  const container = document.getElementById('foodMenuList');
-  if (!container) return;
-
-  if (state.foodMenu.length === 0) {
+  let container = document.getElementById('foodMenuList');
+  if(!container) return;
+  if(foodMenu.length === 0) {
     container.innerHTML = `<div class="text-center py-8 text-gray-500">${t('noFood')}</div>`;
     return;
   }
-
-  container.innerHTML = state.foodMenu.map((item, i) => `
+  container.innerHTML = foodMenu.map((item, i) => `
     <div class="food-item-card flex justify-between items-start">
       <div class="flex-1">
         <div class="font-semibold">${escapeHtml(item.name)}</div>
@@ -2308,25 +1163,22 @@ function renderFoodMenu() {
         <div class="font-bold text-purple-600 mt-1">${formatPrice(item.price)}</div>
       </div>
       <div class="flex flex-col gap-1">
-        <button onclick="openEditFoodModal('${item.id}')" class="room-action-btn edit">✏️ Edit</button>
-        <button onclick="deleteFoodItem('${item.id}')" class="room-action-btn delete">🗑️ Delete</button>
+        <button onclick="openEditFoodModal(${i})" class="room-action-btn edit">✏️ Edit</button>
+        <button onclick="deleteFoodItem(${i})" class="room-action-btn delete">🗑️ Delete</button>
       </div>
     </div>
   `).join('');
 }
 
 function renderDynamicFoodMenu() {
-  const container = document.getElementById('dynamicFoodMenu');
-  if (!container) return;
-
-  if (state.foodMenu.length === 0) {
+  let container = document.getElementById('dynamicFoodMenu');
+  if(!container) return;
+  if(foodMenu.length === 0) {
     container.innerHTML = `<div class="col-span-2 text-center py-4 text-gray-500">${t('menuUpdating')}</div>`;
     return;
   }
-
-  container.innerHTML = state.foodMenu.map(item => `
-    <button onclick="addToCart('${escapeHtml(item.name)}', ${item.price})" 
-      class="p-3 border rounded-lg text-sm text-left hover:bg-purple-50 transition dark:hover:bg-purple-900/20">
+  container.innerHTML = foodMenu.map(item => `
+    <button onclick="addToCart('${escapeHtml(item.name)}', ${item.price})" class="p-3 border rounded-lg text-sm text-left hover:bg-purple-50 transition dark:hover:bg-purple-900/20">
       <div class="font-semibold">${escapeHtml(item.name)}</div>
       <div class="text-xs text-gray-500">${item.category}</div>
       <div class="font-bold text-purple-600 mt-1">${formatPrice(item.price)}</div>
@@ -2334,1134 +1186,322 @@ function renderDynamicFoodMenu() {
   `).join('');
 }
 
-function refreshUIForFood() {
-  renderFoodMenu();
-  renderDynamicFoodMenu();
+// ============ SETTINGS SAVE/LOAD ============
+function saveSettings() {
+  localStorage.setItem('crown_plaza_settings', JSON.stringify(hotelSettings));
 }
 
-// ============ CART & ORDERING ============
-function addToCart(itemName, price) {
-  state.cart.push({ item: itemName, price });
-
-  // Save cart to localStorage TEMPORARILY for recovery only
-  saveToLocalStorage(LS.CART, state.cart);
-
-  updateCart();
-  showToast(`${itemName}${t('itemAddedCart')}`, 'success');
-  if ('vibrate' in navigator) navigator.vibrate(50);
-}
-
-function updateCart() {
-  const cartDiv = document.getElementById('cartItems');
-  if (!cartDiv) return;
-
-  if (state.cart.length === 0) {
-    cartDiv.innerHTML = `<div class="text-center text-gray-500">${t('cartIsEmpty')}</div>`;
-    const totalEl = document.getElementById('cartTotal');
-    if (totalEl) totalEl.innerText = formatPrice(0);
-    return;
-  }
-
-  const total = state.cart.reduce((sum, item) => sum + item.price, 0);
-
-  cartDiv.innerHTML = state.cart.map((item, i) => `
-    <div class="flex justify-between py-1">
-      <span>${item.item}</span>
-      <span>${formatPrice(item.price)}</span>
-      <button onclick="removeFromCart(${i})" class="text-red-500">✕</button>
-    </div>
-  `).join('') + `<div class="border-t pt-2 font-bold">Total: ${formatPrice(total)}</div>`;
-
-  const totalEl = document.getElementById('cartTotal');
-  if (totalEl) totalEl.innerText = formatPrice(total);
-}
-
-function removeFromCart(index) {
-  state.cart.splice(index, 1);
-  saveToLocalStorage(LS.CART, state.cart);
-  updateCart();
-}
-
-async function placeOrder() {
-  if (state.cart.length === 0) {
-    alert(t('cartEmpty'));
-    return;
-  }
-
-  if (!state.currentGuest) {
-    showToast('Please login as guest first', 'error');
-    return;
-  }
-
-  const order = {
-    guestName: state.currentGuest.name,
-    roomNumber: state.currentGuest.room,
-    department: 'restaurant',
-    category: 'Food Order',
-    description: `Order: ${state.cart.map(c => c.item).join(', ')}`,
-    priority: 'normal',
-    status: 'open',
-    items: [...state.cart],
-    total: state.cart.reduce((s, c) => s + c.price, 0)
-  };
-
-  await saveBookingToMongo(order);
-
-  // Clear cart
-  state.cart = [];
-  saveToLocalStorage(LS.CART, null);
-  updateCart();
-
-  showToast(t('orderPlaced'), 'success');
-  speakText('Food order placed');
-
-  // Add loyalty points
-  addLoyaltyPoints(state.currentGuest.name, 5);
-
-  // Show requests tab
-  showGuestTab('myRequests');
-  renderGuestRequests();
-}
-
-// ============ GUEST FUNCTIONS ============
-function showLocalGuide() {
-  const content = localAttractions.map(a => 
-    `<div class="flex justify-between p-2 border-b"><span>${a.type} ${a.name}</span><span>${a.distance}</span></div>`
-  ).join('');
-  const el = document.getElementById('localGuideContent');
-  if (el) el.innerHTML = content;
-  document.getElementById('localGuideModal')?.classList.remove('hidden');
-}
-
-function showEventCalendar() {
-  const content = hotelEvents.map(e => 
-    `<div class="flex justify-between p-2 border-b"><span>${e.name}</span><span>${e.date} ${e.time}</span></div>`
-  ).join('');
-  const el = document.getElementById('eventContent');
-  if (el) el.innerHTML = content;
-  document.getElementById('eventModal')?.classList.remove('hidden');
-}
-
-function showEmergencyContacts() { document.getElementById('emergencyContactsModal')?.classList.remove('hidden'); }
-function showFirstAidGuide() { document.getElementById('firstAidModal')?.classList.remove('hidden'); }
-function showEvacuationMap() { document.getElementById('evacuationModal')?.classList.remove('hidden'); }
-function showDigitalConcierge() { 
-  document.getElementById('conciergeModal')?.classList.remove('hidden'); 
-  updateAllDisplays(); 
-}
-function closeModal(modalId) { document.getElementById(modalId)?.classList.add('hidden'); }
-
-function setWakeUpCall() {
-  const time = prompt('Wake-up time (HH:MM):', '07:00');
-  if (time) {
-    showToast(`${t('wakeUpSet')} ${time}`, 'success');
-    addActivityLog(t('logWakeUp'), `Set for ${time} - Room ${state.currentGuest?.room}`);
-    speakText(`Wake up call set for ${time}`);
-  }
-}
-
-function toggleDND() {
-  state.dndEnabled = !state.dndEnabled;
-  const btn = document.getElementById('dndBtn');
-  if (btn) btn.innerHTML = state.dndEnabled ? '🔕 DND: ON' : '🔕 DND: OFF';
-  showToast(state.dndEnabled ? t('dndOn') : t('dndOff'), 'info');
-}
-
-function showQRScanner() { document.getElementById('qrScannerModal')?.classList.remove('hidden'); }
-function closeQRScanner() { document.getElementById('qrScannerModal')?.classList.add('hidden'); }
-
-function processManualQR() {
-  const room = document.getElementById('manualQrInput')?.value;
-  if (room) {
-    closeQRScanner();
-    showGuestLoginWithRoom(room);
-  }
-}
-
-async function showGuestLoginWithRoom(room) {
-  // Fetch guest info from MongoDB if available
-  const userRes = await apiCall(`${DB.USERS}?room=${room}&type=guest`);
-
-  state.currentGuest = {
-    name: userRes.success && userRes.data?.[0]?.name || `Guest ${room}`,
-    room: room
-  };
-
-  const loginPage = document.getElementById('loginSelectionPage');
-  const guestDash = document.getElementById('guestDashboard');
-  const guestInfo = document.getElementById('guestInfo');
-
-  if (loginPage) loginPage.classList.add('hidden');
-  if (guestDash) guestDash.classList.remove('hidden');
-  if (guestInfo) guestInfo.innerHTML = `👤 ${state.currentGuest.name} | Room ${state.currentGuest.room}`;
-
-  document.documentElement.setAttribute('data-session', 'guest');
-
-  showGuestTab('newRequest');
-  updateGuestDashboard();
-  renderDynamicFoodMenu();
-  speakText(`Welcome to Room ${room}`);
-  addActivityLog('GUEST_LOGIN_QR', `Room ${room}`);
-
-  // Save guest session to localStorage
-  saveToLocalStorage(LS.GUEST_SESSION, {
-    token: state.token,
-    hotelId: state.hotelId,
-    guest: state.currentGuest,
-    timestamp: Date.now()
-  });
-
-  updateAllDisplays();
-}
-
-function showSOSAlert() {
-  document.getElementById('sosModal')?.classList.remove('hidden');
-  sendPushNotification('🚨 SOS EMERGENCY', `Emergency from ${state.currentGuest?.room || 'Hotel'}`);
-  addActivityLog(t('logSOS'), `Room ${state.currentGuest?.room}`);
-  speakText('Emergency alert sent');
-}
-
-function closeSOSModal() { document.getElementById('sosModal')?.classList.add('hidden'); }
-
-// ============ EXPORT & REPORTS ============
-function exportToExcel() {
-  if (typeof XLSX === 'undefined') {
-    showToast('XLSX library not loaded', 'error');
-    return;
-  }
-
-  const wsData = [['ID','Guest','Room','Department','Category','Priority','Status','Created At','Completed At']];
-  state.bookings.forEach(b => wsData.push([b.id, b.guestName, b.roomNumber, b.department, b.category, b.priority, b.status, b.createdAt, b.completedAt || '']));
-
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Requests');
-  XLSX.writeFile(wb, `hotel-requests-${new Date().toISOString().split('T')[0]}.xlsx`);
-
-  showToast(t('excelExported'), 'success');
-  addActivityLog(t('logExportExcel'), `Exported ${state.bookings.length} requests`);
-}
-
-function exportAllData() {
-  // This exports a backup - data is fetched from MongoDB, not localStorage
-  const backup = {
-    exportedAt: new Date().toISOString(),
-    hotelId: state.hotelId,
-    hotelName: state.settings.name,
-    bookings: state.bookings,
-    rooms: state.rooms,
-    inventory: state.inventory,
-    users: state.users,
-    settings: state.settings,
-    foodMenu: state.foodMenu,
-    reviews: state.reviews,
-    maintenance: state.maintenance,
-    blacklist: state.blacklist,
-    loyalty: state.loyalty,
-    staff: state.staff
-  };
-
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `hotel-backup-${new Date().toISOString()}.json`;
-  a.click();
-
-  showToast(t('dataExported'), 'success');
-  addActivityLog(t('logExportAll'), 'Full backup exported');
-}
-
-function printInvoice() {
-  const printContent = `
-    <html><head><title>Hotel Report</title>
-    <style>body{font-family:Arial;padding:20px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;}</style>
-    </head><body>
-    <h1>${state.settings.name || defaultSettings.name} Report</h1>
-    <p>Date: ${new Date().toLocaleString()}</p>
-    <table><tr><th>ID</th><th>Guest</th><th>Room</th><th>Type</th><th>Status</th></tr>
-    ${state.bookings.slice(0,50).map(b => `<tr><td>${b.id}</td><td>${b.guestName}</td><td>${b.roomNumber}</td><td>${b.category}</td><td>${b.status}</td></tr>`).join('')}
-    </table></body></html>`;
-
-  const win = window.open('', '_blank');
-  win.document.write(printContent);
-  win.print();
-}
-
-function generateReport(type) {
-  let filtered = [...state.bookings];
-
-  if (type === 'daily') {
-    const today = new Date().toDateString();
-    filtered = filtered.filter(b => new Date(b.createdAt).toDateString() === today);
-  } else if (type === 'weekly') {
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    filtered = filtered.filter(b => new Date(b.createdAt) >= weekAgo);
-  } else if (type === 'monthly') {
-    const monthAgo = new Date();
-    monthAgo.setMonth(monthAgo.getMonth() - 1);
-    filtered = filtered.filter(b => new Date(b.createdAt) >= monthAgo);
-  }
-
-  const completed = filtered.filter(b => b.status === 'completed').length;
-  const rate = filtered.length ? ((completed / filtered.length) * 100).toFixed(1) : 0;
-
-  const output = `
-    <h3 class="font-bold">${type.toUpperCase()} Report</h3>
-    <p>Total Requests: ${filtered.length}</p>
-    <p>Completed: ${completed}</p>
-    <p>Pending: ${filtered.length - completed}</p>
-    <p>Completion Rate: ${rate}%</p>
-    <p>High Priority: ${filtered.filter(b => b.priority === 'high' || b.priority === 'emergency').length}</p>
-  `;
-
-  const el = document.getElementById('reportOutput');
-  if (el) el.innerHTML = output;
-
-  addActivityLog(t('logGenerateReport'), `${type} report`);
-}
-
-// ============ BULK ACTIONS ============
-function toggleSelectAll() {
-  const filtered = getFilteredRequestsForAdmin();
-  if (state.selectedRequests.size === filtered.length) {
-    state.selectedRequests.clear();
-  } else {
-    filtered.forEach(b => state.selectedRequests.add(b.id));
-  }
-  updateBulkUI();
-  renderAdminRequests();
-}
-
-function toggleSelectRequest(id) {
-  if (state.selectedRequests.has(id)) {
-    state.selectedRequests.delete(id);
-  } else {
-    state.selectedRequests.add(id);
-  }
-  updateBulkUI();
-  renderAdminRequests();
-}
-
-function updateBulkUI() {
-  const bar = document.getElementById('bulkActionsBar');
-  const count = state.selectedRequests.size;
-
-  if (bar) {
-    if (count > 0) bar.classList.remove('hidden');
-    else bar.classList.add('hidden');
-    const cntEl = document.getElementById('selectedCount');
-    if (cntEl) cntEl.innerText = count;
-  }
-
-  const checkbox = document.getElementById('selectAllCheckbox');
-  if (checkbox) {
-    const filtered = getFilteredRequestsForAdmin();
-    checkbox.checked = state.selectedRequests.size === filtered.length && filtered.length > 0;
-    checkbox.indeterminate = state.selectedRequests.size > 0 && state.selectedRequests.size < filtered.length;
-  }
-}
-
-async function bulkComplete() {
-  if (state.selectedRequests.size === 0) return;
-
-  if (confirm(`${t('completeSelected')}${state.selectedRequests.size}${t('deleteSelected')}`)) {
-    for (const id of state.selectedRequests) {
-      const booking = state.bookings.find(b => b.id === id);
-      if (booking && booking.status !== 'completed') {
-        await saveBookingToMongo({ ...booking, status: 'completed', completedAt: new Date().toISOString() });
-        addLoyaltyPoints(booking.guestName, 10);
-      }
+function loadSettings() {
+  const saved = localStorage.getItem('crown_plaza_settings');
+  if(saved) {
+    try {
+      const loaded = JSON.parse(saved);
+      hotelSettings = { ...hotelSettings, ...loaded };
+    } catch(e) {
+      console.log('Using default settings');
     }
-
-    const completedCount = state.selectedRequests.size;
-    state.selectedRequests.clear();
-
-    showToast(`✅ ${completedCount}${t('requestsCompleted')}`, 'success');
-    updateBulkUI();
-    addActivityLog(t('logBulkComplete'), `${completedCount} requests completed`);
   }
 }
 
-async function bulkDelete() {
-  if (state.selectedRequests.size === 0) return;
+// ============ DATA PERSISTENCE ============
+function saveToLocal() {
+  localStorage.setItem('crown_plaza_requests', JSON.stringify(requests));
+  localStorage.setItem('crown_plaza_rooms', JSON.stringify(rooms));
+  localStorage.setItem('crown_plaza_guests', JSON.stringify(guests));
+  localStorage.setItem('crown_plaza_reviews', JSON.stringify(reviews));
+  localStorage.setItem('crown_plaza_inventory', JSON.stringify(inventory));
+  localStorage.setItem('crown_plaza_maintenance', JSON.stringify(maintenanceTasks));
+  localStorage.setItem('crown_plaza_blacklist', JSON.stringify(blacklist));
+  localStorage.setItem('crown_plaza_loyalty', JSON.stringify(loyaltyPoints));
+  localStorage.setItem('crown_plaza_staff', JSON.stringify(staffPerformance));
+  localStorage.setItem('crown_plaza_foodmenu', JSON.stringify(foodMenu));
+  saveSettings();
+}
 
-  if (confirm(`${t('deleteSelected')}${state.selectedRequests.size}${t('deleteSelectedWarn')}`)) {
-    for (const id of state.selectedRequests) {
-      await deleteFromMongo(DB.BOOKINGS, id);
+function loadFromLocal() {
+  let saved = localStorage.getItem('crown_plaza_requests'); if(saved) requests = JSON.parse(saved);
+  let savedRooms = localStorage.getItem('crown_plaza_rooms'); if(savedRooms) rooms = JSON.parse(savedRooms);
+  let savedGuests = localStorage.getItem('crown_plaza_guests'); if(savedGuests) guests = JSON.parse(savedGuests);
+  let savedReviews = localStorage.getItem('crown_plaza_reviews'); if(savedReviews) reviews = JSON.parse(savedReviews);
+  let savedInv = localStorage.getItem('crown_plaza_inventory'); if(savedInv) inventory = JSON.parse(savedInv);
+  let savedMaint = localStorage.getItem('crown_plaza_maintenance'); if(savedMaint) maintenanceTasks = JSON.parse(savedMaint);
+  let savedBlack = localStorage.getItem('crown_plaza_blacklist'); if(savedBlack) blacklist = JSON.parse(savedBlack);
+  let savedLoyal = localStorage.getItem('crown_plaza_loyalty'); if(savedLoyal) loyaltyPoints = JSON.parse(savedLoyal);
+  let savedStaff = localStorage.getItem('crown_plaza_staff'); if(savedStaff) staffPerformance = JSON.parse(savedStaff);
+  let savedFood = localStorage.getItem('crown_plaza_foodmenu'); if(savedFood) foodMenu = JSON.parse(savedFood);
+  loadSettings();
+  initSampleData();
+}
+
+// ============ UTILITY FUNCTIONS ============
+function updateLiveClock() {
+  const now = new Date();
+  const options = { timeZone: timezone, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+  const langCode = currentLanguage === 'hi' ? 'hi-IN' : currentLanguage === 'ar' ? 'ar-SA' : 'en-US';
+  const formattedTime = now.toLocaleString(langCode, options);
+  document.querySelectorAll('#liveDateTime, #liveClockAdmin, #liveClockGuest, #guestLocalTime, #localTimeDisplay').forEach(el => { if(el) el.innerText = formattedTime; });
+  document.getElementById('timezoneDisplay').innerText = timezone;
+}
+setInterval(updateLiveClock, 1000);
+updateLiveClock();
+
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  const bgColor = type === 'success' ? 'border-green-500' : type === 'error' ? 'border-red-500' : 'border-blue-500';
+  const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : '🔔';
+  toast.className = `bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 mb-2 border-l-4 ${bgColor} fade-in`;
+  toast.innerHTML = `<div class="flex items-center"><div class="flex-shrink-0 text-xl">${icon}</div><div class="ml-3"><p class="text-sm font-medium text-gray-900 dark:text-white">${message}</p></div><button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-gray-400 hover:text-gray-600">✕</button></div>`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 5000);
+  speakText(message);
+  sendPushNotification('Crown Plaza', message);
+}
+
+function speakText(text) {
+  if(!text) return;
+  try {
+    let utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1.2;
+    // Try to set voice based on language
+    const voices = window.speechSynthesis.getVoices();
+    if (currentLanguage === 'hi') {
+      const hiVoice = voices.find(v => v.lang.includes('hi'));
+      if (hiVoice) utterance.voice = hiVoice;
+    } else if (currentLanguage === 'ar') {
+      const arVoice = voices.find(v => v.lang.includes('ar'));
+      if (arVoice) utterance.voice = arVoice;
     }
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  } catch(e) { console.log('Speech not supported'); }
+}
 
-    const deletedCount = state.selectedRequests.size;
-    state.selectedRequests.clear();
-
-    showToast(`🗑️ ${deletedCount}${t('requestsDeleted')}`, 'info');
-    updateBulkUI();
-    addActivityLog(t('logBulkDelete'), `${deletedCount} requests deleted`);
+function sendPushNotification(title, body) {
+  if('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body });
   }
 }
 
-function clearSelection() {
-  state.selectedRequests.clear();
-  updateBulkUI();
-  renderAdminRequests();
-}
-
-function getFilteredRequestsForAdmin() {
-  let filtered = [...state.bookings];
-
-  if (state.adminFilter !== 'all') {
-    filtered = filtered.filter(b => b.status === state.adminFilter);
-  }
-
-  if (state.adminSearch) {
-    const query = state.adminSearch.toLowerCase();
-    filtered = filtered.filter(b => 
-      b.guestName?.toLowerCase().includes(query) || 
-      b.roomNumber?.toLowerCase().includes(query) || 
-      b.category?.toLowerCase().includes(query)
-    );
-  }
-
-  if (state.role !== 'super_admin' && state.role !== 'front_desk') {
-    filtered = filtered.filter(b => b.department === state.role);
-  }
-
-  const priorityOrder = { emergency: 0, high: 1, medium: 2, low: 3 };
-  filtered.sort((a, b) => {
-    if (a.status === 'open' && b.status !== 'open') return -1;
-    if (a.status !== 'open' && b.status === 'open') return 1;
-    if (a.status === 'in_progress' && b.status !== 'in_progress') return -1;
-    if (a.status !== 'in_progress' && b.status === 'in_progress') return 1;
-    return (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3);
-  });
-
-  return filtered;
-}
-
-function filterAdminRequests(filter) {
-  state.adminFilter = filter;
-  state.currentPage = 0;
-  renderAdminRequests();
-}
-
-async function completeRequest(id) {
-  const booking = state.bookings.find(b => b.id === id);
-  if (booking && booking.status !== 'completed') {
-    await saveBookingToMongo({ ...booking, status: 'completed', completedAt: new Date().toISOString() });
-    addLoyaltyPoints(booking.guestName, 10);
-    showToast(`${t('completedFor')}${booking.guestName}`, 'success');
-    addActivityLog(t('logRequestComplete'), `${booking.guestName} - ${booking.category}`);
-
-    // Update staff performance
-    const staffMember = state.staff.find(s => s.department === booking.department);
-    if (staffMember) {
-      staffMember.completed++;
-      staffMember.pending--;
-      // In production, save to MongoDB: await apiCall(`${DB.STAFF}/${staffMember.id}`, 'PUT', staffMember);
-    }
-
-    if (state.currentGuest?.name === booking.guestName) {
-      renderGuestRequests();
-    }
-    updateBulkUI();
-  }
-}
-
-async function deleteRequest(id) {
-  if (confirm(t('deleteRequest'))) {
-    const booking = state.bookings.find(b => b.id === id);
-    await deleteFromMongo(DB.BOOKINGS, id);
-    showToast(t('deleted'), 'info');
-    addActivityLog(t('logRequestDelete'), `${booking?.guestName} - ${booking?.category}`);
-    updateBulkUI();
-  }
-}
-
-function renderAdminRequests() {
-  const filtered = getFilteredRequestsForAdmin();
-  const container = document.getElementById('adminRequestsList');
-
-  if (!container) return;
-
-  if (filtered.length === 0) {
-    container.innerHTML = `<div class="text-center py-8 text-gray-500">${t('noRequests')}</div>`;
-    return;
-  }
-
-  container.innerHTML = filtered.map(booking => `
-    <div class="border-l-4 ${
-      booking.priority === 'emergency' ? 'priority-emergency' :
-      booking.priority === 'high' ? 'priority-high' :
-      booking.priority === 'medium' ? 'priority-medium' : 'priority-low'
-    } bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-sm draggable" data-id="${booking.id}">
-      <div class="flex flex-wrap justify-between gap-2">
-        <div class="flex-1">
-          <div class="flex items-center gap-2 mb-1">
-            <input type="checkbox" class="select-all-checkbox" 
-              ${state.selectedRequests.has(booking.id) ? 'checked' : ''} 
-              onclick="toggleSelectRequest('${booking.id}')">
-            <strong>${escapeHtml(booking.guestName)}</strong> - Room ${booking.roomNumber}
-            <span class="badge text-xs">
-              ${booking.status === 'completed' ? '✅ '+t('resolved') : 
-                booking.status === 'in_progress' ? '🔄 '+t('inProgress') : '⏳ '+t('pending')}
-            </span>
-            ${booking.priority === 'emergency' ? '<span class="badge bg-red-600 text-white">🚨 '+t('emergency')+'</span>' : ''}
-          </div>
-          <div class="ml-7">
-            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">
-              ${escapeHtml(booking.category || booking.department)}
-            </span>
-            <p class="text-xs mt-1">${escapeHtml(booking.description) || t('noDescription')}</p>
-            <span class="text-xs text-gray-400">📅 ${new Date(booking.createdAt).toLocaleString()}</span>
-            ${booking.completedAt ? 
-              `<span class="text-xs text-green-600 ml-2">✅ ${t('resolved')}: ${new Date(booking.completedAt).toLocaleString()}</span>` 
-              : ''}
-          </div>
-        </div>
-        <div class="flex gap-1">
-          ${booking.status !== 'completed' ? 
-            `<button onclick="completeRequest('${booking.id}')" class="text-green-600 px-2 py-1" title="${t('complete')}">✅</button>` 
-            : '<span class="verified-tick">✓</span>'}
-          <button onclick="deleteRequest('${booking.id}')" class="text-red-600 px-2 py-1" title="${t('delete')}">🗑️</button>
-        </div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function updateAdminDashboard() {
-  const openReqs = state.bookings.filter(b => b.status === 'open').length;
-  const inProgress = state.bookings.filter(b => b.status === 'in_progress').length;
-  const emergencyReqs = state.bookings.filter(b => b.priority === 'emergency' && b.status !== 'completed').length;
-  const occupied = state.rooms.filter(r => r.status === 'Occupied').length;
-
-  ['statOpenRequests', 'statInProgress', 'statEmergency', 'statOccupied', 'statTotalRooms'].forEach((id, i) => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = [openReqs, inProgress, emergencyReqs, occupied, state.rooms.length][i];
-  });
-
-  // Department stats for chart
-  const deptStats = { housekeeping: 0, maintenance: 0, restaurant: 0, laundry: 0, it: 0 };
-  state.bookings.forEach(b => { if (deptStats[b.department] !== undefined) deptStats[b.department]++; });
-
-  // Update charts if Chart.js is loaded
-  if (window.deptChart && typeof Chart !== 'undefined') {
-    window.deptChart.data.datasets[0].data = [
-      deptStats.housekeeping, deptStats.maintenance, deptStats.restaurant, deptStats.laundry, deptStats.it
-    ];
-    window.deptChart.update();
-  }
-
-  if (window.occupancyChart && typeof Chart !== 'undefined') {
-    window.occupancyChart.data.datasets[0].data = [
-      occupied,
-      state.rooms.filter(r => r.status === 'Vacant').length,
-      state.rooms.filter(r => r.status === 'Cleaning').length
-    ];
-    window.occupancyChart.update();
-  }
-
-  // Rating chart
-  const avgRating = state.reviews.length 
-    ? (state.reviews.reduce((sum, r) => sum + r.overall, 0) / state.reviews.length).toFixed(1) 
-    : 0;
-
-  if (window.ratingChart && typeof Chart !== 'undefined') {
-    window.ratingChart.data.datasets[0].data = [avgRating, 5 - avgRating];
-    window.ratingChart.update();
-  }
-
-  if (window.peakHourChart && typeof Chart !== 'undefined') {
-    window.peakHourChart.update();
-  }
-
-  renderAdminRequests();
-
-  // Emergency requests list
-  const emergencyContainer = document.getElementById('emergencyRequestsList');
-  if (emergencyContainer) {
-    const emergencyList = state.bookings.filter(b => b.priority === 'emergency' && b.status !== 'completed');
-    emergencyContainer.innerHTML = emergencyList.length 
-      ? emergencyList.map(b => `
-          <div class="bg-red-50 p-2 rounded border-l-4 border-red-600">
-            <strong>${b.guestName}</strong> - Room ${b.roomNumber}<br>
-            <span class="text-xs">${b.description}</span>
-          </div>
-        `).join('')
-      : `<div class="text-gray-500 text-sm">${t('noEmergency')}</div>`;
-  }
-}
-
-// ============ USER/GUEST MANAGEMENT ============
-function renderUsers() {
-  const container = document.getElementById('guestsList');
-  if (!container) return;
-
-  const guests = state.users.filter(u => u.type === 'guest');
-
-  container.innerHTML = guests.map(guest => `
-    <div class="border rounded-lg p-3 text-sm">
-      <div class="flex justify-between">
-        <div>
-          <strong>${escapeHtml(guest.name)}</strong> - Room ${guest.room}<br>
-          <span class="text-xs">📞 ${guest.phone || 'N/A'} | ✉️ ${guest.email || 'N/A'}</span>
-        </div>
-        <div><span class="text-yellow-600">⭐ ${guest.points || 0} pts</span></div>
-      </div>
-      <div class="mt-2">
-        <button onclick="addLoyaltyPoints('${guest.name}', 10)" class="text-green-600 text-xs">+10 pts</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function refreshUIForUsers() {
-  renderUsers();
-}
-
-// ============ REVIEWS ============
-function renderReviews() {
-  const container = document.getElementById('reviewsList');
-  if (!container) return;
-
-  container.innerHTML = state.reviews.map(review => `
-    <div class="border rounded-lg p-3">
-      <div class="flex justify-between">
-        <strong>${escapeHtml(review.guestName)}</strong>
-        <span>${'⭐'.repeat(review.overall)}</span>
-      </div>
-      <p class="text-sm">${escapeHtml(review.comment)}</p>
-      <div class="flex gap-2 text-xs text-gray-500 mt-1">
-        <span>🧼 Clean: ${review.cleanliness || 4}⭐</span>
-        <span>👔 Staff: ${review.staff || 4}⭐</span>
-        <span>📅 ${review.date}</span>
-      </div>
-    </div>
-  `).join('');
-}
-
-function refreshUIForReviews() {
-  renderReviews();
-}
-
-// ============ GUEST DASHBOARD ============
-function updateGuestDashboard() {
-  if (!state.currentGuest) return;
-
-  const myRequests = state.bookings.filter(b => 
-    b.guestName === state.currentGuest.name && b.roomNumber === state.currentGuest.room
-  );
-
-  ['guestTotalRequests', 'guestPendingCount', 'guestCompletedCount'].forEach((id, i) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.innerText = [
-        myRequests.length,
-        myRequests.filter(r => r.status !== 'completed').length,
-        myRequests.filter(r => r.status === 'completed').length
-      ][i];
-    }
-  });
-
-  const points = state.loyalty.find(l => l.name === state.currentGuest.name)?.points || 0;
-  const pointsEl = document.getElementById('guestPoints');
-  if (pointsEl) pointsEl.innerHTML = `⭐ ${points} pts`;
-
-  const hasRating = state.reviews.some(r => r.guestName === state.currentGuest.name);
-  const ratingEl = document.getElementById('guestRatingStatus');
-  if (ratingEl) ratingEl.innerHTML = hasRating ? '⭐ '+t('rated') : t('notRated');
-}
-
-function renderGuestRequests() {
-  const myRequests = state.bookings.filter(b => 
-    b.guestName === state.currentGuest?.name && b.roomNumber === state.currentGuest?.room
-  );
-
-  const container = document.getElementById('guestRequestsList');
-  if (!container) return;
-
-  container.innerHTML = myRequests.length 
-    ? myRequests.map(req => `
-        <div class="border-l-4 ${req.status === 'completed' ? 'border-green-500' : 'border-yellow-500'} bg-gray-50 p-3 rounded-lg text-sm">
-          <div class="flex justify-between">
-            <div>
-              <strong>${escapeHtml(req.category || req.department)}</strong>
-              <p class="text-xs">${escapeHtml(req.description)}</p>
-              <small>${new Date(req.createdAt).toLocaleString()}</small>
-            </div>
-            <div>
-              <span class="badge ${req.status === 'completed' ? 'bg-green-100' : 'bg-yellow-100'}">
-                ${req.status === 'completed' ? t('resolved')+' ✓' : t('pending')}
-              </span>
-              ${req.status === 'completed' ? '<span class="verified-tick ml-1">✓</span>' : ''}
-            </div>
-          </div>
-        </div>
-      `).join('')
-    : `<div class="text-center py-4 text-gray-500">${t('noGuestRequests')}</div>`;
-}
-
-function showGuestTab(tab) {
-  ['guestNewRequestTab', 'guestFoodOrderTab', 'guestTransportTab', 'guestMyRequestsTab', 'guestHotelInfoTab'].forEach(t => {
-    const el = document.getElementById(t);
-    if (el) el.classList.add('hidden');
-  });
-
-  const target = document.getElementById(`guest${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`);
-  if (target) target.classList.remove('hidden');
-
-  if (tab === 'myRequests') renderGuestRequests();
-  if (tab === 'hotelInfo') updateAllDisplays();
-  if (tab === 'foodOrder') renderDynamicFoodMenu();
-}
-
-// ============ RATING & CHECKOUT ============
-function showCheckoutRating() {
-  document.getElementById('ratingModal')?.classList.remove('hidden');
-  state.ratingData = { overall: 0, cleanliness: 0, staff: 0, recommend: null };
-
-  const createStars = (containerId, key) => {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    container.innerHTML = '';
-    for (let i = 1; i <= 5; i++) {
-      const star = document.createElement('span');
-      star.innerHTML = '☆';
-      star.className = 'star-rating cursor-pointer';
-      star.onclick = () => {
-        state.ratingData[key] = i;
-        updateStarDisplay(containerId, i);
-      };
-      container.appendChild(star);
-    }
-  };
-
-  createStars('ratingStars', 'overall');
-  createStars('cleanlinessStars', 'cleanliness');
-  createStars('staffStars', 'staff');
-
-  const yesBtn = document.getElementById('recommendYes');
-  const noBtn = document.getElementById('recommendNo');
-  if (yesBtn) yesBtn.className = 'px-4 py-1 bg-green-500 rounded';
-  if (noBtn) noBtn.className = 'px-4 py-1 bg-red-500 rounded';
-}
-
-function updateStarDisplay(containerId, rating) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  Array.from(container.children).forEach((star, i) => {
-    star.innerHTML = i < rating ? '★' : '☆';
-  });
-}
-
-function setRecommend(val) {
-  state.ratingData.recommend = val;
-  const yesBtn = document.getElementById('recommendYes');
-  const noBtn = document.getElementById('recommendNo');
-  if (yesBtn) yesBtn.className = val ? 'px-4 py-1 bg-green-700 text-white rounded' : 'px-4 py-1 bg-green-500 rounded';
-  if (noBtn) noBtn.className = !val ? 'px-4 py-1 bg-red-700 text-white rounded' : 'px-4 py-1 bg-red-500 rounded';
-}
-
-async function submitRating() {
-  if (state.ratingData.overall === 0) {
-    alert(t('provideRating'));
-    return;
-  }
-
-  const review = {
-    guestName: state.currentGuest.name,
-    room: state.currentGuest.room,
-    overall: state.ratingData.overall,
-    cleanliness: state.ratingData.cleanliness || 4,
-    staff: state.ratingData.staff || 4,
-    recommend: state.ratingData.recommend,
-    comment: document.getElementById('reviewText')?.value || '',
-    date: new Date().toISOString().split('T')[0]
-  };
-
-  await saveReviewToMongo(review);
-
-  document.getElementById('ratingModal')?.classList.add('hidden');
-  showToast(t('thankYouReview'), 'success');
-  addLoyaltyPoints(state.currentGuest.name, 20);
-  addActivityLog(t('logReview'), `${state.currentGuest.name} rated ${state.ratingData.overall}⭐`);
-
-  alert(t('thankYouStay') + (state.settings.name || defaultSettings.name) + t('seeYouAgain'));
-  logout();
-}
-
-// ============ NAVIGATION & LOGOUT ============
-function backToMain() {
-  document.getElementById('loginSelectionPage')?.classList.remove('hidden');
-  document.getElementById('roleSelectionPage')?.classList.add('hidden');
-}
-
-function showRoleSelection() {
-  document.getElementById('loginSelectionPage')?.classList.add('hidden');
-  document.getElementById('roleSelectionPage')?.classList.remove('hidden');
-}
-
-function showGuestLogin() {
-  const loginPage = document.getElementById('loginSelectionPage');
-  const guestDash = document.getElementById('guestDashboard');
-  const guestInfo = document.getElementById('guestInfo');
-
-  if (loginPage) loginPage.classList.add('hidden');
-  if (guestDash) guestDash.classList.remove('hidden');
-
-  state.currentGuest = { name: 'Guest', room: '101' };
-  if (guestInfo) guestInfo.innerHTML = `👤 ${state.currentGuest.name} | Room ${state.currentGuest.room}`;
-
-  showGuestTab('newRequest');
-  updateGuestDashboard();
-  renderDynamicFoodMenu();
-  speakText('Welcome to ' + (state.settings.name || defaultSettings.name));
-  addActivityLog(t('logGuestLogin'), state.currentGuest.name);
-  updateAllDisplays();
-
-  saveToLocalStorage(LS.GUEST_SESSION, {
-    token: state.token,
-    hotelId: state.hotelId,
-    guest: state.currentGuest,
-    timestamp: Date.now()
-  });
-}
-
-function logoutAdmin() {
-  document.getElementById('adminDashboard')?.classList.add('hidden');
-  document.getElementById('loginSelectionPage')?.classList.remove('hidden');
-  speakText('Logged out from admin panel');
-  addActivityLog(t('logAdminLogout'), 'Logged out');
-  state.selectedRequests.clear();
-
-  // Clear admin session
-  saveToLocalStorage(LS.ADMIN_SESSION, null);
-  document.documentElement.removeAttribute('data-session');
-}
-
-function logoutGuest() {
-  document.getElementById('guestDashboard')?.classList.add('hidden');
-  document.getElementById('loginSelectionPage')?.classList.remove('hidden');
-  state.currentGuest = null;
-  speakText('Logged out');
-  addActivityLog(t('logGuestLogout'), 'Logged out');
-
-  // Clear guest session
-  saveToLocalStorage(LS.GUEST_SESSION, null);
-  document.documentElement.removeAttribute('data-session');
-}
-
-function showAdminTab(tab) {
-  const tabs = ['overviewTab', 'requestsTab', 'roomsTab', 'guestsTab', 'reviewsTab', 'reportsTab', 
-                'qrcodesTab', 'logsTab', 'inventoryTab', 'maintenanceTab', 'blacklistTab', 
-                'loyaltyTab', 'staffTab', 'foodmenuTab', 'settingsTab'];
-
-  tabs.forEach(t => {
-    const el = document.getElementById(t);
-    if (el) el.classList.add('hidden');
-  });
-
-  const target = document.getElementById(`${tab}Tab`);
-  if (target) target.classList.remove('hidden');
-
-  // Render content based on tab
-  const renderMap = {
-    rooms: renderRooms,
-    guests: renderUsers,
-    reviews: renderReviews,
-    qrcodes: renderQRCodes,
-    logs: renderActivityLogs,
-    inventory: renderInventory,
-    maintenance: renderMaintenance,
-    blacklist: renderBlacklist,
-    loyalty: renderLoyalty,
-    staff: () => { renderStaff(); updateSLAStats(); },
-    foodmenu: renderFoodMenu,
-    settings: updateAllDisplays
-  };
-
-  if (renderMap[tab]) renderMap[tab]();
-
-  // Update active tab styling
-  document.querySelectorAll('.nav-tab').forEach(btn => 
-    btn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600')
-  );
-  const activeBtn = document.querySelector(`button[onclick="showAdminTab('${tab}')"]`);
-  if (activeBtn) activeBtn.classList.add('text-purple-600', 'border-b-2', 'border-purple-600');
-}
-
-// ============ CATEGORY DROPDOWNS WITH TRANSLATIONS ============
-function updateAdminCategories() {
-  const dept = document.getElementById('reqDepartment')?.value;
-  const catSelect = document.getElementById('reqCategory');
-  if (!catSelect) return;
-
-  catSelect.innerHTML = `<option value="">${t('selectDepartment')}</option>`;
-
-  if (serviceCategories[dept]) {
-    serviceCategories[dept].forEach(cat => {
-      const label = t(cat.key) || cat.default;
-      catSelect.innerHTML += `<option value="${cat.default}">${label}</option>`;
+function requestPushPermission() {
+  if('Notification' in window) {
+    Notification.requestPermission().then(perm => {
+      if(perm === 'granted') { showToast(t('notificationsEnabled'),'success'); testNotification(); }
     });
   }
 }
 
-function updateGuestCategories() {
-  const dept = document.getElementById('guestDepartment')?.value;
-  const catSelect = document.getElementById('guestCategory');
-  if (!catSelect) return;
+function testNotification() {
+  if(Notification.permission === 'granted') new Notification('Crown Plaza Hotel', { body: 'Notifications are working! You will receive real-time updates.' });
+}
 
-  catSelect.innerHTML = `<option value="">${t('selectService')}</option>`;
+function testHaptic() { if('vibrate' in navigator) { navigator.vibrate(200); showToast(t('vibrationTest'),'info'); } }
 
-  if (serviceCategories[dept]) {
-    serviceCategories[dept].forEach(cat => {
-      const label = t(cat.key) || cat.default;
-      catSelect.innerHTML += `<option value="${cat.default}">${label}</option>`;
-    });
+function toggleOfflineMode() {
+  offlineMode = !offlineMode;
+  if(offlineMode) document.body.classList.add('offline-mode');
+  else document.body.classList.remove('offline-mode');
+  localStorage.setItem('offlineMode', offlineMode);
+  showToast(offlineMode ? t('offlineEnabled') : t('onlineRestored'), 'info');
+}
+
+function toggleThemeSelector() { document.getElementById('themeMenu').classList.toggle('hidden'); }
+
+function setTheme(theme) {
+  let gradients = { 
+    default:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+    sunset:'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)', 
+    forest:'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
+    ocean:'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)', 
+    royal:'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)' 
+  };
+  document.querySelectorAll('.gradient-bg').forEach(el => el.style.background = gradients[theme]);
+  localStorage.setItem('theme', theme);
+  document.getElementById('themeMenu').classList.add('hidden');
+}
+
+function toggleDarkMode() { 
+  document.body.classList.toggle('dark'); 
+  localStorage.setItem('darkMode', document.body.classList.contains('dark')); 
+  document.getElementById('darkModeToggle').innerHTML = document.body.classList.contains('dark') ? '☀️' : '🌙'; 
+}
+
+function toggleHighContrast() { 
+  document.body.classList.toggle('high-contrast'); 
+  localStorage.setItem('highContrast', document.body.classList.contains('high-contrast')); 
+  speakText('High contrast mode toggled'); 
+}
+
+function adjustFontSize(action) {
+  let body = document.body;
+  body.classList.remove('font-small', 'font-large');
+  if(action === 'increase') body.classList.add('font-large');
+  else if(action === 'decrease') body.classList.add('font-small');
+  localStorage.setItem('fontSize', action);
+}
+
+function copyReferralCode() { navigator.clipboard.writeText('CROWN2024'); showToast(t('referralCopied'), 'success'); }
+
+function toggleStaffAttendance() {
+  isClockedIn = !isClockedIn;
+  document.getElementById('staffStatusBadge').innerHTML = isClockedIn ? '🟢 Clocked In' : '⏳ Not Clocked In';
+  showToast(isClockedIn ? t('clockedIn') : t('clockedOut'), 'success');
+  addActivityLog(t('logStaffAttendance'), `${isClockedIn ? 'Clocked In' : 'Clocked Out'}`);
+}
+
+function saveWifiPassword() {
+  const newPassword = document.getElementById('wifiPasswordInput').value.trim();
+  if(newPassword) {
+    hotelSettings.wifiPassword = newPassword;
+    saveSettings();
+    document.getElementById('guestWifiPassword').innerText = newPassword;
+    document.getElementById('faqWifiPassword').innerText = newPassword;
+    showToast(t('wifiUpdated'), 'success');
+    speakText('WiFi password has been updated');
+    addActivityLog(t('logWifiChange'), 'Admin updated WiFi password');
   }
 }
 
-// ============ ACTIVITY LOGS ============
+function copyWifiPassword() { 
+  navigator.clipboard.writeText(hotelSettings.wifiPassword); 
+  showToast(t('wifiCopied'), 'success'); 
+  speakText('WiFi password copied to clipboard'); 
+}
+
 function addActivityLog(action, details) {
-  const log = {
-    id: `log_${Date.now()}`,
-    action,
-    details,
-    timestamp: new Date().toLocaleString(),
-    hotelId: state.hotelId
-  };
-
-  // In production: await apiCall(DB.LOGS, 'POST', log);
-  // For now, add to in-memory array
-  state.logs.unshift(log);
-  if (state.logs.length > 200) state.logs.pop();
-
+  let log = { id: Date.now(), action, details, timestamp: new Date().toLocaleString() };
+  activityLogs.unshift(log);
+  if(activityLogs.length > 200) activityLogs.pop();
+  localStorage.setItem('crown_plaza_activity_logs', JSON.stringify(activityLogs));
   renderActivityLogs();
 }
 
 function renderActivityLogs() {
-  const container = document.getElementById('activityLogsList');
-  if (!container) return;
-
-  container.innerHTML = state.logs.slice(0, 100).map(log => `
-    <div class="border-b py-1 text-xs">
-      <span class="text-gray-400">${log.timestamp}</span> - 
-      <strong>${log.action}</strong>: ${log.details}
-    </div>
-  `).join('');
+  let container = document.getElementById('activityLogsList');
+  if(container) container.innerHTML = activityLogs.slice(0,100).map(l => `<div class="border-b py-1 text-xs"><span class="text-gray-400">${l.timestamp}</span> - <strong>${l.action}</strong>: ${l.details}</div>`).join('');
 }
 
-// ============ INVENTORY MANAGEMENT ============
+// ============ INVENTORY FUNCTIONS ============
 function addInventoryItem() {
-  const item = prompt(t('itemName') + ':');
-  const quantity = prompt(t('quantity') + ':');
-  const unit = prompt(t('unit') + ' (pcs/sets/kg):', 'pcs');
-
-  if (item && quantity) {
-    saveInventoryToMongo({
-      item,
-      quantity: parseInt(quantity),
-      unit: unit || 'pcs',
-      minStock: 10
-    });
+  let item = prompt(t('itemName') + ':');
+  let quantity = prompt(t('quantity') + ':');
+  let unit = prompt(t('unit') + ' (pcs/sets/kg):', 'pcs');
+  if(item && quantity) {
+    inventory.push({ item, quantity: parseInt(quantity), unit: unit || 'pcs', minStock: 10 });
+    localStorage.setItem('crown_plaza_inventory', JSON.stringify(inventory));
+    renderInventory();
     showToast(`${item}${t('itemAdded')}`, 'success');
     addActivityLog(t('logInventoryAdd'), item);
   }
 }
 
 function updateInventoryQuantity(index, change) {
-  const item = state.inventory[index];
-  if (!item) return;
-
-  const newQty = Math.max(0, item.quantity + change);
-  saveInventoryToMongo({ ...item, quantity: newQty });
-}
-
-function renderInventory() {
-  const container = document.getElementById('inventoryList');
-  if (!container) return;
-
-  container.innerHTML = state.inventory.map((item, i) => `
-    <div class="flex justify-between items-center p-3 border rounded-lg">
-      <div>
-        <strong>${escapeHtml(item.item)}</strong><br>
-        <span class="text-xs">${item.quantity} ${item.unit}</span><br>
-        <span class="text-xs text-gray-400">Min: ${item.minStock}</span>
-      </div>
-      <div>
-        <button onclick="updateInventoryQuantity(${i}, -1)" class="bg-red-100 px-2 py-1 rounded text-red-600">-1</button>
-        <button onclick="updateInventoryQuantity(${i}, 1)" class="bg-green-100 px-2 py-1 rounded text-green-600 ml-2">+1</button>
-        <button onclick="deleteInventoryItem('${item.id}')" class="bg-gray-100 px-2 py-1 rounded text-gray-600 ml-2">🗑️</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-async function deleteInventoryItem(itemId) {
-  if (confirm(t('deleteItem'))) {
-    const item = state.inventory.find(i => i.id === itemId);
-    await deleteFromMongo(DB.INVENTORY, itemId);
-    showToast(`${item?.item}${t('itemDeleted')}`, 'info');
-    addActivityLog(t('logInventoryDelete'), item?.item);
-  }
-}
-
-function refreshUIForInventory() {
+  inventory[index].quantity += change;
+  if(inventory[index].quantity < 0) inventory[index].quantity = 0;
+  localStorage.setItem('crown_plaza_inventory', JSON.stringify(inventory));
   renderInventory();
 }
 
-// ============ MAINTENANCE ============
-function addMaintenanceTask() {
-  const room = prompt(t('roomNumber') + ':');
-  const task = prompt(t('task') + ':');
-  const date = prompt(t('date') + ':');
-  const priority = prompt(t('priority') + ' (low/medium/high):', 'medium');
+function renderInventory() {
+  let container = document.getElementById('inventoryList');
+  if(container) container.innerHTML = inventory.map((item, i) => `<div class="flex justify-between items-center p-3 border rounded-lg"><div><strong>${escapeHtml(item.item)}</strong><br><span class="text-xs">${item.quantity} ${item.unit}</span><br><span class="text-xs text-gray-400">Min: ${item.minStock}</span></div><div><button onclick="updateInventoryQuantity(${i}, -1)" class="bg-red-100 px-2 py-1 rounded text-red-600">-1</button><button onclick="updateInventoryQuantity(${i}, 1)" class="bg-green-100 px-2 py-1 rounded text-green-600 ml-2">+1</button><button onclick="deleteInventoryItem(${i})" class="bg-gray-100 px-2 py-1 rounded text-gray-600 ml-2">🗑️</button></div></div>`).join('');
+}
 
-  if (room && task && date) {
-    saveToMongoCollection(DB.MAINTENANCE, {
-      room,
-      task,
-      date,
-      status: 'Scheduled',
-      priority: priority || 'medium'
-    });
+function deleteInventoryItem(index) {
+  if(confirm(t('deleteItem'))) {
+    let item = inventory[index];
+    inventory.splice(index, 1);
+    localStorage.setItem('crown_plaza_inventory', JSON.stringify(inventory));
+    renderInventory();
+    showToast(`${item.item}${t('itemDeleted')}`, 'info');
+    addActivityLog(t('logInventoryDelete'), item.item);
+  }
+}
+
+// ============ MAINTENANCE FUNCTIONS ============
+function addMaintenanceTask() {
+  let room = prompt(t('roomNumber') + ':');
+  let task = prompt(t('task') + ':');
+  let date = prompt(t('date') + ' (YYYY-MM-DD):');
+  let priority = prompt(t('priority') + ' (low/medium/high):', 'medium');
+  if(room && task && date) {
+    maintenanceTasks.push({ id: Date.now(), room, task, date, status: 'Scheduled', priority: priority || 'medium' });
+    localStorage.setItem('crown_plaza_maintenance', JSON.stringify(maintenanceTasks));
+    renderMaintenance();
     showToast(t('maintenanceScheduled'), 'success');
     addActivityLog(t('logMaintenanceAdd'), `Room ${room}: ${task}`);
   }
 }
 
-async function saveToMongoCollection(endpoint, data) {
-  if (state.offlineMode) {
-    queueOfflineAction('saveGeneric', { endpoint, data });
-    return { success: true, offline: true };
-  }
-
-  const result = await apiCall(endpoint, data.id ? 'PUT' : 'POST', data);
-  if (result.success && result.data?.id && !data.id) {
-    data.id = result.data.id;
-  }
-  return result;
-}
-
 function renderMaintenance() {
-  const container = document.getElementById('maintenanceList');
-  if (!container) return;
-
-  container.innerHTML = state.maintenance.map(task => `
-    <div class="flex justify-between items-center p-3 border rounded-lg">
-      <div>
-        <strong>Room ${task.room}</strong> - ${task.task}<br>
-        <span class="text-xs">📅 ${task.date} | ${task.status} | ${task.priority}</span>
-      </div>
-      <div>
-        <button onclick="completeMaintenance('${task.id}')" class="text-green-600">✅ Complete</button>
-        <button onclick="deleteMaintenance('${task.id}')" class="text-red-600 ml-2">🗑️</button>
-      </div>
-    </div>
-  `).join('');
+  let container = document.getElementById('maintenanceList');
+  if(container) container.innerHTML = maintenanceTasks.map(t => `<div class="flex justify-between items-center p-3 border rounded-lg"><div><strong>Room ${t.room}</strong> - ${t.task}<br><span class="text-xs">📅 ${t.date} | ${t.status} | ${t.priority}</span></div><div><button onclick="completeMaintenance(${t.id})" class="text-green-600">✅ Complete</button><button onclick="deleteMaintenance(${t.id})" class="text-red-600 ml-2">🗑️</button></div></div>`).join('');
 }
 
-async function completeMaintenance(taskId) {
-  const task = state.maintenance.find(t => t.id === taskId);
-  if (task) {
-    await apiCall(`${DB.MAINTENANCE}/${taskId}`, 'PUT', { ...task, status: 'Completed' });
-    // Update local state
-    task.status = 'Completed';
+function completeMaintenance(id) {
+  maintenanceTasks = maintenanceTasks.filter(t => t.id !== id);
+  localStorage.setItem('crown_plaza_maintenance', JSON.stringify(maintenanceTasks));
+  renderMaintenance();
+  showToast(t('maintenanceCompleted'), 'success');
+  addActivityLog(t('logMaintenanceComplete'), `Task ${id}`);
+}
+
+function deleteMaintenance(id) {
+  if(confirm(t('deleteTask'))) {
+    maintenanceTasks = maintenanceTasks.filter(t => t.id !== id);
+    localStorage.setItem('crown_plaza_maintenance', JSON.stringify(maintenanceTasks));
     renderMaintenance();
-    showToast(t('maintenanceCompleted'), 'success');
-    addActivityLog(t('logMaintenanceComplete'), `Task ${taskId}`);
-  }
-}
-
-async function deleteMaintenance(taskId) {
-  if (confirm(t('deleteTask'))) {
-    await deleteFromMongo(DB.MAINTENANCE, taskId);
     showToast(t('taskDeleted'), 'info');
   }
 }
 
-// ============ BLACKLIST ============
+// ============ BLACKLIST FUNCTIONS ============
 function addToBlacklist() {
-  const name = prompt(t('guestName') + ':');
-  const reason = prompt(t('reason') + ':');
-  const room = prompt(t('roomNumber') + ' (optional):', 'N/A');
-
-  if (name && reason) {
-    saveToMongoCollection(DB.BLACKLIST, {
-      name,
-      room: room || 'N/A',
-      reason,
-      date: new Date().toISOString().split('T')[0]
-    });
+  let name = prompt(t('guestName') + ':');
+  let reason = prompt(t('reason') + ':');
+  let room = prompt(t('roomNumber') + ' (optional):', 'N/A');
+  if(name && reason) {
+    blacklist.push({ name, room: room || 'N/A', reason, date: new Date().toISOString().split('T')[0] });
+    localStorage.setItem('crown_plaza_blacklist', JSON.stringify(blacklist));
+    renderBlacklist();
     showToast(`${name}${t('blacklistAdded')}`, 'success');
     addActivityLog(t('logBlacklistAdd'), name);
   }
 }
 
 function renderBlacklist() {
-  const container = document.getElementById('blacklistList');
-  if (!container) return;
-
-  container.innerHTML = state.blacklist.map((entry, i) => `
-    <div class="border-l-4 border-red-500 bg-red-50 p-3 rounded-lg">
-      <div class="flex justify-between">
-        <div>
-          <strong>${escapeHtml(entry.name)}</strong> - Room ${entry.room}<br>
-          <span class="text-xs">${entry.reason}</span><br>
-          <small>${entry.date}</small>
-        </div>
-        <button onclick="removeFromBlacklist('${entry.id}')" class="text-red-600">Remove</button>
-      </div>
-    </div>
-  `).join('');
+  let container = document.getElementById('blacklistList');
+  if(container) container.innerHTML = blacklist.map((b, i) => `<div class="border-l-4 border-red-500 bg-red-50 p-3 rounded-lg"><div class="flex justify-between"><div><strong>${escapeHtml(b.name)}</strong> - Room ${b.room}<br><span class="text-xs">${b.reason}</span><br><small>${b.date}</small></div><button onclick="removeFromBlacklist(${i})" class="text-red-600">Remove</button></div></div>`).join('');
 }
 
-async function removeFromBlacklist(entryId) {
-  const entry = state.blacklist.find(e => e.id === entryId);
-  await deleteFromMongo(DB.BLACKLIST, entryId);
+function removeFromBlacklist(index) {
+  let name = blacklist[index].name;
+  blacklist.splice(index, 1);
+  localStorage.setItem('crown_plaza_blacklist', JSON.stringify(blacklist));
+  renderBlacklist();
   showToast(t('blacklistRemoved'), 'info');
-  addActivityLog(t('logBlacklistRemove'), entry?.name);
+  addActivityLog(t('logBlacklistRemove'), name);
 }
 
-// ============ LOYALTY POINTS ============
+// ============ LOYALTY FUNCTIONS ============
 function addLoyaltyPoints(guestName, points) {
-  let guest = state.loyalty.find(l => l.name === guestName);
-
-  if (guest) {
-    guest.points = (guest.points || 0) + points;
-    // In production: await apiCall(`${DB.LOYALTY}/${guest.id}`, 'PUT', guest);
-  } else {
-    guest = { name: guestName, points };
-    // In production: await apiCall(DB.LOYALTY, 'POST', guest);
-    state.loyalty.push(guest);
-  }
-
+  let guest = loyaltyPoints.find(l => l.name === guestName);
+  if(guest) guest.points += points;
+  else loyaltyPoints.push({ name: guestName, points });
+  localStorage.setItem('crown_plaza_loyalty', JSON.stringify(loyaltyPoints));
   renderLoyalty();
-  if (state.currentGuest?.name === guestName) updateGuestDashboard();
+  if(currentGuest && currentGuest.name === guestName) updateGuestDashboard();
 }
 
 function renderLoyalty() {
-  const container = document.getElementById('loyaltyList');
-  if (!container) return;
-
-  container.innerHTML = state.loyalty.map((entry, i) => `
-    <div class="flex justify-between items-center p-3 border rounded-lg">
-      <div>
-        <strong>${escapeHtml(entry.name)}</strong><br>
-        <span class="text-yellow-600">⭐ ${entry.points || 0} points</span>
-      </div>
-      <div>
-        <button onclick="redeemPoints('${entry.id || entry.name}')" class="bg-purple-100 px-2 py-1 rounded text-purple-600 text-sm">Redeem</button>
-        <button onclick="addPointsToGuest('${entry.id || entry.name}')" class="bg-green-100 px-2 py-1 rounded text-green-600 text-sm ml-2">+Add</button>
-      </div>
-    </div>
-  `).join('');
+  let container = document.getElementById('loyaltyList');
+  if(container) container.innerHTML = loyaltyPoints.map((l, i) => `<div class="flex justify-between items-center p-3 border rounded-lg"><div><strong>${escapeHtml(l.name)}</strong><br><span class="text-yellow-600">⭐ ${l.points} points</span></div><div><button onclick="redeemPoints(${i})" class="bg-purple-100 px-2 py-1 rounded text-purple-600 text-sm">Redeem</button><button onclick="addPointsToGuest(${i})" class="bg-green-100 px-2 py-1 rounded text-green-600 text-sm ml-2">+Add</button></div></div>`).join('');
 }
 
-function redeemPoints(identifier) {
-  const guest = state.loyalty.find(l => l.id === identifier || l.name === identifier);
-  if (guest && guest.points >= 100) {
+function redeemPoints(index) {
+  let guest = loyaltyPoints[index];
+  if(guest && guest.points >= 100) {
     guest.points -= 100;
     showToast(`${guest.name}${t('pointsRedeemed')}${formatPrice(10)} ${t('discount')}!`, 'success');
     speakText(`${guest.name} redeemed loyalty points`);
@@ -3472,441 +1512,1456 @@ function redeemPoints(identifier) {
   }
 }
 
-function addPointsToGuest(identifier) {
-  const points = prompt('Enter points to add:', '10');
-  if (points && !isNaN(points)) {
-    const guest = state.loyalty.find(l => l.id === identifier || l.name === identifier);
-    if (guest) {
-      guest.points += parseInt(points);
-      renderLoyalty();
-      showToast(`${t('pointsAdded')}${points}`, 'success');
-      addActivityLog(t('logLoyaltyAdd'), `${guest.name} +${points} points`);
-    }
+function addPointsToGuest(index) {
+  let points = prompt('Enter points to add:', '10');
+  if(points && !isNaN(points)) {
+    loyaltyPoints[index].points += parseInt(points);
+    localStorage.setItem('crown_plaza_loyalty', JSON.stringify(loyaltyPoints));
+    renderLoyalty();
+    showToast(`${t('pointsAdded')}${points}`, 'success');
+    addActivityLog(t('logLoyaltyAdd'), `${loyaltyPoints[index].name} +${points} points`);
   }
 }
 
 // ============ STAFF PERFORMANCE ============
-function renderStaff() {
-  const container = document.getElementById('staffPerformanceList');
-  if (!container) return;
-
-  container.innerHTML = state.staff.map(member => `
-    <div class="flex justify-between items-center p-3 border rounded-lg">
-      <div>
-        <strong>${member.name}</strong><br>
-        <span class="text-xs">✅ Completed: ${member.completed} | ⏳ Pending: ${member.pending} | ⭐ Rating: ${member.rating}</span>
-      </div>
-      <div class="w-32 h-2 bg-gray-200 rounded-full">
-        <div class="h-2 bg-green-500 rounded-full" style="width: ${(member.completed/(member.completed+member.pending||1))*100}%"></div>
-      </div>
-      <button onclick="addStaffRating('${member.name}')" class="text-purple-600 text-xs ml-2">⭐ Rate</button>
-    </div>
-  `).join('');
+function renderStaffPerformance() {
+  let container = document.getElementById('staffPerformanceList');
+  if(container) container.innerHTML = staffPerformance.map(s => `<div class="flex justify-between items-center p-3 border rounded-lg"><div><strong>${s.name}</strong><br><span class="text-xs">✅ Completed: ${s.completed} | ⏳ Pending: ${s.pending} | ⭐ Rating: ${s.rating}</span></div><div class="w-32 h-2 bg-gray-200 rounded-full"><div class="h-2 bg-green-500 rounded-full" style="width: ${(s.completed/(s.completed+s.pending))*100}%"></div></div><button onclick="addStaffRating('${s.name}')" class="text-purple-600 text-xs ml-2">⭐ Rate</button></div>`).join('');
 }
 
 function addStaffRating(name) {
-  const rating = prompt('Enter rating (1-5):', '5');
-  if (rating && rating >= 1 && rating <= 5) {
-    const member = state.staff.find(s => s.name === name);
-    if (member) {
-      member.rating = parseFloat(rating);
-      renderStaff();
-      showToast(`${t('rated')}${name} ${rating}⭐`, 'success');
-    }
+  let rating = prompt('Enter rating (1-5):', '5');
+  if(rating && rating >= 1 && rating <= 5) {
+    let staff = staffPerformance.find(s => s.name === name);
+    if(staff) staff.rating = parseFloat(rating);
+    localStorage.setItem('crown_plaza_staff', JSON.stringify(staffPerformance));
+    renderStaffPerformance();
+    showToast(`${t('rated')}${name} ${rating}⭐`, 'success');
   }
 }
 
 function updateSLAStats() {
-  const avgCompleted = state.staff.length 
-    ? (state.staff.reduce((sum, s) => sum + s.completed, 0) / state.staff.length).toFixed(0)
-    : 0;
-
-  const slaCompliance = 85; // Demo value
-  const topPerformer = state.staff.reduce((a, b) => a.rating > b.rating ? a : b);
-
-  const el = document.getElementById('slaStats');
-  if (el) {
-    el.innerHTML = `
-      <p>📊 Avg Daily Completed: ${avgCompleted}</p>
-      <p>✅ SLA Compliance: ${slaCompliance}%</p>
-      <p>⏱️ Avg Resolution Time: 2.5 hours</p>
-      <p>🏆 Top Performer: ${topPerformer?.name || 'N/A'}</p>
-    `;
-  }
+  let avgResponse = (staffPerformance.reduce((a,b)=>a+b.completed,0) / staffPerformance.length).toFixed(0);
+  let slaCompliance = 85;
+  document.getElementById('slaStats').innerHTML = `<p>📊 Avg Daily Completed: ${avgResponse}</p><p>✅ SLA Compliance: ${slaCompliance}%</p><p>⏱️ Avg Resolution Time: 2.5 hours</p><p>🏆 Top Performer: ${staffPerformance.reduce((a,b)=>a.rating>b.rating?a:b).name}</p>`;
 }
 
 // ============ CHARTS & VISUALIZATIONS ============
 function initCharts() {
-  // Department chart
-  const deptCtx = document.getElementById('deptChart')?.getContext('2d');
-  if (deptCtx && typeof Chart !== 'undefined') {
-    window.deptChart = new Chart(deptCtx, {
-      type: 'bar',
-      data: {
-        labels: ['HK', 'Maint', 'Rest', 'Laundry', 'IT'],
-        datasets: [{
-          data: [0, 0, 0, 0, 0],
-          backgroundColor: '#667eea'
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-  }
-
-  // Occupancy chart
-  const occCtx = document.getElementById('occupancyChart')?.getContext('2d');
-  if (occCtx && typeof Chart !== 'undefined') {
-    window.occupancyChart = new Chart(occCtx, {
-      type: 'doughnut',
-      data: {
-        labels: [t('occupied'), t('vacant'), t('cleaning')],
-        datasets: [{
-          data: [0, 0, 0],
-          backgroundColor: ['#10b981', '#f59e0b', '#3b82f6']
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-  }
-
-  // Rating chart
-  const rateCtx = document.getElementById('ratingChart')?.getContext('2d');
-  if (rateCtx && typeof Chart !== 'undefined') {
-    window.ratingChart = new Chart(rateCtx, {
-      type: 'doughnut',
-      data: {
-        labels: [t('satisfaction') || 'Satisfaction', 'Remaining'],
-        datasets: [{
-          data: [0, 5],
-          backgroundColor: ['#f59e0b', '#e5e7eb']
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-  }
-
-  // Peak hour chart
-  const peakCtx = document.getElementById('peakHourChart')?.getContext('2d');
-  if (peakCtx && typeof Chart !== 'undefined') {
-    window.peakHourChart = new Chart(peakCtx, {
-      type: 'line',
-      data: {
-        labels: ['6AM', '9AM', '12PM', '3PM', '6PM', '9PM', '12AM'],
-        datasets: [{
-          label: 'Requests',
-          data: [2, 8, 15, 12, 20, 18, 5],
-          borderColor: '#f59e0b',
-          fill: true,
-          tension: 0.3
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-  }
+  let deptCtx = document.getElementById('deptChart')?.getContext('2d');
+  let occCtx = document.getElementById('occupancyChart')?.getContext('2d');
+  let rateCtx = document.getElementById('ratingChart')?.getContext('2d');
+  let peakCtx = document.getElementById('peakHourChart')?.getContext('2d');
+  if(deptCtx) window.deptChart = new Chart(deptCtx, { type:'bar', data:{ labels:['HK','Maint','Rest','Laundry','IT'], datasets:[{ data:[0,0,0,0,0], backgroundColor:'#667eea' }] } });
+  if(occCtx) window.occupancyChart = new Chart(occCtx, { type:'doughnut', data:{ labels:[t('occupied'),t('vacant'),t('cleaning')], datasets:[{ data:[0,0,0], backgroundColor:['#10b981','#f59e0b','#3b82f6'] }] } });
+  if(rateCtx) window.ratingChart = new Chart(rateCtx, { type:'doughnut', data:{ labels:[t('satisfaction'),'Remaining'], datasets:[{ data:[0,0], backgroundColor:['#f59e0b','#e5e7eb'] }] } });
+  if(peakCtx) window.peakHourChart = new Chart(peakCtx, { type:'line', data:{ labels:['6AM','9AM','12PM','3PM','6PM','9PM','12AM'], datasets:[{ label:'Requests', data:[2,8,15,12,20,18,5], borderColor:'#f59e0b', fill:true }] } });
 }
 
 function renderHeatMap() {
-  const container = document.getElementById('heatMap');
-  if (!container) return;
-
-  const areas = ['Lobby', 'Restaurant', 'Pool', 'Gym', 'Spa', 'Conference', 'Bar', 'Parking'];
-  const icons = { Lobby: '🔥', Restaurant: '🍽️', Pool: '🏊', Gym: '💪', Spa: '💆', Conference: '📊', Bar: '🍸', Parking: '🅿️' };
-
-  container.innerHTML = areas.map(area => {
-    const intensity = Math.random() > 0.5 ? '#ef4444' : '#f59e0b';
-    const visitors = Math.floor(Math.random() * 80 + 10);
-    return `
-      <div class="p-3 rounded-lg text-center text-white" style="background: ${intensity}">
-        <div class="text-xl">${icons[area] || '📍'}</div>
-        <div class="text-xs">${area}</div>
-        <div class="text-xs">${visitors} visitors</div>
-      </div>
-    `;
-  }).join('');
+  let container = document.getElementById('heatMap');
+  if(container) container.innerHTML = ['Lobby','Restaurant','Pool','Gym','Spa','Conference','Bar','Parking'].map(area => `<div class="p-3 rounded-lg text-center text-white" style="background: ${Math.random() > 0.5 ? '#ef4444' : '#f59e0b'}"><div class="text-xl">${area === 'Lobby' ? '🔥' : area === 'Restaurant' ? '🍽️' : area === 'Pool' ? '🏊' : '📍'}</div><div class="text-xs">${area}</div><div class="text-xs">${Math.floor(Math.random() * 80 + 10)} visitors</div></div>`).join('');
 }
 
-// ============ TRANSPORT BOOKING ============
-document.getElementById('transportForm')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
+// ============ GUEST FUNCTIONS ============
+function showLocalGuide() {
+  let content = localAttractions.map(a => `<div class="flex justify-between p-2 border-b"><span>${a.type} ${a.name}</span><span>${a.distance}</span></div>`).join('');
+  document.getElementById('localGuideContent').innerHTML = content;
+  document.getElementById('localGuideModal').classList.remove('hidden');
+}
 
-  const transportReq = {
-    guestName: state.currentGuest?.name,
-    roomNumber: state.currentGuest?.room,
-    department: 'transport',
-    category: 'Transport',
-    description: `${document.getElementById('transportType')?.value} at ${document.getElementById('transportTime')?.value}`,
-    priority: 'normal',
-    status: 'open'
-  };
+function showEventCalendar() {
+  let content = hotelEvents.map(e => `<div class="flex justify-between p-2 border-b"><span>${e.name}</span><span>${e.date} ${e.time}</span></div>`).join('');
+  document.getElementById('eventContent').innerHTML = content;
+  document.getElementById('eventModal').classList.remove('hidden');
+}
 
-  await saveBookingToMongo(transportReq);
-  showToast(t('transportBooked'), 'success');
-  addActivityLog(t('logTransport'), `${state.currentGuest?.name} booked transport`);
+function showEmergencyContacts() { document.getElementById('emergencyContactsModal').classList.remove('hidden'); }
+function showFirstAidGuide() { document.getElementById('firstAidModal').classList.remove('hidden'); }
+function showEvacuationMap() { document.getElementById('evacuationModal').classList.remove('hidden'); }
+function showDigitalConcierge() { document.getElementById('conciergeModal').classList.remove('hidden'); updateAllDisplays(); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-  e.target?.reset();
-  showGuestTab('myRequests');
-  renderGuestRequests();
-});
+function setWakeUpCall() {
+  let time = prompt('Wake-up time (HH:MM):', '07:00');
+  if(time) {
+    showToast(`${t('wakeUpSet')} ${time}`, 'success');
+    addActivityLog(t('logWakeUp'), `Set for ${time} - Room ${currentGuest?.room}`);
+    speakText(`Wake up call set for ${time}`);
+  }
+}
 
-// ============ REQUEST FORMS ============
-document.getElementById('adminRequestForm')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
+function toggleDND() {
+  window.dndEnabled = !window.dndEnabled;
+  document.getElementById('dndBtn').innerHTML = window.dndEnabled ? '🔕 DND: ON' : '🔕 DND: OFF';
+  showToast(window.dndEnabled ? t('dndOn') : t('dndOff'), 'info');
+}
 
-  const newReq = {
-    guestName: document.getElementById('reqGuestName')?.value,
-    roomNumber: document.getElementById('reqRoomNumber')?.value,
-    department: document.getElementById('reqDepartment')?.value,
-    category: document.getElementById('reqCategory')?.value,
-    description: document.getElementById('reqDescription')?.value,
-    priority: document.getElementById('reqPriority')?.value,
-    status: 'open'
-  };
+function showQRScanner() { document.getElementById('qrScannerModal').classList.remove('hidden'); }
+function closeQRScanner() { document.getElementById('qrScannerModal').classList.add('hidden'); }
 
-  if (!newReq.guestName || !newReq.roomNumber || !newReq.department) {
-    alert(t('fillRequired'));
+function processManualQR() {
+  let room = document.getElementById('manualQrInput').value;
+  if(room) {
+    closeQRScanner();
+    showGuestLoginWithRoom(room);
+  }
+}
+
+function showGuestLoginWithRoom(room) {
+  document.getElementById('loginSelectionPage').classList.add('hidden');
+  document.getElementById('guestDashboard').classList.remove('hidden');
+  currentGuest = { name: `Guest ${room}`, room: room };
+  document.getElementById('guestInfo').innerHTML = `👤 ${currentGuest.name} | Room ${currentGuest.room}`;
+  showGuestTab('newRequest');
+  updateGuestDashboard();
+  renderDynamicFoodMenu();
+  speakText(`Welcome to Room ${room}`);
+  addActivityLog('GUEST_LOGIN_QR', `Room ${room}`);
+  localStorage.setItem('crown_plaza_customer_session', JSON.stringify({ name: currentGuest.name, room: currentGuest.room, timestamp: Date.now() }));
+  updateAllDisplays();
+}
+
+function showSOSAlert() {
+  document.getElementById('sosModal').classList.remove('hidden');
+  sendPushNotification('🚨 SOS EMERGENCY', `Emergency from ${currentGuest?.room || 'Hotel'}`);
+  addActivityLog(t('logSOS'), `Room ${currentGuest?.room}`);
+  speakText(t('emergencyAlert'));
+}
+
+function closeSOSModal() { document.getElementById('sosModal').classList.add('hidden'); }
+
+function exportToExcel() {
+  let wsData = [['ID','Guest','Room','Department','Category','Priority','Status','Created At','Completed At']];
+  requests.forEach(r => wsData.push([r.id, r.guestName, r.roomNumber, r.department, r.category, r.priority, r.status, r.createdAt, r.completedAt || '']));
+  let ws = XLSX.utils.aoa_to_sheet(wsData);
+  let wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Requests');
+  XLSX.writeFile(wb, `crown-plaza-requests-${new Date().toISOString().split('T')[0]}.xlsx`);
+  showToast(t('excelExported'),'success');
+  addActivityLog(t('logExportExcel'), `Exported ${requests.length} requests`);
+}
+
+function exportAllData() {
+  let data = { requests, rooms, guests, reviews, inventory, maintenanceTasks, blacklist, loyaltyPoints, staffPerformance, activityLogs, foodMenu, hotelSettings };
+  let blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  let a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `crown-plaza-full-backup-${new Date().toISOString()}.json`;
+  a.click();
+  showToast(t('dataExported'),'success');
+  addActivityLog(t('logExportAll'), 'Full backup exported');
+}
+
+function printInvoice() {
+  let printContent = `<html><head><title>Crown Plaza Report</title><style>body{font-family:Arial;padding:20px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;}</style></head><body><h1>${hotelSettings.name} Report</h1><p>Date: ${new Date().toLocaleString()}</p><table><tr><th>ID</th><th>Guest</th><th>Room</th><th>Type</th><th>Status</th></tr>${requests.slice(0,50).map(r => `<tr><td>${r.id}</td><td>${r.guestName}</td><td>${r.roomNumber}</td><td>${r.category}</td><td>${r.status}</td></tr>`).join('')}</table></body></html>`;
+  let win = window.open();
+  win.document.write(printContent);
+  win.print();
+}
+
+function generateReport(type) {
+  let output = '';
+  let filtered = requests;
+  if(type === 'daily') filtered = requests.filter(r => new Date(r.createdAt).toDateString() === new Date().toDateString());
+  else if(type === 'weekly') { let weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7); filtered = requests.filter(r => new Date(r.createdAt) >= weekAgo); }
+  else if(type === 'monthly') { let monthAgo = new Date(); monthAgo.setMonth(monthAgo.getMonth() - 1); filtered = requests.filter(r => new Date(r.createdAt) >= monthAgo); }
+  output = `<h3 class="font-bold">${type.toUpperCase()} Report</h3><p>Total Requests: ${filtered.length}</p><p>Completed: ${filtered.filter(r=>r.status==='completed').length}</p><p>Pending: ${filtered.filter(r=>r.status!=='completed').length}</p><p>Completion Rate: ${filtered.length ? ((filtered.filter(r=>r.status==='completed').length/filtered.length)*100).toFixed(1) : 0}%</p><p>High Priority: ${filtered.filter(r=>r.priority==='high' || r.priority==='emergency').length}</p>`;
+  document.getElementById('reportOutput').innerHTML = output;
+  addActivityLog(t('logGenerateReport'), `${type} report`);
+}
+
+function toggleSelectAll() {
+  const filtered = getFilteredRequestsForAdmin();
+  if (selectedRequests.size === filtered.length) selectedRequests.clear();
+  else filtered.forEach(r => selectedRequests.add(r.id));
+  updateBulkUI();
+  renderAdminRequests();
+}
+
+function toggleSelectRequest(id) {
+  if (selectedRequests.has(id)) selectedRequests.delete(id);
+  else selectedRequests.add(id);
+  updateBulkUI();
+  renderAdminRequests();
+}
+
+function updateBulkUI() {
+  const bar = document.getElementById('bulkActionsBar');
+  const count = selectedRequests.size;
+  if (bar) { if (count > 0) bar.classList.remove('hidden'); else bar.classList.add('hidden'); document.getElementById('selectedCount').innerText = count; }
+  const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+  if (selectAllCheckbox) { const filtered = getFilteredRequestsForAdmin(); selectAllCheckbox.checked = selectedRequests.size === filtered.length && filtered.length > 0; selectAllCheckbox.indeterminate = selectedRequests.size > 0 && selectedRequests.size < filtered.length; }
+}
+
+function bulkComplete() {
+  if (selectedRequests.size === 0) return;
+  if (confirm(`${t('completeSelected')}${selectedRequests.size}${t('deleteSelected')}`)) {
+    requests = requests.map(r => {
+      if (selectedRequests.has(r.id) && r.status !== 'completed') {
+        addLoyaltyPoints(r.guestName, 10);
+        return { ...r, status: 'completed', completedAt: new Date().toISOString() };
+      }
+      return r;
+    });
+    let completedCount = selectedRequests.size;
+    selectedRequests.clear();
+    saveToLocal();
+    updateAdminDashboard();
+    if (currentGuest) updateGuestDashboard();
+    showToast(`✅ ${completedCount}${t('requestsCompleted')}`, 'success');
+    updateBulkUI();
+    addActivityLog(t('logBulkComplete'), `${completedCount} requests completed`);
+  }
+}
+
+function bulkDelete() {
+  if (selectedRequests.size === 0) return;
+  if (confirm(`${t('deleteSelected')}${selectedRequests.size}${t('deleteSelectedWarn')}`)) {
+    let deletedCount = selectedRequests.size;
+    requests = requests.filter(r => !selectedRequests.has(r.id));
+    selectedRequests.clear();
+    saveToLocal();
+    updateAdminDashboard();
+    if (currentGuest) updateGuestDashboard();
+    showToast(`🗑️ ${deletedCount}${t('requestsDeleted')}`, 'info');
+    updateBulkUI();
+    addActivityLog(t('logBulkDelete'), `${deletedCount} requests deleted`);
+  }
+}
+
+function clearSelection() {
+  selectedRequests.clear();
+  updateBulkUI();
+  renderAdminRequests();
+}
+
+function getFilteredRequestsForAdmin() {
+  let filtered = [...requests];
+  if (currentAdminFilter !== 'all') filtered = filtered.filter(r => r.status === currentAdminFilter);
+  if (adminSearchQuery) {
+    const query = adminSearchQuery.toLowerCase();
+    filtered = filtered.filter(r => r.guestName.toLowerCase().includes(query) || r.roomNumber.toLowerCase().includes(query) || (r.category && r.category.toLowerCase().includes(query)));
+  }
+  if (currentAdminRole !== 'super_admin' && currentAdminRole !== 'front_desk') filtered = filtered.filter(r => r.department === currentAdminRole);
+  const priorityOrder = { emergency: 0, high: 1, medium: 2, low: 3 };
+  filtered.sort((a, b) => {
+    if (a.status === 'open' && b.status !== 'open') return -1;
+    if (a.status !== 'open' && b.status === 'open') return 1;
+    if (a.status === 'in_progress' && b.status !== 'in_progress') return -1;
+    if (a.status !== 'in_progress' && b.status === 'in_progress') return 1;
+    return (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3);
+  });
+  return filtered;
+}
+
+function filterAdminRequests(filter) { currentAdminFilter = filter; currentPage = 0; renderAdminRequests(); }
+
+function completeRequest(id) {
+  let req = requests.find(r => r.id === id);
+  if(req && req.status !== 'completed') {
+    req.status = 'completed';
+    req.completedAt = new Date().toISOString();
+    addLoyaltyPoints(req.guestName, 10);
+    saveToLocal();
+    updateAdminDashboard();
+    showToast(`${t('completedFor')}${req.guestName}`, 'success');
+    addActivityLog(t('logRequestComplete'), `${req.guestName} - ${req.category}`);
+    let staff = staffPerformance.find(s => s.department === req.department);
+    if(staff) { staff.completed++; staff.pending--; }
+    renderStaffPerformance();
+    if(currentGuest && currentGuest.name === req.guestName) renderGuestRequests();
+    updateBulkUI();
+  }
+}
+
+function deleteRequest(id) {
+  if(confirm(t('deleteRequest'))) {
+    let req = requests.find(r => r.id === id);
+    requests = requests.filter(r => r.id !== id);
+    selectedRequests.delete(id);
+    saveToLocal();
+    updateAdminDashboard();
+    showToast(t('deleted'), 'info');
+    addActivityLog(t('logRequestDelete'), `${req?.guestName} - ${req?.category}`);
+    updateBulkUI();
+  }
+}
+
+function renderAdminRequests() {
+  let filtered = getFilteredRequestsForAdmin();
+  let container = document.getElementById('adminRequestsList');
+  if(!container) return;
+  if(filtered.length === 0) { container.innerHTML = `<div class="text-center py-8 text-gray-500">${t('noRequests')}</div>`; return; }
+  container.innerHTML = filtered.map(req => `
+    <div class="border-l-4 ${req.priority === 'emergency' ? 'priority-emergency' : req.priority === 'high' ? 'priority-high' : req.priority === 'medium' ? 'priority-medium' : 'priority-low'} bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-sm draggable" data-id="${req.id}">
+      <div class="flex flex-wrap justify-between gap-2">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <input type="checkbox" class="select-all-checkbox" ${selectedRequests.has(req.id) ? 'checked' : ''} onclick="toggleSelectRequest(${req.id})">
+            <strong>${escapeHtml(req.guestName)}</strong> - Room ${req.roomNumber}
+            <span class="badge text-xs">${req.status === 'completed' ? '✅ '+t('completed') : req.status === 'in_progress' ? '🔄 '+t('inProgress') : '⏳ '+t('open')}</span>
+            ${req.priority === 'emergency' ? '<span class="badge bg-red-600 text-white">🚨 '+t('emergency')+'</span>' : ''}
+          </div>
+          <div class="ml-7">
+            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">${escapeHtml(req.category || req.department)}</span>
+            <p class="text-xs mt-1">${escapeHtml(req.description) || t('noDescription')}</p>
+            <span class="text-xs text-gray-400">📅 ${new Date(req.createdAt).toLocaleString()}</span>
+            ${req.completedAt ? `<span class="text-xs text-green-600 ml-2">✅ ${t('resolved')}: ${new Date(req.completedAt).toLocaleString()}</span>` : ''}
+          </div>
+        </div>
+        <div class="flex gap-1">
+          ${req.status !== 'completed' ? `<button onclick="completeRequest(${req.id})" class="text-green-600 px-2 py-1" title="${t('complete')}">✅</button>` : '<span class="verified-tick">✓</span>'}
+          <button onclick="deleteRequest(${req.id})" class="text-red-600 px-2 py-1" title="${t('delete')}">🗑️</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateAdminDashboard() {
+  let openReqs = requests.filter(r => r.status === 'open').length;
+  let inProgress = requests.filter(r => r.status === 'in_progress').length;
+  let emergencyReqs = requests.filter(r => r.priority === 'emergency' && r.status !== 'completed').length;
+  let occupied = rooms.filter(r => r.status === 'Occupied').length;
+  document.getElementById('statOpenRequests').innerText = openReqs;
+  document.getElementById('statInProgress').innerText = inProgress;
+  document.getElementById('statEmergency').innerText = emergencyReqs;
+  document.getElementById('statOccupied').innerText = occupied;
+  document.getElementById('statTotalRooms').innerText = rooms.length;
+
+  let deptStats = { housekeeping: 0, maintenance: 0, restaurant: 0, laundry: 0, it: 0 };
+  requests.forEach(r => { if(deptStats[r.department] !== undefined) deptStats[r.department]++; });
+
+  if(window.deptChart) { window.deptChart.data.datasets[0].data = [deptStats.housekeeping, deptStats.maintenance, deptStats.restaurant, deptStats.laundry, deptStats.it]; window.deptChart.update(); }
+  if(window.occupancyChart) { window.occupancyChart.data.datasets[0].data = [occupied, rooms.filter(r => r.status === 'Vacant').length, rooms.filter(r => r.status === 'Cleaning').length]; window.occupancyChart.update(); }
+
+  let avgRating = reviews.length ? (reviews.reduce((s, r) => s + r.overall, 0) / reviews.length).toFixed(1) : 0;
+  if(window.ratingChart) { window.ratingChart.data.datasets[0].data = [avgRating, 5 - avgRating]; window.ratingChart.update(); }
+  if(window.peakHourChart) window.peakHourChart.update();
+
+  renderAdminRequests();
+
+  let emergencyContainer = document.getElementById('emergencyRequestsList');
+  if(emergencyContainer) {
+    let emergencyReqsList = requests.filter(r => r.priority === 'emergency' && r.status !== 'completed');
+    emergencyContainer.innerHTML = emergencyReqsList.length ? emergencyReqsList.map(r => `<div class="bg-red-50 p-2 rounded border-l-4 border-red-600"><strong>${r.guestName}</strong> - Room ${r.roomNumber}<br><span class="text-xs">${r.description}</span></div>`).join('') : `<div class="text-gray-500 text-sm">${t('noEmergency')}</div>`;
+  }
+}
+
+function renderGuests() {
+  let container = document.getElementById('guestsList');
+  if(container) container.innerHTML = guests.map(g => `<div class="border rounded-lg p-3 text-sm"><div class="flex justify-between"><div><strong>${escapeHtml(g.name)}</strong> - Room ${g.room}<br><span class="text-xs">📞 ${g.phone || 'N/A'} | ✉️ ${g.email || 'N/A'}</span></div><div><span class="text-yellow-600">⭐ ${g.points || 0} pts</span></div></div><div class="mt-2"><button onclick="addLoyaltyPoints('${g.name}', 10)" class="text-green-600 text-xs">+10 pts</button></div></div>`).join('');
+}
+
+function renderReviews() {
+  let container = document.getElementById('reviewsList');
+  if(container) container.innerHTML = reviews.map(r => `<div class="border rounded-lg p-3"><div class="flex justify-between"><strong>${escapeHtml(r.guestName)}</strong><span>${'⭐'.repeat(r.overall)}</span></div><p class="text-sm">${escapeHtml(r.comment)}</p><div class="flex gap-2 text-xs text-gray-500 mt-1"><span>🧼 Clean: ${r.cleanliness || 4}⭐</span><span>👔 Staff: ${r.staff || 4}⭐</span><span>📅 ${r.date}</span></div></div>`).join('');
+}
+
+function updateGuestDashboard() {
+  if(!currentGuest) return;
+  let myRequests = requests.filter(r => r.guestName === currentGuest.name && r.roomNumber === currentGuest.room);
+  document.getElementById('guestTotalRequests').innerText = myRequests.length;
+  document.getElementById('guestPendingCount').innerText = myRequests.filter(r => r.status !== 'completed').length;
+  document.getElementById('guestCompletedCount').innerText = myRequests.filter(r => r.status === 'completed').length;
+  let points = loyaltyPoints.find(l => l.name === currentGuest.name)?.points || 0;
+  document.getElementById('guestPoints').innerHTML = `⭐ ${points} pts`;
+  let hasRating = reviews.some(r => r.guestName === currentGuest.name);
+  document.getElementById('guestRatingStatus').innerHTML = hasRating ? '⭐ '+t('rated') : t('notRated');
+}
+
+function renderGuestRequests() {
+  let myRequests = requests.filter(r => r.guestName === currentGuest?.name && r.roomNumber === currentGuest?.room);
+  let container = document.getElementById('guestRequestsList');
+  if(container) container.innerHTML = myRequests.length ? myRequests.map(req => `<div class="border-l-4 ${req.status === 'completed' ? 'border-green-500' : 'border-yellow-500'} bg-gray-50 p-3 rounded-lg text-sm"><div class="flex justify-between"><div><strong>${escapeHtml(req.category || req.department)}</strong><p class="text-xs">${escapeHtml(req.description)}</p><small>${new Date(req.createdAt).toLocaleString()}</small></div><div><span class="badge ${req.status === 'completed' ? 'bg-green-100' : 'bg-yellow-100'}">${req.status === 'completed' ? t('resolved')+' ✓' : t('pending')}</span>${req.status === 'completed' ? '<span class="verified-tick ml-1">✓</span>' : ''}</div></div></div>`).join('') : `<div class="text-center py-4 text-gray-500">${t('noGuestRequests')}</div>`;
+}
+
+function showGuestTab(tab) {
+  ['guestNewRequestTab', 'guestFoodOrderTab', 'guestTransportTab', 'guestMyRequestsTab', 'guestHotelInfoTab'].forEach(t => { let el = document.getElementById(t); if(el) el.classList.add('hidden'); });
+  document.getElementById(`guest${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`).classList.remove('hidden');
+  if(tab === 'myRequests') renderGuestRequests();
+  if(tab === 'hotelInfo') updateAllDisplays();
+  if(tab === 'foodOrder') renderDynamicFoodMenu();
+}
+
+function addToCart(item, price) {
+  cart.push({ item, price });
+  updateCart();
+  showToast(`${item}${t('itemAddedCart')}`, 'success');
+  if('vibrate' in navigator) navigator.vibrate(50);
+}
+
+function updateCart() {
+  let cartDiv = document.getElementById('cartItems');
+  if(!cartDiv) return;
+  if(cart.length === 0) {
+    cartDiv.innerHTML = `<div class="text-center text-gray-500">${t('cartIsEmpty')}</div>`;
+    document.getElementById('cartTotal').innerText = formatPrice(0);
     return;
   }
+  const total = cart.reduce((s, c) => s + c.price, 0);
+  cartDiv.innerHTML = cart.map((c, i) => `<div class="flex justify-between py-1"><span>${c.item}</span><span>${formatPrice(c.price)}</span><button onclick="removeFromCart(${i})" class="text-red-500">✕</button></div>`).join('') + `<div class="border-t pt-2 font-bold">Total: ${formatPrice(total)}</div>`;
+  document.getElementById('cartTotal').innerText = formatPrice(total);
+}
 
-  await saveBookingToMongo(newReq);
-  e.target?.reset();
+function removeFromCart(i) { cart.splice(i, 1); updateCart(); }
+
+function placeOrder() {
+  if(cart.length === 0) { alert(t('cartEmpty')); return; }
+  let order = { id: Date.now(), guestName: currentGuest.name, roomNumber: currentGuest.room, department: 'restaurant', category: 'Food Order', description: `Order: ${cart.map(c => c.item).join(', ')}`, priority: 'normal', status: 'open', createdAt: new Date().toISOString() };
+  requests.unshift(order);
+  cart = [];
+  updateCart();
+  saveToLocal();
+  updateAdminDashboard();
+  showToast(t('orderPlaced'), 'success');
+  speakText('Food order placed');
+  addLoyaltyPoints(currentGuest.name, 5);
+  showGuestTab('myRequests');
+  renderGuestRequests();
+}
+
+function showCheckoutRating() {
+  document.getElementById('ratingModal').classList.remove('hidden');
+  ratingData = { overall: 0, cleanliness: 0, staff: 0, recommend: null };
+  let createStars = (id, setFn) => {
+    let container = document.getElementById(id);
+    container.innerHTML = '';
+    for(let i = 1; i <= 5; i++) {
+      let star = document.createElement('span');
+      star.innerHTML = '☆';
+      star.className = 'star-rating';
+      star.onclick = () => {
+        ratingData[setFn] = i;
+        updateStarDisplay(id, i);
+      };
+      container.appendChild(star);
+    }
+  };
+  createStars('ratingStars', 'overall');
+  createStars('cleanlinessStars', 'cleanliness');
+  createStars('staffStars', 'staff');
+  document.getElementById('recommendYes').className = 'px-4 py-1 bg-green-500 rounded';
+  document.getElementById('recommendNo').className = 'px-4 py-1 bg-red-500 rounded';
+}
+
+function updateStarDisplay(containerId, rating) {
+  let container = document.getElementById(containerId);
+  if(container) {
+    let stars = container.children;
+    for(let i = 0; i < stars.length; i++) stars[i].innerHTML = i < rating ? '★' : '☆';
+  }
+}
+
+function setRecommend(val) { 
+  ratingData.recommend = val; 
+  document.getElementById('recommendYes').className = val ? 'px-4 py-1 bg-green-700 text-white rounded' : 'px-4 py-1 bg-green-500 rounded'; 
+  document.getElementById('recommendNo').className = !val ? 'px-4 py-1 bg-red-700 text-white rounded' : 'px-4 py-1 bg-red-500 rounded'; 
+}
+
+function submitRating() {
+  if(ratingData.overall === 0) { alert(t('provideRating')); return; }
+  reviews.push({ guestName: currentGuest.name, room: currentGuest.room, overall: ratingData.overall, cleanliness: ratingData.cleanliness || 4, staff: ratingData.staff || 4, recommend: ratingData.recommend, comment: document.getElementById('reviewText').value, date: new Date().toISOString().split('T')[0] });
+  saveToLocal();
+  document.getElementById('ratingModal').classList.add('hidden');
+  showToast(t('thankYouReview'), 'success');
+  addLoyaltyPoints(currentGuest.name, 20);
+  addActivityLog(t('logReview'), `${currentGuest.name} rated ${ratingData.overall}⭐`);
+  alert(t('thankYouStay') + hotelSettings.name + t('seeYouAgain'));
+  logoutGuest();
+}
+
+function backToMain() {
+  document.getElementById('loginSelectionPage').classList.remove('hidden');
+  document.getElementById('roleSelectionPage').classList.add('hidden');
+}
+
+function showRoleSelection() {
+  document.getElementById('loginSelectionPage').classList.add('hidden');
+  document.getElementById('roleSelectionPage').classList.remove('hidden');
+}
+
+function showGuestLogin() {
+  document.getElementById('loginSelectionPage').classList.add('hidden');
+  document.getElementById('guestDashboard').classList.remove('hidden');
+  currentGuest = { name: 'Guest', room: '101' };
+  document.getElementById('guestInfo').innerHTML = `👤 ${currentGuest.name} | Room ${currentGuest.room}`;
+  showGuestTab('newRequest');
+  updateGuestDashboard();
+  renderDynamicFoodMenu();
+  speakText('Welcome to ' + hotelSettings.name);
+  addActivityLog(t('logGuestLogin'), currentGuest.name);
+  updateAllDisplays();
+  localStorage.setItem('crown_plaza_customer_session', JSON.stringify({ name: currentGuest.name, room: currentGuest.room, timestamp: Date.now() }));
+}
+
+function logoutAdmin() {
+  document.getElementById('adminDashboard').classList.add('hidden');
+  document.getElementById('loginSelectionPage').classList.remove('hidden');
+  speakText('Logged out from admin panel');
+  addActivityLog(t('logAdminLogout'), 'Logged out');
+  selectedRequests.clear();
+  localStorage.removeItem('crown_plaza_admin_session');
+  document.documentElement.removeAttribute('data-session');
+}
+
+function logoutGuest() {
+  document.getElementById('guestDashboard').classList.add('hidden');
+  document.getElementById('loginSelectionPage').classList.remove('hidden');
+  currentGuest = null;
+  speakText('Logged out');
+  addActivityLog(t('logGuestLogout'), 'Logged out');
+  localStorage.removeItem('crown_plaza_customer_session');
+  document.documentElement.removeAttribute('data-session');
+}
+
+function showAdminTab(tab) {
+  ['overviewTab', 'requestsTab', 'roomsTab', 'guestsTab', 'reviewsTab', 'reportsTab', 'qrcodesTab', 'logsTab', 'inventoryTab', 'maintenanceTab', 'blacklistTab', 'loyaltyTab', 'staffTab', 'foodmenuTab', 'settingsTab'].forEach(t => { let el = document.getElementById(t); if(el) el.classList.add('hidden'); });
+  document.getElementById(`${tab}Tab`).classList.remove('hidden');
+  if(tab === 'rooms') renderRooms();
+  if(tab === 'guests') renderGuests();
+  if(tab === 'reviews') renderReviews();
+  if(tab === 'qrcodes') renderQRCodes();
+  if(tab === 'logs') renderActivityLogs();
+  if(tab === 'inventory') renderInventory();
+  if(tab === 'maintenance') renderMaintenance();
+  if(tab === 'blacklist') renderBlacklist();
+  if(tab === 'loyalty') renderLoyalty();
+  if(tab === 'staff') { renderStaffPerformance(); updateSLAStats(); }
+  if(tab === 'foodmenu') renderFoodMenu();
+  if(tab === 'settings') updateAllDisplays();
+  document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600'));
+  let activeBtn = document.querySelector(`button[onclick="showAdminTab('${tab}')"]`);
+  if(activeBtn) { activeBtn.classList.add('text-purple-600', 'border-b-2', 'border-purple-600'); }
+}
+
+// 🔹 FIXED: Category/Department Functions with Translations
+function updateAdminCategories() {
+  let dept = document.getElementById('reqDepartment').value;
+  let catSelect = document.getElementById('reqCategory');
+  catSelect.innerHTML = '<option value="">'+t('selectCategory')+'</option>';
+
+  if(serviceCategories[dept]) {
+    serviceCategories[dept].forEach(cat => {
+      const label = t(cat.key) || cat.default;
+      catSelect.innerHTML += `<option value="${cat.default}">${label}</option>`;
+    });
+  }
+}
+
+function updateGuestCategories() {
+  let dept = document.getElementById('guestDepartment').value;
+  let catSelect = document.getElementById('guestCategory');
+  catSelect.innerHTML = '<option value="">'+t('selectService')+'</option>';
+
+  if(serviceCategories[dept]) {
+    serviceCategories[dept].forEach(cat => {
+      const label = t(cat.key) || cat.default;
+      catSelect.innerHTML += `<option value="${cat.default}">${label}</option>`;
+    });
+  }
+}
+
+function escapeHtml(str) {
+  if(!str) return '';
+  return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+// Event Listeners
+document.getElementById('adminRequestForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  let newReq = { id: Date.now(), guestName: document.getElementById('reqGuestName').value, roomNumber: document.getElementById('reqRoomNumber').value, department: document.getElementById('reqDepartment').value, category: document.getElementById('reqCategory').value, description: document.getElementById('reqDescription').value, priority: document.getElementById('reqPriority').value, status: 'open', createdAt: new Date().toISOString() };
+  if(!newReq.guestName || !newReq.roomNumber || !newReq.department) { alert(t('fillRequired')); return; }
+  requests.unshift(newReq);
+  saveToLocal();
+  updateAdminDashboard();
+  e.target.reset();
   showToast(t('requestCreated'), 'success');
   addActivityLog(t('logRequestCreate'), `${newReq.guestName} - ${newReq.category}`);
 });
 
-document.getElementById('guestRequestForm')?.addEventListener('submit', async (e) => {
+document.getElementById('guestRequestForm')?.addEventListener('submit', (e) => {
   e.preventDefault();
-
-  if (!state.currentGuest) return;
-
-  const newReq = {
-    guestName: state.currentGuest.name,
-    roomNumber: state.currentGuest.room,
-    department: document.getElementById('guestDepartment')?.value,
-    category: document.getElementById('guestCategory')?.value,
-    description: document.getElementById('guestDescription')?.value,
-    priority: document.getElementById('guestPriority')?.value === 'urgent' ? 'high' : 'normal',
-    status: 'open'
-  };
-
-  await saveBookingToMongo(newReq);
-  e.target?.reset();
-  showToast(t('requestSubmitted'), 'success');
-  addActivityLog(t('logGuestRequest'), `${state.currentGuest.name} - ${newReq.category}`);
+  if(!currentGuest) return;
+  let newReq = { id: Date.now(), guestName: currentGuest.name, roomNumber: currentGuest.room, department: document.getElementById('guestDepartment').value, category: document.getElementById('guestCategory').value, description: document.getElementById('guestDescription').value, priority: document.getElementById('guestPriority').value === 'urgent' ? 'high' : 'normal', status: 'open', createdAt: new Date().toISOString() };
+  requests.unshift(newReq);
+  saveToLocal();
+  updateAdminDashboard();
   updateGuestDashboard();
+  renderGuestRequests();
+  e.target.reset();
+  showToast(t('requestSubmitted'), 'success');
+  addActivityLog(t('logGuestRequest'), `${currentGuest.name} - ${newReq.category}`);
+});
+
+document.getElementById('transportForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  let transportReq = { id: Date.now(), guestName: currentGuest.name, roomNumber: currentGuest.room, department: 'transport', category: 'Transport', description: `${document.getElementById('transportType').value} at ${document.getElementById('transportTime').value}`, priority: 'normal', status: 'open', createdAt: new Date().toISOString() };
+  requests.unshift(transportReq);
+  saveToLocal();
+  updateAdminDashboard();
+  showToast(t('transportBooked'), 'success');
+  addActivityLog(t('logTransport'), `${currentGuest.name} booked transport`);
+  e.target.reset();
+  showGuestTab('myRequests');
   renderGuestRequests();
 });
 
-// Category dropdown change handlers
+// 🔹 FIXED: Event Listeners for Category Dropdowns
 document.getElementById('reqDepartment')?.addEventListener('change', updateAdminCategories);
 document.getElementById('guestDepartment')?.addEventListener('change', updateGuestCategories);
+document.getElementById('adminSearchInput')?.addEventListener('input', (e) => { adminSearchQuery = e.target.value; renderAdminRequests(); });
 
-// Search handler
-document.getElementById('adminSearchInput')?.addEventListener('input', (e) => {
-  state.adminSearch = e.target.value;
-  renderAdminRequests();
-});
-
-// ============ STAFF ATTENDANCE ============
-function toggleStaffAttendance() {
-  state.isClockedIn = !state.isClockedIn;
-  const badge = document.getElementById('staffStatusBadge');
-  if (badge) badge.innerHTML = state.isClockedIn ? '🟢 Clocked In' : '⏳ Not Clocked In';
-  showToast(state.isClockedIn ? t('clockedIn') : t('clockedOut'), 'success');
-  addActivityLog(t('logStaffAttendance'), `${state.isClockedIn ? 'Clocked In' : 'Clocked Out'}`);
-}
-
-// ============ PUSH NOTIFICATIONS ============
-function sendPushNotification(title, body) {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, { body });
-  }
-}
-
-function requestPushPermission() {
-  if ('Notification' in window) {
-    Notification.requestPermission().then(perm => {
-      if (perm === 'granted') {
-        showToast(t('notificationsEnabled'), 'success');
-        testNotification();
-      }
-    });
-  }
-}
-
-function testNotification() {
-  if (Notification.permission === 'granted') {
-    new Notification('Hotel QMS', { 
-      body: 'Notifications are working! You will receive real-time updates.' 
-    });
-  }
-}
-
-// ============ HAPTIC FEEDBACK ============
-function testHaptic() {
-  if ('vibrate' in navigator) {
-    navigator.vibrate(200);
-    showToast(t('vibrationTest'), 'info');
-  }
-}
-
-// ============ FONT SIZE ADJUSTMENT ============
-function adjustFontSize(action) {
-  const body = document.body;
-  body.classList.remove('font-small', 'font-large');
-
-  if (action === 'increase') body.classList.add('font-large');
-  else if (action === 'decrease') body.classList.add('font-small');
-
-  localStorage.setItem('hqms_fontSize', action);
-}
-
-// ============ REFERRAL CODE ============
-function copyReferralCode() {
-  navigator.clipboard.writeText('CROWN2024');
-  showToast(t('referralCopied'), 'success');
-}
-
-// ============ HOTEL SWITCHER UI ============
-function renderHotelSwitcher() {
-  const currentHotelId = state.hotelId;
-  const hotelName = state.hotelName || 'Crown Plaza';
-
-  let hotelSelector = document.getElementById('hotelSelector');
-  if (!hotelSelector) {
-    const header = document.querySelector('header .flex.justify-between');
-    if (header) {
-      const selectorHtml = `
-        <div id="hotelSelector" class="relative">
-          <button onclick="toggleHotelMenu()" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-sm flex items-center gap-2">
-            🏨 <span id="currentHotelName">${hotelName}</span> ▼
-          </button>
-          <div id="hotelMenu" class="hidden absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-50 min-w-[200px]">
-            <div id="hotelList" class="p-2"></div>
-          </div>
-        </div>
-      `;
-      header.insertAdjacentHTML('beforeend', selectorHtml);
+// Modal close on outside click
+document.querySelectorAll('.modal').forEach(modal => {
+  modal.addEventListener('click', (e) => {
+    if(e.target === modal) {
+      modal.classList.remove('active');
     }
-  }
-}
-
-async function toggleHotelMenu() {
-  const menu = document.getElementById('hotelMenu');
-  if (!menu) return;
-
-  if (menu.classList.contains('hidden')) {
-    const hotels = await getHotelsList();
-    const listHtml = hotels.map(hotel => `
-      <button onclick="switchHotel('${hotel.hotelId}')" class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm">
-        🏨 ${hotel.name} (${hotel.countryCode})
-      </button>
-    `).join('') || '<div class="px-3 py-2 text-sm">No hotels</div>';
-
-    document.getElementById('hotelList').innerHTML = listHtml;
-    menu.classList.remove('hidden');
-  } else {
-    menu.classList.add('hidden');
-  }
-}
-
-// Close hotel menu when clicking outside
-document.addEventListener('click', (e) => {
-  const menu = document.getElementById('hotelMenu');
-  const selector = document.getElementById('hotelSelector');
-  if (menu && !menu.classList.contains('hidden') && selector && !selector.contains(e.target)) {
-    menu.classList.add('hidden');
-  }
+  });
 });
 
-// ============ FINAL INITIALIZATION ============
-// Expose global functions for HTML onclick handlers
-window.switchHotel = switchHotel;
-window.logout = logout;
-window.logoutAdmin = logoutAdmin;
-window.logoutGuest = logoutGuest;
-window.changeLanguage = changeLanguage;
-window.toggleDarkMode = toggleDarkMode;
-window.setTheme = setTheme;
-window.formatPrice = formatPrice;
-window.showToast = showToast;
-window.speakText = speakText;
-window.addToCart = addToCart;
-window.removeFromCart = removeFromCart;
-window.placeOrder = placeOrder;
-window.updateCart = updateCart;
-window.showGuestTab = showGuestTab;
-window.showAdminTab = showAdminTab;
-window.renderHotelSwitcher = renderHotelSwitcher;
-window.toggleHotelMenu = toggleHotelMenu;
-window.showQRForRoom = showQRForRoom;
-window.downloadQRCode = downloadQRCode;
-window.completeRequest = completeRequest;
-window.deleteRequest = deleteRequest;
-window.toggleSelectRequest = toggleSelectRequest;
-window.toggleSelectAll = toggleSelectAll;
-window.bulkComplete = bulkComplete;
-window.bulkDelete = bulkDelete;
-window.clearSelection = clearSelection;
-window.filterAdminRequests = filterAdminRequests;
-window.openAddRoomModal = openAddRoomModal;
-window.openEditRoomModal = openEditRoomModal;
-window.closeRoomModal = closeRoomModal;
-window.deleteRoom = deleteRoom;
-window.openAddFoodModal = openAddFoodModal;
-window.openEditFoodModal = openEditFoodModal;
-window.closeFoodModal = closeFoodModal;
-window.deleteFoodItem = deleteFoodItem;
-window.showCheckoutRating = showCheckoutRating;
-window.updateStarDisplay = updateStarDisplay;
-window.setRecommend = setRecommend;
-window.submitRating = submitRating;
-window.showLocalGuide = showLocalGuide;
-window.showEventCalendar = showEventCalendar;
-window.showEmergencyContacts = showEmergencyContacts;
-window.showFirstAidGuide = showFirstAidGuide;
-window.showEvacuationMap = showEvacuationMap;
-window.showDigitalConcierge = showDigitalConcierge;
-window.closeModal = closeModal;
-window.setWakeUpCall = setWakeUpCall;
-window.toggleDND = toggleDND;
-window.showQRScanner = showQRScanner;
-window.closeQRScanner = closeQRScanner;
-window.processManualQR = processManualQR;
-window.showGuestLoginWithRoom = showGuestLoginWithRoom;
-window.showSOSAlert = showSOSAlert;
-window.closeSOSModal = closeSOSModal;
-window.exportToExcel = exportToExcel;
-window.exportAllData = exportAllData;
-window.printInvoice = printInvoice;
-window.generateReport = generateReport;
-window.addInventoryItem = addInventoryItem;
-window.updateInventoryQuantity = updateInventoryQuantity;
-window.deleteInventoryItem = deleteInventoryItem;
-window.addMaintenanceTask = addMaintenanceTask;
-window.completeMaintenance = completeMaintenance;
-window.deleteMaintenance = deleteMaintenance;
-window.addToBlacklist = addToBlacklist;
-window.removeFromBlacklist = removeFromBlacklist;
-window.addLoyaltyPoints = addLoyaltyPoints;
-window.redeemPoints = redeemPoints;
-window.addPointsToGuest = addPointsToGuest;
-window.addStaffRating = addStaffRating;
-window.toggleStaffAttendance = toggleStaffAttendance;
-window.requestPushPermission = requestPushPermission;
-window.testNotification = testNotification;
-window.testHaptic = testHaptic;
-window.adjustFontSize = adjustFontSize;
-window.copyReferralCode = copyReferralCode;
-window.copyWifiPassword = copyWifiPassword;
-window.saveHotelName = saveHotelName;
-window.saveCurrencySettings = saveCurrencySettings;
-window.saveTransportPrices = saveTransportPrices;
-window.saveWifiPassword = saveWifiPassword;
-window.backToMain = backToMain;
-window.showRoleSelection = showRoleSelection;
-window.showGuestLogin = showGuestLogin;
-window.loginAsRole = loginAsRole;
+// Initialize App
+function initApp() {
+  loadFromLocal();
+  saveToLocal();
 
-console.log('✅ Hotel QMS Full Code Loaded');
-console.log('✅ Architecture: MongoDB Primary, LocalStorage Session Only');
-console.log('✅ Features: Multi-hotel, EN/HI/AR, Admin/Guest, Food Cart, QR, Charts, PWA, Voice, Offline Sync');
+  // Check session FIRST before any other init
+  const sessionRestored = checkSavedSession();
+
+  // Only run full init if no session was restored
+  if(!sessionRestored) {
+    updateAllDisplays();
+    renderRooms();
+    renderFoodMenu();
+    renderDynamicFoodMenu();
+  }
+
+  // Apply saved UI preferences
+  if(localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark');
+  if(localStorage.getItem('highContrast') === 'true') document.body.classList.add('high-contrast');
+  if(localStorage.getItem('theme')) setTheme(localStorage.getItem('theme'));
+  if(localStorage.getItem('offlineMode') === 'true') toggleOfflineMode();
+
+  // Set initial active language button
+  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+  const savedLang = localStorage.getItem('preferredLanguage') || 'en';
+  const langBtn = Array.from(document.querySelectorAll('.lang-btn')).find(b => b.getAttribute('onclick')?.includes(`'${savedLang}'`));
+  if (langBtn) langBtn.classList.add('active');
+
+  // Initialize with saved language
+  if (savedLang !== 'en') {
+    changeLanguage(savedLang);
+  }
+}
+
+// Start the app
+initApp();
+// ========== ADD HINDI & ARABIC TRANSLATIONS ==========
+// Extending existing translations
+if (typeof translations !== 'undefined') {
+    translations.hi = translations.hi || {};
+    translations.ar = translations.ar || {};
+
+    // Hindi translations
+    Object.assign(translations.hi, {
+        welcomeTitle: "क्राउन प्लाज़ा होटल",
+        guestTab: "🏨 अतिथि",
+        adminTab: "👑 व्यवस्थापक",
+        yourName: "आपका नाम",
+        roomNumber: "कमरा संख्या",
+        enterName: "अपना नाम दर्ज करें",
+        loginGuest: "🔐 अतिथि लॉगिन",
+        loginAdmin: "🔐 व्यवस्थापक लॉगिन",
+        newRequest: "📝 नया अनुरोध",
+        selectDepartment: "विभाग चुनें",
+        selectService: "सेवा चुनें",
+        submitRequest: "अनुरोध जमा करें",
+        logout: "लॉगआउट",
+        myRequests: "मेरे अनुरोध",
+        pending: "लंबित",
+        resolved: "हल किए गए",
+        foodMenu: "🍕 फूड मेनू",
+        transport: "🚗 ट्रांसपोर्ट",
+        hotelInfo: "ℹ️ होटल जानकारी",
+        save: "सहेजें",
+        cancel: "रद्द करें",
+        close: "बंद करें",
+        copy: "कॉपी"
+    });
+
+    // Arabic translations
+    Object.assign(translations.ar, {
+        welcomeTitle: "فندق كراون بلازا",
+        guestTab: "🏨 ضيف",
+        adminTab: "👑 مسؤول",
+        yourName: "اسمك",
+        roomNumber: "رقم الغرفة",
+        enterName: "أدخل اسمك",
+        loginGuest: "🔐 تسجيل دخول ضيف",
+        loginAdmin: "🔐 تسجيل دخول مسؤول",
+        newRequest: "📝 طلب جديد",
+        selectDepartment: "اختر القسم",
+        selectService: "اختر الخدمة",
+        submitRequest: "إرسال الطلب",
+        logout: "تسجيل خروج",
+        myRequests: "طلباتي",
+        pending: "قيد الانتظار",
+        resolved: "تم الحل",
+        foodMenu: "🍕 قائمة الطعام",
+        transport: "🚗 النقل",
+        hotelInfo: "ℹ️ معلومات الفندق",
+        save: "حفظ",
+        cancel: "إلغاء",
+        close: "إغلاق",
+        copy: "نسخ"
+    });
+
+}
+
+// ==========================================
+// EXTENDING TRANSLATIONS WITH HINDI & ARABIC
+// ==========================================
+if (typeof translations !== 'undefined') {
+    // Add Hindi translations if not exists
+    if (!translations.hi) translations.hi = {};
+    Object.assign(translations.hi, {
+        welcomeTitle: "क्राउन प्लाज़ा होटल",
+        guestTab: "🏨 अतिथि",
+        adminTab: "👑 व्यवस्थापक",
+        yourName: "आपका नाम",
+        roomNumber: "कमरा संख्या",
+        enterName: "अपना नाम दर्ज करें",
+        loginGuest: "🔐 अतिथि लॉगिन",
+        emailAddress: "ईमेल पता",
+        password: "पासवर्ड",
+        passwordPlaceholder: "••••••••",
+        loginAdmin: "🔐 व्यवस्थापक लॉगिन",
+        newRequest: "📝 नया अनुरोध",
+        selectDepartment: "विभाग चुनें",
+        selectService: "सेवा चुनें",
+        describeIssue: "अपनी समस्या बताएं...",
+        submitRequest: "अनुरोध जमा करें",
+        sosEmergency: "🚨 SOS आपातकालीन",
+        logout: "लॉगआउट",
+        myRequests: "मेरे अनुरोध",
+        pending: "लंबित",
+        resolved: "हल किए गए",
+        notRated: "रेटेड नहीं",
+        foodMenu: "🍕 फूड मेनू",
+        placeOrder: "ऑर्डर करें",
+        transport: "🚗 ट्रांसपोर्ट",
+        bookNow: "अभी बुक करें",
+        hotelInfo: "ℹ️ होटल जानकारी",
+        wifi: "📶 वाईफाई:",
+        localTime: "🌍 स्थानीय समय:",
+        restaurant: "🍽️ रेस्तरां:",
+        gym: "💪 जिम:",
+        emergency: "🚨 आपातकालीन:",
+        checkout: "🕐 चेकआउट:",
+        wakeUpCall: "⏰ वेक-अप कॉल सेट करें",
+        dnd: "🔕 डीएनडी: बंद",
+        localGuide: "🗺️ स्थानीय गाइड",
+        events: "📅 इवेंट्स",
+        emergencyContacts: "📞 आपातकालीन संपर्क",
+        firstAid: "🚑 प्राथमिक उपचार",
+        evacuationMap: "🗺️ निकासी मानचित्र",
+        concierge: "🤖 कॉन्सियर्ज",
+        checkoutRate: "⭐ चेकआउट और रेट करें",
+        save: "सहेजें",
+        cancel: "रद्द करें",
+        close: "बंद करें",
+        copy: "कॉपी",
+        selectRole: "👑 अपनी भूमिका चुनें",
+        roleSuperAdmin: "सुपर व्यवस्थापक",
+        roleFrontDesk: "फ्रंट डेस्क",
+        roleHousekeeping: "हाउसकीपिंग",
+        roleMaintenance: "मेंटेनेंस",
+        roleRestaurant: "रेस्तरां",
+        roleLaundry: "लॉन्ड्री",
+        roleSecurity: "सुरक्षा",
+        roleIT: "आईटी सपोर्ट",
+        back: "← वापस",
+        liveUpdates: "लाइव अपडेट",
+        voiceEnabled: "वॉइस सक्षम",
+        pwaReady: "PWA तैयार",
+        selectTheme: "थीम चुनें",
+        offlineActive: "📴 ऑफ़लाइन मोड सक्रिय",
+        highContrast: "🔆",
+        fontSizeSmall: "A-",
+        fontSizeReset: "A",
+        fontSizeLarge: "A+",
+        offlineMode: "📴",
+        pushNotify: "🔔",
+        haptic: "📳",
+        darkMode: "🌙",
+        langEN: "🇬🇧 EN",
+        langHI: "🇮🇳 हिंदी",
+        langAR: "🇸🇦 العربية",
+        totalRooms: "कुल कमरे",
+        occupied: "भरे हुए",
+        open: "खुले",
+        inProgress: "प्रगति पर",
+        emergency: "आपातकालीन"
+    });
+
+    // Add Arabic translations
+    if (!translations.ar) translations.ar = {};
+    Object.assign(translations.ar, {
+        welcomeTitle: "فندق كراون بلازا",
+        guestTab: "🏨 ضيف",
+        adminTab: "👑 مسؤول",
+        yourName: "اسمك",
+        roomNumber: "رقم الغرفة",
+        enterName: "أدخل اسمك",
+        loginGuest: "🔐 تسجيل دخول ضيف",
+        emailAddress: "عنوان البريد الإلكتروني",
+        password: "كلمة المرور",
+        passwordPlaceholder: "••••••••",
+        loginAdmin: "🔐 تسجيل دخول مسؤول",
+        newRequest: "📝 طلب جديد",
+        selectDepartment: "اختر القسم",
+        selectService: "اختر الخدمة",
+        describeIssue: "صف مشكلتك...",
+        submitRequest: "إرسال الطلب",
+        sosEmergency: "🚨 SOS طوارئ",
+        logout: "تسجيل خروج",
+        myRequests: "طلباتي",
+        pending: "قيد الانتظار",
+        resolved: "تم الحل",
+        notRated: "لم يتم التقييم",
+        foodMenu: "🍕 قائمة الطعام",
+        placeOrder: "تقديم الطلب",
+        transport: "🚗 النقل",
+        bookNow: "احجز الآن",
+        hotelInfo: "ℹ️ معلومات الفندق",
+        wifi: "📶 الواي فاي:",
+        localTime: "🌍 الوقت المحلي:",
+        restaurant: "🍽️ المطعم:",
+        gym: "💪 الصالة الرياضية:",
+        emergency: "🚨 طوارئ:",
+        checkout: "🕐 تسجيل الخروج:",
+        wakeUpCall: "⏰ تعيين مكالمة إيقاظ",
+        dnd: "🔕 عدم الإزعاج: إيقاف",
+        localGuide: "🗺️ الدليل المحلي",
+        events: "📅 الفعاليات",
+        emergencyContacts: "📞 جهات اتصال الطوارئ",
+        firstAid: "🚑 الإسعافات الأولية",
+        evacuationMap: "🗺️ خريطة الإخلاء",
+        concierge: "🤖 الكونسيرج",
+        checkoutRate: "⭐ تسجيل الخروج والتقييم",
+        save: "حفظ",
+        cancel: "إلغاء",
+        close: "إغلاق",
+        copy: "نسخ",
+        selectRole: "👑 اختر دورك",
+        roleSuperAdmin: "مدير عام",
+        roleFrontDesk: "مكتب الاستقبال",
+        roleHousekeeping: "التنظيف",
+        roleMaintenance: "الصيانة",
+        roleRestaurant: "المطعم",
+        roleLaundry: "الغسيل",
+        roleSecurity: "الأمن",
+        roleIT: "دعم تقنية المعلومات",
+        back: "← عودة",
+        liveUpdates: "تحديثات مباشرة",
+        voiceEnabled: "تمكين الصوت",
+        pwaReady: "PWA جاهز",
+        selectTheme: "اختر سمة",
+        offlineActive: "📴 وضع عدم الاتصال نشط",
+        highContrast: "🔆",
+        fontSizeSmall: "A-",
+        fontSizeReset: "A",
+        fontSizeLarge: "A+",
+        offlineMode: "📴",
+        pushNotify: "🔔",
+        haptic: "📳",
+        darkMode: "🌙",
+        langEN: "🇬🇧 EN",
+        langHI: "🇮🇳 हिंदी",
+        langAR: "🇸🇦 العربية",
+        totalRooms: "إجمالي الغرف",
+        occupied: "مشغولة",
+        open: "مفتوحة",
+        inProgress: "قيد التنفيذ",
+        emergency: "طارئ"
+    });
+
+    console.log("✅ Hindi and Arabic translations successfully added!");
+}
+
+// ========== AUTO-LOAD SAVED LANGUAGE ==========
+(function() {
+    const savedLang = localStorage.getItem('preferredLanguage');
+    if (savedLang && savedLang !== 'en') {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (typeof window.changeLanguage === 'function') {
+                    window.changeLanguage(savedLang);
+                    console.log('✅ Auto-loaded language:', savedLang);
+                }
+            }, 200);
+        });
+    }
+})();
+
+
+// ========== SIMPLE ADMIN PANEL TRANSLATIONS ==========
+// This works without breaking anything
+
+// Hindi Admin Texts
+const adminHindi = {
+    tabOverview: "📊 अवलोकन",
+    tabRequests: "📋 अनुरोध", 
+    tabRooms: "🏨 कमरे",
+    totalRooms: "कुल कमरे",
+    occupied: "भरे हुए",
+    open: "खुले",
+    inProgress: "प्रगति पर",
+    emergency: "आपातकालीन"
+};
+
+// Arabic Admin Texts  
+const adminArabic = {
+    tabOverview: "📊 نظرة عامة",
+    tabRequests: "📋 الطلبات",
+    tabRooms: "🏨 الغرف", 
+    totalRooms: "إجمالي الغرف",
+    occupied: "مشغولة",
+    open: "مفتوحة",
+    inProgress: "قيد التنفيذ",
+    emergency: "طارئ"
+};
+
+// Safe translation function for admin panel
+function translateAdminPanel(lang) {
+    const texts = lang === 'hi' ? adminHindi : (lang === 'ar' ? adminArabic : null);
+    if (!texts) return;
+
+    for (const [key, value] of Object.entries(texts)) {
+        const el = document.querySelector(`[data-i18n="${key}"]`);
+        if (el) el.textContent = value;
+    }
+}
+
+// Enhance changeLanguage without breaking
+const originalChangeLang = window.changeLanguage;
+window.changeLanguage = function(lang) {
+    if (originalChangeLang) originalChangeLang(lang);
+    setTimeout(() => translateAdminPanel(lang), 100);
+};
+
+
+// ========== LOGIN PAGE HINDI ONLY ==========
+function loginPageHindi() {
+    const hindi = {
+        welcomeTitle: "क्राउन प्लाज़ा होटल",
+        guestTab: "🏨 अतिथि",
+        adminTab: "👑 व्यवस्थापक",
+        yourName: "आपका नाम",
+        roomNumber: "कमरा संख्या",
+        enterName: "अपना नाम दर्ज करें",
+        loginGuest: "🔐 अतिथि लॉगिन",
+        loginAdmin: "🔐 व्यवस्थापक लॉगिन"
+    };
+
+    for (const [key, value] of Object.entries(hindi)) {
+        const el = document.querySelector(`[data-i18n="${key}"]`);
+        if (el) el.textContent = value;
+    }
+
+    const nameInput = document.querySelector('[data-i18n-placeholder="enterName"]');
+    if (nameInput) nameInput.placeholder = "अपना नाम दर्ज करें";
+
+    console.log('✅ Login page Hindi applied');
+}
+
+// Add to changeLanguage
+const originalLang = window.changeLanguage;
+window.changeLanguage = function(lang) {
+    if (originalLang) originalLang(lang);
+    if (lang === 'hi') {
+        loginPageHindi();
+    }
+};
+
+// ========== LOGIN PAGE ARABIC ONLY ==========
+function loginPageArabic() {
+    const arabic = {
+        welcomeTitle: "فندق كراون بلازا",
+        guestTab: "🏨 ضيف",
+        adminTab: "👑 مسؤول",
+        yourName: "اسمك",
+        roomNumber: "رقم الغرفة",
+        enterName: "أدخل اسمك",
+        loginGuest: "🔐 تسجيل دخول ضيف",
+        loginAdmin: "🔐 تسجيل دخول مسؤول"
+    };
+
+    for (const [key, value] of Object.entries(arabic)) {
+        const el = document.querySelector(`[data-i18n="${key}"]`);
+        if (el) el.textContent = value;
+    }
+
+    const nameInput = document.querySelector('[data-i18n-placeholder="enterName"]');
+    if (nameInput) nameInput.placeholder = "أدخل اسمك";
+
+    document.documentElement.dir = 'rtl';
+    document.body.classList.add('rtl');
+
+    console.log('✅ Login page Arabic applied');
+}
+
+// Add to changeLanguage (update existing)
+const existingChange = window.changeLanguage;
+window.changeLanguage = function(lang) {
+    if (existingChange) existingChange(lang);
+
+    if (lang === 'hi') {
+        if (typeof loginPageHindi === 'function') loginPageHindi();
+    } else if (lang === 'ar') {
+        if (typeof loginPageArabic === 'function') loginPageArabic();
+    }
+};
+
+// Auto-load saved language on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const savedLang = localStorage.getItem('preferredLanguage');
+    if (savedLang === 'hi') {
+        setTimeout(function() {
+            if (typeof loginPageHindi === 'function') loginPageHindi();
+        }, 200);
+    } else if (savedLang === 'ar') {
+        setTimeout(function() {
+            if (typeof loginPageArabic === 'function') loginPageArabic();
+        }, 200);
+    }
+});
+
+console.log('✅ Login page Arabic added permanently');
+
+// ========== GUEST PAGE HINDI ONLY ==========
+function guestPageHindi() {
+    const hindi = {
+        // Menu Buttons
+        request: "अनुरोध",
+        food: "खाना",
+        cab: "कैब",
+        history: "इतिहास",
+        info: "जानकारी",
+
+        // Stats
+        myRequests: "मेरे अनुरोध",
+        pending: "लंबित",
+        resolved: "हल किए गए",
+        notRated: "रेटेड नहीं",
+
+        // Tab Headers
+        newRequest: "📝 नया अनुरोध",
+        foodMenu: "🍕 फूड मेनू",
+        transport: "🚗 ट्रांसपोर्ट",
+        hotelInfo: "ℹ️ होटल जानकारी",
+
+        // Form
+        selectDepartment: "विभाग चुनें",
+        selectService: "सेवा चुनें",
+        describeIssue: "अपनी समस्या बताएं...",
+        submitRequest: "अनुरोध जमा करें",
+        sosEmergency: "🚨 SOS आपातकालीन",
+
+        // Buttons
+        placeOrder: "ऑर्डर करें",
+        bookNow: "अभी बुक करें",
+        logout: "लॉगआउट",
+
+        // Hotel Info
+        wifi: "📶 वाईफाई:",
+        localTime: "🌍 स्थानीय समय:",
+        restaurant: "🍽️ रेस्तरां:",
+        gym: "💪 जिम:",
+        emergency: "🚨 आपातकालीन:",
+        checkout: "🕐 चेकआउट:"
+    };
+
+    for (const [key, value] of Object.entries(hindi)) {
+        const el = document.querySelector(`[data-i18n="${key}"]`);
+        if (el) el.textContent = value;
+    }
+
+    // Department dropdown
+    const dept = document.getElementById('guestDepartment');
+    if (dept) {
+        const opts = ["विभाग चुनें", "हाउसकीपिंग", "मेंटेनेंस", "रेस्तरां", "लॉन्ड्री", "आईटी सपोर्ट"];
+        for (let i = 0; i < dept.options.length && i < opts.length; i++) {
+            dept.options[i].text = opts[i];
+        }
+    }
+
+    // Priority dropdown
+    const prio = document.getElementById('guestPriority');
+    if (prio) {
+        if (prio.options[0]) prio.options[0].text = "सामान्य";
+        if (prio.options[1]) prio.options[1].text = "⚠️ तत्काल";
+    }
+
+    console.log('✅ Guest page Hindi applied');
+}
+
+// Add to existing changeLanguage
+const withGuestHindi = window.changeLanguage;
+window.changeLanguage = function(lang) {
+    if (withGuestHindi) withGuestHindi(lang);
+
+    const guestDashboard = document.getElementById('guestDashboard');
+    if (guestDashboard && !guestDashboard.classList.contains('hidden')) {
+        if (lang === 'hi') {
+            guestPageHindi();
+        }
+    }
+};
+
+
+// ========== GUEST PAGE ARABIC ONLY ==========
+function guestPageArabic() {
+    const arabic = {
+        // Menu Buttons
+        request: "طلب",
+        food: "طعام",
+        cab: "تاكسي",
+        history: "السجل",
+        info: "معلومات",
+
+        // Stats
+        myRequests: "طلباتي",
+        pending: "قيد الانتظار",
+        resolved: "تم الحل",
+        notRated: "لم يتم التقييم",
+
+        // Tab Headers
+        newRequest: "📝 طلب جديد",
+        foodMenu: "🍕 قائمة الطعام",
+        transport: "🚗 النقل",
+        hotelInfo: "ℹ️ معلومات الفندق",
+
+        // Form
+        selectDepartment: "اختر القسم",
+        selectService: "اختر الخدمة",
+        describeIssue: "صف مشكلتك...",
+        submitRequest: "إرسال الطلب",
+        sosEmergency: "🚨 SOS طوارئ",
+
+        // Buttons
+        placeOrder: "تقديم الطلب",
+        bookNow: "احجز الآن",
+        logout: "تسجيل خروج",
+
+        // Hotel Info
+        wifi: "📶 الواي فاي:",
+        localTime: "🌍 الوقت المحلي:",
+        restaurant: "🍽️ المطعم:",
+        gym: "💪 الصالة الرياضية:",
+        emergency: "🚨 طوارئ:",
+        checkout: "🕐 تسجيل الخروج:"
+    };
+
+    for (const [key, value] of Object.entries(arabic)) {
+        const el = document.querySelector(`[data-i18n="${key}"]`);
+        if (el) el.textContent = value;
+    }
+
+    // Department dropdown
+    const dept = document.getElementById('guestDepartment');
+    if (dept) {
+        const opts = ["اختر القسم", "التنظيف", "الصيانة", "المطعم", "الغسيل", "دعم تقنية المعلومات"];
+        for (let i = 0; i < dept.options.length && i < opts.length; i++) {
+            dept.options[i].text = opts[i];
+        }
+    }
+
+    // Priority dropdown
+    const prio = document.getElementById('guestPriority');
+    if (prio) {
+        if (prio.options[0]) prio.options[0].text = "عادي";
+        if (prio.options[1]) prio.options[1].text = "⚠️ عاجل";
+    }
+
+    // Set RTL
+    document.documentElement.dir = 'rtl';
+    document.body.classList.add('rtl');
+
+    console.log('✅ Guest page Arabic applied');
+}
+
+// Add to existing changeLanguage
+const withGuestArabic = window.changeLanguage;
+window.changeLanguage = function(lang) {
+    if (withGuestArabic) withGuestArabic(lang);
+
+    const guestDashboard = document.getElementById('guestDashboard');
+    if (guestDashboard && !guestDashboard.classList.contains('hidden')) {
+        if (lang === 'hi') {
+            if (typeof guestPageHindi === 'function') guestPageHindi();
+        } else if (lang === 'ar') {
+            if (typeof guestPageArabic === 'function') guestPageArabic();
+        }
+    }
+};
+
+
+// ========== FIX DEPARTMENT DROPDOWN ARABIC ==========
+function fixDepartmentArabic() {
+    const dept = document.getElementById('guestDepartment');
+    if (dept) {
+        const arabicOptions = [
+            "اختر القسم",
+            "التنظيف",
+            "الصيانة",
+            "المطعم",
+            "الغسيل",
+            "دعم تقنية المعلومات"
+        ];
+        for (let i = 0; i < dept.options.length && i < arabicOptions.length; i++) {
+            dept.options[i].text = arabicOptions[i];
+        }
+        console.log('✅ Department dropdown fixed to Arabic');
+    }
+
+    // Fix priority dropdown too
+    const prio = document.getElementById('guestPriority');
+    if (prio) {
+        if (prio.options[0]) prio.options[0].text = "عادي";
+        if (prio.options[1]) prio.options[1].text = "⚠️ عاجل";
+        console.log('✅ Priority dropdown fixed to Arabic');
+    }
+}
+
+// Add to guestPageArabic function
+const originalGuestArabic = guestPageArabic;
+if (typeof guestPageArabic === 'function') {
+    window.guestPageArabic = function() {
+        if (originalGuestArabic) originalGuestArabic();
+        fixDepartmentArabic();
+    };
+} else {
+    window.guestPageArabic = fixDepartmentArabic;
+}
+
+// Also add to changeLanguage for Arabic
+const arabicDeptChange = window.changeLanguage;
+window.changeLanguage = function(lang) {
+    if (arabicDeptChange) arabicDeptChange(lang);
+
+    if (lang === 'ar') {
+        setTimeout(function() {
+            fixDepartmentArabic();
+        }, 100);
+    }
+};
+
+console.log('✅ Department dropdown Arabic fix ready');
+
+// ========== ADMIN PANEL HINDI ONLY ==========
+function adminPanelHindi() {
+    const hindi = {
+        tabOverview: "📊 अवलोकन",
+        tabRequests: "📋 अनुरोध",
+        tabRooms: "🏨 कमरे",
+        totalRooms: "कुल कमरे",
+        occupied: "भरे हुए",
+        open: "खुले",
+        inProgress: "प्रगति पर",
+        emergency: "आपातकालीन",
+        addNewRoom: "+ नया कमरा जोड़ें",
+        save: "सहेजें",
+        cancel: "रद्द करें",
+        delete: "हटाएं",
+        close: "बंद करें"
+    };
+
+    for (const [key, value] of Object.entries(hindi)) {
+        const el = document.querySelector(`[data-i18n="${key}"]`);
+        if (el) el.textContent = value;
+    }
+    console.log('✅ Admin panel Hindi applied');
+}
+
+// Add to changeLanguage
+const withAdminHindi = window.changeLanguage;
+window.changeLanguage = function(lang) {
+    if (withAdminHindi) withAdminHindi(lang);
+
+    const adminDash = document.getElementById('adminDashboard');
+    if (adminDash && !adminDash.classList.contains('hidden')) {
+        if (lang === 'hi') {
+            adminPanelHindi();
+        }
+    }
+};
+
+
+// ========== ADMIN PANEL ARABIC ONLY ==========
+function adminPanelArabic() {
+    const arabic = {
+        tabOverview: "📊 نظرة عامة",
+        tabRequests: "📋 الطلبات",
+        tabRooms: "🏨 الغرف",
+        totalRooms: "إجمالي الغرف",
+        occupied: "مشغولة",
+        open: "مفتوحة",
+        inProgress: "قيد التنفيذ",
+        emergency: "طارئ",
+        addNewRoom: "+ إضافة غرفة جديدة",
+        save: "حفظ",
+        cancel: "إلغاء",
+        delete: "حذف",
+        close: "إغلاق"
+    };
+
+    for (const [key, value] of Object.entries(arabic)) {
+        const el = document.querySelector(`[data-i18n="${key}"]`);
+        if (el) el.textContent = value;
+    }
+
+    document.documentElement.dir = 'rtl';
+    document.body.classList.add('rtl');
+
+    console.log('✅ Admin panel Arabic applied');
+}
+
+// Add to changeLanguage
+const withAdminArabic = window.changeLanguage;
+window.changeLanguage = function(lang) {
+    if (withAdminArabic) withAdminArabic(lang);
+
+    const adminDash = document.getElementById('adminDashboard');
+    if (adminDash && !adminDash.classList.contains('hidden')) {
+        if (lang === 'hi') {
+            adminPanelHindi();
+        } else if (lang === 'ar') {
+            adminPanelArabic();
+        }
+    }
+};
+
+
+// ========== ADMIN PANEL DEPARTMENT DROPDOWN ARABIC ==========
+function fixAdminDepartmentArabic() {
+    const adminDept = document.getElementById('reqDepartment');
+    if (adminDept) {
+        const arabicOptions = [
+            "اختر القسم",
+            "التنظيف",
+            "الصيانة",
+            "المطعم",
+            "الغسيل",
+            "دعم تقنية المعلومات"
+        ];
+        for (let i = 0; i < adminDept.options.length && i < arabicOptions.length; i++) {
+            adminDept.options[i].text = arabicOptions[i];
+        }
+        console.log('✅ Admin department dropdown fixed to Arabic');
+    }
+
+    // Fix admin priority dropdown too
+    const adminPrio = document.getElementById('reqPriority');
+    if (adminPrio) {
+        const priorityOptions = [
+            "منخفض",
+            "متوسط",
+            "عالي",
+            "🚨 طارئ"
+        ];
+        for (let i = 0; i < adminPrio.options.length && i < priorityOptions.length; i++) {
+            adminPrio.options[i].text = priorityOptions[i];
+        }
+        console.log('✅ Admin priority dropdown fixed to Arabic');
+    }
+}
+
+// Add to adminPanelArabic function
+const existingAdminArabic = adminPanelArabic;
+if (typeof adminPanelArabic === 'function') {
+    window.adminPanelArabic = function() {
+        if (existingAdminArabic) existingAdminArabic();
+        fixAdminDepartmentArabic();
+    };
+}
+
+// Also add to changeLanguage for Arabic
+const adminDeptChange = window.changeLanguage;
+window.changeLanguage = function(lang) {
+    if (adminDeptChange) adminDeptChange(lang);
+
+    const adminDash = document.getElementById('adminDashboard');
+    if (adminDash && !adminDash.classList.contains('hidden')) {
+        if (lang === 'ar') {
+            setTimeout(function() {
+                fixAdminDepartmentArabic();
+            }, 100);
+        }
+    }
+};
+
+
+
+
+function fixAdminArabicDropdowns() {
+    const adminDept = document.getElementById('reqDepartment');
+    if (adminDept) {
+        const deptOptions = ["اختر القسم", "التنظيف", "الصيانة", "المطعم", "الغسيل", "دعم تقنية المعلومات"];
+        for (let i = 0; i < adminDept.options.length && i < deptOptions.length; i++) {
+            adminDept.options[i].text = deptOptions[i];
+        }
+    }
+    const adminPrio = document.getElementById('reqPriority');
+    if (adminPrio) {
+        const priorityOptions = ["منخفض", "متوسط", "عالي", "🚨 طارئ"];
+        for (let i = 0; i < adminPrio.options.length && i < priorityOptions.length; i++) {
+            adminPrio.options[i].text = priorityOptions[i];
+        }
+    }
+    console.log('✅ Admin Arabic dropdowns fixed');
+}
+
+const safeChangeLang = window.changeLanguage;
+window.changeLanguage = function(lang) {
+    if (safeChangeLang) safeChangeLang(lang);
+    if (lang === 'ar') {
+        setTimeout(fixAdminArabicDropdowns, 200);
+    }
+};
+
+
+// ========== FIX ADMIN DEPARTMENT ARABIC IN HTML ==========
+function fixAdminDeptArabic() {
+    const adminDept = document.getElementById('reqDepartment');
+    if (adminDept && translations.ar) {
+        const deptMap = {
+            "": "اختر القسم",
+            "housekeeping": "التنظيف",
+            "maintenance": "الصيانة",
+            "restaurant": "المطعم",
+            "laundry": "الغسيل",
+            "it": "دعم تقنية المعلومات"
+        };
+
+        for (let i = 0; i < adminDept.options.length; i++) {
+            const val = adminDept.options[i].value;
+            if (deptMap[val]) {
+                adminDept.options[i].text = deptMap[val];
+            }
+        }
+    }
+}
+
+// Add to existing changeLanguage
+if (typeof changeLanguage === 'function') {
+    const originalChange = changeLanguage;
+    window.changeLanguage = function(lang) {
+        originalChange(lang);
+        if (lang === 'ar') {
+            setTimeout(fixAdminDeptArabic, 100);
+        }
+    };
+}

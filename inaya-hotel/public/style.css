@@ -63,9 +63,9 @@ body.premium-mode {
 }
 
 /* Dark Mode Enhancement */
-body.dark { 
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
-  background-attachment: fixed !important;
+.dark { 
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background-attachment: fixed;
   color: #eee; 
 }
 
@@ -698,56 +698,36 @@ html {
 }
 
 /* Dark Mode */
-body.dark .bg-white, 
-body.dark .card, 
-body.dark .bg-gray-50, 
-body.dark .bg-gray-100 { 
+.dark .bg-white, 
+.dark .card, 
+.dark .bg-gray-50, 
+.dark .bg-gray-100 { 
   background-color: rgba(26, 26, 46, 0.95) !important; 
   color: #eee !important; 
   backdrop-filter: blur(5px);
 }
 
-body.dark .text-gray-500, 
-body.dark .text-gray-600, 
-body.dark .text-gray-700 { 
+.dark .text-gray-500, 
+.dark .text-gray-600, 
+.dark .text-gray-700 { 
   color: #aaa !important; 
 }
 
-body.dark .text-gray-800,
-body.dark .text-gray-900 {
-  color: #f0f0f0 !important;
-}
-
-body.dark .border-gray-100, 
-body.dark .border-gray-200 { 
+.dark .border-gray-100, 
+.dark .border-gray-200 { 
   border-color: #2a2a4a !important; 
 }
 
-body.dark .gradient-bg { 
-  background: linear-gradient(135deg, #682376 0%, #16213e 100%) !important; 
+.dark .gradient-bg { 
+  background: linear-gradient(135deg, #682376 0%, #16213e 100%); 
 }
 
-body.dark input, 
-body.dark select, 
-body.dark textarea { 
-  background-color: rgba(27, 27, 55, 0.9) !important; 
-  color: #eee !important; 
-  border-color: #2a2a4a !important; 
-}
-
-body.dark .glass-card {
-  background: rgba(26, 26, 46, 0.95) !important;
-  border: 1px solid rgba(102, 126, 234, 0.3) !important;
-  color: #eee !important;
-}
-
-body.dark .bg-white.dark\:bg-gray-800,
-body.dark .dark\:bg-gray-800 {
-  background-color: #1a1a2e !important;
-}
-
-body.dark .shadow-sm {
-  box-shadow: 0 1px 2px rgba(0,0,0,0.4) !important;
+.dark input, 
+.dark select, 
+.dark textarea { 
+  background-color: rgba(27, 27, 55, 0.9); 
+  color: #eee; 
+  border-color: #2a2a4a; 
 }
 
 /* Responsive */
@@ -923,84 +903,44 @@ body {
 }
 
 /* ========================================
-   🎯 FIXED: BOTH BUTTONS SIDE BY SIDE AT BOTTOM RIGHT
+   Theme Selector & Dark Mode Toggle (Base)
    ======================================== */
-
-/* Dark mode button - fixed at bottom right */
-.dark-mode-toggle {
-  position: fixed !important;
-  bottom: 20px !important;
-  right: 20px !important;
-  top: auto !important;
-  left: auto !important;
-  width: 44px !important;
-  height: 44px !important;
-  border-radius: 50% !important;
-  background: linear-gradient(135deg, #667eea, #764ba2) !important;
-  color: white !important;
-  z-index: 1000 !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
-  margin: 0 !important;
+.theme-selector { 
+  position: fixed; 
+  bottom: 90px; 
+  right: 20px; 
+  z-index: 100; 
+  width: 50px; 
+  height: 50px; 
+  border-radius: 50%; 
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  cursor: pointer; 
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+  transition: transform 0.2s; 
 }
 
-/* Theme button - fixed to the left of dark mode button */
-.theme-selector {
-  position: fixed !important;
-  bottom: 20px !important;
-  right: 74px !important;
-  top: auto !important;
-  left: auto !important;
-  width: 44px !important;
-  height: 44px !important;
-  border-radius: 50% !important;
-  background: linear-gradient(135deg, #667eea, #764ba2) !important;
-  color: white !important;
-  z-index: 1000 !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
-  margin: 0 !important;
-}
-
-/* Hover effect for both */
 .dark-mode-toggle:hover, 
 .theme-selector:hover { 
-  transform: scale(1.1) !important; 
+  transform: scale(1.1); 
 }
 
-/* Mobile responsive */
-@media (max-width: 640px) { 
-  .dark-mode-toggle {
-    width: 38px !important;
-    height: 38px !important;
-    bottom: 15px !important;
-    right: 15px !important;
-  }
-
-  .theme-selector {
-    width: 38px !important;
-    height: 38px !important;
-    bottom: 15px !important;
-    right: 63px !important;
-  }
-}
-
-/* RTL support */
-[dir="rtl"] .dark-mode-toggle {
-  right: auto !important;
-  left: 20px !important;
-}
-
-[dir="rtl"] .theme-selector {
-  right: auto !important;
-  left: 74px !important;
-}
-
-@media (max-width: 640px) and (dir: rtl) {
-  .dark-mode-toggle {
-    left: 15px !important;
-  }
-  .theme-selector {
-    left: 63px !important;
-  }
+.dark-mode-toggle {
+  width: 40px; 
+  height: 40px; 
+  border-radius: 50%; 
+  background: linear-gradient(135deg, #667eea, #764ba2); 
+  color: white; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  cursor: pointer; 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2); 
+  transition: transform 0.2s; 
+  margin: 0 4px;
 }
 
 /* QR Code & Skeleton */
@@ -1255,6 +1195,12 @@ body {
 
 /* Mobile Responsive */
 @media (max-width: 640px) { 
+  .dark-mode-toggle, 
+  .theme-selector { 
+    width: 40px; 
+    height: 40px; 
+  } 
+
   .lang-btn {
     padding: 4px 10px;
     font-size: 10px;
@@ -1296,28 +1242,16 @@ html[lang="ar"] body,
 html[lang="ar"] input,
 html[lang="ar"] select,
 html[lang="ar"] textarea,
-html[lang="ar"] button,
-html[lang="ar"] p,
-html[lang="ar"] span,
-html[lang="ar"] div,
-html[lang="ar"] label {
-  font-family: 'Noto Naskh Arabic', 'Segoe UI', 'Tahoma', Arial, sans-serif !important;
+html[lang="ar"] button {
+  font-family: 'Segoe UI', 'Tahoma', 'Arial', 'Noto Sans Arabic', 'Arabic Typesetting', sans-serif !important;
 }
 
 html[lang="hi"] body,
 html[lang="hi"] input,
 html[lang="hi"] select,
 html[lang="hi"] textarea,
-html[lang="hi"] button,
-html[lang="hi"] p,
-html[lang="hi"] span,
-html[lang="hi"] div,
-html[lang="hi"] label {
-  font-family: 'Noto Sans Devanagari', 'Segoe UI', Arial, sans-serif !important;
-}
-
-html[lang="en"] body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+html[lang="hi"] button {
+  font-family: 'Segoe UI', 'Arial', 'Noto Sans Devanagari', 'Mangal', 'Arial Unicode MS', sans-serif !important;
 }
 
 [dir="rtl"] {
@@ -1359,6 +1293,11 @@ html[lang="en"] body {
 }
 
 [dir="rtl"] .notification-toast {
+  right: auto;
+  left: 20px;
+}
+
+[dir="rtl"] .theme-selector {
   right: auto;
   left: 20px;
 }
@@ -1454,4 +1393,3 @@ html[lang="en"] body {
 [data-i18n="systemInfo"] {
   color: #ffffff !important;
 }
-

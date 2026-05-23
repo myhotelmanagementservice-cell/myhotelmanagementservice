@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard - Crown Plaza</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🏨 Crown Plaza Dashboard</h1>
+        <div id="stats">
+            <div class="card">Total Rooms: <span id="totalRooms">120</span></div>
+            <div class="card">Occupied: <span id="occupied">0</span></div>
+            <div class="card">Available: <span id="available">0</span></div>
+        </div>
+    </div>
+    <script>
+        fetch('/api/dashboard')
+            .then(r => r.json())
+            .then(data => {
+                if(data.success) {
+                    document.getElementById('occupied').innerText = data.data.occupiedRooms;
+                    document.getElementById('available').innerText = data.data.availableRooms;
+                }
+            });
+    </script>
+</body>
+</html>
