@@ -1,58 +1,56 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const path = require('path');
 const mongoose = require('mongoose');
-
 const app = express();
-const PORT = process.env.PORT || 3000;
+const DEFAULT_PORT = process.env.PORT || 3000;
+
+// Available ports to try
+const availablePorts = [DEFAULT_PORT, 3001, 3002, 3003, 5000, 5001, 8080, 8081, 8888, 9000];
+let currentPortIndex = 0;
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/inaya_hotel')
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.error('MongoDB Error:', err.message));
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => console.error('❌ MongoDB Error:', err.message));
 
-// Middleware
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: '*', credentials: true }));
-app.use(express.json());
-app.use(morgan('dev'));
+app.get('/', (req, res) => {
+  res.json({ message: 'Server running from workspace/server.js', mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' });
+});
 
-// Static files
-app.use(express.static(path.join(__dirname, '../public')));
-
-// API Routes
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    success: true, 
+    status: 'OK', 
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
+  });
 });
 
-app.get('/api', (req, res) => {
-  res.json({ name: 'Crown Plaza Hotel System', version: '5.0.0', status: 'running' });
-});
+// Auto port fallback function
+function startServer() {
+  if (currentPortIndex >= availablePorts.length) {
+    console.error('❌ No available ports found!');
+    process.exit(1);
+  }
 
-// Auth Routes
-try {
-  app.use('/api/auth', require('./routes/auth'));
-  console.log('Auth routes loaded');
-} catch(err) {
-  console.log('Auth routes not yet created');
+  const port = availablePorts[currentPortIndex];
+  
+  const server = app.listen(port, '0.0.0.0')
+    .on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`⚠️ Port ${port} is busy, trying next port...`);
+        currentPortIndex++;
+        startServer();
+      } else {
+        console.error('❌ Server error:', err);
+        process.exit(1);
+      }
+    })
+    .on('listening', () => {
+      console.log(`✅ Server running on port ${port}`);
+      console.log(`✅ MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
+    });
 }
 
-// Serve UI
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public', 'index.html'));
-});
-
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('Crown Plaza Hotel Server');
-  console.log('Port: ' + PORT);
-  console.log('Health: http://localhost:' + PORT + '/api/health');
-  console.log('UI: http://localhost:' + PORT);
-  console.log('Admin: admin@crownplaza.com / admin123');
-});
-
-// Auth Routes - Make sure this is present
-app.use('/api/auth', require('./routes/auth'));
+// Start server with auto fallback
+startServer();
