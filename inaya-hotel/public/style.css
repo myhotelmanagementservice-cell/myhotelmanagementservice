@@ -1136,46 +1136,102 @@ body {
 
 .dark .modal-content { background: linear-gradient(135deg, #1a1a2e, #16213e); }
 
-/* Language Selector */
+/* ========================================
+   ✅ NEW FIX: LANGUAGE SELECTOR - BOTTOM FIXED (Mobile & Laptop)
+   ======================================== */
 .lang-selector { 
-  position: fixed; 
-  bottom: 0; 
-  left: 0; 
-  right: 0; 
-  z-index: 9999; 
-  display: flex; 
-  gap: 8px; 
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(10px);
-  padding: 12px; 
-  border-radius: 25px 25px 0 0; 
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.15); 
-  flex-wrap: wrap; 
-  justify-content: center; 
+  position: fixed !important; 
+  bottom: 0 !important; 
+  left: 0 !important; 
+  right: 0 !important; 
+  top: auto !important;
+  z-index: 9999 !important; 
+  display: flex !important; 
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 8px !important; 
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(10px) !important;
+  padding: 10px 12px !important; 
+  border-radius: 20px 20px 0 0 !important; 
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.15) !important; 
+  margin: 0 !important;
+  width: 100% !important;
 }
 
+/* Language buttons styling */
 .lang-btn { 
-  padding: 6px 12px; 
-  border-radius: 25px; 
-  font-size: 12px; 
-  cursor: pointer; 
-  transition: all 0.2s; 
-  background: #f1f5f9; 
-  font-weight: 500;
+  padding: 6px 12px !important; 
+  border-radius: 25px !important; 
+  font-size: 12px !important; 
+  cursor: pointer !important; 
+  transition: all 0.2s !important; 
+  background: #f1f5f9 !important; 
+  font-weight: 500 !important;
+  border: none !important;
 }
 
 .lang-btn:hover {
-  transform: translateY(-2px);
+  transform: translateY(-2px) !important;
 }
 
 .lang-btn.active { 
-  background: linear-gradient(135deg, #667eea, #764ba2); 
-  color: white; 
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #667eea, #764ba2) !important; 
+  color: white !important; 
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4) !important;
 }
 
-.dark .lang-selector { background: rgba(22, 33, 62, 0.98); }
-.dark .lang-btn { background: #2a2a4a; color: #eee; }
+.dark .lang-selector { background: rgba(22, 33, 62, 0.98) !important; }
+.dark .lang-btn { background: #2a2a4a !important; color: #eee !important; }
+
+/* Mobile responsive for language selector */
+@media (max-width: 640px) { 
+  .lang-selector {
+    padding: 8px 10px !important;
+    gap: 6px !important;
+  }
+  .lang-btn {
+    padding: 4px 10px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* ========================================
+   ✅ NEW FIX: ONLINE INDICATOR - TOP LEFT FIXED
+   ======================================== */
+.online-indicator {
+  position: fixed !important;
+  top: 12px !important;
+  left: 12px !important;
+  right: auto !important;
+  bottom: auto !important;
+  z-index: 10000 !important;
+  padding: 6px 14px !important;
+  border-radius: 30px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
+  backdrop-filter: blur(4px) !important;
+  background: #10b981 !important;
+  color: white !important;
+}
+
+.online-indicator.online {
+  background: #10b981 !important;
+  color: white !important;
+}
+
+.online-indicator.offline {
+  background: #ef4444 !important;
+  color: white !important;
+}
+
+/* Hide online indicator on admin/guest dashboards if needed */
+#adminDashboard .online-indicator,
+#guestDashboard .online-indicator {
+  display: none !important;
+}
 
 /* Push Permission Button */
 .push-permission-btn { 
@@ -1191,20 +1247,6 @@ body {
 
 .push-permission-btn:hover {
   transform: translateY(-2px);
-}
-
-/* Mobile Responsive */
-@media (max-width: 640px) { 
-  .dark-mode-toggle, 
-  .theme-selector { 
-    width: 40px; 
-    height: 40px; 
-  } 
-
-  .lang-btn {
-    padding: 4px 10px;
-    font-size: 10px;
-  }
 }
 
 /* ========================================
@@ -1365,18 +1407,15 @@ html[lang="hi"] button {
   color: #ffffff !important;
 }
 
-
 /* Force System Info Heading White */
 [data-i18n="systemInfo"] {
   color: #ffffff !important;
 }
 
-
 /* FORCE SYSTEM INFO HEADING WHITE */
 [data-i18n="systemInfo"] {
   color: #ffffff !important;
 }
-
 
 /* System Info Heading - White in all modes */
 [data-i18n="systemInfo"] {
@@ -1387,7 +1426,6 @@ html[lang="hi"] button {
 .dark [data-i18n="systemInfo"] {
   color: #ffffff !important;
 }
-
 
 /* FORCE SYSTEM INFO HEADING WHITE */
 [data-i18n="systemInfo"] {
