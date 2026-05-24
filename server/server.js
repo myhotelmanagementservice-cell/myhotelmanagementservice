@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const app = express();
 const DEFAULT_PORT = process.env.PORT || 3000;
 
@@ -6,8 +7,36 @@ const DEFAULT_PORT = process.env.PORT || 3000;
 const availablePorts = [DEFAULT_PORT, 3001, 3002, 3003, 5000, 5001, 8080, 8081, 8888, 9000];
 let currentPortIndex = 0;
 
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// MongoDB Connection
+mongoose.connect('mongodb://localhost:27017/inaya-hotel', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('✅ MongoDB Connected successfully'))
+.catch(err => console.error('❌ MongoDB Connection error:', err));
+
+// Basic route
 app.get('/', (req, res) => {
-  res.json({ message: 'Server running from workspace/server.js' });
+  res.json({ message: 'Inaya Hotel Management System API' });
+});
+
+// Test MongoDB connection route
+app.get('/test-db', (req, res) => {
+  const state = mongoose.connection.readyState;
+  const states = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
+  res.json({ 
+    mongodb_status: states[state],
+    server_status: 'running'
+  });
 });
 
 // Auto port fallback function
