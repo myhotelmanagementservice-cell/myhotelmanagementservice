@@ -184,6 +184,24 @@ transition: border-color 0.2s;
 border-color: var(--text-primary);
 }
 /* ✨ FIXED: Permanent Bottom Center Toolbar */
+.lang-selector {
+position: fixed;
+bottom: 0;
+left: 0;
+right: 0;
+width: 100%;
+z-index: 10000;
+display: flex;
+flex-wrap: wrap;
+justify-content: center;
+align-items: center;
+gap: 6px;
+background: var(--card-bg);
+backdrop-filter: blur(10px);
+padding: 10px 12px;
+border-top: 1px solid var(--border-color);
+box-shadow: 0 -4px 15px rgba(0,0,0,0.08);
+}
 .lang-btn {
 padding: 6px 10px;
 border-radius: 8px;
@@ -400,6 +418,9 @@ border: 1px solid #ccc !important;
 box-shadow: none !important;
 }
 }
+.lang-selector { position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; z-index: 99999 !important; display: flex !important; flex-wrap: wrap !important; justify-content: center !important; align-items: center !important; gap: 8px !important; background: #ffffff !important; padding: 12px !important; border-top: 2px solid #e5e7eb !important; box-shadow: 0 -2px 10px rgba(0,0,0,0.15) !important; margin: 0 !important; border-radius: 0 !important; }
+
+.lang-selector { position: fixed; bottom: 0; left: 0; right: 0; z-index: 99999; display: flex; justify-content: center; gap: 8px; background: white; padding: 10px; margin: 0; }
 </style>
 </head>
 <body class="bg-gray-100" style="padding-bottom:80px;">
@@ -427,7 +448,7 @@ box-shadow: none !important;
 </div>
 
 <!--  FIXED: Permanent Bottom Center Toolbar -->
-<div class="lang-selector" style="position:fixed; bottom:0; left:0; right:0; z-index:99999; display:flex; justify-content:center; align-items:center; gap:10px; background:white; padding:12px; border-top:2px solid #ccc; box-shadow:0 -2px 10px rgba(0,0,0,0.2);">
+<div class="lang-selector">
 <button class="lang-btn active" onclick="changeLanguage('en')" data-i18n="langEN" title="English">🇧 EN</button>
 <button class="lang-btn" onclick="changeLanguage('hi')" data-i18n="langHI" title="हिंदी">🇮🇳 हिंदी</button>
 <button class="lang-btn" onclick="changeLanguage('ar')" data-i18n="langAR" title="العربية">🇸 العربية</button>
@@ -2222,5 +2243,8 @@ restorePageState();
 </script>
 </body>
 </html>
+<style>#adminDashboard, #guestDashboard, #roleSelectionPage { padding-bottom: 80px; }.lang-selector { position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; z-index: 99999 !important; display: flex !important; flex-wrap: wrap !important; justify-content: center !important; align-items: center !important; gap: 8px !important; background: #ffffff !important; padding: 12px !important; border-top: 2px solid #e5e7eb !important; box-shadow: 0 -2px 10px rgba(0,0,0,0.15) !important; margin: 0 !important; border-radius: 0 !important; }
+
+.lang-selector { position: fixed; bottom: 0; left: 0; right: 0; z-index: 99999; display: flex; justify-content: center; gap: 8px; background: white; padding: 10px; margin: 0; }
 </style>
 
