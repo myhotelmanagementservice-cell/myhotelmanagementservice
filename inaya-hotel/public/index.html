@@ -455,12 +455,12 @@
     }
   </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100" style="margin:0; padding:0; overflow-x:hidden;">
   <!-- ✨ Real-time sync indicator -->
   <div id="syncIndicator" class="sync-indicator">🔄 Syncing...</div>
 
   <!-- ✨ Online/Offline Indicator -->
-  <div id="onlineIndicator" class="online-indicator online">🟢 Online</div>
+  <div id="onlineIndicator" class="online-indicator online" style="position:fixed !important; top:15px !important; left:15px !important; z-index:9999 !important; background:#10b981 !important; color:white !important; padding:4px 12px !important; border-radius:20px !important; font-size:11px !important; font-weight:500 !important;">🟢 Online</div>
 
   <div id="app">
     <!-- Theme Selector -->
@@ -484,7 +484,7 @@
     </div>
 
     <!-- Language Selector (Bottom Fixed) -->
-    <div class="lang-selector">
+    <div class="lang-selector" style="position:fixed !important; bottom:0 !important; left:0 !important; right:0 !important; z-index:9999 !important; display:flex !important; flex-wrap:wrap !important; justify-content:center !important; align-items:center !important; gap:6px !important; background:white !important; padding:8px 12px !important; margin:0 !important; border-radius:15px 15px 0 0 !important; box-shadow:0 -2px 8px rgba(0,0,0,0.1) !important;">
       <button class="lang-btn active" onclick="changeLanguage('en')" data-i18n="langEN" title="English">🇬🇧 EN</button>
       <button class="lang-btn" onclick="changeLanguage('hi')" data-i18n="langHI" title="हिंदी">🇮🇳 हिंदी</button>
       <button class="lang-btn" onclick="changeLanguage('ar')" data-i18n="langAR" title="العربية">🇸🇦 العربية</button>
@@ -502,8 +502,8 @@
     <div id="toastContainer" class="notification-toast"></div>
 
     <!-- LOGIN SELECTION PAGE -->
-    <div id="loginSelectionPage" class="min-h-screen gradient-bg flex items-center justify-center p-4">
-      <div class="glass-card rounded-3xl shadow-2xl w-full max-w-md p-8 animate-fade-in">
+    <div id="loginSelectionPage" class="min-h-screen gradient-bg flex items-center justify-center" style="width:100%; max-width:100%; margin:0; padding:0; position:absolute; top:0; left:0;">
+      <div class="glass-card rounded-3xl shadow-2xl animate-fade-in" style="width:92%; max-width:400px; margin:20px auto; padding:20px;">
         <div class="text-center mb-8">
           <div class="icon text-6xl mb-4 animate-bounce">👑</div>
           <h1 class="text-3xl font-bold text-gray-800 dark:text-white" id="welcomeTitle" data-i18n="welcomeTitle">Crown Plaza Hotel</h1>
