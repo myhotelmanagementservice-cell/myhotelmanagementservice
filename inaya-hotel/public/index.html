@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
@@ -10,12 +9,12 @@
   <meta name="apple-mobile-web-app-title" content="Crown Plaza">
   <title id="pageTitle" data-i18n="pageTitle">Crown Plaza Hotel - Ultimate Management System</title>
 
-  <!-- Google Fonts: Hindi + Arabic + Latin -->
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- External Libraries (CDN) -->
+  <!-- External Libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -24,12 +23,26 @@
 
   <style>
     * { font-family: 'Inter', 'Noto Sans Devanagari', 'Noto Naskh Arabic', sans-serif; }
-    body { overflow-x: hidden; padding-bottom: 100px; }
+    body { overflow-x: hidden; padding-bottom: 100px; transition: filter 0.2s; }
     .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
     .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
     .dark .glass-card { background: rgba(31, 41, 55, 0.95); }
 
-    /* Fixed Bottom Language Toolbar */
+    /* FIXED: Theme CSS Variables */
+    :root {
+      --theme-primary: #667eea;
+      --theme-secondary: #764ba2;
+      --theme-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .theme-sunset { --theme-primary: #f59e0b; --theme-secondary: #ef4444; --theme-gradient: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); }
+    .theme-forest { --theme-primary: #10b981; --theme-secondary: #059669; --theme-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+    .theme-ocean { --theme-primary: #06b6d4; --theme-secondary: #3b82f6; --theme-gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%); }
+    .theme-royal { --theme-primary: #ec4899; --theme-secondary: #8b5cf6; --theme-gradient: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); }
+
+    .gradient-bg { background: var(--theme-gradient) !important; }
+    .btn-primary { background: var(--theme-primary); }
+
+    /* Fixed Bottom Toolbar */
     .lang-selector {
       position: fixed; bottom: 0; left: 0; right: 0;
       background: rgba(102, 126, 234, 0.95); backdrop-filter: blur(10px);
@@ -76,7 +89,7 @@
       width: 40px; height: 40px; border-radius: 8px; cursor: pointer;
       border: 3px solid transparent; transition: all 0.3s;
     }
-    .theme-preview:hover, .theme-preview.active { border-color: #667eea; transform: scale(1.1); }
+    .theme-preview:hover, .theme-preview.active { border-color: var(--theme-primary); transform: scale(1.1); }
 
     /* Online Indicator */
     .online-indicator { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
@@ -95,25 +108,23 @@
     .modal-content { background: white; padding: 24px; border-radius: 16px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
     .dark .modal-content { background: #1f2937; }
 
-    /* Toast Notifications */
+    /* Toast */
     .notification-toast { position: fixed; top: 20px; right: 20px; z-index: 3000; }
     .toast { background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 10px; animation: slideIn 0.3s ease-out; }
     @keyframes slideIn { from { transform: translateX(400px); } to { transform: translateX(0); } }
 
-    /* RTL Support */
+    /* RTL */
     [dir="rtl"] { text-align: right; }
     .high-contrast { filter: contrast(1.2); }
 
-    /* Bulk Actions Bar */
+    /* Components */
     .bulk-actions-bar { position: sticky; top: 70px; z-index: 100; }
-    .infinite-scroll-trigger { height: 40px; display: flex; align-items: center; justify-content: center; color: #667eea; font-size: 12px; }
     .sos-btn { animation: sosPulse 2s infinite; }
     @keyframes sosPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); } 50% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); } }
-    .currency-badge { background: #667eea; color: white; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
+    .currency-badge { background: var(--theme-primary); color: white; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
     .wifi-settings { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #bae6fd; }
     .dark .wifi-settings { background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%); border-color: #0284c7; }
 
-    /* Sync Indicator */
     .sync-indicator {
       position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
       background: rgba(102, 126, 234, 0.9); color: white;
@@ -123,15 +134,14 @@
     .sync-indicator.active { display: block; animation: slideDown 0.3s ease-out; }
     @keyframes slideDown { from { transform: translate(-50%, -100%); } to { transform: translate(-50%, 0); } }
 
-    /* Request Card */
     .request-card {
       background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #667eea; transition: all 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid var(--theme-primary); transition: all 0.3s;
     }
     .request-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
     .request-card.emergency { border-left-color: #ef4444; background: #fef2f2; }
     .request-card.completed { border-left-color: #10b981; opacity: 0.8; }
-    .tab-active { border-bottom: 2px solid #667eea; color: #667eea; }
+    .tab-active { border-bottom: 2px solid var(--theme-primary); color: var(--theme-primary); }
     .select-all-checkbox { width: 18px; height: 18px; cursor: pointer; }
 
     @media (max-width: 640px) {
@@ -166,7 +176,7 @@
   <span id="brightnessValue">100%</span>
 </div>
 
-<!-- Fixed Bottom Toolbar -->
+<!-- Fixed Bottom Toolbar - ALL 5 UI Settings Here -->
 <div class="lang-selector" id="langToolbar">
   <button class="lang-btn active" onclick="changeLanguage('en')" data-i18n="langEN" title="English">🇬🇧 EN</button>
   <button class="lang-btn" onclick="changeLanguage('hi')" data-i18n="langHI" title="हिंदी">🇮🇳 हिंदी</button>
@@ -300,7 +310,7 @@
       <div class="glass-card rounded-2xl p-4 shadow-sm"><h3 class="font-semibold text-sm mb-3" data-i18n="emergencyRequests">🚨 Emergency Requests</h3><div id="emergencyRequestsList" class="space-y-2"></div></div>
     </div>
 
-    <!-- REQUESTS TAB -->
+    <!-- REQUESTS TAB - Guest requests show here -->
     <div id="requestsTab" class="hidden">
       <div class="glass-card rounded-2xl p-4 shadow-sm mb-4">
         <div class="flex flex-wrap gap-2 mb-3">
@@ -365,7 +375,7 @@
       </div>
     </div>
 
-    <!-- ROOMS TAB -->
+    <!-- ROOMS TAB - CRUD -->
     <div id="roomsTab" class="hidden">
       <div class="glass-card rounded-2xl p-4 shadow-sm mb-4">
         <h2 class="font-semibold text-base mb-3" data-i18n="roomManagement">🏨 Room Management</h2>
@@ -374,7 +384,7 @@
       </div>
     </div>
 
-    <!-- FOOD MENU TAB -->
+    <!-- FOOD MENU TAB - CRUD -->
     <div id="foodmenuTab" class="hidden">
       <div class="glass-card rounded-2xl p-4 shadow-sm mb-4">
         <h2 class="font-semibold text-base mb-3" data-i18n="foodMenuManagement">🍽️ Food Menu Management</h2>
@@ -383,7 +393,7 @@
       </div>
     </div>
 
-    <!-- TRANSPORT/SETTINGS TAB -->
+    <!-- SETTINGS TAB - Hotel Name, WiFi, Transport, Currency -->
     <div id="settingsTab" class="hidden">
       <div class="glass-card rounded-2xl p-6 shadow-md">
         <h2 class="text-xl font-semibold mb-4" data-i18n="hotelSettings">⚙️ Hotel Settings</h2>
@@ -491,7 +501,7 @@
       <button onclick="showGuestTab('hotelInfo')" class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-2xl text-center hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition"><div class="text-xl">ℹ️</div><div class="text-xs" data-i18n="info">Info</div></button>
     </div>
 
-    <!-- Guest Tab: New Request -->
+    <!-- Guest Tab: New Request - SYNC TO ADMIN -->
     <div id="guestNewRequestTab" class="glass-card rounded-2xl p-4 shadow-sm mb-4">
       <h2 class="font-semibold text-base mb-3" data-i18n="newRequest">📝 New Request</h2>
       <form id="guestRequestForm" class="space-y-3">
@@ -753,7 +763,16 @@
 </div>
 
 <script>
-// ==================== MULTI-LANGUAGE SUPPORT ====================
+// ==================== STORAGE KEYS (Only 5 for UI Settings) ====================
+const STORAGE = {
+  UI: 'hotel_ui_settings',      // ✅ Only 5: darkMode, fontSize, brightness, language, theme
+  DATA: 'hotel_client_data',    // Client data (MongoDB mock - replace with API calls)
+  SESSION: 'hotel_session',     // Page persistence on refresh
+  USER: 'hotel_user',           // Current user
+  CACHE: 'hotel_cache'          // Temporary cache
+};
+
+// ==================== TRANSLATIONS ====================
 const translations = {
   en: {
     pageTitle: "Crown Plaza Hotel - Ultimate Management System",
@@ -970,26 +989,9 @@ const translations = {
   }
 };
 
-// ==================== STATE MANAGEMENT (5 LocalStorage Keys Only) ====================
-const STORAGE_KEYS = {
-  SETTINGS: 'hotel_ui_settings',  // Dark Mode, Font Size, Brightness, Language, Theme
-  HOTEL_DATA: 'hotel_mongo_data',  // Client data mock (Rooms, Food, Transport, Requests, etc.)
-  SESSION: 'hotel_session',        // Page state for refresh persistence
-  USER: 'hotel_user',              // Current logged in user
-  CACHE: 'hotel_cache'             // Temporary cache
-};
-
-// Default settings
-const DEFAULT_SETTINGS = {
-  darkMode: false,
-  fontSize: 0,
-  brightness: 1,
-  language: 'en',
-  theme: 'default'
-};
-
-// Default hotel data structure (MongoDB mock)
-const DEFAULT_HOTEL_DATA = {
+// ==================== GLOBAL STATE ====================
+let uiSettings = { darkMode: false, fontSize: 0, brightness: 1, language: 'en', theme: 'default' };
+let hotelData = {
   hotelName: 'Crown Plaza Hotel',
   wifiPassword: 'CrownPlaza@2024',
   currency: { symbol: '$', format: 'symbol-first' },
@@ -1001,86 +1003,61 @@ const DEFAULT_HOTEL_DATA = {
   reviews: [],
   logs: []
 };
+let currentUser = null, appSession = null, cart = [], rating = { overall: 0, cleanliness: 0, staff: 0, recommend: null };
 
-// ==================== GLOBAL STATE ====================
-let currentLang = 'en', currentTheme = 'default', fontSizeLevel = 0, brightnessLevel = 1, isHighContrast = false, isOffline = false;
-let hotelData = { ...DEFAULT_HOTEL_DATA }, currentUser = null, appSession = null;
-
-// ==================== INITIALIZATION ====================
-document.addEventListener('DOMContentLoaded', function() {
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', async function() {
+  await loadVoices(); // Fix speech synthesis
   loadAllData();
   applyUISettings();
   updateDateTime();
   setInterval(updateDateTime, 1000);
   initializeCharts();
   updateLanguageUI();
-  checkSessionPersistence();
+  checkSessionPersistence(); // ✅ Stay on same page after refresh
   renderRoomsList();
   renderFoodMenu();
   renderAdminRequests();
   renderGuestFoodMenu();
+
+  // Event listeners
+  document.getElementById('brightnessSlider')?.addEventListener('input', (e) => adjustBrightness(e.target.value));
+  document.getElementById('guestLoginForm')?.addEventListener('submit', handleGuestLogin);
+  document.getElementById('adminLoginForm')?.addEventListener('submit', handleAdminLogin);
+  document.getElementById('guestRequestForm')?.addEventListener('submit', submitGuestRequest);
+  document.getElementById('adminRequestForm')?.addEventListener('submit', submitAdminRequest);
+  document.getElementById('roomForm')?.addEventListener('submit', saveRoom);
+  document.getElementById('foodForm')?.addEventListener('submit', saveFood);
+  document.getElementById('transportForm')?.addEventListener('submit', bookTransport);
 });
 
-// ==================== DATA PERSISTENCE (MongoDB Mock via LocalStorage) ====================
+// ==================== DATA LOADING (MongoDB Mock) ====================
 function loadAllData() {
-  // Load UI settings (5 keys only)
-  const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-  if (savedSettings) {
-    const settings = JSON.parse(savedSettings);
-    currentLang = settings.language || 'en';
-    currentTheme = settings.theme || 'default';
-    fontSizeLevel = settings.fontSize || 0;
-    brightnessLevel = settings.brightness || 1;
-    if (settings.darkMode) document.documentElement.classList.add('dark');
-  }
+  // ✅ UI Settings - Only 5 keys in localStorage
+  const savedUI = localStorage.getItem(STORAGE.UI);
+  if (savedUI) uiSettings = { ...uiSettings, ...JSON.parse(savedUI) };
 
-  // Load hotel data (client data - MongoDB mock)
-  const savedData = localStorage.getItem(STORAGE_KEYS.HOTEL_DATA);
-  if (savedData) hotelData = { ...DEFAULT_HOTEL_DATA, ...JSON.parse(savedData) };
-  else saveHotelData();
+  // Client Data (MongoDB mock - replace with fetch() to your backend)
+  const savedData = localStorage.getItem(STORAGE.DATA);
+  if (savedData) hotelData = { ...hotelData, ...JSON.parse(savedData) };
 
-  // Load session
-  const savedSession = localStorage.getItem(STORAGE_KEYS.SESSION);
+  // Session & User
+  const savedSession = localStorage.getItem(STORAGE.SESSION);
   if (savedSession) appSession = JSON.parse(savedSession);
-
-  // Load user
-  const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
+  const savedUser = localStorage.getItem(STORAGE.USER);
   if (savedUser) currentUser = JSON.parse(savedUser);
 }
 
-function saveHotelData() {
-  localStorage.setItem(STORAGE_KEYS.HOTEL_DATA, JSON.stringify(hotelData));
-}
+function saveUISettings() { localStorage.setItem(STORAGE.UI, JSON.stringify(uiSettings)); }
+function saveHotelData() { localStorage.setItem(STORAGE.DATA, JSON.stringify(hotelData)); }
+function saveSession(page, dashboard) { localStorage.setItem(STORAGE.SESSION, JSON.stringify({ page, dashboard, timestamp: Date.now() })); }
+function saveUser(user) { localStorage.setItem(STORAGE.USER, JSON.stringify(user)); currentUser = user; }
+function clearSession() { localStorage.removeItem(STORAGE.SESSION); appSession = null; }
+function clearUser() { localStorage.removeItem(STORAGE.USER); currentUser = null; }
 
-function saveUISettings() {
-  const settings = { darkMode: document.documentElement.classList.contains('dark'), fontSize: fontSizeLevel, brightness: brightnessLevel, language: currentLang, theme: currentTheme };
-  localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-}
-
-function saveSession(page, dashboard) {
-  appSession = { page, dashboard, timestamp: Date.now() };
-  localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(appSession));
-}
-
-function clearSession() {
-  localStorage.removeItem(STORAGE_KEYS.SESSION);
-  appSession = null;
-}
-
-function saveUser(user) {
-  currentUser = user;
-  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-}
-
-function clearUser() {
-  localStorage.removeItem(STORAGE_KEYS.USER);
-  currentUser = null;
-}
-
-// ==================== SESSION PERSISTENCE (Stay on same page after refresh) ====================
+// ==================== ✅ SESSION PERSISTENCE (Stay on page after refresh) ====================
 function checkSessionPersistence() {
   if (!appSession || !currentUser) return;
-
   const { page, dashboard } = appSession;
 
   if (page === 'guest' && dashboard === 'guestDashboard') {
@@ -1103,35 +1080,36 @@ function checkSessionPersistence() {
   }
 }
 
-// ==================== UI SETTINGS (Only 5 in LocalStorage) ====================
+// ==================== ✅ UI SETTINGS (Only 5 in LocalStorage) ====================
 function applyUISettings() {
   // Language
-  document.documentElement.lang = currentLang;
-  document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = uiSettings.language;
+  document.documentElement.dir = uiSettings.language === 'ar' ? 'rtl' : 'ltr';
 
-  // Theme
-  const themes = { default: '#667eea', sunset: '#f59e0b', forest: '#10b981', ocean: '#06b6d4', royal: '#ec4899' };
-  document.querySelector('.gradient-bg')?.style.setProperty('background', `linear-gradient(135deg, ${themes[currentTheme] || '#667eea'}, ${themes[currentTheme] === '#f59e0b' ? '#ef4444' : themes[currentTheme] === '#10b981' ? '#059669' : themes[currentTheme] === '#06b6d4' ? '#3b82f6' : '#8b5cf6'})`);
+  // Theme - FIXED: Apply CSS class
+  document.body.className = document.body.className.replace(/theme-\w+/g, '').trim();
+  if (uiSettings.theme !== 'default') document.body.classList.add(`theme-${uiSettings.theme}`);
 
   // Font Size
   const sizes = ['0.875rem', '0.9375rem', '1rem', '1.0625rem', '1.125rem', '1.1875rem', '1.25rem'];
-  document.body.style.fontSize = sizes[fontSizeLevel + 3];
+  document.body.style.fontSize = sizes[uiSettings.fontSize + 3];
 
   // Brightness
-  document.body.style.filter = `brightness(${brightnessLevel})`;
-  document.getElementById('brightnessSlider').value = brightnessLevel;
-  document.getElementById('brightnessValue').textContent = Math.round(brightnessLevel * 100) + '%';
+  document.body.style.filter = `brightness(${uiSettings.brightness})`;
+  document.getElementById('brightnessSlider').value = uiSettings.brightness;
+  document.getElementById('brightnessValue').textContent = Math.round(uiSettings.brightness * 100) + '%';
 
-  // Dark Mode toggle icon
-  document.getElementById('darkModeToggle').textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+  // Dark Mode
+  if (uiSettings.darkMode) document.documentElement.classList.add('dark');
+  document.getElementById('darkModeToggle').textContent = uiSettings.darkMode ? '☀️' : '🌙';
 
   // Update active lang button
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelector(`.lang-btn[onclick*="'${currentLang}'"]`)?.classList.add('active');
+  document.querySelector(`.lang-btn[onclick*="'${uiSettings.language}'"]`)?.classList.add('active');
 }
 
 function changeLanguage(lang) {
-  currentLang = lang;
+  uiSettings.language = lang;
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
@@ -1142,28 +1120,19 @@ function changeLanguage(lang) {
 }
 
 function updateLanguageUI() {
-  const t = translations[currentLang];
+  const t = translations[uiSettings.language];
   document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (t[key]) el.textContent = t[key]; });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { const key = el.getAttribute('data-i18n-placeholder'); if (t[key]) el.placeholder = t[key]; });
   const title = document.getElementById('pageTitle');
   if (title && t.pageTitle) title.textContent = t.pageTitle;
-  // Update currency badges
   document.querySelectorAll('.currency-badge').forEach(b => b.textContent = hotelData.currency?.symbol || '$');
 }
 
+// ✅ FIXED: Theme Functions
 function toggleThemeSelector() { document.getElementById('themeMenu').classList.toggle('hidden'); }
-
 function setTheme(theme) {
-  currentTheme = theme;
-  const themes = { default: '#667eea', sunset: '#f59e0b', forest: '#10b981', ocean: '#06b6d4', royal: '#ec4899' };
-  const gradients = {
-    default: 'linear-gradient(135deg, #667eea, #764ba2)',
-    sunset: 'linear-gradient(135deg, #f59e0b, #ef4444)',
-    forest: 'linear-gradient(135deg, #10b981, #059669)',
-    ocean: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
-    royal: 'linear-gradient(135deg, #ec4899, #8b5cf6)'
-  };
-  document.querySelectorAll('.gradient-bg').forEach(el => el.style.background = gradients[theme]);
+  uiSettings.theme = theme;
+  document.body.className = document.body.className.replace(/theme-\w+/g, '').trim() + (theme !== 'default' ? ` theme-${theme}` : '');
   document.querySelectorAll('.theme-preview').forEach((p, i) => {
     p.classList.remove('active');
     if ((theme === 'default' && i === 0) || (theme === 'sunset' && i === 1) || (theme === 'forest' && i === 2) || (theme === 'ocean' && i === 3) || (theme === 'royal' && i === 4)) p.classList.add('active');
@@ -1174,47 +1143,60 @@ function setTheme(theme) {
 }
 
 function toggleDarkMode() {
-  document.documentElement.classList.toggle('dark');
-  document.getElementById('darkModeToggle').textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+  uiSettings.darkMode = !uiSettings.darkMode;
+  document.documentElement.classList.toggle('dark', uiSettings.darkMode);
+  document.getElementById('darkModeToggle').textContent = uiSettings.darkMode ? '☀️' : '🌙';
   saveUISettings();
 }
 
 function adjustBrightness(value) {
-  brightnessLevel = parseFloat(value);
-  document.body.style.filter = `brightness(${brightnessLevel})`;
-  document.getElementById('brightnessValue').textContent = Math.round(brightnessLevel * 100) + '%';
+  uiSettings.brightness = parseFloat(value);
+  document.body.style.filter = `brightness(${uiSettings.brightness})`;
+  document.getElementById('brightnessValue').textContent = Math.round(uiSettings.brightness * 100) + '%';
   saveUISettings();
 }
 
 function adjustFontSize(action) {
-  if (action === 'increase') fontSizeLevel = Math.min(fontSizeLevel + 1, 3);
-  else if (action === 'decrease') fontSizeLevel = Math.max(fontSizeLevel - 1, -3);
-  else fontSizeLevel = 0;
+  if (action === 'increase') uiSettings.fontSize = Math.min(uiSettings.fontSize + 1, 3);
+  else if (action === 'decrease') uiSettings.fontSize = Math.max(uiSettings.fontSize - 1, -3);
+  else uiSettings.fontSize = 0;
   const sizes = ['0.875rem', '0.9375rem', '1rem', '1.0625rem', '1.125rem', '1.1875rem', '1.25rem'];
-  document.body.style.fontSize = sizes[fontSizeLevel + 3];
+  document.body.style.fontSize = sizes[uiSettings.fontSize + 3];
   saveUISettings();
 }
 
 function toggleHighContrast() {
-  isHighContrast = !isHighContrast;
   document.body.classList.toggle('high-contrast');
-  saveUISettings();
+  showToast('High contrast ' + (document.body.classList.contains('high-contrast') ? 'enabled' : 'disabled'));
 }
 
-// ==================== MULTI-LANGUAGE SPEECH SYNTHESIS (FIXED) ====================
+// ==================== ✅ MULTI-LANGUAGE SPEECH (FIXED) ====================
+let voicesLoaded = false;
+async function loadVoices() {
+  if ('speechSynthesis' in window) {
+    if (window.speechSynthesis.getVoices().length > 0) {
+      voicesLoaded = true;
+      return;
+    }
+    // Wait for voices to load
+    window.speechSynthesis.onvoiceschanged = () => { voicesLoaded = true; };
+    // Fallback: wait 500ms
+    await new Promise(resolve => setTimeout(resolve, 500));
+    voicesLoaded = true;
+  }
+}
+
 function speakText(text) {
   if (!('speechSynthesis' in window)) { showToast('Speech not supported'); return; }
-  window.speechSynthesis.cancel(); // Stop any ongoing speech
+  window.speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
 
-  // Set language properly for speech synthesis
-  if (currentLang === 'hi') {
+  // Set language properly
+  if (uiSettings.language === 'hi') {
     utterance.lang = 'hi-IN';
-    utterance.text = text; // Hindi text
-  } else if (currentLang === 'ar') {
+  } else if (uiSettings.language === 'ar') {
     utterance.lang = 'ar-SA';
-    utterance.text = text; // Arabic text
   } else {
     utterance.lang = 'en-US';
   }
@@ -1223,21 +1205,16 @@ function speakText(text) {
   utterance.pitch = 1;
 
   // Try to find appropriate voice
-  const voices = window.speechSynthesis.getVoices();
-  const preferredVoice = voices.find(v => v.lang.startsWith(currentLang === 'hi' ? 'hi' : currentLang === 'ar' ? 'ar' : 'en'));
-  if (preferredVoice) utterance.voice = preferredVoice;
+  if (voicesLoaded) {
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(v => v.lang.startsWith(uiSettings.language === 'hi' ? 'hi' : uiSettings.language === 'ar' ? 'ar' : 'en'));
+    if (preferredVoice) utterance.voice = preferredVoice;
+  }
 
   utterance.onend = () => console.log('Speech ended');
   utterance.onerror = (e) => console.error('Speech error:', e);
 
   window.speechSynthesis.speak(utterance);
-}
-
-// Load voices when available
-if ('speechSynthesis' in window) {
-  window.speechSynthesis.onvoiceschanged = () => {
-    console.log('Voices loaded:', window.speechSynthesis.getVoices().map(v => v.lang));
-  };
 }
 
 // ==================== LOGIN & AUTH ====================
@@ -1259,7 +1236,7 @@ function switchLoginType(type) {
   }
 }
 
-document.getElementById('guestLoginForm').addEventListener('submit', function(e) {
+function handleGuestLogin(e) {
   e.preventDefault();
   const name = document.getElementById('guestNameInput').value, room = document.getElementById('guestRoomInput').value;
   if (name && room) {
@@ -1268,16 +1245,16 @@ document.getElementById('guestLoginForm').addEventListener('submit', function(e)
     showGuestDashboard(name, room);
     showToast(`Welcome, ${name}!`);
   }
-});
+}
 
-document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+function handleAdminLogin(e) {
   e.preventDefault();
   const email = document.getElementById('adminEmailInput').value, password = document.getElementById('adminPasswordInput').value;
   if (email && password) {
     saveUser({ type: 'admin', email, loginTime: new Date().toISOString() });
     showRoleSelection();
   }
-});
+}
 
 function showRoleSelection() {
   document.getElementById('loginSelectionPage').classList.add('hidden');
@@ -1357,7 +1334,7 @@ function showGuestTab(tabName) {
 function updateDateTime() {
   const now = new Date();
   const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-  const dt = now.toLocaleString(currentLang, options);
+  const dt = now.toLocaleString(uiSettings.language, options);
   document.querySelectorAll('.live-clock').forEach(el => el.textContent = dt);
   if (document.getElementById('liveClockAdmin')) document.getElementById('liveClockAdmin').textContent = now.toLocaleTimeString();
   if (document.getElementById('liveClockGuest')) document.getElementById('liveClockGuest').textContent = now.toLocaleTimeString();
@@ -1372,13 +1349,11 @@ function showToast(msg) {
 
 function copyReferralCode() { navigator.clipboard.writeText('CROWN2024'); showToast('Referral code copied!'); }
 function copyWifiPassword() { navigator.clipboard.writeText(document.getElementById('guestWifiPassword').textContent); showToast('WiFi password copied!'); }
-
 function testHaptic() { if (navigator.vibrate) navigator.vibrate([50,100,50]); }
 
 function toggleOfflineMode() {
-  isOffline = !isOffline;
   const ind = document.getElementById('offlineIndicator'), online = document.getElementById('onlineIndicator');
-  if (isOffline) { ind?.classList.remove('hidden'); if (online) { online.classList.remove('online'); online.classList.add('offline'); online.innerHTML = '🔴 Offline'; } showToast('Offline mode activated'); }
+  if (ind?.classList.contains('hidden')) { ind?.classList.remove('hidden'); if (online) { online.classList.remove('online'); online.classList.add('offline'); online.innerHTML = '🔴 Offline'; } showToast('Offline mode activated'); }
   else { ind?.classList.add('hidden'); if (online) { online.classList.remove('offline'); online.classList.add('online'); online.innerHTML = '🟢 Online'; } showToast('Back online'); }
 }
 
@@ -1436,7 +1411,7 @@ function closeQRScanner() { document.getElementById('qrScannerModal').classList.
 function closeSOSModal() { document.getElementById('sosModal').classList.add('hidden'); }
 function showSOSAlert() { document.getElementById('sosModal').classList.remove('hidden'); if (navigator.vibrate) navigator.vibrate([200,100,200,100,200]); }
 
-// ==================== ROOMS CRUD ====================
+// ==================== ✅ ROOMS CRUD ====================
 function openRoomModal(editIndex = -1) {
   document.getElementById('roomModalTitle').textContent = editIndex >= 0 ? 'Edit Room' : 'Add New Room';
   document.getElementById('roomEditIndex').value = editIndex;
@@ -1457,16 +1432,23 @@ function openRoomModal(editIndex = -1) {
   document.getElementById('roomModal').classList.remove('hidden');
 }
 
-document.getElementById('roomForm').addEventListener('submit', function(e) {
+function saveRoom(e) {
   e.preventDefault();
   const idx = parseInt(document.getElementById('roomEditIndex').value);
-  const room = { number: document.getElementById('roomNumberInput').value, type: document.getElementById('roomTypeInput').value, price: parseFloat(document.getElementById('roomPriceInput').value), status: document.getElementById('roomStatusInput').value, guestName: document.getElementById('roomGuestInput').value || null, updatedAt: new Date().toISOString() };
+  const room = { 
+    number: document.getElementById('roomNumberInput').value, 
+    type: document.getElementById('roomTypeInput').value, 
+    price: parseFloat(document.getElementById('roomPriceInput').value), 
+    status: document.getElementById('roomStatusInput').value, 
+    guestName: document.getElementById('roomGuestInput').value || null, 
+    updatedAt: new Date().toISOString() 
+  };
 
   if (idx >= 0 && hotelData.rooms[idx]) hotelData.rooms[idx] = { ...hotelData.rooms[idx], ...room };
   else { room.id = Date.now(); room.createdAt = new Date().toISOString(); hotelData.rooms.push(room); }
 
   saveHotelData(); renderRoomsList(); closeRoomModal(); showToast('Room saved!');
-});
+}
 
 function renderRoomsList() {
   const list = document.getElementById('roomsList'); if (!list) return;
@@ -1475,7 +1457,7 @@ function renderRoomsList() {
 
 function deleteRoom(idx) { if (confirm('Delete this room?')) { hotelData.rooms.splice(idx, 1); saveHotelData(); renderRoomsList(); showToast('Room deleted'); } }
 
-// ==================== FOOD MENU CRUD ====================
+// ==================== ✅ FOOD MENU CRUD ====================
 function openFoodModal(editIndex = -1) {
   document.getElementById('foodModalTitle').textContent = editIndex >= 0 ? 'Edit Dish' : 'Add New Dish';
   document.getElementById('foodEditIndex').value = editIndex;
@@ -1493,16 +1475,22 @@ function openFoodModal(editIndex = -1) {
   document.getElementById('foodModal').classList.remove('hidden');
 }
 
-document.getElementById('foodForm').addEventListener('submit', function(e) {
+function saveFood(e) {
   e.preventDefault();
   const idx = parseInt(document.getElementById('foodEditIndex').value);
-  const item = { name: document.getElementById('foodNameInput').value, price: parseFloat(document.getElementById('foodPriceInput').value), category: document.getElementById('foodCategoryInput').value, description: document.getElementById('foodDescInput').value || '', updatedAt: new Date().toISOString() };
+  const item = { 
+    name: document.getElementById('foodNameInput').value, 
+    price: parseFloat(document.getElementById('foodPriceInput').value), 
+    category: document.getElementById('foodCategoryInput').value, 
+    description: document.getElementById('foodDescInput').value || '', 
+    updatedAt: new Date().toISOString() 
+  };
 
   if (idx >= 0 && hotelData.foodMenu[idx]) hotelData.foodMenu[idx] = { ...hotelData.foodMenu[idx], ...item };
   else { item.id = Date.now(); item.createdAt = new Date().toISOString(); hotelData.foodMenu.push(item); }
 
   saveHotelData(); renderFoodMenu(); renderGuestFoodMenu(); closeFoodModal(); showToast('Dish saved!');
-});
+}
 
 function renderFoodMenu() {
   const list = document.getElementById('foodMenuList'); if (!list) return;
@@ -1516,16 +1504,19 @@ function renderGuestFoodMenu() {
 
 function deleteFood(idx) { if (confirm('Delete this dish?')) { hotelData.foodMenu.splice(idx, 1); saveHotelData(); renderFoodMenu(); renderGuestFoodMenu(); showToast('Dish deleted'); } }
 
-// ==================== TRANSPORT PRICING ====================
+// ==================== ✅ TRANSPORT PRICING & CURRENCY ====================
 function saveTransportPrices() {
-  hotelData.transport = { airport: parseFloat(document.getElementById('airportPriceInput').value), local: parseFloat(document.getElementById('localCabPriceInput').value) };
+  hotelData.transport = { 
+    airport: parseFloat(document.getElementById('airportPriceInput').value), 
+    local: parseFloat(document.getElementById('localCabPriceInput').value) 
+  };
   saveHotelData();
   document.getElementById('airportPriceDisplay').textContent = (hotelData.currency?.symbol || '$') + hotelData.transport.airport;
   document.getElementById('localPriceDisplay').textContent = (hotelData.currency?.symbol || '$') + hotelData.transport.local;
   showToast('Transport prices saved!');
 }
 
-// ==================== HOTEL SETTINGS ====================
+// ==================== ✅ HOTEL SETTINGS ====================
 function saveHotelName() {
   const name = document.getElementById('hotelNameInput').value;
   hotelData.hotelName = name;
@@ -1537,12 +1528,15 @@ function saveHotelName() {
 }
 
 function saveCurrencySettings() {
-  hotelData.currency = { symbol: document.getElementById('currencySymbolInput').value, format: document.getElementById('priceFormatInput').value };
+  hotelData.currency = { 
+    symbol: document.getElementById('currencySymbolInput').value, 
+    format: document.getElementById('priceFormatInput').value 
+  };
   saveHotelData();
   document.getElementById('currencyDisplay').textContent = hotelData.currency.symbol;
   document.querySelectorAll('.currency-badge').forEach(b => b.textContent = hotelData.currency.symbol);
-  document.getElementById('airportPriceDisplay').textContent = hotelData.currency.symbol + hotelData.transport?.airport || 30;
-  document.getElementById('localPriceDisplay').textContent = hotelData.currency.symbol + hotelData.transport?.local || 15;
+  document.getElementById('airportPriceDisplay').textContent = hotelData.currency.symbol + hotelData.transport?.airport;
+  document.getElementById('localPriceDisplay').textContent = hotelData.currency.symbol + hotelData.transport?.local;
   showToast('Currency settings saved!');
 }
 
@@ -1555,28 +1549,48 @@ function saveWifiPassword() {
   showToast('WiFi password saved!');
 }
 
-// ==================== REQUESTS (Guest → Admin Sync) ====================
-document.getElementById('guestRequestForm').addEventListener('submit', function(e) {
+// ==================== ✅ REQUESTS SYNC (Guest → Admin) ====================
+function submitGuestRequest(e) {
   e.preventDefault();
-  const req = { id: Date.now(), guestName: currentUser?.name, guestRoom: currentUser?.room, department: document.getElementById('guestDepartment').value, category: document.getElementById('guestCategory').value, description: document.getElementById('guestDescription').value, priority: document.getElementById('guestPriority').value, status: 'open', createdAt: new Date().toISOString() };
+  const req = { 
+    id: Date.now(), 
+    guestName: currentUser?.name, 
+    guestRoom: currentUser?.room, 
+    department: document.getElementById('guestDepartment').value, 
+    category: document.getElementById('guestCategory').value, 
+    description: document.getElementById('guestDescription').value, 
+    priority: document.getElementById('guestPriority').value, 
+    status: 'open', 
+    createdAt: new Date().toISOString() 
+  };
   hotelData.requests.unshift(req);
   saveHotelData();
   renderAdminRequests();
   updateGuestStats();
-  this.reset();
+  e.target.reset();
   showToast('Request submitted!');
-});
+}
 
-document.getElementById('adminRequestForm').addEventListener('submit', function(e) {
+function submitAdminRequest(e) {
   e.preventDefault();
-  const req = { id: Date.now(), guestName: document.getElementById('reqGuestName').value, guestRoom: document.getElementById('reqRoomNumber').value, department: document.getElementById('reqDepartment').value, category: document.getElementById('reqCategory').value, description: document.getElementById('reqDescription').value, priority: document.getElementById('reqPriority').value, status: 'open', createdAt: new Date().toISOString() };
+  const req = { 
+    id: Date.now(), 
+    guestName: document.getElementById('reqGuestName').value, 
+    guestRoom: document.getElementById('reqRoomNumber').value, 
+    department: document.getElementById('reqDepartment').value, 
+    category: document.getElementById('reqCategory').value, 
+    description: document.getElementById('reqDescription').value, 
+    priority: document.getElementById('reqPriority').value, 
+    status: 'open', 
+    createdAt: new Date().toISOString() 
+  };
   hotelData.requests.unshift(req);
   saveHotelData();
   renderAdminRequests();
   updateAdminStats();
-  this.reset();
+  e.target.reset();
   showToast('Request submitted!');
-});
+}
 
 function renderAdminRequests(filter = 'all') {
   const list = document.getElementById('adminRequestsList'); if (!list) return;
@@ -1629,7 +1643,6 @@ function processManualQR() { const num = document.getElementById('manualQrInput'
 function downloadQRCode() { showToast('QR Code downloaded!'); closeModal('qrDownloadModal'); }
 
 // ==================== FOOD CART ====================
-let cart = [];
 function addToCart(name, price) { cart.push({ name, price }); updateCart(); showToast(`${name} added to cart`); }
 function placeOrder() {
   if (cart.length === 0) { showToast('Cart is empty!'); return; }
@@ -1649,16 +1662,16 @@ function updateCart() {
 }
 
 // ==================== TRANSPORT BOOKING ====================
-document.getElementById('transportForm').addEventListener('submit', function(e) {
+function bookTransport(e) {
   e.preventDefault();
   const type = document.getElementById('transportType').value, time = document.getElementById('transportTime').value, price = type === 'airport' ? hotelData.transport?.airport : hotelData.transport?.local;
   const booking = { id: Date.now(), guestName: currentUser?.name, guestRoom: currentUser?.room, type: 'transport', transportType: type, time, price, status: 'confirmed', createdAt: new Date().toISOString() };
   hotelData.requests.unshift({ ...booking, department: 'transport', category: type + '_booking', description: `${type === 'airport' ? 'Airport Transfer' : 'Local Cab'} at ${time}`, priority: 'medium' });
   saveHotelData();
   renderAdminRequests();
-  this.reset();
+  e.target.reset();
   showToast('Transport booked! ' + (hotelData.currency?.symbol || '$') + price);
-});
+}
 
 function quickBook(type) {
   const price = type === 'airport' ? hotelData.transport?.airport : hotelData.transport?.local;
@@ -1681,7 +1694,6 @@ function showDigitalConcierge() { document.getElementById('conciergeModal').clas
 function showCheckoutRating() { document.getElementById('ratingModal').classList.remove('hidden'); initRatingStars(); }
 
 // ==================== RATING ====================
-let rating = { overall: 0, cleanliness: 0, staff: 0, recommend: null };
 function initRatingStars() { ['rating','cleanliness','staff'].forEach(t => { const c = document.getElementById(t + 'Stars'); c.innerHTML = ''; for (let i = 1; i <= 5; i++) { const s = document.createElement('span'); s.textContent = '☆'; s.style.cursor = 'pointer'; s.onclick = () => setRating(t, i); c.appendChild(s); } }); }
 function setRating(t, v) { rating[t] = v; const c = document.getElementById(t + 'Stars'); Array.from(c.children).forEach((s,i) => { s.textContent = i < v ? '★' : '☆'; s.style.color = i < v ? '#fbbf24' : '#9ca3af'; }); }
 function setRecommend(v) { rating.recommend = v; document.getElementById('recommendYes').classList.toggle('bg-green-500', v); document.getElementById('recommendYes').classList.toggle('bg-gray-300', !v); document.getElementById('recommendNo').classList.toggle('bg-red-500', !v); document.getElementById('recommendNo').classList.toggle('bg-gray-300', v); }
@@ -1689,9 +1701,6 @@ function submitRating() { if (rating.overall === 0) { showToast('Please select o
 
 // ==================== STAFF ====================
 function toggleStaffAttendance() { const b = document.getElementById('staffStatusBadge'), c = b.textContent.includes('Clocked'); b.textContent = c ? '⏳ Not Clocked In' : '✅ Clocked In'; b.classList.toggle('bg-green-500/30', !c); showToast(c ? 'Clocked out!' : 'Clocked in!'); }
-
-// Initialize brightness slider
-document.getElementById('brightnessSlider')?.addEventListener('input', function() { adjustBrightness(this.value); });
 </script>
 
 </div>
