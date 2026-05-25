@@ -9,12 +9,12 @@
   <meta name="apple-mobile-web-app-title" content="Crown Plaza">
   <title id="pageTitle" data-i18n="pageTitle">Crown Plaza Hotel - Ultimate Management System</title>
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts: Hindi + Arabic + Latin -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- External Libraries -->
+  <!-- External Libraries (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -23,26 +23,12 @@
 
   <style>
     * { font-family: 'Inter', 'Noto Sans Devanagari', 'Noto Naskh Arabic', sans-serif; }
-    body { overflow-x: hidden; padding-bottom: 100px; transition: filter 0.2s; }
+    body { overflow-x: hidden; padding-bottom: 100px; transition: filter 0.3s; }
     .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-    .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+    .glass-card { background: rgba(255, 255, 200, 0.95); backdrop-filter: blur(10px); }
     .dark .glass-card { background: rgba(31, 41, 55, 0.95); }
 
-    /* FIXED: Theme CSS Variables */
-    :root {
-      --theme-primary: #667eea;
-      --theme-secondary: #764ba2;
-      --theme-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    .theme-sunset { --theme-primary: #f59e0b; --theme-secondary: #ef4444; --theme-gradient: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); }
-    .theme-forest { --theme-primary: #10b981; --theme-secondary: #059669; --theme-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-    .theme-ocean { --theme-primary: #06b6d4; --theme-secondary: #3b82f6; --theme-gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%); }
-    .theme-royal { --theme-primary: #ec4899; --theme-secondary: #8b5cf6; --theme-gradient: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); }
-
-    .gradient-bg { background: var(--theme-gradient) !important; }
-    .btn-primary { background: var(--theme-primary); }
-
-    /* Fixed Bottom Toolbar */
+    /* Fixed Bottom Language Toolbar */
     .lang-selector {
       position: fixed; bottom: 0; left: 0; right: 0;
       background: rgba(102, 126, 234, 0.95); backdrop-filter: blur(10px);
@@ -56,11 +42,14 @@
       font-size: 12px; font-weight: 600; cursor: pointer;
       transition: all 0.3s; white-space: nowrap;
     }
-    .lang-btn:hover, .lang-btn.active { background: rgba(255, 255, 255, 0.4); transform: translateY(-2px); }
+    .lang-btn:hover, .lang-btn.active {
+      background: rgba(255, 255, 255, 0.4); transform: translateY(-2px);
+    }
     .dark-mode-toggle {
       width: 36px; height: 36px; border-radius: 50%;
-      background: rgba(255, 255, 255, 0.2); display: flex;
-      align-items: center; justify-content: center; cursor: pointer; font-size: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 16px;
     }
 
     /* Brightness Control */
@@ -70,32 +59,54 @@
       border-radius: 20px; display: flex; align-items: center; gap: 8px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 999;
     }
-    .brightness-slider { width: 100px; height: 4px; -webkit-appearance: none; background: #ddd; border-radius: 2px; outline: none; }
-    .brightness-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: #667eea; border-radius: 50%; cursor: pointer; }
+    .brightness-slider {
+      width: 100px; height: 4px; -webkit-appearance: none;
+      background: #ddd; border-radius: 2px; outline: none;
+    }
+    .brightness-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px;
+      background: #667eea; border-radius: 50%; cursor: pointer;
+    }
 
-    /* Theme Selector */
+    /* Theme Selector - FIXED */
     .theme-selector {
       position: fixed; right: 12px; bottom: 110px;
-      width: 44px; height: 44px; background: rgba(255, 255, 255, 0.9);
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 999; font-size: 20px;
+      width: 44px; height: 44px;
+      background: rgba(255, 255, 255, 0.9); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 999; font-size: 20px; transition: transform 0.2s;
     }
+    .theme-selector:hover { transform: scale(1.1); }
+
     #themeMenu {
       position: fixed; right: 12px; bottom: 165px;
       background: white; padding: 12px; border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1000; min-width: 200px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1000;
+      min-width: 200px; display: none;
     }
+    #themeMenu.show { display: block; animation: slideUp 0.2s; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
     .theme-preview {
       width: 40px; height: 40px; border-radius: 8px; cursor: pointer;
       border: 3px solid transparent; transition: all 0.3s;
     }
-    .theme-preview:hover, .theme-preview.active { border-color: var(--theme-primary); transform: scale(1.1); }
+    .theme-preview:hover, .theme-preview.active {
+      border-color: #667eea; transform: scale(1.1);
+    }
 
     /* Online Indicator */
-    .online-indicator { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .online-indicator {
+      padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+    }
     .online-indicator.online { background: #10b981; color: white; }
     .online-indicator.offline { background: #ef4444; color: white; }
-    .live-indicator { display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite; }
+    .live-indicator {
+      display: inline-block; width: 8px; height: 8px;
+      background: #10b981; border-radius: 50%; animation: pulse 2s infinite;
+    }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
     /* Animations */
@@ -103,28 +114,71 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
     /* Modal */
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+    .modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 2000;
+      align-items: center; justify-content: center; padding: 20px;
+    }
     .modal.active { display: flex; }
-    .modal-content { background: white; padding: 24px; border-radius: 16px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
+    .modal-content {
+      background: white; padding: 24px; border-radius: 16px;
+      max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto;
+    }
     .dark .modal-content { background: #1f2937; }
 
-    /* Toast */
-    .notification-toast { position: fixed; top: 20px; right: 20px; z-index: 3000; }
-    .toast { background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 10px; animation: slideIn 0.3s ease-out; }
+    /* Toast Notifications */
+    .notification-toast {
+      position: fixed; top: 20px; right: 20px; z-index: 3000;
+    }
+    .toast {
+      background: white; padding: 12px 20px; border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 10px;
+      animation: slideIn 0.3s ease-out;
+    }
     @keyframes slideIn { from { transform: translateX(400px); } to { transform: translateX(0); } }
 
-    /* RTL */
+    /* RTL Support */
     [dir="rtl"] { text-align: right; }
+    [dir="rtl"] .lang-selector { flex-direction: row-reverse; }
+
+    /* High Contrast Mode */
     .high-contrast { filter: contrast(1.2); }
 
-    /* Components */
-    .bulk-actions-bar { position: sticky; top: 70px; z-index: 100; }
-    .sos-btn { animation: sosPulse 2s infinite; }
-    @keyframes sosPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); } 50% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); } }
-    .currency-badge { background: var(--theme-primary); color: white; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
-    .wifi-settings { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #bae6fd; }
-    .dark .wifi-settings { background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%); border-color: #0284c7; }
+    /* Font Size Classes */
+    .text-xs-custom { font-size: 0.75rem; }
+    .text-sm-custom { font-size: 0.875rem; }
+    .text-base-custom { font-size: 1rem; }
+    .text-lg-custom { font-size: 1.125rem; }
+    .text-xl-custom { font-size: 1.25rem; }
+    .text-2xl-custom { font-size: 1.5rem; }
 
+    /* Bulk Actions Bar */
+    .bulk-actions-bar { position: sticky; top: 70px; z-index: 100; }
+
+    /* SOS Button Animation */
+    .sos-btn { animation: sosPulse 2s infinite; }
+    @keyframes sosPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+      50% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+    }
+
+    /* Currency Badge */
+    .currency-badge {
+      background: #667eea; color: white; padding: 4px 8px;
+      border-radius: 6px; font-weight: 600;
+    }
+
+    /* WiFi Settings */
+    .wifi-settings {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border: 2px solid #bae6fd;
+    }
+    .dark .wifi-settings {
+      background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
+      border-color: #0284c7;
+    }
+
+    /* Sync Indicator */
     .sync-indicator {
       position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
       background: rgba(102, 126, 234, 0.9); color: white;
@@ -134,31 +188,58 @@
     .sync-indicator.active { display: block; animation: slideDown 0.3s ease-out; }
     @keyframes slideDown { from { transform: translate(-50%, -100%); } to { transform: translate(-50%, 0); } }
 
+    /* Request Card */
     .request-card {
-      background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid var(--theme-primary); transition: all 0.3s;
+      background: white; border-radius: 12px; padding: 16px;
+      margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border-left: 4px solid #667eea; transition: all 0.3s;
     }
     .request-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
     .request-card.emergency { border-left-color: #ef4444; background: #fef2f2; }
     .request-card.completed { border-left-color: #10b981; opacity: 0.8; }
-    .tab-active { border-bottom: 2px solid var(--theme-primary); color: var(--theme-primary); }
+
+    /* Tab Active State */
+    .tab-active { border-bottom: 2px solid #667eea; color: #667eea; font-weight: 600; }
+
+    /* Select All Checkbox */
     .select-all-checkbox { width: 18px; height: 18px; cursor: pointer; }
 
+    /* Room/Food/Transport Item */
+    .crud-item {
+      background: white; border-radius: 12px; padding: 12px;
+      margin-bottom: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .crud-item .actions { display: flex; gap: 4px; }
+    .crud-item .actions button {
+      padding: 4px 8px; border-radius: 6px; font-size: 11px;
+      border: none; cursor: pointer; transition: opacity 0.2s;
+    }
+    .crud-item .actions button:hover { opacity: 0.8; }
+    .btn-edit { background: #3b82f6; color: white; }
+    .btn-delete { background: #ef4444; color: white; }
+    .btn-price { background: #10b981; color: white; }
+
+    /* Responsive */
     @media (max-width: 640px) {
       .lang-selector { padding: 6px 8px; gap: 4px; }
       .lang-btn { padding: 4px 8px; font-size: 11px; }
       body { padding-bottom: 120px; }
+      .crud-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .crud-item .actions { width: 100%; justify-content: flex-end; }
     }
   </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
 
-<div id="syncIndicator" class="sync-indicator">🔄 Syncing...</div>
+<!-- Sync Indicator -->
+<div id="syncIndicator" class="sync-indicator">🔄 Syncing with MongoDB...</div>
+
 <div id="app">
 
-<!-- Theme Selector -->
+<!-- Theme Selector (Fixed Right Side) - FIXED -->
 <div class="theme-selector" onclick="toggleThemeSelector()" data-i18n="themeSelector" title="Select Theme">🎨</div>
-<div id="themeMenu" class="hidden">
+<div id="themeMenu">
   <div class="text-xs font-semibold mb-2" data-i18n="selectTheme">Select Theme</div>
   <div class="flex gap-2 flex-wrap">
     <div class="theme-preview active" style="background: linear-gradient(135deg, #667eea, #764ba2)" onclick="setTheme('default')" title="Default"></div>
@@ -169,14 +250,14 @@
   </div>
 </div>
 
-<!-- Brightness Control -->
+<!-- Brightness Control (Fixed Left Side) -->
 <div class="brightness-control">
   <span>🔆</span>
-  <input type="range" class="brightness-slider" min="0.7" max="1.3" step="0.05" value="1" id="brightnessSlider" onchange="adjustBrightness(this.value)">
+  <input type="range" class="brightness-slider" min="0.7" max="1.3" step="0.05" value="1" id="brightnessSlider" oninput="adjustBrightness(this.value)">
   <span id="brightnessValue">100%</span>
 </div>
 
-<!-- Fixed Bottom Toolbar - ALL 5 UI Settings Here -->
+<!-- ✨ FIXED: Permanent Bottom Center Toolbar - Languages & Controls -->
 <div class="lang-selector" id="langToolbar">
   <button class="lang-btn active" onclick="changeLanguage('en')" data-i18n="langEN" title="English">🇬🇧 EN</button>
   <button class="lang-btn" onclick="changeLanguage('hi')" data-i18n="langHI" title="हिंदी">🇮🇳 हिंदी</button>
@@ -191,12 +272,16 @@
   <div class="dark-mode-toggle" onclick="toggleDarkMode()" id="darkModeToggle" title="Toggle Dark Mode" data-i18n="darkMode">🌙</div>
 </div>
 
+<!-- Toast Container -->
 <div id="toastContainer" class="notification-toast"></div>
 
-<!-- ==================== LOGIN PAGE ==================== -->
+<!-- ==================== LOGIN SELECTION PAGE ==================== -->
 <div id="loginSelectionPage" class="min-h-screen gradient-bg flex items-center justify-center p-0 md:p-4">
   <div class="glass-card rounded-t-none md:rounded-3xl shadow-2xl w-full md:max-w-md p-8 animate-fade-in relative">
+
+    <!-- ✨ Live Indicator - ONLY ON LOGIN PAGE (Top Left) -->
     <div id="onlineIndicator" class="online-indicator online" style="position:absolute; top:12px; left:12px;">🟢 Online</div>
+
     <div class="text-center mb-8 mt-6 md:mt-0">
       <div class="icon text-6xl mb-4 animate-bounce">👑</div>
       <h1 class="text-3xl font-bold text-gray-800 dark:text-white" id="welcomeTitle" data-i18n="welcomeTitle">Crown Plaza Hotel</h1>
@@ -204,35 +289,54 @@
       <div id="liveDateTime" class="text-xs text-gray-500 mt-3 live-clock"></div>
       <div id="offlineIndicator" class="hidden text-xs text-yellow-600 mt-2" data-i18n="offlineActive">📴 Offline Mode Active</div>
     </div>
+
+    <!-- Login Type Tabs -->
     <div class="flex gap-2 mb-6">
       <button onclick="switchLoginType('guest')" id="guestTabBtn" class="flex-1 py-2 rounded-lg font-semibold bg-purple-100 text-purple-700 transition" data-i18n="guestTab">🏨 Guest</button>
       <button onclick="switchLoginType('admin')" id="adminTabBtn" class="flex-1 py-2 rounded-lg font-semibold bg-gray-100 text-gray-700 transition" data-i18n="adminTab">👑 Admin</button>
     </div>
+
+    <!-- Guest Login Form -->
     <form id="guestLoginForm" class="space-y-4">
-      <div><label class="text-xs text-gray-500 mb-1 block" data-i18n="yourName">Your Name</label>
-        <input type="text" id="guestNameInput" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" data-i18n-placeholder="enterName" placeholder="Enter your name" required></div>
-      <div><label class="text-xs text-gray-500 mb-1 block" data-i18n="roomNumber">Room Number</label>
-        <input type="number" id="guestRoomInput" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" data-i18n-placeholder="e.g., 101" placeholder="e.g., 101" required></div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block" data-i18n="yourName">Your Name</label>
+        <input type="text" id="guestNameInput" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" data-i18n-placeholder="enterName" placeholder="Enter your name" required>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block" data-i18n="roomNumber">Room Number</label>
+        <input type="number" id="guestRoomInput" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" data-i18n-placeholder="e.g., 101" placeholder="e.g., 101" required>
+      </div>
       <button type="submit" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition shadow-lg" data-i18n="loginGuest">🔐 Login as Guest</button>
     </form>
+
+    <!-- Admin Login Form -->
     <form id="adminLoginForm" class="space-y-4 hidden">
-      <div><label class="text-xs text-gray-500 mb-1 block" data-i18n="emailAddress">Email Address</label>
-        <input type="email" id="adminEmailInput" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" data-i18n-placeholder="adminEmail" placeholder="admin@crownplaza.com" required></div>
-      <div><label class="text-xs text-gray-500 mb-1 block" data-i18n="password">Password</label>
-        <input type="password" id="adminPasswordInput" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" data-i18n-placeholder="passwordPlaceholder" placeholder="••••••••" required></div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block" data-i18n="emailAddress">Email Address</label>
+        <input type="email" id="adminEmailInput" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" data-i18n-placeholder="adminEmail" placeholder="admin@crownplaza.com" required>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block" data-i18n="password">Password</label>
+        <input type="password" id="adminPasswordInput" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" data-i18n-placeholder="passwordPlaceholder" placeholder="••••••••" required>
+      </div>
       <button type="submit" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition shadow-lg" data-i18n="loginAdmin">🔐 Login as Admin</button>
     </form>
+
+    <!-- Admin Close Button -->
     <button id="closeAdminFormBtn" class="hidden absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold" onclick="switchLoginType('guest')" title="Close Admin Login">✕</button>
+
+    <!-- ✨ Live Updates Section - ONLY VISIBLE ON LOGIN PAGE -->
     <div class="mt-6 text-center text-xs text-gray-400 flex justify-center gap-4 flex-wrap" id="loginLiveUpdates">
       <span><span class="live-indicator"></span> <span id="liveUpdatesText" data-i18n="liveUpdates">Live Updates</span></span>
       <span>🔊 <span id="voiceText" data-i18n="voiceEnabled">Voice Enabled</span></span>
       <span>📱 <span id="pwaText" data-i18n="pwaReady">PWA Ready</span></span>
       <span> Code: <strong id="referralCodeDisplay">CROWN2024</strong> <button onclick="copyReferralCode()" class="text-purple-600" data-i18n="copy">Copy</button></span>
     </div>
+
   </div>
 </div>
 
-<!-- ==================== ROLE SELECTION ==================== -->
+<!-- ==================== ROLE SELECTION PAGE (Admin) ==================== -->
 <div id="roleSelectionPage" class="hidden min-h-screen gradient-bg flex items-center justify-center p-4">
   <div class="glass-card rounded-3xl shadow-2xl w-full max-w-2xl p-8">
     <div class="text-center mb-6">
@@ -269,7 +373,7 @@
     </div>
   </header>
 
-  <!-- Admin Tabs -->
+  <!-- Admin Tab Navigation -->
   <div class="bg-white dark:bg-gray-800 shadow-sm border-b overflow-x-auto">
     <div class="flex flex-nowrap gap-1 px-4 py-2 min-w-max">
       <button onclick="showAdminTab('overview')" id="tabOverview" class="px-4 py-2 text-sm font-medium text-purple-600 border-b-2 border-purple-600 whitespace-nowrap" data-i18n="tabOverview">📊 Overview</button>
@@ -286,6 +390,7 @@
       <button onclick="showAdminTab('loyalty')" id="tabLoyalty" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap" data-i18n="tabLoyalty">⭐ Loyalty</button>
       <button onclick="showAdminTab('staff')" id="tabStaff" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap" data-i18n="tabStaff">👔 Staff Perf.</button>
       <button onclick="showAdminTab('foodmenu')" id="tabFoodMenu" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap" data-i18n="tabFoodMenu">🍽️ Food Menu</button>
+      <button onclick="showAdminTab('transport')" id="tabTransport" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap" data-i18n="tabTransport">🚗 Transport</button>
       <button onclick="showAdminTab('settings')" id="tabSettings" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap" data-i18n="tabSettings">⚙️ Settings</button>
     </div>
   </div>
@@ -310,7 +415,7 @@
       <div class="glass-card rounded-2xl p-4 shadow-sm"><h3 class="font-semibold text-sm mb-3" data-i18n="emergencyRequests">🚨 Emergency Requests</h3><div id="emergencyRequestsList" class="space-y-2"></div></div>
     </div>
 
-    <!-- REQUESTS TAB - Guest requests show here -->
+    <!-- REQUESTS TAB - Guest requests will appear here -->
     <div id="requestsTab" class="hidden">
       <div class="glass-card rounded-2xl p-4 shadow-sm mb-4">
         <div class="flex flex-wrap gap-2 mb-3">
@@ -352,6 +457,7 @@
         </form>
         <div class="mt-3 text-xs text-gray-500" data-i18n="dragTip">💡 Drag and drop requests to change priority order</div>
       </div>
+
       <div id="bulkActionsBar" class="hidden bulk-actions-bar mb-4">
         <div class="bg-purple-600 text-white rounded-xl p-4 shadow-lg flex justify-between items-center flex-wrap gap-2">
           <div class="flex items-center gap-3"><span id="selectedCount">0</span> <span data-i18n="requestsSelected">requests selected</span></div>
@@ -362,6 +468,7 @@
           </div>
         </div>
       </div>
+
       <div class="glass-card rounded-2xl p-4 shadow-sm">
         <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
           <h2 class="font-semibold text-sm" data-i18n="serviceRequests">📋 Service Requests</h2>
@@ -370,35 +477,58 @@
             <label class="text-sm text-gray-600 dark:text-gray-300" data-i18n="selectAll">Select All</label>
           </div>
         </div>
-        <div id="adminRequestsList" class="space-y-2"></div>
+        <div id="adminRequestsList" class="space-y-2">
+          <!-- Guest requests will appear here via syncGuestToAdmin() -->
+        </div>
         <div id="infiniteScrollTrigger" class="infinite-scroll-trigger"></div>
       </div>
     </div>
 
-    <!-- ROOMS TAB - CRUD -->
+    <!-- ROOMS TAB - CRUD Added -->
     <div id="roomsTab" class="hidden">
       <div class="glass-card rounded-2xl p-4 shadow-sm mb-4">
-        <h2 class="font-semibold text-base mb-3" data-i18n="roomManagement">🏨 Room Management</h2>
-        <button onclick="openRoomModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm mb-3" data-i18n="addNewRoom">+ Add Room</button>
-        <div id="roomsList" class="space-y-2"></div>
+        <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+          <h2 class="font-semibold text-base" data-i18n="roomManagement">🏨 Room Management</h2>
+          <button onclick="openRoomModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm font-semibold" data-i18n="addRoom">+ Add Room</button>
+        </div>
+        <div id="roomsList" class="space-y-2">
+          <!-- Rooms will be rendered here -->
+        </div>
       </div>
     </div>
 
-    <!-- FOOD MENU TAB - CRUD -->
+    <!-- FOOD MENU TAB - CRUD Added -->
     <div id="foodmenuTab" class="hidden">
       <div class="glass-card rounded-2xl p-4 shadow-sm mb-4">
-        <h2 class="font-semibold text-base mb-3" data-i18n="foodMenuManagement">🍽️ Food Menu Management</h2>
-        <button onclick="openFoodModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm mb-3" data-i18n="addNewDish">+ Add Dish</button>
-        <div id="foodMenuList" class="space-y-2"></div>
+        <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+          <h2 class="font-semibold text-base" data-i18n="foodMenuManagement">🍽️ Food Menu Management</h2>
+          <button onclick="openFoodModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm font-semibold" data-i18n="addDish">+ Add Dish</button>
+        </div>
+        <div id="foodMenuList" class="space-y-2">
+          <!-- Food items will be rendered here -->
+        </div>
       </div>
     </div>
 
-    <!-- SETTINGS TAB - Hotel Name, WiFi, Transport, Currency -->
+    <!-- TRANSPORT TAB - CRUD Added -->
+    <div id="transportTab" class="hidden">
+      <div class="glass-card rounded-2xl p-4 shadow-sm mb-4">
+        <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+          <h2 class="font-semibold text-base" data-i18n="transportManagement">🚗 Transport Management</h2>
+          <button onclick="openTransportModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm font-semibold" data-i18n="addTransport">+ Add Transport</button>
+        </div>
+        <div id="transportList" class="space-y-2">
+          <!-- Transport items will be rendered here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB - Hotel Name & WiFi Update -->
     <div id="settingsTab" class="hidden">
       <div class="glass-card rounded-2xl p-6 shadow-md">
         <h2 class="text-xl font-semibold mb-4" data-i18n="hotelSettings">⚙️ Hotel Settings</h2>
 
-        <!-- Hotel Name -->
+        <!-- Hotel Name Update -->
         <div class="border rounded-xl p-4 mb-4">
           <h3 class="font-semibold mb-2" data-i18n="hotelInfo">🏨 Hotel Information</h3>
           <div class="flex flex-col sm:flex-row gap-3 items-start">
@@ -410,27 +540,7 @@
           </div>
         </div>
 
-        <!-- Currency -->
-        <div class="border rounded-xl p-4 mb-4">
-          <h3 class="font-semibold mb-2" data-i18n="currencySettings">💱 Currency & Pricing Settings</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label class="text-xs text-gray-500 mb-1 block" data-i18n="currencySymbol">Currency Symbol</label><input type="text" id="currencySymbolInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="$" maxlength="3"></div>
-            <div><label class="text-xs text-gray-500 mb-1 block" data-i18n="priceFormat">Price Format</label><select id="priceFormatInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"><option value="symbol-first">$10.00</option><option value="symbol-last">10.00$</option><option value="space">10.00 $</option></select></div>
-          </div>
-          <button onclick="saveCurrencySettings()" class="mt-3 gradient-bg text-white px-4 py-2 rounded-lg font-semibold text-sm" data-i18n="saveCurrency">💾 Save Currency Settings</button>
-        </div>
-
-        <!-- Transport Pricing -->
-        <div class="border rounded-xl p-4 mb-4">
-          <h3 class="font-semibold mb-2" data-i18n="transportPricing">🚗 Transport Pricing</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label class="text-xs text-gray-500 mb-1 block" data-i18n="airportTransfer">Airport Transfer Price</label><div class="flex gap-2"><span id="transportCurrency1" class="currency-badge">$</span><input type="number" id="airportPriceInput" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="30" min="0"></div></div>
-            <div><label class="text-xs text-gray-500 mb-1 block" data-i18n="localCab">Local Cab Price (per hour)</label><div class="flex gap-2"><span id="transportCurrency2" class="currency-badge">$</span><input type="number" id="localCabPriceInput" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="15" min="0"></div></div>
-          </div>
-          <button onclick="saveTransportPrices()" class="mt-3 gradient-bg text-white px-4 py-2 rounded-lg font-semibold text-sm" data-i18n="saveTransport">💾 Save Transport Prices</button>
-        </div>
-
-        <!-- WiFi Password -->
+        <!-- WiFi Password Update -->
         <div class="wifi-settings rounded-xl p-5 mb-4">
           <div class="flex items-center gap-3 mb-4">
             <div class="text-3xl">📶</div>
@@ -442,7 +552,25 @@
           </div>
         </div>
 
-        <!-- System Info -->
+        <!-- Currency & Transport Pricing -->
+        <div class="border rounded-xl p-4 mb-4">
+          <h3 class="font-semibold mb-2" data-i18n="currencySettings">💱 Currency & Pricing Settings</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><label class="text-xs text-gray-500 mb-1 block" data-i18n="currencySymbol">Currency Symbol</label><input type="text" id="currencySymbolInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="$" maxlength="3"></div>
+            <div><label class="text-xs text-gray-500 mb-1 block" data-i18n="priceFormat">Price Format</label><select id="priceFormatInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"><option value="symbol-first">$10.00</option><option value="symbol-last">10.00$</option><option value="space">10.00 $</option></select></div>
+          </div>
+          <button onclick="saveCurrencySettings()" class="mt-3 gradient-bg text-white px-4 py-2 rounded-lg font-semibold text-sm" data-i18n="saveCurrency">💾 Save Currency Settings</button>
+        </div>
+
+        <div class="border rounded-xl p-4 mb-4">
+          <h3 class="font-semibold mb-2" data-i18n="transportPricing">🚗 Transport Pricing</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><label class="text-xs text-gray-500 mb-1 block" data-i18n="airportTransfer">Airport Transfer Price</label><div class="flex gap-2"><span id="transportCurrency1" class="currency-badge">$</span><input type="number" id="airportPriceInput" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="30" min="0"></div></div>
+            <div><label class="text-xs text-gray-500 mb-1 block" data-i18n="localCab">Local Cab Price (per hour)</label><div class="flex gap-2"><span id="transportCurrency2" class="currency-badge">$</span><input type="number" id="localCabPriceInput" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="15" min="0"></div></div>
+          </div>
+          <button onclick="saveTransportPrices()" class="mt-3 gradient-bg text-white px-4 py-2 rounded-lg font-semibold text-sm" data-i18n="saveTransport">💾 Save Transport Prices</button>
+        </div>
+
         <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
           <h3 class="font-semibold text-sm mb-2" data-i18n="systemInfo">📊 System Info</h3>
           <p class="text-sm" data-i18n="hotelNameInfo">Hotel Name: <span id="hotelNameDisplay" class="font-semibold">Crown Plaza Hotel</span></p>
@@ -453,7 +581,7 @@
       </div>
     </div>
 
-    <!-- Other tabs preserved -->
+    <!-- Other Tabs (Structure Preserved) -->
     <div id="guestsTab" class="hidden"><div class="glass-card rounded-2xl p-4 shadow-sm"><div id="guestsList" class="space-y-2"></div></div></div>
     <div id="reviewsTab" class="hidden"><div class="glass-card rounded-2xl p-4 shadow-sm"><div id="reviewsList" class="space-y-3"></div></div></div>
     <div id="reportsTab" class="hidden"><div class="glass-card rounded-2xl p-4 shadow-sm"><div id="reportOutput" class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-sm max-h-64 overflow-auto"></div></div></div>
@@ -501,7 +629,7 @@
       <button onclick="showGuestTab('hotelInfo')" class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-2xl text-center hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition"><div class="text-xl">ℹ️</div><div class="text-xs" data-i18n="info">Info</div></button>
     </div>
 
-    <!-- Guest Tab: New Request - SYNC TO ADMIN -->
+    <!-- Guest Tab: New Request -->
     <div id="guestNewRequestTab" class="glass-card rounded-2xl p-4 shadow-sm mb-4">
       <h2 class="font-semibold text-base mb-3" data-i18n="newRequest">📝 New Request</h2>
       <form id="guestRequestForm" class="space-y-3">
@@ -603,7 +731,7 @@
   <div class="modal-content">
     <h3 class="text-lg font-bold mb-4" id="roomModalTitle" data-i18n="addNewRoom">Add New Room</h3>
     <form id="roomForm" class="space-y-3">
-      <input type="hidden" id="roomEditIndex" value="-1">
+      <input type="hidden" id="roomEditId" value="">
       <div><label class="text-xs text-gray-500" data-i18n="roomNumberLabel">Room Number *</label><input type="number" id="roomNumberInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required></div>
       <div><label class="text-xs text-gray-500" data-i18n="roomType">Room Type *</label><select id="roomTypeInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required><option value="Standard" data-i18n="typeStandard">Standard</option><option value="Deluxe" data-i18n="typeDeluxe">Deluxe</option><option value="Suite" data-i18n="typeSuite">Suite</option><option value="Presidential" data-i18n="typePresidential">Presidential</option></select></div>
       <div><label class="text-xs text-gray-500" data-i18n="roomPrice">Price per Night *</label><div class="flex gap-2"><span id="roomCurrencyBadge" class="currency-badge">$</span><input type="number" id="roomPriceInput" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required min="0" step="0.01" placeholder="99.99"></div></div>
@@ -622,7 +750,7 @@
   <div class="modal-content">
     <h3 class="text-lg font-bold mb-4" id="foodModalTitle" data-i18n="addNewDish">Add New Dish</h3>
     <form id="foodForm" class="space-y-3">
-      <input type="hidden" id="foodEditIndex" value="-1">
+      <input type="hidden" id="foodEditId" value="">
       <div><label class="text-xs text-gray-500" data-i18n="dishName">Dish Name *</label><input type="text" id="foodNameInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required data-i18n-placeholder="e.g., Burger" placeholder="e.g., Burger"></div>
       <div><label class="text-xs text-gray-500" data-i18n="price">Price *</label><div class="flex gap-2"><span id="foodCurrencyBadge" class="currency-badge">$</span><input type="number" id="foodPriceInput" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required min="0" step="0.01" data-i18n-placeholder="12.99" placeholder="12.99"></div></div>
       <div><label class="text-xs text-gray-500" data-i18n="category">Category</label><select id="foodCategoryInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"><option value="Main Course" data-i18n="mainCourse">Main Course</option><option value="Appetizer" data-i18n="appetizer">Appetizer</option><option value="Dessert" data-i18n="dessert">Dessert</option><option value="Beverage" data-i18n="beverage">Beverage</option><option value="Snack" data-i18n="snack">Snack</option></select></div>
@@ -630,6 +758,25 @@
       <div class="flex gap-2 pt-2">
         <button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg font-semibold" data-i18n="saveDish">💾 Save Dish</button>
         <button type="button" onclick="closeFoodModal()" class="flex-1 bg-gray-200 dark:bg-gray-700 py-2 rounded-lg" data-i18n="cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Transport Modal -->
+<div id="transportModal" class="modal">
+  <div class="modal-content">
+    <h3 class="text-lg font-bold mb-4" id="transportModalTitle" data-i18n="addTransport">Add Transport Service</h3>
+    <form id="transportFormModal" class="space-y-3">
+      <input type="hidden" id="transportEditId" value="">
+      <div><label class="text-xs text-gray-500" data-i18n="transportName">Service Name *</label><input type="text" id="transportNameInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required placeholder="e.g., Airport Shuttle"></div>
+      <div><label class="text-xs text-gray-500" data-i18n="transportType">Type *</label><select id="transportTypeInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required><option value="airport" data-i18n="airportTransferOption">✈️ Airport Transfer</option><option value="local" data-i18n="localCabOption">🚕 Local Cab</option><option value="tour" data-i18n="tourOption">🚌 City Tour</option></select></div>
+      <div><label class="text-xs text-gray-500" data-i18n="price">Price *</label><div class="flex gap-2"><span id="transportCurrencyBadge" class="currency-badge">$</span><input type="number" id="transportPriceInput" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required min="0" step="0.01" placeholder="30.00"></div></div>
+      <div><label class="text-xs text-gray-500" data-i18n="currency">Currency</label><select id="transportCurrencyInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"><option value="$">USD ($)</option><option value="₹">INR (₹)</option><option value="€">EUR (€)</option><option value="ر.س">SAR (ر.س)</option><option value="د.إ">AED (د.إ)</option></select></div>
+      <div><label class="text-xs text-gray-500" data-i18n="description">Description</label><textarea id="transportDescInput" rows="2" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Optional description"></textarea></div>
+      <div class="flex gap-2 pt-2">
+        <button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg font-semibold" data-i18n="saveTransport">💾 Save Transport</button>
+        <button type="button" onclick="closeTransportModal()" class="flex-1 bg-gray-200 dark:bg-gray-700 py-2 rounded-lg" data-i18n="cancel">Cancel</button>
       </div>
     </form>
   </div>
@@ -763,517 +910,1244 @@
 </div>
 
 <script>
-// ==================== STORAGE KEYS (Only 5 for UI Settings) ====================
-const STORAGE = {
-  UI: 'hotel_ui_settings',      // ✅ Only 5: darkMode, fontSize, brightness, language, theme
-  DATA: 'hotel_client_data',    // Client data (MongoDB mock - replace with API calls)
-  SESSION: 'hotel_session',     // Page persistence on refresh
-  USER: 'hotel_user',           // Current user
-  CACHE: 'hotel_cache'          // Temporary cache
-};
-
-// ==================== TRANSLATIONS ====================
+// ==================== MULTI-LANGUAGE SUPPORT ====================
 const translations = {
   en: {
     pageTitle: "Crown Plaza Hotel - Ultimate Management System",
-    welcomeTitle: "Crown Plaza Hotel", welcomeSubtitle: "Complete Management System",
-    guestTab: "🏨 Guest", adminTab: "👑 Admin",
-    yourName: "Your Name", enterName: "Enter your name", roomNumber: "Room Number",
-    loginGuest: "🔐 Login as Guest", emailAddress: "Email Address", adminEmail: "admin@crownplaza.com",
-    password: "Password", passwordPlaceholder: "••••••••", loginAdmin: "🔐 Login as Admin",
-    liveUpdates: "Live Updates", voiceEnabled: "Voice Enabled", pwaReady: "PWA Ready", copy: "Copy",
-    langEN: "🇬 EN", langHI: "🇮 हिंदी", langAR: "🇸🇦 العربية", highContrast: "🔆",
-    fontSizeSmall: "A-", fontSizeReset: "A", fontSizeLarge: "A+", offlineMode: "📴",
-    pushNotify: "🔔", haptic: "📳", darkMode: "🌙", themeSelector: "🎨", selectTheme: "Select Theme",
-    back: "← Back", selectRole: "👑 Select Your Role",
-    roleSuperAdmin: "Super Admin", roleFrontDesk: "Front Desk", roleHousekeeping: "Housekeeping",
-    roleMaintenance: "Maintenance", roleRestaurant: "Restaurant", roleLaundry: "Laundry",
-    roleSecurity: "Security", roleIT: "IT Support",
-    hotelName: "Crown Plaza", admin: "Admin", live: "Live", notClocked: "⏳ Not Clocked In",
-    clockInOut: "⏰ Clock In/Out", logout: "Logout",
-    tabOverview: "📊 Overview", tabRequests: "📋 Requests", tabRooms: "🏨 Rooms",
-    tabGuests: "👥 Guests", tabReviews: "⭐ Reviews", tabReports: "📈 Reports",
-    tabQRCodes: "📷 QR Codes", tabLogs: "📝 Logs", tabInventory: "📦 Inventory",
-    tabMaintenance: "📅 Maint.", tabBlacklist: "🚫 Blacklist", tabLoyalty: "⭐ Loyalty",
-    tabStaff: "👔 Staff Perf.", tabFoodMenu: "🍽️ Food Menu", tabSettings: "⚙️ Settings",
-    totalRooms: "Total Rooms", occupied: "Occupied", open: "Open", inProgress: "In Progress", emergency: "Emergency",
-    requestsByDept: "📊 Requests by Dept", roomOccupancy: "🏨 Room Occupancy", satisfaction: "⭐ Satisfaction",
-    peakHourAnalysis: "📈 Peak Hour Analysis", heatMap: "🔥 Heat Map - Busy Areas", emergencyRequests: "🚨 Emergency Requests",
-    filterAll: "All", filterOpen: "Open", filterInProgress: "In Progress", filterCompleted: "Completed", filterEmergency: "🚨 Emergency",
-    searchRequests: "🔍 Search requests...", exportExcel: "📎 Export Excel", print: "🖨️ Print", exportAll: "💾 Export All",
-    guestName: "Guest Name", selectDepartment: "📋 Select Department",
-    deptHousekeeping: "🧹 Housekeeping", deptMaintenance: "🔧 Maintenance", deptRestaurant: "🍽️ Restaurant",
-    deptLaundry: "🧺 Laundry", deptIT: "💻 IT Support", selectCategory: "🎯 Select Category",
-    description: "Description", priorityLow: "🟢 Low", priorityMedium: "🟡 Medium", priorityHigh: "🔴 High", priorityEmergency: "🚨 EMERGENCY",
-    submit: "✅ Submit Request", sosEmergency: "🚨 SOS EMERGENCY", dragTip: "💡 Drag and drop requests to change priority order",
-    requestsSelected: "requests selected", completeSelected: "✅ Complete Selected", deleteSelected: "🗑️ Delete Selected", cancel: "Cancel",
-    serviceRequests: "📋 Service Requests", selectAll: "Select All", roomManagement: "🏨 Room Management",
-    foodMenuManagement: "🍽️ Food Menu Management", inventoryManagement: "📦 Inventory Management",
-    maintenanceSchedule: "📅 Maintenance Schedule", guestBlacklist: "🚫 Guest Blacklist",
-    loyaltyPoints: "⭐ Loyalty Points System", staffPerformance: "👔 Staff Performance Dashboard",
-    hotelSettings: "⚙️ Hotel Settings", hotelInfo: "🏨 Hotel Information", hotelNameLabel: "Hotel Name", saveName: "💾 Save Name",
-    currencySettings: "💱 Currency & Pricing Settings", currencySymbol: "Currency Symbol", priceFormat: "Price Format", saveCurrency: "💾 Save Currency Settings",
-    transportPricing: "🚗 Transport Pricing", airportTransfer: "Airport Transfer Price", localCab: "Local Cab Price (per hour)", saveTransport: "💾 Save Transport Prices",
-    wifiConfig: "WiFi Password Configuration", wifiTip: "Set WiFi password that will be displayed to all guests",
-    enterWifiPassword: "Enter WiFi Password", savePassword: "💾 Save Password",
-    systemInfo: "📊 System Info", hotelNameInfo: "Hotel Name:", currencyInfo: "Currency:", timezoneInfo: "Timezone:", localTimeInfo: "Local Time:",
-    activityLogs: "📝 Activity Logs", roomQRCodes: "📷 Room QR Codes",
-    myRequests: "My Requests", pending: "Pending", resolved: "Resolved", notRated: "Not Rated", review: "Review",
-    request: "Request", food: "Food", cab: "Cab", history: "History", info: "Info",
-    newRequest: "📝 New Request", selectService: "🎯 Select Service", describeIssue: "Describe your issue...", normal: "🟢 Normal", urgent: "⚠️ Urgent", submitRequest: "✅ Submit Request",
-    foodMenu: "🍕 Food Menu", placeOrder: "🛒 Place Order", clearCart: "🗑️ Clear", reorderLast: "🔄 Reorder Last",
-    transport: "🚗 Transport", airportTransferOption: "✈️ Airport Transfer", localCabOption: "🚕 Local Cab", bookNow: "📅 Book Now", quickAirport: "✈️ Quick Airport", quickLocal: "🚕 Quick Local",
-    wifi: "📶 WiFi:", localTime: "🌍 Local Time:", restaurant: "🍽️ Restaurant:", gym: "💪 Gym:", checkout: "🕐 Checkout:",
-    wakeUpCall: "⏰ Set Wake-up Call", dnd: "🔕 DND: OFF", localGuide: "🗺️ Local Guide", events: "📅 Events", emergencyContacts: "📞 Emergency Contacts",
-    firstAid: "🚑 First Aid", evacuationMap: "🗺️ Evacuation Map", concierge: "🤖 Concierge", checkoutRate: "⭐ Checkout & Rate",
-    addNewRoom: "Add New Room", roomNumberLabel: "Room Number *", roomType: "Room Type *", roomPrice: "Price per Night *",
-    typeStandard: "Standard", typeDeluxe: "Deluxe", typeSuite: "Suite", typePresidential: "Presidential",
-    status: "Status *", statusVacant: "Vacant", statusOccupied: "Occupied", statusCleaning: "Cleaning", statusMaintenance: "Maintenance",
-    guestNameOptional: "Guest Name (if occupied)", optional: "Optional", saveRoom: "💾 Save Room",
-    addNewDish: "Add New Dish", dishName: "Dish Name *", price: "Price *", category: "Category",
-    mainCourse: "Main Course", appetizer: "Appetizer", dessert: "Dessert", beverage: "Beverage", snack: "Snack", saveDish: "💾 Save Dish",
-    downloadQR: "📷 Download QR Code", roomLabel: "Room #", downloadPNG: "⬇️ Download PNG", close: "Close",
-    scanQRCode: "📷 Scan QR Code", enterRoomNumber: "Enter room number",
-    emergencySOS: "EMERGENCY SOS", emergencyNotified: "Emergency services notified! Help is on the way.",
-    rateStay: "⭐ Rate Your Stay", overall: "Overall", cleanliness: "Cleanliness", staff: "Staff", recommend: "Recommend?", yes: "Yes", no: "No",
-    shareExperience: "Share your experience...", submitReview: "Submit Review",
-    hotelEvents: "📅 Hotel Events", police: "🚓 Police:", ambulance: "🚑 Ambulance:", fire: "🔥 Fire:", security: "🏨 Security:", hotelDoctor: "🩺 Hotel Doctor:",
-    firstAidGuide: "🚑 First Aid Guide", bleeding: "🩸 Bleeding:", burn: "🔥 Burn:", heartAttack: "💔 Heart Attack:", fainting: "😵 Fainting:",
-    exitStairs: "Exit stairs at both ends of corridor", assemblyPoint: "Assembly point: Main Parking Lot", noElevators: "⚠️ Do not use elevators",
-    digitalConcierge: "🤖 Digital Concierge - FAQ", faqWifi: "WiFi password?", faqCheckout: "Checkout time?", checkoutTime: "11:00 AM (Late checkout available)",
-    faqGym: "Gym timing?", gymTiming: "6AM - 10PM Daily", faqRestaurant: "Restaurant timing?", restaurantTiming: "7AM - 11PM",
-    faqRaiseRequest: "How to raise request?", raiseRequestTip: "Go to Request tab and fill the form",
-    points: "⭐ 0 pts", scanQR: "📷 Scan QR", offlineActive: "📴 Offline Mode Active"
+    welcomeTitle: "Crown Plaza Hotel",
+    welcomeSubtitle: "Complete Management System",
+    guestTab: "🏨 Guest",
+    adminTab: "👑 Admin",
+    yourName: "Your Name",
+    enterName: "Enter your name",
+    roomNumber: "Room Number",
+    loginGuest: "🔐 Login as Guest",
+    emailAddress: "Email Address",
+    adminEmail: "admin@crownplaza.com",
+    password: "Password",
+    passwordPlaceholder: "••••••••",
+    loginAdmin: "🔐 Login as Admin",
+    liveUpdates: "Live Updates",
+    voiceEnabled: "Voice Enabled",
+    pwaReady: "PWA Ready",
+    copy: "Copy",
+    langEN: "🇬🇧 EN",
+    langHI: "🇮🇳 हिंदी",
+    langAR: "🇸🇦 العربية",
+    highContrast: "🔆",
+    fontSizeSmall: "A-",
+    fontSizeReset: "A",
+    fontSizeLarge: "A+",
+    offlineMode: "📴",
+    pushNotify: "🔔",
+    haptic: "📳",
+    darkMode: "🌙",
+    themeSelector: "🎨",
+    selectTheme: "Select Theme",
+    back: "← Back",
+    selectRole: "👑 Select Your Role",
+    roleSuperAdmin: "Super Admin",
+    roleFrontDesk: "Front Desk",
+    roleHousekeeping: "Housekeeping",
+    roleMaintenance: "Maintenance",
+    roleRestaurant: "Restaurant",
+    roleLaundry: "Laundry",
+    roleSecurity: "Security",
+    roleIT: "IT Support",
+    hotelName: "Crown Plaza",
+    admin: "Admin",
+    live: "Live",
+    notClocked: "⏳ Not Clocked In",
+    clockInOut: "⏰ Clock In/Out",
+    logout: "Logout",
+    tabOverview: "📊 Overview",
+    tabRequests: "📋 Requests",
+    tabRooms: "🏨 Rooms",
+    tabGuests: "👥 Guests",
+    tabReviews: "⭐ Reviews",
+    tabReports: "📈 Reports",
+    tabQRCodes: "📷 QR Codes",
+    tabLogs: "📝 Logs",
+    tabInventory: "📦 Inventory",
+    tabMaintenance: "📅 Maint.",
+    tabBlacklist: "🚫 Blacklist",
+    tabLoyalty: "⭐ Loyalty",
+    tabStaff: "👔 Staff Perf.",
+    tabFoodMenu: "🍽️ Food Menu",
+    tabTransport: "🚗 Transport",
+    tabSettings: "⚙️ Settings",
+    totalRooms: "Total Rooms",
+    occupied: "Occupied",
+    open: "Open",
+    inProgress: "In Progress",
+    emergency: "Emergency",
+    requestsByDept: "📊 Requests by Dept",
+    roomOccupancy: "🏨 Room Occupancy",
+    satisfaction: "⭐ Satisfaction",
+    peakHourAnalysis: "📈 Peak Hour Analysis",
+    heatMap: "🔥 Heat Map - Busy Areas",
+    emergencyRequests: "🚨 Emergency Requests",
+    filterAll: "All",
+    filterOpen: "Open",
+    filterInProgress: "In Progress",
+    filterCompleted: "Completed",
+    filterEmergency: "🚨 Emergency",
+    searchRequests: "🔍 Search requests...",
+    exportExcel: "📎 Export Excel",
+    print: "🖨️ Print",
+    exportAll: "💾 Export All",
+    guestName: "Guest Name",
+    selectDepartment: "📋 Select Department",
+    deptHousekeeping: "🧹 Housekeeping",
+    deptMaintenance: "🔧 Maintenance",
+    deptRestaurant: "🍽️ Restaurant",
+    deptLaundry: "🧺 Laundry",
+    deptIT: "💻 IT Support",
+    selectCategory: "🎯 Select Category",
+    description: "Description",
+    priorityLow: "🟢 Low",
+    priorityMedium: "🟡 Medium",
+    priorityHigh: "🔴 High",
+    priorityEmergency: "🚨 EMERGENCY",
+    submit: "✅ Submit Request",
+    sosEmergency: "🚨 SOS EMERGENCY",
+    dragTip: "💡 Drag and drop requests to change priority order",
+    requestsSelected: "requests selected",
+    completeSelected: "✅ Complete Selected",
+    deleteSelected: "🗑️ Delete Selected",
+    cancel: "Cancel",
+    serviceRequests: "📋 Service Requests",
+    selectAll: "Select All",
+    roomManagement: "🏨 Room Management",
+    addRoom: "+ Add Room",
+    foodMenuManagement: "🍽️ Food Menu Management",
+    addDish: "+ Add Dish",
+    transportManagement: "🚗 Transport Management",
+    addTransport: "+ Add Transport",
+    inventoryManagement: "📦 Inventory Management",
+    maintenanceSchedule: "📅 Maintenance Schedule",
+    guestBlacklist: "🚫 Guest Blacklist",
+    loyaltyPoints: "⭐ Loyalty Points System",
+    staffPerformance: "👔 Staff Performance Dashboard",
+    hotelSettings: "⚙️ Hotel Settings",
+    hotelInfo: "🏨 Hotel Information",
+    hotelNameLabel: "Hotel Name",
+    saveName: "💾 Save Name",
+    currencySettings: "💱 Currency & Pricing Settings",
+    currencySymbol: "Currency Symbol",
+    priceFormat: "Price Format",
+    saveCurrency: "💾 Save Currency Settings",
+    transportPricing: "🚗 Transport Pricing",
+    airportTransfer: "Airport Transfer Price",
+    localCab: "Local Cab Price (per hour)",
+    saveTransport: "💾 Save Transport Prices",
+    wifiConfig: "WiFi Password Configuration",
+    wifiTip: "Set WiFi password that will be displayed to all guests",
+    enterWifiPassword: "Enter WiFi Password",
+    savePassword: "💾 Save Password",
+    systemInfo: "📊 System Info",
+    hotelNameInfo: "Hotel Name:",
+    currencyInfo: "Currency:",
+    timezoneInfo: "Timezone:",
+    localTimeInfo: "Local Time:",
+    activityLogs: "📝 Activity Logs",
+    roomQRCodes: "📷 Room QR Codes",
+    myRequests: "My Requests",
+    pending: "Pending",
+    resolved: "Resolved",
+    notRated: "Not Rated",
+    review: "Review",
+    request: "Request",
+    food: "Food",
+    cab: "Cab",
+    history: "History",
+    info: "Info",
+    newRequest: "📝 New Request",
+    selectService: "🎯 Select Service",
+    describeIssue: "Describe your issue...",
+    normal: "🟢 Normal",
+    urgent: "⚠️ Urgent",
+    submitRequest: "✅ Submit Request",
+    foodMenu: "🍕 Food Menu",
+    placeOrder: "🛒 Place Order",
+    clearCart: "🗑️ Clear",
+    reorderLast: "🔄 Reorder Last",
+    transport: "🚗 Transport",
+    airportTransferOption: "✈️ Airport Transfer",
+    localCabOption: "🚕 Local Cab",
+    tourOption: "🚌 City Tour",
+    bookNow: "📅 Book Now",
+    quickAirport: "✈️ Quick Airport",
+    quickLocal: "🚕 Quick Local",
+    wifi: "📶 WiFi:",
+    localTime: "🌍 Local Time:",
+    restaurant: "🍽️ Restaurant:",
+    gym: "💪 Gym:",
+    checkout: "🕐 Checkout:",
+    wakeUpCall: "⏰ Set Wake-up Call",
+    dnd: "🔕 DND: OFF",
+    localGuide: "🗺️ Local Guide",
+    events: "📅 Events",
+    emergencyContacts: "📞 Emergency Contacts",
+    firstAid: "🚑 First Aid",
+    evacuationMap: "🗺️ Evacuation Map",
+    concierge: "🤖 Concierge",
+    checkoutRate: "⭐ Checkout & Rate",
+    addNewRoom: "Add New Room",
+    roomNumberLabel: "Room Number *",
+    roomType: "Room Type *",
+    roomPrice: "Price per Night *",
+    typeStandard: "Standard",
+    typeDeluxe: "Deluxe",
+    typeSuite: "Suite",
+    typePresidential: "Presidential",
+    status: "Status *",
+    statusVacant: "Vacant",
+    statusOccupied: "Occupied",
+    statusCleaning: "Cleaning",
+    statusMaintenance: "Maintenance",
+    guestNameOptional: "Guest Name (if occupied)",
+    optional: "Optional",
+    saveRoom: "💾 Save Room",
+    addNewDish: "Add New Dish",
+    dishName: "Dish Name *",
+    price: "Price *",
+    category: "Category",
+    mainCourse: "Main Course",
+    appetizer: "Appetizer",
+    dessert: "Dessert",
+    beverage: "Beverage",
+    snack: "Snack",
+    saveDish: "💾 Save Dish",
+    addTransport: "Add Transport Service",
+    transportName: "Service Name *",
+    transportType: "Type *",
+    currency: "Currency",
+    saveTransport: "💾 Save Transport",
+    downloadQR: "📷 Download QR Code",
+    roomLabel: "Room #",
+    downloadPNG: "⬇️ Download PNG",
+    close: "Close",
+    scanQRCode: "📷 Scan QR Code",
+    enterRoomNumber: "Enter room number",
+    emergencySOS: "EMERGENCY SOS",
+    emergencyNotified: "Emergency services notified! Help is on the way.",
+    rateStay: "⭐ Rate Your Stay",
+    overall: "Overall",
+    cleanliness: "Cleanliness",
+    staff: "Staff",
+    recommend: "Recommend?",
+    yes: "Yes",
+    no: "No",
+    shareExperience: "Share your experience...",
+    submitReview: "Submit Review",
+    hotelEvents: "📅 Hotel Events",
+    police: "🚓 Police:",
+    ambulance: "🚑 Ambulance:",
+    fire: "🔥 Fire:",
+    security: "🏨 Security:",
+    hotelDoctor: "🩺 Hotel Doctor:",
+    firstAidGuide: "🚑 First Aid Guide",
+    bleeding: "🩸 Bleeding:",
+    burn: "🔥 Burn:",
+    heartAttack: "💔 Heart Attack:",
+    fainting: "😵 Fainting:",
+    exitStairs: "Exit stairs at both ends of corridor",
+    assemblyPoint: "Assembly point: Main Parking Lot",
+    noElevators: "⚠️ Do not use elevators",
+    digitalConcierge: "🤖 Digital Concierge - FAQ",
+    faqWifi: "WiFi password?",
+    faqCheckout: "Checkout time?",
+    checkoutTime: "11:00 AM (Late checkout available)",
+    faqGym: "Gym timing?",
+    gymTiming: "6AM - 10PM Daily",
+    faqRestaurant: "Restaurant timing?",
+    restaurantTiming: "7AM - 11PM",
+    faqRaiseRequest: "How to raise request?",
+    raiseRequestTip: "Go to Request tab and fill the form",
+    points: "⭐ 0 pts",
+    scanQR: "📷 Scan QR",
+    offlineActive: "📴 Offline Mode Active"
   },
   hi: {
     pageTitle: "क्राउन प्लाज़ा होटल - अल्टीमेट मैनेजमेंट सिस्टम",
-    welcomeTitle: "क्राउन प्लाज़ा होटल", welcomeSubtitle: "संपूर्ण प्रबंधन प्रणाली",
-    guestTab: "🏨 अतिथि", adminTab: "👑 व्यवस्थापक",
-    yourName: "आपका नाम", enterName: "अपना नाम दर्ज करें", roomNumber: "कमरा संख्या",
-    loginGuest: "🔐 अतिथि के रूप में लॉगिन करें", emailAddress: "ईमेल पता", adminEmail: "admin@crownplaza.com",
-    password: "पासवर्ड", passwordPlaceholder: "••••••••", loginAdmin: "🔐 व्यवस्थापक के रूप में लॉगिन करें",
-    liveUpdates: "लाइव अपडेट", voiceEnabled: "वॉयस सक्षम", pwaReady: "PWA तैयार", copy: "कॉपी",
-    langEN: "🇬🇧 EN", langHI: "🇮🇳 हिंदी", langAR: "🇸🇦 العربية", highContrast: "🔆",
-    fontSizeSmall: "A-", fontSizeReset: "A", fontSizeLarge: "A+", offlineMode: "📴",
-    pushNotify: "🔔", haptic: "📳", darkMode: "🌙", themeSelector: "🎨", selectTheme: "थीम चुनें",
-    back: "← वापस", selectRole: "👑 अपनी भूमिका चुनें",
-    roleSuperAdmin: "सुपर व्यवस्थापक", roleFrontDesk: "फ्रंट डेस्क", roleHousekeeping: "हाउसकीपिंग",
-    roleMaintenance: "रखरखाव", roleRestaurant: "रेस्तरां", roleLaundry: "लॉन्ड्री",
-    roleSecurity: "सुरक्षा", roleIT: "आईटी सहायता",
-    hotelName: "क्राउन प्लाज़ा", admin: "व्यवस्थापक", live: "लाइव", notClocked: "⏳ क्लॉक इन नहीं",
-    clockInOut: "⏰ क्लॉक इन/आउट", logout: "लॉगआउट",
-    tabOverview: "📊 अवलोकन", tabRequests: "📋 अनुरोध", tabRooms: "🏨 कमरे",
-    tabGuests: "👥 अतिथि", tabReviews: "⭐ समीक्षाएं", tabReports: "📈 रिपोर्ट",
-    tabQRCodes: "📷 QR कोड", tabLogs: "📝 लॉग", tabInventory: "📦 इन्वेंटरी",
-    tabMaintenance: "📅 रखरखाव", tabBlacklist: "🚫 ब्लैकलिस्ट", tabLoyalty: "⭐ वफादारी",
-    tabStaff: "👔 स्टाफ प्रदर्शन", tabFoodMenu: "🍽️ भोजन मेनू", tabSettings: "⚙️ सेटिंग्स",
-    totalRooms: "कुल कमरे", occupied: "कब्जा", open: "खुला", inProgress: "प्रगति पर", emergency: "आपातकालीन",
-    requestsByDept: "📊 विभाग द्वारा अनुरोध", roomOccupancy: "🏨 कमरा कब्जा", satisfaction: "⭐ संतुष्टि",
-    peakHourAnalysis: "📈 पीक आवर विश्लेषण", heatMap: "🔥 हीट मैप - व्यस्त क्षेत्र", emergencyRequests: "🚨 आपातकालीन अनुरोध",
-    filterAll: "सभी", filterOpen: "खुला", filterInProgress: "प्रगति पर", filterCompleted: "पूर्ण", filterEmergency: "🚨 आपातकालीन",
-    searchRequests: "🔍 अनुरोध खोजें...", exportExcel: "📎 Excel निर्यात", print: "🖨️ प्रिंट", exportAll: "💾 सभी निर्यात",
-    guestName: "अतिथि का नाम", selectDepartment: "📋 विभाग चुनें",
-    deptHousekeeping: "🧹 हाउसकीपिंग", deptMaintenance: "🔧 रखरखाव", deptRestaurant: "🍽️ रेस्तरां",
-    deptLaundry: "🧺 लॉन्ड्री", deptIT: "💻 आईटी सहायता", selectCategory: "🎯 श्रेणी चुनें",
-    description: "विवरण", priorityLow: "🟢 कम", priorityMedium: "🟡 मध्यम", priorityHigh: "🔴 उच्च", priorityEmergency: "🚨 आपातकालीन",
-    submit: "✅ अनुरोध सबमिट करें", sosEmergency: "🚨 SOS आपातकालीन", dragTip: "💡 प्राथमिकता क्रम बदलने के लिए अनुरोधों को खींचें और छोड़ें",
-    requestsSelected: "अनुरोध चुने गए", completeSelected: "✅ चयनित पूर्ण करें", deleteSelected: "🗑️ चयनित हटाएं", cancel: "रद्द करें",
-    serviceRequests: "📋 सेवा अनुरोध", selectAll: "सभी चुनें", roomManagement: "🏨 कमरा प्रबंधन",
-    foodMenuManagement: "🍽️ भोजन मेनू प्रबंधन", inventoryManagement: "📦 इन्वेंटरी प्रबंधन",
-    maintenanceSchedule: "📅 रखरखाव अनुसूची", guestBlacklist: "🚫 अतिथि ब्लैकलिस्ट",
-    loyaltyPoints: "⭐ वफादारी अंक प्रणाली", staffPerformance: "👔 स्टाफ प्रदर्शन डैशबोर्ड",
-    hotelSettings: "⚙️ होटल सेटिंग्स", hotelInfo: "🏨 होटल जानकारी", hotelNameLabel: "होटल का नाम", saveName: "💾 नाम सहेजें",
-    currencySettings: "💱 मुद्रा और मूल्य निर्धारण सेटिंग्स", currencySymbol: "मुद्रा प्रतीक", priceFormat: "मूल्य प्रारूप", saveCurrency: "💾 मुद्रा सेटिंग्स सहेजें",
-    transportPricing: "🚗 परिवहन मूल्य निर्धारण", airportTransfer: "हवाई अड्डा हस्तांतरण मूल्य", localCab: "स्थानीय कैब मूल्य (प्रति घंटा)", saveTransport: "💾 परिवहन मूल्य सहेजें",
-    wifiConfig: "WiFi पासवर्ड कॉन्फ़िगरेशन", wifiTip: "WiFi पासवर्ड सेट करें जो सभी अतिथियों को दिखाया जाएगा",
-    enterWifiPassword: "WiFi पासवर्ड दर्ज करें", savePassword: "💾 पासवर्ड सहेजें",
-    systemInfo: "📊 सिस्टम जानकारी", hotelNameInfo: "होटल का नाम:", currencyInfo: "मुद्रा:", timezoneInfo: "समय क्षेत्र:", localTimeInfo: "स्थानीय समय:",
-    activityLogs: "📝 गतिविधि लॉग", roomQRCodes: "📷 कमरा QR कोड",
-    myRequests: "मेरे अनुरोध", pending: "लंबित", resolved: "हल किया गया", notRated: "रेट नहीं किया गया", review: "समीक्षा",
-    request: "अनुरोध", food: "भोजन", cab: "कैब", history: "इतिहास", info: "जानकारी",
-    newRequest: "📝 नया अनुरोध", selectService: "🎯 सेवा चुनें", describeIssue: "अपनी समस्या का वर्णन करें...", normal: "🟢 सामान्य", urgent: "⚠️ तुरंत", submitRequest: "✅ अनुरोध सबमिट करें",
-    foodMenu: "🍕 भोजन मेनू", placeOrder: "🛒 ऑर्डर दें", clearCart: "🗑️ साफ़ करें", reorderLast: "🔄 अंतिम पुनः ऑर्डर करें",
-    transport: "🚗 परिवहन", airportTransferOption: "✈️ हवाई अड्डा हस्तांतरण", localCabOption: "🚕 स्थानीय कैब", bookNow: "📅 अभी बुक करें", quickAirport: "✈️ त्वरित हवाई अड्डा", quickLocal: "🚕 त्वरित स्थानीय",
-    wifi: "📶 WiFi:", localTime: "🌍 स्थानीय समय:", restaurant: "🍽️ रेस्तरां:", gym: "💪 जिम:", checkout: "🕐 चेकआउट:",
-    wakeUpCall: "⏰ वेक-अप कॉल सेट करें", dnd: "🔕 DND: बंद", localGuide: "🗺️ स्थानीय गाइड", events: "📅 कार्यक्रम", emergencyContacts: "📞 आपातकालीन संपर्क",
-    firstAid: "🚑 प्राथमिक चिकित्सा", evacuationMap: "🗺️ निकासी मानचित्र", concierge: "🤖 कन्सियर्ज", checkoutRate: "⭐ चेकआउट और रेट करें",
-    addNewRoom: "नया कमरा जोड़ें", roomNumberLabel: "कमरा संख्या *", roomType: "कमरा प्रकार *", roomPrice: "प्रति रात मूल्य *",
-    typeStandard: "स्टैंडर्ड", typeDeluxe: "डिलक्स", typeSuite: "सूट", typePresidential: "राष्ट्रपति",
-    status: "स्थिति *", statusVacant: "रिक्त", statusOccupied: "कब्जा", statusCleaning: "सफाई", statusMaintenance: "रखरखाव",
-    guestNameOptional: "अतिथि का नाम (यदि कब्जा)", optional: "वैकल्पिक", saveRoom: "💾 कमरा सहेजें",
-    addNewDish: "नया व्यंजन जोड़ें", dishName: "व्यंजन का नाम *", price: "मूल्य *", category: "श्रेणी",
-    mainCourse: "मुख्य व्यंजन", appetizer: "अपरिचर", dessert: "मिठाई", beverage: "पेय", snack: "नाश्ता", saveDish: "💾 व्यंजन सहेजें",
-    downloadQR: "📷 QR कोड डाउनलोड करें", roomLabel: "कमरा #", downloadPNG: "⬇️ PNG डाउनलोड करें", close: "बंद करें",
-    scanQRCode: "📷 QR कोड स्कैन करें", enterRoomNumber: "कमरा संख्या दर्ज करें",
-    emergencySOS: "आपातकालीन SOS", emergencyNotified: "आपातकालीन सेवाओं को सूचित किया गया! मदद रास्ते में है।",
-    rateStay: "⭐ अपने प्रवास को रेट करें", overall: "समग्र", cleanliness: "स्वच्छता", staff: "स्टाफ", recommend: "सुझाएं?", yes: "हाँ", no: "नहीं",
-    shareExperience: "अपना अनुभव साझा करें...", submitReview: "समीक्षा सबमिट करें",
-    hotelEvents: "📅 होटल कार्यक्रम", police: "🚓 पुलिस:", ambulance: "🚑 एम्बुलेंस:", fire: "🔥 आग:", security: "🏨 सुरक्षा:", hotelDoctor: "🩺 होटल डॉक्टर:",
-    firstAidGuide: "🚑 प्राथमिक चिकित्सा गाइड", bleeding: "🩸 खून बहना:", burn: "🔥 जलना:", heartAttack: "💔 दिल का दौरा:", fainting: "😵 बेहोशी:",
-    exitStairs: "गलियारे के दोनों सिरों पर निकास सीढ़ियां", assemblyPoint: "सभा स्थल: मुख्य पार्किंग लॉट", noElevators: "⚠️ लिफ्ट का उपयोग न करें",
-    digitalConcierge: "🤖 डिजिटल कन्सियर्ज - FAQ", faqWifi: "WiFi पासवर्ड?", faqCheckout: "चेकआउट समय?", checkoutTime: "11:00 AM (देर से चेकआउट उपलब्ध)",
-    faqGym: "जिम का समय?", gymTiming: "6AM - 10PM दैनिक", faqRestaurant: "रेस्तरां का समय?", restaurantTiming: "7AM - 11PM",
-    faqRaiseRequest: "अनुरोध कैसे करें?", raiseRequestTip: "अनुरोध टैब पर जाएं और फॉर्म भरें",
-    points: "⭐ 0 अंक", scanQR: "📷 QR स्कैन करें", offlineActive: "📴 ऑफ़लाइन मोड सक्रिय"
+    welcomeTitle: "क्राउन प्लाज़ा होटल",
+    welcomeSubtitle: "संपूर्ण प्रबंधन प्रणाली",
+    guestTab: "🏨 अतिथि",
+    adminTab: "👑 व्यवस्थापक",
+    yourName: "आपका नाम",
+    enterName: "अपना नाम दर्ज करें",
+    roomNumber: "कमरा संख्या",
+    loginGuest: "🔐 अतिथि के रूप में लॉगिन करें",
+    emailAddress: "ईमेल पता",
+    adminEmail: "admin@crownplaza.com",
+    password: "पासवर्ड",
+    passwordPlaceholder: "••••••••",
+    loginAdmin: "🔐 व्यवस्थापक के रूप में लॉगिन करें",
+    liveUpdates: "लाइव अपडेट",
+    voiceEnabled: "वॉयस सक्षम",
+    pwaReady: "PWA तैयार",
+    copy: "कॉपी",
+    langEN: "🇬🇧 EN",
+    langHI: "🇮🇳 हिंदी",
+    langAR: "🇸🇦 العربية",
+    highContrast: "🔆",
+    fontSizeSmall: "A-",
+    fontSizeReset: "A",
+    fontSizeLarge: "A+",
+    offlineMode: "📴",
+    pushNotify: "🔔",
+    haptic: "📳",
+    darkMode: "🌙",
+    themeSelector: "🎨",
+    selectTheme: "थीम चुनें",
+    back: "← वापस",
+    selectRole: "👑 अपनी भूमिका चुनें",
+    roleSuperAdmin: "सुपर व्यवस्थापक",
+    roleFrontDesk: "फ्रंट डेस्क",
+    roleHousekeeping: "हाउसकीपिंग",
+    roleMaintenance: "रखरखाव",
+    roleRestaurant: "रेस्तरां",
+    roleLaundry: "लॉन्ड्री",
+    roleSecurity: "सुरक्षा",
+    roleIT: "आईटी सहायता",
+    hotelName: "क्राउन प्लाज़ा",
+    admin: "व्यवस्थापक",
+    live: "लाइव",
+    notClocked: "⏳ क्लॉक इन नहीं",
+    clockInOut: "⏰ क्लॉक इन/आउट",
+    logout: "लॉगआउट",
+    tabOverview: "📊 अवलोकन",
+    tabRequests: "📋 अनुरोध",
+    tabRooms: "🏨 कमरे",
+    tabGuests: "👥 अतिथि",
+    tabReviews: "⭐ समीक्षाएं",
+    tabReports: "📈 रिपोर्ट",
+    tabQRCodes: "📷 QR कोड",
+    tabLogs: "📝 लॉग",
+    tabInventory: "📦 इन्वेंटरी",
+    tabMaintenance: "📅 रखरखाव",
+    tabBlacklist: "🚫 ब्लैकलिस्ट",
+    tabLoyalty: "⭐ वफादारी",
+    tabStaff: "👔 स्टाफ प्रदर्शन",
+    tabFoodMenu: "🍽️ भोजन मेनू",
+    tabTransport: "🚗 परिवहन",
+    tabSettings: "⚙️ सेटिंग्स",
+    totalRooms: "कुल कमरे",
+    occupied: "कब्जा",
+    open: "खुला",
+    inProgress: "प्रगति पर",
+    emergency: "आपातकालीन",
+    requestsByDept: "📊 विभाग द्वारा अनुरोध",
+    roomOccupancy: "🏨 कमरा कब्जा",
+    satisfaction: "⭐ संतुष्टि",
+    peakHourAnalysis: "📈 पीक आवर विश्लेषण",
+    heatMap: "🔥 हीट मैप - व्यस्त क्षेत्र",
+    emergencyRequests: "🚨 आपातकालीन अनुरोध",
+    filterAll: "सभी",
+    filterOpen: "खुला",
+    filterInProgress: "प्रगति पर",
+    filterCompleted: "पूर्ण",
+    filterEmergency: "🚨 आपातकालीन",
+    searchRequests: "🔍 अनुरोध खोजें...",
+    exportExcel: "📎 Excel निर्यात",
+    print: "🖨️ प्रिंट",
+    exportAll: "💾 सभी निर्यात",
+    guestName: "अतिथि का नाम",
+    selectDepartment: "📋 विभाग चुनें",
+    deptHousekeeping: "🧹 हाउसकीपिंग",
+    deptMaintenance: "🔧 रखरखाव",
+    deptRestaurant: "🍽️ रेस्तरां",
+    deptLaundry: "🧺 लॉन्ड्री",
+    deptIT: "💻 आईटी सहायता",
+    selectCategory: "🎯 श्रेणी चुनें",
+    description: "विवरण",
+    priorityLow: "🟢 कम",
+    priorityMedium: "🟡 मध्यम",
+    priorityHigh: "🔴 उच्च",
+    priorityEmergency: "🚨 आपातकालीन",
+    submit: "✅ अनुरोध सबमिट करें",
+    sosEmergency: "🚨 SOS आपातकालीन",
+    dragTip: "💡 प्राथमिकता क्रम बदलने के लिए अनुरोधों को खींचें और छोड़ें",
+    requestsSelected: "अनुरोध चुने गए",
+    completeSelected: "✅ चयनित पूर्ण करें",
+    deleteSelected: "🗑️ चयनित हटाएं",
+    cancel: "रद्द करें",
+    serviceRequests: "📋 सेवा अनुरोध",
+    selectAll: "सभी चुनें",
+    roomManagement: "🏨 कमरा प्रबंधन",
+    addRoom: "+ कमरा जोड़ें",
+    foodMenuManagement: "🍽️ भोजन मेनू प्रबंधन",
+    addDish: "+ व्यंजन जोड़ें",
+    transportManagement: "🚗 परिवहन प्रबंधन",
+    addTransport: "+ परिवहन जोड़ें",
+    inventoryManagement: "📦 इन्वेंटरी प्रबंधन",
+    maintenanceSchedule: "📅 रखरखाव अनुसूची",
+    guestBlacklist: "🚫 अतिथि ब्लैकलिस्ट",
+    loyaltyPoints: "⭐ वफादारी अंक प्रणाली",
+    staffPerformance: "👔 स्टाफ प्रदर्शन डैशबोर्ड",
+    hotelSettings: "⚙️ होटल सेटिंग्स",
+    hotelInfo: "🏨 होटल जानकारी",
+    hotelNameLabel: "होटल का नाम",
+    saveName: "💾 नाम सहेजें",
+    currencySettings: "💱 मुद्रा और मूल्य निर्धारण सेटिंग्स",
+    currencySymbol: "मुद्रा प्रतीक",
+    priceFormat: "मूल्य प्रारूप",
+    saveCurrency: "💾 मुद्रा सेटिंग्स सहेजें",
+    transportPricing: "🚗 परिवहन मूल्य निर्धारण",
+    airportTransfer: "हवाई अड्डा हस्तांतरण मूल्य",
+    localCab: "स्थानीय कैब मूल्य (प्रति घंटा)",
+    saveTransport: "💾 परिवहन मूल्य सहेजें",
+    wifiConfig: "WiFi पासवर्ड कॉन्फ़िगरेशन",
+    wifiTip: "WiFi पासवर्ड सेट करें जो सभी अतिथियों को दिखाया जाएगा",
+    enterWifiPassword: "WiFi पासवर्ड दर्ज करें",
+    savePassword: "💾 पासवर्ड सहेजें",
+    systemInfo: "📊 सिस्टम जानकारी",
+    hotelNameInfo: "होटल का नाम:",
+    currencyInfo: "मुद्रा:",
+    timezoneInfo: "समय क्षेत्र:",
+    localTimeInfo: "स्थानीय समय:",
+    activityLogs: "📝 गतिविधि लॉग",
+    roomQRCodes: "📷 कमरा QR कोड",
+    myRequests: "मेरे अनुरोध",
+    pending: "लंबित",
+    resolved: "हल किया गया",
+    notRated: "रेट नहीं किया गया",
+    review: "समीक्षा",
+    request: "अनुरोध",
+    food: "भोजन",
+    cab: "कैब",
+    history: "इतिहास",
+    info: "जानकारी",
+    newRequest: "📝 नया अनुरोध",
+    selectService: "🎯 सेवा चुनें",
+    describeIssue: "अपनी समस्या का वर्णन करें...",
+    normal: "🟢 सामान्य",
+    urgent: "⚠️ तुरंत",
+    submitRequest: "✅ अनुरोध सबमिट करें",
+    foodMenu: "🍕 भोजन मेनू",
+    placeOrder: "🛒 ऑर्डर दें",
+    clearCart: "🗑️ साफ़ करें",
+    reorderLast: "🔄 अंतिम पुनः ऑर्डर करें",
+    transport: "🚗 परिवहन",
+    airportTransferOption: "✈️ हवाई अड्डा हस्तांतरण",
+    localCabOption: "🚕 स्थानीय कैब",
+    tourOption: "🚌 शहर की सैर",
+    bookNow: "📅 अभी बुक करें",
+    quickAirport: "✈️ त्वरित हवाई अड्डा",
+    quickLocal: "🚕 त्वरित स्थानीय",
+    wifi: "📶 WiFi:",
+    localTime: "🌍 स्थानीय समय:",
+    restaurant: "🍽️ रेस्तरां:",
+    gym: "💪 जिम:",
+    checkout: "🕐 चेकआउट:",
+    wakeUpCall: "⏰ वेक-अप कॉल सेट करें",
+    dnd: "🔕 DND: बंद",
+    localGuide: "🗺️ स्थानीय गाइड",
+    events: "📅 कार्यक्रम",
+    emergencyContacts: "📞 आपातकालीन संपर्क",
+    firstAid: "🚑 प्राथमिक चिकित्सा",
+    evacuationMap: "🗺️ निकासी मानचित्र",
+    concierge: "🤖 कन्सियर्ज",
+    checkoutRate: "⭐ चेकआउट और रेट करें",
+    addNewRoom: "नया कमरा जोड़ें",
+    roomNumberLabel: "कमरा संख्या *",
+    roomType: "कमरा प्रकार *",
+    roomPrice: "प्रति रात मूल्य *",
+    typeStandard: "स्टैंडर्ड",
+    typeDeluxe: "डिलक्स",
+    typeSuite: "सूट",
+    typePresidential: "राष्ट्रपति",
+    status: "स्थिति *",
+    statusVacant: "रिक्त",
+    statusOccupied: "कब्जा",
+    statusCleaning: "सफाई",
+    statusMaintenance: "रखरखाव",
+    guestNameOptional: "अतिथि का नाम (यदि कब्जा)",
+    optional: "वैकल्पिक",
+    saveRoom: "💾 कमरा सहेजें",
+    addNewDish: "नया व्यंजन जोड़ें",
+    dishName: "व्यंजन का नाम *",
+    price: "मूल्य *",
+    category: "श्रेणी",
+    mainCourse: "मुख्य व्यंजन",
+    appetizer: "अपरिचर",
+    dessert: "मिठाई",
+    beverage: "पेय",
+    snack: "नाश्ता",
+    saveDish: "💾 व्यंजन सहेजें",
+    addTransport: "परिवहन सेवा जोड़ें",
+    transportName: "सेवा नाम *",
+    transportType: "प्रकार *",
+    currency: "मुद्रा",
+    saveTransport: "💾 परिवहन सहेजें",
+    downloadQR: "📷 QR कोड डाउनलोड करें",
+    roomLabel: "कमरा #",
+    downloadPNG: "⬇️ PNG डाउनलोड करें",
+    close: "बंद करें",
+    scanQRCode: "📷 QR कोड स्कैन करें",
+    enterRoomNumber: "कमरा संख्या दर्ज करें",
+    emergencySOS: "आपातकालीन SOS",
+    emergencyNotified: "आपातकालीन सेवाओं को सूचित किया गया! मदद रास्ते में है।",
+    rateStay: "⭐ अपने प्रवास को रेट करें",
+    overall: "समग्र",
+    cleanliness: "स्वच्छता",
+    staff: "स्टाफ",
+    recommend: "सुझाएं?",
+    yes: "हाँ",
+    no: "नहीं",
+    shareExperience: "अपना अनुभव साझा करें...",
+    submitReview: "समीक्षा सबमिट करें",
+    hotelEvents: "📅 होटल कार्यक्रम",
+    police: "🚓 पुलिस:",
+    ambulance: "🚑 एम्बुलेंस:",
+    fire: "🔥 आग:",
+    security: "🏨 सुरक्षा:",
+    hotelDoctor: "🩺 होटल डॉक्टर:",
+    firstAidGuide: "🚑 प्राथमिक चिकित्सा गाइड",
+    bleeding: "🩸 खून बहना:",
+    burn: "🔥 जलना:",
+    heartAttack: "💔 दिल का दौरा:",
+    fainting: "😵 बेहोशी:",
+    exitStairs: "गलियारे के दोनों सिरों पर निकास सीढ़ियां",
+    assemblyPoint: "सभा स्थल: मुख्य पार्किंग लॉट",
+    noElevators: "⚠️ लिफ्ट का उपयोग न करें",
+    digitalConcierge: "🤖 डिजिटल कन्सियर्ज - FAQ",
+    faqWifi: "WiFi पासवर्ड?",
+    faqCheckout: "चेकआउट समय?",
+    checkoutTime: "11:00 AM (देर से चेकआउट उपलब्ध)",
+    faqGym: "जिम का समय?",
+    gymTiming: "6AM - 10PM दैनिक",
+    faqRestaurant: "रेस्तरां का समय?",
+    restaurantTiming: "7AM - 11PM",
+    faqRaiseRequest: "अनुरोध कैसे करें?",
+    raiseRequestTip: "अनुरोध टैब पर जाएं और फॉर्म भरें",
+    points: "⭐ 0 अंक",
+    scanQR: "📷 QR स्कैन करें",
+    offlineActive: "📴 ऑफ़लाइन मोड सक्रिय"
   },
   ar: {
     pageTitle: "فندق كراون بلازا - نظام الإدارة النهائي",
-    welcomeTitle: "فندق كراون بلازا", welcomeSubtitle: "نظام الإدارة الكامل",
-    guestTab: "🏨 ضيف", adminTab: "👑 مسؤول",
-    yourName: "اسمك", enterName: "أدخل اسمك", roomNumber: "رقم الغرفة",
-    loginGuest: "🔐 تسجيل الدخول كضيف", emailAddress: "البريد الإلكتروني", adminEmail: "admin@crownplaza.com",
-    password: "كلمة المرور", passwordPlaceholder: "••••••••", loginAdmin: "🔐 تسجيل الدخول كمسؤول",
-    liveUpdates: "تحديثات مباشرة", voiceEnabled: "الصوت ممكّن", pwaReady: "PWA جاهز", copy: "نسخ",
-    langEN: "🇬 EN", langHI: "🇮 हिंदी", langAR: "🇸🇦 العربية", highContrast: "🔆",
-    fontSizeSmall: "A-", fontSizeReset: "A", fontSizeLarge: "A+", offlineMode: "📴",
-    pushNotify: "🔔", haptic: "📳", darkMode: "🌙", themeSelector: "🎨", selectTheme: "اختر السمة",
-    back: "← رجوع", selectRole: "👑 اختر دورك",
-    roleSuperAdmin: "المسؤول الرئيسي", roleFrontDesk: "مكتب الاستقبال", roleHousekeeping: "التدبير المنزلي",
-    roleMaintenance: "الصيانة", roleRestaurant: "المطعم", roleLaundry: "الغسيل",
-    roleSecurity: "الأمن", roleIT: "دعم تكنولوجيا المعلومات",
-    hotelName: "كراون بلازا", admin: "مسؤول", live: "مباشر", notClocked: "⏳ لم يتم تسجيل الدخول",
-    clockInOut: "⏰ تسجيل الدخول/الخروج", logout: "تسجيل الخروج",
-    tabOverview: "📊 نظرة عامة", tabRequests: "📋 الطلبات", tabRooms: "🏨 الغرف",
-    tabGuests: "👥 الضيوف", tabReviews: "⭐ التقييمات", tabReports: "📈 التقارير",
-    tabQRCodes: "📷 رموز QR", tabLogs: "📝 السجلات", tabInventory: "📦 المخزون",
-    tabMaintenance: "📅 الصيانة", tabBlacklist: "🚫 القائمة السوداء", tabLoyalty: "⭐ الولاء",
-    tabStaff: "👔 أداء الموظفين", tabFoodMenu: "🍽️ قائمة الطعام", tabSettings: "⚙️ الإعدادات",
-    totalRooms: "إجمالي الغرف", occupied: "مشغول", open: "مفتوح", inProgress: "قيد التنفيذ", emergency: "طارئ",
-    requestsByDept: "📊 الطلبات حسب القسم", roomOccupancy: "🏨 إشغال الغرف", satisfaction: "⭐ الرضا",
-    peakHourAnalysis: "📈 تحليل ساعة الذروة", heatMap: "🔥 خريطة الحرارة - المناطق المزدحمة", emergencyRequests: "🚨 الطلبات الطارئة",
-    filterAll: "الكل", filterOpen: "مفتوح", filterInProgress: "قيد التنفيذ", filterCompleted: "مكتمل", filterEmergency: "🚨 طارئ",
-    searchRequests: "🔍 البحث في الطلبات...", exportExcel: "📎 تصدير Excel", print: "🖨️ طباعة", exportAll: "💾 تصدير الكل",
-    guestName: "اسم الضيف", selectDepartment: "📋 اختر القسم",
-    deptHousekeeping: "🧹 التدبير المنزلي", deptMaintenance: "🔧 الصيانة", deptRestaurant: "🍽️ المطعم",
-    deptLaundry: "🧺 الغسيل", deptIT: "💻 دعم تكنولوجيا المعلومات", selectCategory: "🎯 اختر الفئة",
-    description: "الوصف", priorityLow: "🟢 منخفض", priorityMedium: "🟡 متوسط", priorityHigh: "🔴 عالي", priorityEmergency: "🚨 طارئ",
-    submit: "✅ إرسال الطلب", sosEmergency: "🚨 SOS طارئ", dragTip: "💡 اسحب وأفلت الطلبات لتغيير ترتيب الأولوية",
-    requestsSelected: "الطلبات المحددة", completeSelected: "✅ إكمال المحدد", deleteSelected: "🗑️ حذف المحدد", cancel: "إلغاء",
-    serviceRequests: "📋 طلبات الخدمة", selectAll: "تحديد الكل", roomManagement: "🏨 إدارة الغرف",
-    foodMenuManagement: "🍽️ إدارة قائمة الطعام", inventoryManagement: "📦 إدارة المخزون",
-    maintenanceSchedule: "📅 جدول الصيانة", guestBlacklist: "🚫 القائمة السوداء للضيوف",
-    loyaltyPoints: "⭐ نظام نقاط الولاء", staffPerformance: "👔 لوحة أداء الموظفين",
-    hotelSettings: "⚙️ إعدادات الفندق", hotelInfo: "🏨 معلومات الفندق", hotelNameLabel: "اسم الفندق", saveName: "💾 حفظ الاسم",
-    currencySettings: "💱 إعدادات العملة والتسعير", currencySymbol: "رمز العملة", priceFormat: "تنسيق السعر", saveCurrency: "💾 حفظ إعدادات العملة",
-    transportPricing: "🚗 تسعير النقل", airportTransfer: "سعر نقل المطار", localCab: "سعر التاكسي المحلي (في الساعة)", saveTransport: "💾 حفظ أسعار النقل",
-    wifiConfig: "تكوين كلمة مرور WiFi", wifiTip: "اضبط كلمة مرور WiFi التي ستعرض لجميع الضيوف",
-    enterWifiPassword: "أدخل كلمة مرور WiFi", savePassword: "💾 حفظ كلمة المرور",
-    systemInfo: "📊 معلومات النظام", hotelNameInfo: "اسم الفندق:", currencyInfo: "العملة:", timezoneInfo: "المنطقة الزمنية:", localTimeInfo: "الوقت المحلي:",
-    activityLogs: "📝 سجلات النشاط", roomQRCodes: "📷 رموز QR للغرف",
-    myRequests: "طلباتي", pending: "معلق", resolved: "تم الحل", notRated: "لم يتم التقييم", review: "التقييم",
-    request: "طلب", food: "طعام", cab: "تاكسي", history: "السجل", info: "معلومات",
-    newRequest: "📝 طلب جديد", selectService: "🎯 اختر الخدمة", describeIssue: "صف مشكلتك...", normal: "🟢 عادي", urgent: "⚠️ عاجل", submitRequest: "✅ إرسال الطلب",
-    foodMenu: "🍕 قائمة الطعام", placeOrder: "🛒 تقديم الطلب", clearCart: "🗑️ مسح", reorderLast: "🔄 إعادة طلب الأخير",
-    transport: "🚗 النقل", airportTransferOption: "✈️ نقل المطار", localCabOption: "🚕 تاكسي محلي", bookNow: "📅 احجز الآن", quickAirport: "✈️ مطار سريع", quickLocal: "🚕 محلي سريع",
-    wifi: "📶 WiFi:", localTime: "🌍 الوقت المحلي:", restaurant: "🍽️ المطعم:", gym: "💪 الصالة الرياضية:", checkout: "🕐 تسجيل الخروج:",
-    wakeUpCall: "⏰ ضبط مكالمة الإيقاظ", dnd: "🔕 DND: إيقاف", localGuide: "🗺️ الدليل المحلي", events: "📅 الفعاليات", emergencyContacts: "📞 جهات الاتصال الطارئة",
-    firstAid: "🚑 الإسعافات الأولية", evacuationMap: "🗺️ خريطة الإخلاء", concierge: "🤖 الكونسيرج", checkoutRate: "⭐ تسجيل الخروج والتقييم",
-    addNewRoom: "إضافة غرفة جديدة", roomNumberLabel: "رقم الغرفة *", roomType: "نوع الغرفة *", roomPrice: "السعر لليلة *",
-    typeStandard: "قياسي", typeDeluxe: "ديلوكس", typeSuite: "جناح", typePresidential: "رئاسي",
-    status: "الحالة *", statusVacant: "شاغر", statusOccupied: "مشغول", statusCleaning: "تنظيف", statusMaintenance: "صيانة",
-    guestNameOptional: "اسم الضيف (إذا مشغول)", optional: "اختياري", saveRoom: "💾 حفظ الغرفة",
-    addNewDish: "إضافة طبق جديد", dishName: "اسم الطبق *", price: "السعر *", category: "الفئة",
-    mainCourse: "الطبق الرئيسي", appetizer: "مقبلات", dessert: "حلوى", beverage: "مشروب", snack: "وجبة خفيفة", saveDish: "💾 حفظ الطبق",
-    downloadQR: "📷 تنزيل رمز QR", roomLabel: "غرفة #", downloadPNG: "⬇️ تنزيل PNG", close: "إغلاق",
-    scanQRCode: "📷 مسح رمز QR", enterRoomNumber: "أدخل رقم الغرفة",
-    emergencySOS: "SOS طارئ", emergencyNotified: "تم إخطار خدمات الطوارئ! المساعدة في الطريق.",
-    rateStay: "⭐ قيّم إقامتك", overall: "عام", cleanliness: "النظافة", staff: "الموظفون", recommend: "توصي؟", yes: "نعم", no: "لا",
-    shareExperience: "شارك تجربتك...", submitReview: "إرسال التقييم",
-    hotelEvents: "📅 فعاليات الفندق", police: "🚓 الشرطة:", ambulance: "🚑 الإسعاف:", fire: "🔥 الحريق:", security: "🏨 الأمن:", hotelDoctor: "🩺 طبيب الفندق:",
-    firstAidGuide: "🚑 دليل الإسعافات الأولية", bleeding: "🩸 النزيف:", burn: "🔥 الحرق:", heartAttack: "💔 نوبة قلبية:", fainting: "😵 الإغماء:",
-    exitStairs: "سلالم الخروج في طرفي الممر", assemblyPoint: "نقطة التجمع: موقف السيارات الرئيسي", noElevators: "⚠️ لا تستخدم المصاعد",
-    digitalConcierge: "🤖 الكونسيرج الرقمي - الأسئلة الشائعة", faqWifi: "كلمة مرور WiFi؟", faqCheckout: "وقت تسجيل الخروج؟", checkoutTime: "11:00 صباحًا (تسجيل خروج متأخر متاح)",
-    faqGym: "توقيت الصالة الرياضية؟", gymTiming: "6 صباحًا - 10 مساءً يوميًا", faqRestaurant: "توقيت المطعم؟", restaurantTiming: "7 صباحًا - 11 مساءً",
-    faqRaiseRequest: "كيفية تقديم طلب؟", raiseRequestTip: "انتقل إلى علامة التبويب طلب واملأ النموذج",
-    points: "⭐ 0 نقطة", scanQR: "📷 مسح QR", offlineActive: "📴 الوضع غير المتصل نشط"
+    welcomeTitle: "فندق كراون بلازا",
+    welcomeSubtitle: "نظام الإدارة الكامل",
+    guestTab: "🏨 ضيف",
+    adminTab: "👑 مسؤول",
+    yourName: "اسمك",
+    enterName: "أدخل اسمك",
+    roomNumber: "رقم الغرفة",
+    loginGuest: "🔐 تسجيل الدخول كضيف",
+    emailAddress: "البريد الإلكتروني",
+    adminEmail: "admin@crownplaza.com",
+    password: "كلمة المرور",
+    passwordPlaceholder: "••••••••",
+    loginAdmin: "🔐 تسجيل الدخول كمسؤول",
+    liveUpdates: "تحديثات مباشرة",
+    voiceEnabled: "الصوت ممكّن",
+    pwaReady: "PWA جاهز",
+    copy: "نسخ",
+    langEN: "🇬🇧 EN",
+    langHI: "🇮🇳 हिंदी",
+    langAR: "🇸🇦 العربية",
+    highContrast: "🔆",
+    fontSizeSmall: "A-",
+    fontSizeReset: "A",
+    fontSizeLarge: "A+",
+    offlineMode: "📴",
+    pushNotify: "🔔",
+    haptic: "📳",
+    darkMode: "🌙",
+    themeSelector: "🎨",
+    selectTheme: "اختر السمة",
+    back: "← رجوع",
+    selectRole: "👑 اختر دورك",
+    roleSuperAdmin: "المسؤول الرئيسي",
+    roleFrontDesk: "مكتب الاستقبال",
+    roleHousekeeping: "التدبير المنزلي",
+    roleMaintenance: "الصيانة",
+    roleRestaurant: "المطعم",
+    roleLaundry: " الغسيل",
+    roleSecurity: "الأمن",
+    roleIT: "دعم تكنولوجيا المعلومات",
+    hotelName: "كراون بلازا",
+    admin: "مسؤول",
+    live: "مباشر",
+    notClocked: "⏳ لم يتم تسجيل الدخول",
+    clockInOut: "⏰ تسجيل الدخول/الخروج",
+    logout: "تسجيل الخروج",
+    tabOverview: "📊 نظرة عامة",
+    tabRequests: "📋 الطلبات",
+    tabRooms: "🏨 الغرف",
+    tabGuests: "👥 الضيوف",
+    tabReviews: "⭐ التقييمات",
+    tabReports: "📈 التقارير",
+    tabQRCodes: "📷 رموز QR",
+    tabLogs: "📝 السجلات",
+    tabInventory: "📦 المخزون",
+    tabMaintenance: "📅 الصيانة",
+    tabBlacklist: "🚫 القائمة السوداء",
+    tabLoyalty: "⭐ الولاء",
+    tabStaff: "👔 أداء الموظفين",
+    tabFoodMenu: "🍽️ قائمة الطعام",
+    tabTransport: "🚗 النقل",
+    tabSettings: "⚙️ الإعدادات",
+    totalRooms: "إجمالي الغرف",
+    occupied: "مشغول",
+    open: "مفتوح",
+    inProgress: "قيد التنفيذ",
+    emergency: "طارئ",
+    requestsByDept: "📊 الطلبات حسب القسم",
+    roomOccupancy: "🏨 إشغال الغرف",
+    satisfaction: "⭐ الرضا",
+    peakHourAnalysis: "📈 تحليل ساعة الذروة",
+    heatMap: "🔥 خريطة الحرارة - المناطق المزدحمة",
+    emergencyRequests: "🚨 الطلبات الطارئة",
+    filterAll: "الكل",
+    filterOpen: "مفتوح",
+    filterInProgress: "قيد التنفيذ",
+    filterCompleted: "مكتمل",
+    filterEmergency: "🚨 طارئ",
+    searchRequests: "🔍 البحث في الطلبات...",
+    exportExcel: "📎 تصدير Excel",
+    print: "🖨️ طباعة",
+    exportAll: "💾 تصدير الكل",
+    guestName: "اسم الضيف",
+    selectDepartment: "📋 اختر القسم",
+    deptHousekeeping: "🧹 التدبير المنزلي",
+    deptMaintenance: "🔧 الصيانة",
+    deptRestaurant: "🍽️ المطعم",
+    deptLaundry: "🧺 الغسيل",
+    deptIT: "💻 دعم تكنولوجيا المعلومات",
+    selectCategory: "🎯 اختر الفئة",
+    description: "الوصف",
+    priorityLow: "🟢 منخفض",
+    priorityMedium: "🟡 متوسط",
+    priorityHigh: "🔴 عالي",
+    priorityEmergency: "🚨 طارئ",
+    submit: "✅ إرسال الطلب",
+    sosEmergency: "🚨 SOS طارئ",
+    dragTip: "💡 اسحب وأفلت الطلبات لتغيير ترتيب الأولوية",
+    requestsSelected: "الطلبات المحددة",
+    completeSelected: "✅ إكمال المحدد",
+    deleteSelected: "🗑️ حذف المحدد",
+    cancel: "إلغاء",
+    serviceRequests: "📋 طلبات الخدمة",
+    selectAll: "تحديد الكل",
+    roomManagement: "🏨 إدارة الغرف",
+    addRoom: "+ إضافة غرفة",
+    foodMenuManagement: "🍽️ إدارة قائمة الطعام",
+    addDish: "+ إضافة طبق",
+    transportManagement: "🚗 إدارة النقل",
+    addTransport: "+ إضافة نقل",
+    inventoryManagement: "📦 إدارة المخزون",
+    maintenanceSchedule: "📅 جدول الصيانة",
+    guestBlacklist: "🚫 القائمة السوداء للضيوف",
+    loyaltyPoints: "⭐ نظام نقاط الولاء",
+    staffPerformance: "👔 لوحة أداء الموظفين",
+    hotelSettings: "⚙️ إعدادات الفندق",
+    hotelInfo: "🏨 معلومات الفندق",
+    hotelNameLabel: "اسم الفندق",
+    saveName: "💾 حفظ الاسم",
+    currencySettings: "💱 إعدادات العملة والتسعير",
+    currencySymbol: "رمز العملة",
+    priceFormat: "تنسيق السعر",
+    saveCurrency: "💾 حفظ إعدادات العملة",
+    transportPricing: "🚗 تسعير النقل",
+    airportTransfer: "سعر نقل المطار",
+    localCab: "سعر التاكسي المحلي (في الساعة)",
+    saveTransport: "💾 حفظ أسعار النقل",
+    wifiConfig: "تكوين كلمة مرور WiFi",
+    wifiTip: "اضبط كلمة مرور WiFi التي ستعرض لجميع الضيوف",
+    enterWifiPassword: "أدخل كلمة مرور WiFi",
+    savePassword: "💾 حفظ كلمة المرور",
+    systemInfo: "📊 معلومات النظام",
+    hotelNameInfo: "اسم الفندق:",
+    currencyInfo: "العملة:",
+    timezoneInfo: "المنطقة الزمنية:",
+    localTimeInfo: "الوقت المحلي:",
+    activityLogs: "📝 سجلات النشاط",
+    roomQRCodes: "📷 رموز QR للغرف",
+    myRequests: "طلباتي",
+    pending: "معلق",
+    resolved: "تم الحل",
+    notRated: "لم يتم التقييم",
+    review: "التقييم",
+    request: "طلب",
+    food: "طعام",
+    cab: "تاكسي",
+    history: "السجل",
+    info: "معلومات",
+    newRequest: "📝 طلب جديد",
+    selectService: "🎯 اختر الخدمة",
+    describeIssue: "صف مشكلتك...",
+    normal: "🟢 عادي",
+    urgent: "⚠️ عاجل",
+    submitRequest: "✅ إرسال الطلب",
+    foodMenu: "🍕 قائمة الطعام",
+    placeOrder: "🛒 تقديم الطلب",
+    clearCart: "🗑️ مسح",
+    reorderLast: "🔄 إعادة طلب الأخير",
+    transport: "🚗 النقل",
+    airportTransferOption: "✈️ نقل المطار",
+    localCabOption: "🚕 تاكسي محلي",
+    tourOption: "🚌 جولة في المدينة",
+    bookNow: "📅 احجز الآن",
+    quickAirport: "✈️ مطار سريع",
+    quickLocal: "🚕 محلي سريع",
+    wifi: "📶 WiFi:",
+    localTime: "🌍 الوقت المحلي:",
+    restaurant: "🍽️ المطعم:",
+    gym: "💪 الصالة الرياضية:",
+    checkout: "🕐 تسجيل الخروج:",
+    wakeUpCall: "⏰ ضبط مكالمة الإيقاظ",
+    dnd: "🔕 DND: إيقاف",
+    localGuide: "🗺️ الدليل المحلي",
+    events: "📅 الفعاليات",
+    emergencyContacts: "📞 جهات الاتصال الطارئة",
+    firstAid: "🚑 الإسعافات الأولية",
+    evacuationMap: "🗺️ خريطة الإخلاء",
+    concierge: "🤖 الكونسيرج",
+    checkoutRate: "⭐ تسجيل الخروج والتقييم",
+    addNewRoom: "إضافة غرفة جديدة",
+    roomNumberLabel: "رقم الغرفة *",
+    roomType: "نوع الغرفة *",
+    roomPrice: "السعر لليلة *",
+    typeStandard: "قياسي",
+    typeDeluxe: "ديلوكس",
+    typeSuite: "جناح",
+    typePresidential: "رئاسي",
+    status: "الحالة *",
+    statusVacant: "شاغر",
+    statusOccupied: "مشغول",
+    statusCleaning: "تنظيف",
+    statusMaintenance: "صيانة",
+    guestNameOptional: "اسم الضيف (إذا مشغول)",
+    optional: "اختياري",
+    saveRoom: "💾 حفظ الغرفة",
+    addNewDish: "إضافة طبق جديد",
+    dishName: "اسم الطبق *",
+    price: "السعر *",
+    category: "الفئة",
+    mainCourse: "الطبق الرئيسي",
+    appetizer: "مقبلات",
+    dessert: "حلوى",
+    beverage: "مشروب",
+    snack: "وجبة خفيفة",
+    saveDish: "💾 حفظ الطبق",
+    addTransport: "إضافة خدمة نقل",
+    transportName: "اسم الخدمة *",
+    transportType: "النوع *",
+    currency: "العملة",
+    saveTransport: "💾 حفظ النقل",
+    downloadQR: "📷 تنزيل رمز QR",
+    roomLabel: "غرفة #",
+    downloadPNG: "⬇️ تنزيل PNG",
+    close: "إغلاق",
+    scanQRCode: "📷 مسح رمز QR",
+    enterRoomNumber: "أدخل رقم الغرفة",
+    emergencySOS: "SOS طارئ",
+    emergencyNotified: "تم إخطار خدمات الطوارئ! المساعدة في الطريق.",
+    rateStay: "⭐ قيّم إقامتك",
+    overall: "عام",
+    cleanliness: "النظافة",
+    staff: "الموظفون",
+    recommend: "توصي؟",
+    yes: "نعم",
+    no: "لا",
+    shareExperience: "شارك تجربتك...",
+    submitReview: "إرسال التقييم",
+    hotelEvents: "📅 فعاليات الفندق",
+    police: "🚓 الشرطة:",
+    ambulance: "🚑 الإسعاف:",
+    fire: "🔥 الحريق:",
+    security: "🏨 الأمن:",
+    hotelDoctor: "🩺 طبيب الفندق:",
+    firstAidGuide: "🚑 دليل الإسعافات الأولية",
+    bleeding: "🩸 النزيف:",
+    burn: "🔥 الحرق:",
+    heartAttack: "💔 نوبة قلبية:",
+    fainting: "😵 الإغماء:",
+    exitStairs: "سلالم الخروج في طرفي الممر",
+    assemblyPoint: "نقطة التجمع: موقف السيارات الرئيسي",
+    noElevators: "⚠️ لا تستخدم المصاعد",
+    digitalConcierge: "🤖 الكونسيرج الرقمي - الأسئلة الشائعة",
+    faqWifi: "كلمة مرور WiFi؟",
+    faqCheckout: "وقت تسجيل الخروج؟",
+    checkoutTime: "11:00 صباحًا (تسجيل خروج متأخر متاح)",
+    faqGym: "توقيت الصالة الرياضية؟",
+    gymTiming: "6 صباحًا - 10 مساءً يوميًا",
+    faqRestaurant: "توقيت المطعم؟",
+    restaurantTiming: "7 صباحًا - 11 مساءً",
+    faqRaiseRequest: "كيفية تقديم طلب؟",
+    raiseRequestTip: "انتقل إلى علامة التبويب طلب واملأ النموذج",
+    points: "⭐ 0 نقطة",
+    scanQR: "📷 مسح QR",
+    offlineActive: "📴 الوضع غير المتصل نشط"
   }
 };
 
 // ==================== GLOBAL STATE ====================
-let uiSettings = { darkMode: false, fontSize: 0, brightness: 1, language: 'en', theme: 'default' };
-let hotelData = {
-  hotelName: 'Crown Plaza Hotel',
-  wifiPassword: 'CrownPlaza@2024',
-  currency: { symbol: '$', format: 'symbol-first' },
-  transport: { airport: 30, local: 15 },
-  rooms: [],
-  foodMenu: [],
-  requests: [],
-  guests: [],
-  reviews: [],
-  logs: []
-};
-let currentUser = null, appSession = null, cart = [], rating = { overall: 0, cleanliness: 0, staff: 0, recommend: null };
+let currentLang = 'en';
+let currentTheme = 'default';
+let fontSizeLevel = 0;
+let brightnessLevel = 1;
+let isHighContrast = false;
+let isOffline = false;
+let currentUser = null;
+let rooms = [];
+let foodItems = [];
+let transportItems = [];
+let guestRequests = [];
+let hotelSettings = { name: 'Crown Plaza Hotel', wifiPassword: 'CrownPlaza@2024', currency: '$' };
 
-// ==================== INIT ====================
-document.addEventListener('DOMContentLoaded', async function() {
-  await loadVoices(); // Fix speech synthesis
-  loadAllData();
-  applyUISettings();
+// ==================== INITIALIZATION ====================
+document.addEventListener('DOMContentLoaded', function() {
   updateDateTime();
   setInterval(updateDateTime, 1000);
-  initializeCharts();
-  updateLanguageUI();
-  checkSessionPersistence(); // ✅ Stay on same page after refresh
-  renderRoomsList();
-  renderFoodMenu();
-  renderAdminRequests();
-  renderGuestFoodMenu();
 
-  // Event listeners
-  document.getElementById('brightnessSlider')?.addEventListener('input', (e) => adjustBrightness(e.target.value));
-  document.getElementById('guestLoginForm')?.addEventListener('submit', handleGuestLogin);
-  document.getElementById('adminLoginForm')?.addEventListener('submit', handleAdminLogin);
-  document.getElementById('guestRequestForm')?.addEventListener('submit', submitGuestRequest);
-  document.getElementById('adminRequestForm')?.addEventListener('submit', submitAdminRequest);
-  document.getElementById('roomForm')?.addEventListener('submit', saveRoom);
-  document.getElementById('foodForm')?.addEventListener('submit', saveFood);
-  document.getElementById('transportForm')?.addEventListener('submit', bookTransport);
+  // FIXED: Check session on load - stay on same page after refresh
+  checkSessionOnLoad();
+
+  // Load saved UI settings ONLY (localStorage scope limited to 5 functions)
+  loadUISettings();
+
+  // Initialize data from "MongoDB" (simulated with localStorage for demo)
+  loadDataFromMongo();
+
+  // Initialize charts
+  initializeCharts();
+
+  // Update language UI
+  updateLanguageUI();
+
+  // Setup event listeners for real-time sync
+  setupRealtimeSync();
 });
 
-// ==================== DATA LOADING (MongoDB Mock) ====================
-function loadAllData() {
-  // ✅ UI Settings - Only 5 keys in localStorage
-  const savedUI = localStorage.getItem(STORAGE.UI);
-  if (savedUI) uiSettings = { ...uiSettings, ...JSON.parse(savedUI) };
+// ==================== SESSION MANAGEMENT - FIXED PAGE REFRESH ====================
+function checkSessionOnLoad() {
+  const savedUser = localStorage.getItem('hotelCurrentUser');
+  const savedPage = localStorage.getItem('hotelCurrentPage');
 
-  // Client Data (MongoDB mock - replace with fetch() to your backend)
-  const savedData = localStorage.getItem(STORAGE.DATA);
-  if (savedData) hotelData = { ...hotelData, ...JSON.parse(savedData) };
+  if (savedUser) {
+    currentUser = JSON.parse(savedUser);
 
-  // Session & User
-  const savedSession = localStorage.getItem(STORAGE.SESSION);
-  if (savedSession) appSession = JSON.parse(savedSession);
-  const savedUser = localStorage.getItem(STORAGE.USER);
-  if (savedUser) currentUser = JSON.parse(savedUser);
-}
-
-function saveUISettings() { localStorage.setItem(STORAGE.UI, JSON.stringify(uiSettings)); }
-function saveHotelData() { localStorage.setItem(STORAGE.DATA, JSON.stringify(hotelData)); }
-function saveSession(page, dashboard) { localStorage.setItem(STORAGE.SESSION, JSON.stringify({ page, dashboard, timestamp: Date.now() })); }
-function saveUser(user) { localStorage.setItem(STORAGE.USER, JSON.stringify(user)); currentUser = user; }
-function clearSession() { localStorage.removeItem(STORAGE.SESSION); appSession = null; }
-function clearUser() { localStorage.removeItem(STORAGE.USER); currentUser = null; }
-
-// ==================== ✅ SESSION PERSISTENCE (Stay on page after refresh) ====================
-function checkSessionPersistence() {
-  if (!appSession || !currentUser) return;
-  const { page, dashboard } = appSession;
-
-  if (page === 'guest' && dashboard === 'guestDashboard') {
-    document.getElementById('loginSelectionPage').classList.add('hidden');
-    document.getElementById('guestDashboard').classList.remove('hidden');
-    if (currentUser?.name && currentUser?.room) {
-      document.getElementById('guestInfo').textContent = `${currentUser.name} - Room ${currentUser.room}`;
+    // Restore UI settings
+    if (currentUser.uiSettings) {
+      if (currentUser.uiSettings.darkMode) document.documentElement.classList.add('dark');
+      if (currentUser.uiSettings.theme) setTheme(currentUser.uiSettings.theme, false);
+      if (currentUser.uiSettings.fontSize !== undefined) {
+        fontSizeLevel = currentUser.uiSettings.fontSize;
+        applyFontSize();
+      }
+      if (currentUser.uiSettings.brightness) {
+        brightnessLevel = currentUser.uiSettings.brightness;
+        document.getElementById('brightnessSlider').value = brightnessLevel;
+        adjustBrightness(brightnessLevel);
+      }
     }
-    showGuestTab('newRequest');
-    updateGuestStats();
-  } else if (page === 'admin' && dashboard === 'adminDashboard') {
-    document.getElementById('loginSelectionPage').classList.add('hidden');
-    document.getElementById('adminDashboard').classList.remove('hidden');
-    if (currentUser?.role) {
-      document.getElementById('roleDisplay').textContent = currentUser.role;
-      document.getElementById('adminRoleBadge').textContent = currentUser.roleName || currentUser.role;
+
+    // FIXED: Stay on same page after refresh
+    if (currentUser.type === 'guest' && savedPage === 'guestDashboard') {
+      showGuestDashboard(currentUser.name, currentUser.room);
+    } else if (currentUser.type === 'admin' && savedPage === 'adminDashboard') {
+      showAdminDashboard(currentUser.role);
+    } else {
+      // Default to login if no valid page
+      document.getElementById('loginSelectionPage').classList.remove('hidden');
     }
-    showAdminTab('overview');
-    updateAdminStats();
+  } else {
+    document.getElementById('loginSelectionPage').classList.remove('hidden');
   }
 }
 
-// ==================== ✅ UI SETTINGS (Only 5 in LocalStorage) ====================
-function applyUISettings() {
-  // Language
-  document.documentElement.lang = uiSettings.language;
-  document.documentElement.dir = uiSettings.language === 'ar' ? 'rtl' : 'ltr';
-
-  // Theme - FIXED: Apply CSS class
-  document.body.className = document.body.className.replace(/theme-\w+/g, '').trim();
-  if (uiSettings.theme !== 'default') document.body.classList.add(`theme-${uiSettings.theme}`);
-
-  // Font Size
-  const sizes = ['0.875rem', '0.9375rem', '1rem', '1.0625rem', '1.125rem', '1.1875rem', '1.25rem'];
-  document.body.style.fontSize = sizes[uiSettings.fontSize + 3];
-
-  // Brightness
-  document.body.style.filter = `brightness(${uiSettings.brightness})`;
-  document.getElementById('brightnessSlider').value = uiSettings.brightness;
-  document.getElementById('brightnessValue').textContent = Math.round(uiSettings.brightness * 100) + '%';
-
-  // Dark Mode
-  if (uiSettings.darkMode) document.documentElement.classList.add('dark');
-  document.getElementById('darkModeToggle').textContent = uiSettings.darkMode ? '☀️' : '🌙';
-
-  // Update active lang button
-  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelector(`.lang-btn[onclick*="'${uiSettings.language}'"]`)?.classList.add('active');
+function saveSession(page) {
+  if (currentUser) {
+    currentUser.uiSettings = {
+      darkMode: document.documentElement.classList.contains('dark'),
+      theme: currentTheme,
+      fontSize: fontSizeLevel,
+      brightness: brightnessLevel
+    };
+    localStorage.setItem('hotelCurrentUser', JSON.stringify(currentUser));
+    localStorage.setItem('hotelCurrentPage', page);
+  }
 }
 
+// ==================== MULTI-LANGUAGE SUPPORT ====================
 function changeLanguage(lang) {
-  uiSettings.language = lang;
+  currentLang = lang;
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+  // Update active button
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-  event?.target?.classList?.add('active');
+  event.target.classList.add('active');
+
   updateLanguageUI();
   showToast(`Language changed to ${lang.toUpperCase()}`);
   saveUISettings();
+
+  // Update currency badges
+  updateCurrencyBadges();
 }
 
 function updateLanguageUI() {
-  const t = translations[uiSettings.language];
-  document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (t[key]) el.textContent = t[key]; });
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { const key = el.getAttribute('data-i18n-placeholder'); if (t[key]) el.placeholder = t[key]; });
+  const t = translations[currentLang];
+
+  // Update all elements with data-i18n attribute
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key]) el.textContent = t[key];
+  });
+
+  // Update placeholders
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (t[key]) el.placeholder = t[key];
+  });
+
+  // Update page title
   const title = document.getElementById('pageTitle');
-  if (title && t.pageTitle) title.textContent = t.pageTitle;
-  document.querySelectorAll('.currency-badge').forEach(b => b.textContent = hotelData.currency?.symbol || '$');
+  if (title && t.pageTitle) title.textContent = t.pageTitle];
+
+  // Re-render lists to apply new language
+  renderRoomsList();
+  renderFoodMenu();
+  renderTransportList();
+  renderAdminRequests();
+  renderGuestRequests();
 }
 
-// ✅ FIXED: Theme Functions
-function toggleThemeSelector() { document.getElementById('themeMenu').classList.toggle('hidden'); }
-function setTheme(theme) {
-  uiSettings.theme = theme;
-  document.body.className = document.body.className.replace(/theme-\w+/g, '').trim() + (theme !== 'default' ? ` theme-${theme}` : '');
-  document.querySelectorAll('.theme-preview').forEach((p, i) => {
-    p.classList.remove('active');
-    if ((theme === 'default' && i === 0) || (theme === 'sunset' && i === 1) || (theme === 'forest' && i === 2) || (theme === 'ocean' && i === 3) || (theme === 'royal' && i === 4)) p.classList.add('active');
+// ==================== THEME & APPEARANCE - FIXED ====================
+function toggleThemeSelector() {
+  const menu = document.getElementById('themeMenu');
+  menu.classList.toggle('show');
+}
+
+// FIXED: Theme function properly applies gradient and saves state
+function setTheme(theme, save = true) {
+  currentTheme = theme;
+  const themes = {
+    default: 'linear-gradient(135deg, #667eea, #764ba2)',
+    sunset: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+    forest: 'linear-gradient(135deg, #10b981, #059669)',
+    ocean: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+    royal: 'linear-gradient(135deg, #ec4899, #8b5cf6)'
+  };
+
+  // Apply gradient to header elements
+  document.querySelectorAll('.gradient-bg').forEach(el => {
+    el.style.background = themes[theme];
   });
-  document.getElementById('themeMenu').classList.add('hidden');
-  saveUISettings();
-  showToast('Theme updated!');
+
+  // Update active preview
+  document.querySelectorAll('.theme-preview').forEach((preview, index) => {
+    preview.classList.remove('active');
+    const themeNames = ['default', 'sunset', 'forest', 'ocean', 'royal'];
+    if (themeNames[index] === theme) preview.classList.add('active');
+  });
+
+  document.getElementById('themeMenu').classList.remove('show');
+
+  if (save) saveUISettings();
 }
 
 function toggleDarkMode() {
-  uiSettings.darkMode = !uiSettings.darkMode;
-  document.documentElement.classList.toggle('dark', uiSettings.darkMode);
-  document.getElementById('darkModeToggle').textContent = uiSettings.darkMode ? '☀️' : '🌙';
+  document.documentElement.classList.toggle('dark');
+  const isDark = document.documentElement.classList.contains('dark');
+  document.getElementById('darkModeToggle').textContent = isDark ? '☀️' : '🌙';
   saveUISettings();
 }
 
 function adjustBrightness(value) {
-  uiSettings.brightness = parseFloat(value);
-  document.body.style.filter = `brightness(${uiSettings.brightness})`;
-  document.getElementById('brightnessValue').textContent = Math.round(uiSettings.brightness * 100) + '%';
+  brightnessLevel = parseFloat(value);
+  document.body.style.filter = `brightness(${brightnessLevel})`;
+  document.getElementById('brightnessValue').textContent = Math.round(brightnessLevel * 100) + '%';
   saveUISettings();
 }
 
 function adjustFontSize(action) {
-  if (action === 'increase') uiSettings.fontSize = Math.min(uiSettings.fontSize + 1, 3);
-  else if (action === 'decrease') uiSettings.fontSize = Math.max(uiSettings.fontSize - 1, -3);
-  else uiSettings.fontSize = 0;
-  const sizes = ['0.875rem', '0.9375rem', '1rem', '1.0625rem', '1.125rem', '1.1875rem', '1.25rem'];
-  document.body.style.fontSize = sizes[uiSettings.fontSize + 3];
+  if (action === 'increase') fontSizeLevel = Math.min(fontSizeLevel + 1, 3);
+  else if (action === 'decrease') fontSizeLevel = Math.max(fontSizeLevel - 1, -3);
+  else fontSizeLevel = 0;
+
+  applyFontSize();
   saveUISettings();
 }
 
-function toggleHighContrast() {
-  document.body.classList.toggle('high-contrast');
-  showToast('High contrast ' + (document.body.classList.contains('high-contrast') ? 'enabled' : 'disabled'));
+function applyFontSize() {
+  const sizes = ['0.875rem', '0.9375rem', '1rem', '1.0625rem', '1.125rem', '1.1875rem', '1.25rem'];
+  document.body.style.fontSize = sizes[fontSizeLevel + 3];
 }
 
-// ==================== ✅ MULTI-LANGUAGE SPEECH (FIXED) ====================
-let voicesLoaded = false;
-async function loadVoices() {
-  if ('speechSynthesis' in window) {
-    if (window.speechSynthesis.getVoices().length > 0) {
-      voicesLoaded = true;
-      return;
+function toggleHighContrast() {
+  isHighContrast = !isHighContrast;
+  document.body.classList.toggle('high-contrast');
+  saveUISettings();
+}
+
+// ==================== UI SETTINGS PERSISTENCE (localStorage - ONLY 5 FUNCTIONS) ====================
+function saveUISettings() {
+  const settings = {
+    lang: currentLang,
+    theme: currentTheme,
+    fontSize: fontSizeLevel,
+    brightness: brightnessLevel,
+    highContrast: isHighContrast,
+    darkMode: document.documentElement.classList.contains('dark')
+  };
+  localStorage.setItem('hotelUISettings', JSON.stringify(settings));
+}
+
+function loadUISettings() {
+  const saved = localStorage.getItem('hotelUISettings');
+  if (saved) {
+    const settings = JSON.parse(saved);
+    if (settings.lang) changeLanguage(settings.lang);
+    if (settings.theme) setTheme(settings.theme, false);
+    if (settings.fontSize !== undefined) {
+      fontSizeLevel = settings.fontSize;
+      applyFontSize();
     }
-    // Wait for voices to load
-    window.speechSynthesis.onvoiceschanged = () => { voicesLoaded = true; };
-    // Fallback: wait 500ms
-    await new Promise(resolve => setTimeout(resolve, 500));
-    voicesLoaded = true;
+    if (settings.brightness) {
+      brightnessLevel = settings.brightness;
+      document.getElementById('brightnessSlider').value = brightnessLevel;
+      adjustBrightness(brightnessLevel);
+    }
+    if (settings.highContrast) {
+      isHighContrast = true;
+      document.body.classList.add('high-contrast');
+    }
+    if (settings.darkMode) {
+      document.documentElement.classList.add('dark');
+      document.getElementById('darkModeToggle').textContent = '☀️';
+    }
   }
 }
 
-function speakText(text) {
-  if (!('speechSynthesis' in window)) { showToast('Speech not supported'); return; }
-  window.speechSynthesis.cancel();
+// ==================== MONGODB DATA SIMULATION (Replace with real API calls) ====================
+// These functions are placeholders - replace with fetch() to your Express backend
+function fetchFromMongo(collection, query = {}) {
+  // TODO: Replace with real API call
+  // return fetch(`/api/${collection}`, { method: 'POST', body: JSON.stringify(query) });
+
+  // Simulated localStorage fallback for demo
+  const key = `mongo_${collection}`;
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : [];
+}
+
+function saveToMongo(collection, data) {
+  // TODO: Replace with real API call
+  // return fetch(`/api/${collection}`, { method: 'PUT', body: JSON.stringify(data) });
+
+  // Simulated localStorage fallback for demo
+  localStorage.setItem(`mongo_${collection}`, JSON.stringify(data));
+  return true;
+}
+
+function loadDataFromMongo() {
+  // Load hotel settings
+  const savedSettings = localStorage.getItem('mongo_hotelSettings');
+  if (savedSettings) {
+    hotelSettings = JSON.parse(savedSettings);
+    updateHotelSettingsUI();
+  }
+
+  // Load rooms, food, transport
+  rooms = fetchFromMongo('rooms');
+  foodItems = fetchFromMongo('food');
+  transportItems = fetchFromMongo('transport');
+  guestRequests = fetchFromMongo('requests');
+
+  // Render lists
+  renderRoomsList();
+  renderFoodMenu();
+  renderTransportList();
+  renderAdminRequests();
+  renderGuestRequests();
+
+  // Update stats
+  updateAdminStats();
+  updateGuestStats();
+}
+
+// ==================== REAL-TIME SYNC: Guest → Admin ====================
+function setupRealtimeSync() {
+  // Listen for storage events (works across tabs/windows)
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'mongo_requests') {
+      syncGuestToAdmin();
+      showToast('🔄 New request received!', 'info');
+    }
+    if (e.key === 'mongo_food' || e.key === 'mongo_transport') {
+      renderFoodMenu();
+      renderTransportList();
+    }
+  });
+
+  // Polling fallback for same-tab sync
+  setInterval(() => {
+    if (currentUser?.type === 'admin') {
+      const newRequests = fetchFromMongo('requests');
+      if (JSON.stringify(newRequests) !== JSON.stringify(guestRequests)) {
+        guestRequests = newRequests;
+        renderAdminRequests();
+        updateAdminStats();
+      }
+    }
+  }, 5000);
+}
+
+function syncGuestToAdmin() {
+  // Fetch latest requests from "MongoDB"
+  guestRequests = fetchFromMongo('requests');
+
+  // If admin is viewing requests tab, re-render
+  if (currentUser?.type === 'admin' && !document.getElementById('requestsTab').classList.contains('hidden')) {
+    renderAdminRequests();
+    updateAdminStats();
+    showSyncIndicator();
+  }
+}
+
+function showSyncIndicator() {
+  const indicator = document.getElementById('syncIndicator');
+  indicator.classList.add('active');
+  setTimeout(() => indicator.classList.remove('active'), 2000);
+}
+
+// ==================== VOICE SPEECH - FIXED FOR EN/HI/AR ====================
+function speakText(text, lang = null) {
+  if (!('speechSynthesis' in window)) {
+    showToast('Voice not supported in this browser', 'warning');
+    return;
+  }
+
+  // Cancel any ongoing speech
+  speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
 
-  // Set language properly
-  if (uiSettings.language === 'hi') {
-    utterance.lang = 'hi-IN';
-  } else if (uiSettings.language === 'ar') {
-    utterance.lang = 'ar-SA';
-  } else {
-    utterance.lang = 'en-US';
-  }
+  // FIXED: Proper language codes for speech synthesis
+  const speechLang = lang || 
+    (currentLang === 'hi' ? 'hi-IN' : 
+     currentLang === 'ar' ? 'ar-SA' : 'en-US');
 
-  utterance.rate = 0.9;
-  utterance.pitch = 1;
+  utterance.lang = speechLang;
+  utterance.rate = 0.9; // Slightly slower for clarity
 
-  // Try to find appropriate voice
-  if (voicesLoaded) {
-    const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(v => v.lang.startsWith(uiSettings.language === 'hi' ? 'hi' : uiSettings.language === 'ar' ? 'ar' : 'en'));
-    if (preferredVoice) utterance.voice = preferredVoice;
-  }
+  // Try to find a voice that matches the language
+  const voices = speechSynthesis.getVoices();
+  const preferredVoice = voices.find(v => v.lang.startsWith(speechLang.split('-')[0]));
+  if (preferredVoice) utterance.voice = preferredVoice;
 
-  utterance.onend = () => console.log('Speech ended');
-  utterance.onerror = (e) => console.error('Speech error:', e);
-
-  window.speechSynthesis.speak(utterance);
+  speechSynthesis.speak(utterance);
 }
 
-// ==================== LOGIN & AUTH ====================
+// Load voices when available
+if ('speechSynthesis' in window) {
+  speechSynthesis.onvoiceschanged = () => {
+    // Voices loaded, ready to speak
+  };
+}
+
+// ==================== LOGIN & AUTHENTICATION ====================
 function switchLoginType(type) {
-  const guestForm = document.getElementById('guestLoginForm'), adminForm = document.getElementById('adminLoginForm');
-  const guestTab = document.getElementById('guestTabBtn'), adminTab = document.getElementById('adminTabBtn');
+  const guestForm = document.getElementById('guestLoginForm');
+  const adminForm = document.getElementById('adminLoginForm');
+  const guestTab = document.getElementById('guestTabBtn');
+  const adminTab = document.getElementById('adminTabBtn');
   const closeBtn = document.getElementById('closeAdminFormBtn');
 
   if (type === 'guest') {
-    guestForm.classList.remove('hidden'); adminForm.classList.add('hidden');
-    guestTab.classList.add('bg-purple-100', 'text-purple-700'); guestTab.classList.remove('bg-gray-100', 'text-gray-700');
-    adminTab.classList.remove('bg-purple-100', 'text-purple-700'); adminTab.classList.add('bg-gray-100', 'text-gray-700');
+    guestForm.classList.remove('hidden');
+    adminForm.classList.add('hidden');
+    guestTab.classList.add('bg-purple-100', 'text-purple-700');
+    guestTab.classList.remove('bg-gray-100', 'text-gray-700');
+    adminTab.classList.remove('bg-purple-100', 'text-purple-700');
+    adminTab.classList.add('bg-gray-100', 'text-gray-700');
     closeBtn.classList.add('hidden');
   } else {
-    guestForm.classList.add('hidden'); adminForm.classList.remove('hidden');
-    adminTab.classList.add('bg-purple-100', 'text-purple-700'); adminTab.classList.remove('bg-gray-100', 'text-gray-700');
-    guestTab.classList.remove('bg-purple-100', 'text-purple-700'); guestTab.classList.add('bg-gray-100', 'text-gray-700');
+    guestForm.classList.add('hidden');
+    adminForm.classList.remove('hidden');
+    adminTab.classList.add('bg-purple-100', 'text-purple-700');
+    adminTab.classList.remove('bg-gray-100', 'text-gray-700');
+    guestTab.classList.remove('bg-purple-100', 'text-purple-700');
+    guestTab.classList.add('bg-gray-100', 'text-gray-700');
     closeBtn.classList.remove('hidden');
   }
 }
 
-function handleGuestLogin(e) {
+document.getElementById('guestLoginForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const name = document.getElementById('guestNameInput').value, room = document.getElementById('guestRoomInput').value;
-  if (name && room) {
-    saveUser({ type: 'guest', name, room, loginTime: new Date().toISOString() });
-    saveSession('guest', 'guestDashboard');
-    showGuestDashboard(name, room);
-    showToast(`Welcome, ${name}!`);
-  }
-}
+  const name = document.getElementById('guestNameInput').value;
+  const room = document.getElementById('guestRoomInput').value;
 
-function handleAdminLogin(e) {
+  if (name && room) {
+    currentUser = {
+      type: 'guest',
+      name: name,
+      room: room,
+      loginTime: new Date().toISOString()
+    };
+    localStorage.setItem('hotelCurrentUser', JSON.stringify(currentUser));
+    showGuestDashboard(name, room);
+    saveSession('guestDashboard');
+    showToast(`Welcome, ${name}!`);
+    speakText(`Welcome ${name} to Crown Plaza Hotel`, 'en-US');
+  }
+});
+
+document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const email = document.getElementById('adminEmailInput').value, password = document.getElementById('adminPasswordInput').value;
+  const email = document.getElementById('adminEmailInput').value;
+  const password = document.getElementById('adminPasswordInput').value;
+
   if (email && password) {
-    saveUser({ type: 'admin', email, loginTime: new Date().toISOString() });
+    currentUser = {
+      type: 'admin',
+      email: email,
+      loginTime: new Date().toISOString()
+    };
+    localStorage.setItem('hotelCurrentUser', JSON.stringify(currentUser));
     showRoleSelection();
   }
-}
+});
 
 function showRoleSelection() {
   document.getElementById('loginSelectionPage').classList.add('hidden');
   document.getElementById('roleSelectionPage').classList.remove('hidden');
+  saveSession('roleSelection');
 }
 
 function loginAsRole(role) {
-  const roles = { 'super_admin': '👑 Super Admin', 'front_desk': '🛎️ Front Desk', 'housekeeping': '🧹 Housekeeping', 'maintenance': '🔧 Maintenance', 'restaurant': '🍽️ Restaurant', 'laundry': '🧺 Laundry', 'security': '🛡️ Security', 'it_support': '💻 IT Support' };
-  const user = currentUser || {};
-  user.role = role; user.roleName = roles[role];
-  saveUser(user);
-  saveSession('admin', 'adminDashboard');
-  showAdminDashboard(role);
-  showToast(`Logged in as ${roles[role]}`);
+  const roles = {
+    'super_admin': '👑 Super Admin',
+    'front_desk': '🛎️ Front Desk',
+    'housekeeping': '🧹 Housekeeping',
+    'maintenance': '🔧 Maintenance',
+    'restaurant': '🍽️ Restaurant',
+    'laundry': '🧺 Laundry',
+    'security': '🛡️ Security',
+    'it_support': '💻 IT Support'
+  };
+
+  if (currentUser) {
+    currentUser.role = role;
+    currentUser.roleName = roles[role];
+    localStorage.setItem('hotelCurrentUser', JSON.stringify(currentUser));
+    showAdminDashboard(role);
+    saveSession('adminDashboard');
+    showToast(`Logged in as ${roles[role]}`);
+    speakText(`Welcome ${roles[role]}`, 'en-US');
+  }
 }
 
 function backToMain() {
   document.getElementById('roleSelectionPage').classList.add('hidden');
   document.getElementById('loginSelectionPage').classList.remove('hidden');
+  saveSession('login');
 }
 
 // ==================== DASHBOARDS ====================
@@ -1281,8 +2155,12 @@ function showGuestDashboard(name, room) {
   document.getElementById('loginSelectionPage').classList.add('hidden');
   document.getElementById('guestDashboard').classList.remove('hidden');
   document.getElementById('guestInfo').textContent = `${name} - Room ${room}`;
+  document.getElementById('guestHeaderHotelName').textContent = hotelSettings.name;
   showGuestTab('newRequest');
   updateGuestStats();
+  renderGuestRequests();
+  renderFoodMenu();
+  updateTransportPrices();
 }
 
 function showAdminDashboard(role) {
@@ -1290,419 +2168,1320 @@ function showAdminDashboard(role) {
   document.getElementById('adminDashboard').classList.remove('hidden');
   document.getElementById('roleDisplay').textContent = role;
   document.getElementById('adminRoleBadge').textContent = role;
+  document.getElementById('headerHotelName').textContent = hotelSettings.name;
   showAdminTab('overview');
   updateAdminStats();
+  renderAdminRequests();
+  renderRoomsList();
+  renderFoodMenu();
+  renderTransportList();
 }
 
 function logoutGuest() {
-  clearUser(); clearSession();
+  localStorage.removeItem('hotelCurrentUser');
+  localStorage.removeItem('hotelCurrentPage');
+  currentUser = null;
   document.getElementById('guestDashboard').classList.add('hidden');
   document.getElementById('loginSelectionPage').classList.remove('hidden');
   showToast('Logged out successfully');
+  speakText('Logged out', currentLang === 'hi' ? 'hi-IN' : currentLang === 'ar' ? 'ar-SA' : 'en-US');
 }
 
 function logoutAdmin() {
-  clearUser(); clearSession();
+  localStorage.removeItem('hotelCurrentUser');
+  localStorage.removeItem('hotelCurrentPage');
+  currentUser = null;
   document.getElementById('adminDashboard').classList.add('hidden');
   document.getElementById('loginSelectionPage').classList.remove('hidden');
   showToast('Logged out successfully');
+  speakText('Logged out', currentLang === 'hi' ? 'hi-IN' : currentLang === 'ar' ? 'ar-SA' : 'en-US');
 }
 
 // ==================== TABS ====================
 function showAdminTab(tabName) {
-  ['overview','requests','rooms','guests','reviews','reports','qrcodes','logs','inventory','maintenance','blacklist','loyalty','staff','foodmenu','settings'].forEach(tab => {
-    const el = document.getElementById(tab + 'Tab'); if (el) el.classList.add('hidden');
-    const btn = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
-    if (btn) { btn.classList.remove('tab-active','text-purple-600','border-b-2','border-purple-600'); btn.classList.add('text-gray-600','dark:text-gray-300'); }
+  // Hide all tabs
+  const tabs = ['overview', 'requests', 'rooms', 'guests', 'reviews', 'reports', 'qrcodes', 'logs', 'inventory', 'maintenance', 'blacklist', 'loyalty', 'staff', 'foodmenu', 'transport', 'settings'];
+  tabs.forEach(tab => {
+    const tabElement = document.getElementById(tab + 'Tab');
+    if (tabElement) tabElement.classList.add('hidden');
+
+    const tabBtn = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+    if (tabBtn) {
+      tabBtn.classList.remove('tab-active', 'text-purple-600', 'border-b-2', 'border-purple-600');
+      tabBtn.classList.add('text-gray-600', 'dark:text-gray-300');
+    }
   });
+
+  // Show selected tab
   const selectedTab = document.getElementById(tabName + 'Tab');
   if (selectedTab) selectedTab.classList.remove('hidden');
+
   const selectedBtn = document.getElementById('tab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
-  if (selectedBtn) { selectedBtn.classList.add('tab-active','text-purple-600','border-b-2','border-purple-600'); selectedBtn.classList.remove('text-gray-600','dark:text-gray-300'); }
+  if (selectedBtn) {
+    selectedBtn.classList.add('tab-active', 'text-purple-600', 'border-b-2', 'border-purple-600');
+    selectedBtn.classList.remove('text-gray-600', 'dark:text-gray-300');
+  }
+
+  // Re-render content when tab is shown
+  if (tabName === 'rooms') renderRoomsList();
+  if (tabName === 'foodmenu') renderFoodMenu();
+  if (tabName === 'transport') renderTransportList();
+  if (tabName === 'requests') renderAdminRequests();
 }
 
 function showGuestTab(tabName) {
-  ['newRequest','foodOrder','transport','myRequests','hotelInfo'].forEach(tab => {
-    const el = document.getElementById('guest' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'Tab');
-    if (el) el.classList.add('hidden');
+  // Hide all guest tabs
+  const tabs = ['newRequest', 'foodOrder', 'transport', 'myRequests', 'hotelInfo'];
+  tabs.forEach(tab => {
+    const tabElement = document.getElementById('guest' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'Tab');
+    if (tabElement) tabElement.classList.add('hidden');
   });
+
+  // Show selected tab
   const selectedTab = document.getElementById('guest' + tabName.charAt(0).toUpperCase() + tabName.slice(1) + 'Tab');
   if (selectedTab) selectedTab.classList.remove('hidden');
+
+  // Re-render content
+  if (tabName === 'foodOrder') renderFoodMenu();
+  if (tabName === 'transport') updateTransportPrices();
+  if (tabName === 'myRequests') renderGuestRequests();
+  if (tabName === 'hotelInfo') {
+    document.getElementById('guestWifiPassword').textContent = hotelSettings.wifiPassword;
+    document.getElementById('faqWifiPassword').textContent = hotelSettings.wifiPassword;
+  }
 }
 
-// ==================== UTILITY ====================
+// ==================== UTILITY FUNCTIONS ====================
 function updateDateTime() {
   const now = new Date();
-  const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-  const dt = now.toLocaleString(uiSettings.language, options);
-  document.querySelectorAll('.live-clock').forEach(el => el.textContent = dt);
-  if (document.getElementById('liveClockAdmin')) document.getElementById('liveClockAdmin').textContent = now.toLocaleTimeString();
-  if (document.getElementById('liveClockGuest')) document.getElementById('liveClockGuest').textContent = now.toLocaleTimeString();
-  if (document.getElementById('guestLocalTime')) document.getElementById('guestLocalTime').textContent = dt;
+  const options = { 
+    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  };
+
+  const dateTimeString = now.toLocaleString(currentLang, options);
+
+  document.querySelectorAll('.live-clock').forEach(el => el.textContent = dateTimeString);
+
+  const adminClock = document.getElementById('liveClockAdmin');
+  if (adminClock) adminClock.textContent = now.toLocaleTimeString();
+
+  const guestClock = document.getElementById('liveClockGuest');
+  if (guestClock) guestClock.textContent = now.toLocaleTimeString();
+
+  const guestLocalTime = document.getElementById('guestLocalTime');
+  if (guestLocalTime) guestLocalTime.textContent = dateTimeString;
+
+  const timezoneDisplay = document.getElementById('timezoneDisplay');
+  if (timezoneDisplay) timezoneDisplay.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const localTimeDisplay = document.getElementById('localTimeDisplay');
+  if (localTimeDisplay) localTimeDisplay.textContent = dateTimeString;
 }
 
-function showToast(msg) {
-  const c = document.getElementById('toastContainer'), t = document.createElement('div');
-  t.className = 'toast'; t.textContent = msg; c.appendChild(t);
-  setTimeout(() => t.remove(), 3000);
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type === 'error' ? 'bg-red-100 text-red-800' : type === 'warning' ? 'bg-yellow-100 text-yellow-800' : 'bg-white'}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(400px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
-function copyReferralCode() { navigator.clipboard.writeText('CROWN2024'); showToast('Referral code copied!'); }
-function copyWifiPassword() { navigator.clipboard.writeText(document.getElementById('guestWifiPassword').textContent); showToast('WiFi password copied!'); }
-function testHaptic() { if (navigator.vibrate) navigator.vibrate([50,100,50]); }
+function copyReferralCode() {
+  navigator.clipboard.writeText('CROWN2024').then(() => showToast('Referral code copied!'));
+}
+
+function copyWifiPassword() {
+  navigator.clipboard.writeText(hotelSettings.wifiPassword).then(() => showToast('WiFi password copied!'));
+}
+
+function testHaptic() {
+  if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
+}
 
 function toggleOfflineMode() {
-  const ind = document.getElementById('offlineIndicator'), online = document.getElementById('onlineIndicator');
-  if (ind?.classList.contains('hidden')) { ind?.classList.remove('hidden'); if (online) { online.classList.remove('online'); online.classList.add('offline'); online.innerHTML = '🔴 Offline'; } showToast('Offline mode activated'); }
-  else { ind?.classList.add('hidden'); if (online) { online.classList.remove('offline'); online.classList.add('online'); online.innerHTML = '🟢 Online'; } showToast('Back online'); }
+  isOffline = !isOffline;
+  const indicator = document.getElementById('offlineIndicator');
+  const onlineIndicator = document.getElementById('onlineIndicator');
+
+  if (isOffline) {
+    indicator.classList.remove('hidden');
+    if (onlineIndicator) {
+      onlineIndicator.classList.remove('online');
+      onlineIndicator.classList.add('offline');
+      onlineIndicator.innerHTML = '🔴 Offline';
+    }
+    showToast('Offline mode activated');
+  } else {
+    indicator.classList.add('hidden');
+    if (onlineIndicator) {
+      onlineIndicator.classList.remove('offline');
+      onlineIndicator.classList.add('online');
+      onlineIndicator.innerHTML = '🟢 Online';
+    }
+    showToast('Back online');
+  }
 }
 
-function requestPushPermission() { if ('Notification' in window) Notification.requestPermission().then(p => { if (p === 'granted') showToast('Notifications enabled!'); }); }
-
-// ==================== CHARTS ====================
-function initializeCharts() {
-  const deptCtx = document.getElementById('deptChart');
-  if (deptCtx) new Chart(deptCtx, { type: 'doughnut', data: { labels: ['Housekeeping','Maintenance','Restaurant','Laundry','IT'], datasets: [{ data: [30,25,20,15,10], backgroundColor: ['#10b981','#f59e0b','#ef4444','#06b6d4','#667eea'] }] }, options: { responsive: true, maintainAspectRatio: false } });
-  const occCtx = document.getElementById('occupancyChart');
-  if (occCtx) new Chart(occCtx, { type: 'bar', data: { labels: ['Week 1','Week 2','Week 3','Week 4'], datasets: [{ label: 'Occupancy %', data: [75,82,68,90], backgroundColor: '#667eea' }] }, options: { responsive: true, maintainAspectRatio: false } });
-  const ratingCtx = document.getElementById('ratingChart');
-  if (ratingCtx) new Chart(ratingCtx, { type: 'pie', data: { labels: ['5 Stars','4 Stars','3 Stars','2 Stars','1 Star'], datasets: [{ data: [60,25,10,3,2], backgroundColor: ['#10b981','#34d399','#fbbf24','#f87171','#ef4444'] }] }, options: { responsive: true, maintainAspectRatio: false } });
-  const peakCtx = document.getElementById('peakHourChart');
-  if (peakCtx) new Chart(peakCtx, { type: 'line', data: { labels: ['6AM','9AM','12PM','3PM','6PM','9PM'], datasets: [{ label: 'Requests', data: [5,15,25,20,30,10], borderColor: '#667eea', tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false } });
+function requestPushPermission() {
+  if ('Notification' in window) {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') showToast('Notifications enabled!');
+    });
+  }
 }
 
-// ==================== CATEGORIES ====================
-const categories = { housekeeping: ['Room Cleaning','Towel Change','Bed Making','Extra Amenities'], maintenance: ['AC Repair','Plumbing','Electrical','Furniture Fix'], restaurant: ['Room Service','Table Booking','Special Diet','Complaint'], laundry: ['Wash & Fold','Dry Cleaning','Ironing','Express Service'], it: ['WiFi Issue','TV Problem','Phone Issue','Device Setup'] };
+function updateCurrencyBadges() {
+  const symbol = hotelSettings.currency;
+  document.querySelectorAll('.currency-badge').forEach(badge => {
+    badge.textContent = symbol;
+  });
+  document.getElementById('currencyDisplay').textContent = symbol;
+  document.getElementById('transportCurrency1').textContent = symbol;
+  document.getElementById('transportCurrency2').textContent = symbol;
+}
+
+// ==================== CATEGORY UPDATES ====================
+const categories = {
+  housekeeping: ['Room Cleaning', 'Towel Change', 'Bed Making', 'Extra Amenities'],
+  maintenance: ['AC Repair', 'Plumbing', 'Electrical', 'Furniture Fix'],
+  restaurant: ['Room Service', 'Table Booking', 'Special Diet', 'Complaint'],
+  laundry: ['Wash & Fold', 'Dry Cleaning', 'Ironing', 'Express Service'],
+  it: ['WiFi Issue', 'TV Problem', 'Phone Issue', 'Device Setup']
+};
 
 function updateAdminCategories() {
-  const dept = document.getElementById('reqDepartment').value, cat = document.getElementById('reqCategory');
-  cat.innerHTML = '<option value="" data-i18n="selectCategory">🎯 Select Category</option>';
-  if (dept && categories[dept]) categories[dept].forEach(c => { const o = document.createElement('option'); o.value = c.toLowerCase().replace(/\s+/g,'_'); o.textContent = c; cat.appendChild(o); });
+  const dept = document.getElementById('reqDepartment').value;
+  const categorySelect = document.getElementById('reqCategory');
+  categorySelect.innerHTML = '<option value="" data-i18n="selectCategory">🎯 Select Category</option>';
+
+  if (dept && categories[dept]) {
+    categories[dept].forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat.toLowerCase().replace(/\s+/g, '_');
+      option.textContent = cat;
+      categorySelect.appendChild(option);
+    });
+  }
 }
 
 function updateGuestCategories() {
-  const dept = document.getElementById('guestDepartment').value, cat = document.getElementById('guestCategory');
-  cat.innerHTML = '<option value="" data-i18n="selectService">🎯 Select Service</option>';
-  if (dept && categories[dept]) categories[dept].forEach(c => { const o = document.createElement('option'); o.value = c.toLowerCase().replace(/\s+/g,'_'); o.textContent = c; cat.appendChild(o); });
+  const dept = document.getElementById('guestDepartment').value;
+  const categorySelect = document.getElementById('guestCategory');
+  categorySelect.innerHTML = '<option value="" data-i18n="selectService">🎯 Select Service</option>';
+
+  if (dept && categories[dept]) {
+    categories[dept].forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat.toLowerCase().replace(/\s+/g, '_');
+      option.textContent = cat;
+      categorySelect.appendChild(option);
+    });
+  }
 }
 
-// ==================== STATS ====================
+// ==================== STATS UPDATES ====================
 function updateAdminStats() {
-  document.getElementById('statTotalRooms').textContent = hotelData.rooms?.length || 120;
-  document.getElementById('statOccupied').textContent = hotelData.rooms?.filter(r => r.status === 'Occupied').length || 85;
-  document.getElementById('statOpenRequests').textContent = hotelData.requests?.filter(r => r.status === 'open').length || 12;
-  document.getElementById('statInProgress').textContent = hotelData.requests?.filter(r => r.status === 'in_progress').length || 5;
-  document.getElementById('statEmergency').textContent = hotelData.requests?.filter(r => r.priority === 'emergency').length || 1;
+  document.getElementById('statTotalRooms').textContent = rooms.length || 120;
+  document.getElementById('statOccupied').textContent = rooms.filter(r => r.status === 'Occupied').length;
+  document.getElementById('statOpenRequests').textContent = guestRequests.filter(r => r.status === 'open').length;
+  document.getElementById('statInProgress').textContent = guestRequests.filter(r => r.status === 'in_progress').length;
+  document.getElementById('statEmergency').textContent = guestRequests.filter(r => r.priority === 'emergency').length;
 }
 
 function updateGuestStats() {
-  const reqs = hotelData.requests?.filter(r => r.guestRoom === currentUser?.room) || [];
-  document.getElementById('guestTotalRequests').textContent = reqs.length;
-  document.getElementById('guestPendingCount').textContent = reqs.filter(r => r.status === 'open').length;
-  document.getElementById('guestCompletedCount').textContent = reqs.filter(r => r.status === 'completed').length;
-  document.getElementById('guestRatingStatus').textContent = '4.5 ⭐';
+  const userRequests = guestRequests.filter(r => r.room === currentUser?.room);
+  document.getElementById('guestTotalRequests').textContent = userRequests.length;
+  document.getElementById('guestPendingCount').textContent = userRequests.filter(r => r.status === 'open').length;
+  document.getElementById('guestCompletedCount').textContent = userRequests.filter(r => r.status === 'completed').length;
 }
 
 // ==================== MODALS ====================
-function closeModal(id) { document.getElementById(id).classList.remove('active'); document.getElementById(id).classList.add('hidden'); }
-function closeRoomModal() { closeModal('roomModal'); }
-function closeFoodModal() { closeModal('foodModal'); }
-function closeQRScanner() { document.getElementById('qrScannerModal').classList.add('hidden'); }
-function closeSOSModal() { document.getElementById('sosModal').classList.add('hidden'); }
-function showSOSAlert() { document.getElementById('sosModal').classList.remove('hidden'); if (navigator.vibrate) navigator.vibrate([200,100,200,100,200]); }
-
-// ==================== ✅ ROOMS CRUD ====================
-function openRoomModal(editIndex = -1) {
-  document.getElementById('roomModalTitle').textContent = editIndex >= 0 ? 'Edit Room' : 'Add New Room';
-  document.getElementById('roomEditIndex').value = editIndex;
-  document.getElementById('roomCurrencyBadge').textContent = hotelData.currency?.symbol || '$';
-
-  if (editIndex >= 0 && hotelData.rooms[editIndex]) {
-    const r = hotelData.rooms[editIndex];
-    document.getElementById('roomNumberInput').value = r.number;
-    document.getElementById('roomTypeInput').value = r.type;
-    document.getElementById('roomPriceInput').value = r.price;
-    document.getElementById('roomStatusInput').value = r.status;
-    document.getElementById('roomGuestInput').value = r.guestName || '';
-  } else {
-    document.getElementById('roomForm').reset();
-    document.getElementById('roomStatusInput').value = 'Vacant';
-  }
-  document.getElementById('roomModal').classList.add('active');
-  document.getElementById('roomModal').classList.remove('hidden');
+function closeModal(modalId) {
+  document.getElementById(modalId).classList.remove('active');
+  document.getElementById(modalId).classList.add('hidden');
 }
 
-function saveRoom(e) {
+function openRoomModal(editId = null) {
+  const modal = document.getElementById('roomModal');
+  const title = document.getElementById('roomModalTitle');
+  const form = document.getElementById('roomForm');
+
+  if (editId) {
+    // Edit mode
+    const room = rooms.find(r => r.id === editId);
+    if (room) {
+      title.textContent = translations[currentLang].editRoom || 'Edit Room';
+      document.getElementById('roomEditId').value = room.id;
+      document.getElementById('roomNumberInput').value = room.number;
+      document.getElementById('roomTypeInput').value = room.type;
+      document.getElementById('roomPriceInput').value = room.price;
+      document.getElementById('roomStatusInput').value = room.status;
+      document.getElementById('roomGuestInput').value = room.guestName || '';
+    }
+  } else {
+    // Add mode
+    title.textContent = translations[currentLang].addNewRoom || 'Add New Room';
+    form.reset();
+    document.getElementById('roomEditId').value = '';
+  }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('active');
+}
+
+function closeRoomModal() {
+  closeModal('roomModal');
+}
+
+function openFoodModal(editId = null) {
+  const modal = document.getElementById('foodModal');
+  const title = document.getElementById('foodModalTitle');
+  const form = document.getElementById('foodForm');
+
+  if (editId) {
+    const item = foodItems.find(f => f.id === editId);
+    if (item) {
+      title.textContent = translations[currentLang].editDish || 'Edit Dish';
+      document.getElementById('foodEditId').value = item.id;
+      document.getElementById('foodNameInput').value = item.name;
+      document.getElementById('foodPriceInput').value = item.price;
+      document.getElementById('foodCategoryInput').value = item.category;
+      document.getElementById('foodDescInput').value = item.description || '';
+    }
+  } else {
+    title.textContent = translations[currentLang].addNewDish || 'Add New Dish';
+    form.reset();
+    document.getElementById('foodEditId').value = '';
+  }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('active');
+}
+
+function closeFoodModal() {
+  closeModal('foodModal');
+}
+
+function openTransportModal(editId = null) {
+  const modal = document.getElementById('transportModal');
+  const title = document.getElementById('transportModalTitle');
+  const form = document.getElementById('transportFormModal');
+
+  if (editId) {
+    const item = transportItems.find(t => t.id === editId);
+    if (item) {
+      title.textContent = translations[currentLang].editTransport || 'Edit Transport';
+      document.getElementById('transportEditId').value = item.id;
+      document.getElementById('transportNameInput').value = item.name;
+      document.getElementById('transportTypeInput').value = item.type;
+      document.getElementById('transportPriceInput').value = item.price;
+      document.getElementById('transportCurrencyInput').value = item.currency || '$';
+      document.getElementById('transportDescInput').value = item.description || '';
+    }
+  } else {
+    title.textContent = translations[currentLang].addTransport || 'Add Transport Service';
+    form.reset();
+    document.getElementById('transportEditId').value = '';
+  }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('active');
+}
+
+function closeTransportModal() {
+  closeModal('transportModal');
+}
+
+function closeQRScanner() {
+  document.getElementById('qrScannerModal').classList.add('hidden');
+}
+
+function closeSOSModal() {
+  document.getElementById('sosModal').classList.add('hidden');
+}
+
+function showSOSAlert() {
+  document.getElementById('sosModal').classList.remove('hidden');
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+  speakText('Emergency SOS activated', currentLang === 'hi' ? 'hi-IN' : currentLang === 'ar' ? 'ar-SA' : 'en-US');
+}
+
+// ==================== CRUD: ROOMS ====================
+document.getElementById('roomForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const idx = parseInt(document.getElementById('roomEditIndex').value);
-  const room = { 
-    number: document.getElementById('roomNumberInput').value, 
-    type: document.getElementById('roomTypeInput').value, 
-    price: parseFloat(document.getElementById('roomPriceInput').value), 
-    status: document.getElementById('roomStatusInput').value, 
-    guestName: document.getElementById('roomGuestInput').value || null, 
-    updatedAt: new Date().toISOString() 
+
+  const editId = document.getElementById('roomEditId').value;
+  const roomData = {
+    id: editId || Date.now().toString(),
+    number: document.getElementById('roomNumberInput').value,
+    type: document.getElementById('roomTypeInput').value,
+    price: parseFloat(document.getElementById('roomPriceInput').value),
+    status: document.getElementById('roomStatusInput').value,
+    guestName: document.getElementById('roomGuestInput').value || null,
+    updatedAt: new Date().toISOString()
   };
 
-  if (idx >= 0 && hotelData.rooms[idx]) hotelData.rooms[idx] = { ...hotelData.rooms[idx], ...room };
-  else { room.id = Date.now(); room.createdAt = new Date().toISOString(); hotelData.rooms.push(room); }
+  if (editId) {
+    // Update existing
+    const index = rooms.findIndex(r => r.id === editId);
+    if (index !== -1) rooms[index] = roomData;
+    showToast('Room updated successfully!');
+  } else {
+    // Add new
+    rooms.push(roomData);
+    showToast('Room added successfully!');
+  }
 
-  saveHotelData(); renderRoomsList(); closeRoomModal(); showToast('Room saved!');
-}
+  // Save to "MongoDB"
+  saveToMongo('rooms', rooms);
+
+  // Re-render and close
+  renderRoomsList();
+  updateAdminStats();
+  closeRoomModal();
+});
 
 function renderRoomsList() {
-  const list = document.getElementById('roomsList'); if (!list) return;
-  list.innerHTML = hotelData.rooms.map((r, i) => `<div class="request-card"><div class="flex justify-between items-start"><div><strong>Room ${r.number}</strong> - ${r.type}<br><small>${r.status} • ${hotelData.currency?.symbol || '$'}${r.price}/night</small>${r.guestName ? `<br><small>Guest: ${r.guestName}</small>` : ''}</div><div class="flex gap-1"><button onclick="openRoomModal(${i})" class="text-blue-600">✏️</button><button onclick="deleteRoom(${i})" class="text-red-600">🗑️</button></div></div></div>`).join('') || '<p class="text-gray-500">No rooms added</p>';
+  const container = document.getElementById('roomsList');
+  if (!container) return;
+
+  if (rooms.length === 0) {
+    container.innerHTML = `<div class="text-center text-gray-500 py-4" data-i18n="noRooms">No rooms added yet</div>`;
+    return;
+  }
+
+  container.innerHTML = rooms.map(room => `
+    <div class="crud-item">
+      <div>
+        <div class="font-semibold">${room.number} - ${room.type}</div>
+        <div class="text-sm text-gray-600">${hotelSettings.currency}${room.price}/night • ${room.status}</div>
+        ${room.guestName ? `<div class="text-xs text-purple-600">Guest: ${room.guestName}</div>` : ''}
+      </div>
+      <div class="actions">
+        <button class="btn-price" onclick="updateRoomPrice('${room.id}')">${hotelSettings.currency}</button>
+        <button class="btn-edit" onclick="openRoomModal('${room.id}')">✏️</button>
+        <button class="btn-delete" onclick="deleteRoom('${room.id}')">🗑️</button>
+      </div>
+    </div>
+  `).join('');
 }
 
-function deleteRoom(idx) { if (confirm('Delete this room?')) { hotelData.rooms.splice(idx, 1); saveHotelData(); renderRoomsList(); showToast('Room deleted'); } }
-
-// ==================== ✅ FOOD MENU CRUD ====================
-function openFoodModal(editIndex = -1) {
-  document.getElementById('foodModalTitle').textContent = editIndex >= 0 ? 'Edit Dish' : 'Add New Dish';
-  document.getElementById('foodEditIndex').value = editIndex;
-  document.getElementById('foodCurrencyBadge').textContent = hotelData.currency?.symbol || '$';
-
-  if (editIndex >= 0 && hotelData.foodMenu[editIndex]) {
-    const f = hotelData.foodMenu[editIndex];
-    document.getElementById('foodNameInput').value = f.name;
-    document.getElementById('foodPriceInput').value = f.price;
-    document.getElementById('foodCategoryInput').value = f.category;
-    document.getElementById('foodDescInput').value = f.description || '';
-  } else document.getElementById('foodForm').reset();
-
-  document.getElementById('foodModal').classList.add('active');
-  document.getElementById('foodModal').classList.remove('hidden');
+function deleteRoom(id) {
+  if (confirm('Delete this room?')) {
+    rooms = rooms.filter(r => r.id !== id);
+    saveToMongo('rooms', rooms);
+    renderRoomsList();
+    updateAdminStats();
+    showToast('Room deleted');
+  }
 }
 
-function saveFood(e) {
+function updateRoomPrice(id) {
+  const room = rooms.find(r => r.id === id);
+  if (!room) return;
+
+  const newPrice = prompt('Enter new price:', room.price);
+  if (newPrice && !isNaN(newPrice)) {
+    room.price = parseFloat(newPrice);
+    room.updatedAt = new Date().toISOString();
+    saveToMongo('rooms', rooms);
+    renderRoomsList();
+    showToast('Price updated');
+  }
+}
+
+// ==================== CRUD: FOOD MENU ====================
+document.getElementById('foodForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const idx = parseInt(document.getElementById('foodEditIndex').value);
-  const item = { 
-    name: document.getElementById('foodNameInput').value, 
-    price: parseFloat(document.getElementById('foodPriceInput').value), 
-    category: document.getElementById('foodCategoryInput').value, 
-    description: document.getElementById('foodDescInput').value || '', 
-    updatedAt: new Date().toISOString() 
+
+  const editId = document.getElementById('foodEditId').value;
+  const foodData = {
+    id: editId || Date.now().toString(),
+    name: document.getElementById('foodNameInput').value,
+    price: parseFloat(document.getElementById('foodPriceInput').value),
+    category: document.getElementById('foodCategoryInput').value,
+    description: document.getElementById('foodDescInput').value || '',
+    available: true,
+    updatedAt: new Date().toISOString()
   };
 
-  if (idx >= 0 && hotelData.foodMenu[idx]) hotelData.foodMenu[idx] = { ...hotelData.foodMenu[idx], ...item };
-  else { item.id = Date.now(); item.createdAt = new Date().toISOString(); hotelData.foodMenu.push(item); }
+  if (editId) {
+    const index = foodItems.findIndex(f => f.id === editId);
+    if (index !== -1) foodItems[index] = foodData;
+    showToast('Dish updated successfully!');
+  } else {
+    foodItems.push(foodData);
+    showToast('Dish added successfully!');
+  }
 
-  saveHotelData(); renderFoodMenu(); renderGuestFoodMenu(); closeFoodModal(); showToast('Dish saved!');
-}
+  saveToMongo('food', foodItems);
+  renderFoodMenu();
+  closeFoodModal();
+});
 
 function renderFoodMenu() {
-  const list = document.getElementById('foodMenuList'); if (!list) return;
-  list.innerHTML = hotelData.foodMenu.map((f, i) => `<div class="request-card"><div class="flex justify-between items-start"><div><strong>${f.name}</strong> (${f.category})<br><small>${hotelData.currency?.symbol || '$'}${f.price}</small>${f.description ? `<br><small>${f.description}</small>` : ''}</div><div class="flex gap-1"><button onclick="openFoodModal(${i})" class="text-blue-600">✏️</button><button onclick="deleteFood(${i})" class="text-red-600">🗑️</button></div></div></div>`).join('') || '<p class="text-gray-500">No dishes added</p>';
+  // Render for admin management
+  const adminContainer = document.getElementById('foodMenuList');
+  if (adminContainer) {
+    if (foodItems.length === 0) {
+      adminContainer.innerHTML = `<div class="text-center text-gray-500 py-4" data-i18n="noFood">No food items added yet</div>`;
+    } else {
+      adminContainer.innerHTML = foodItems.map(item => `
+        <div class="crud-item">
+          <div>
+            <div class="font-semibold">${item.name}</div>
+            <div class="text-sm text-gray-600">${item.category} • ${hotelSettings.currency}${item.price}</div>
+            ${item.description ? `<div class="text-xs text-gray-500">${item.description}</div>` : ''}
+          </div>
+          <div class="actions">
+            <button class="btn-price" onclick="updateFoodPrice('${item.id}')">${hotelSettings.currency}</button>
+            <button class="btn-edit" onclick="openFoodModal('${item.id}')">✏️</button>
+            <button class="btn-delete" onclick="deleteFood('${item.id}')">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Render for guest ordering
+  const guestContainer = document.getElementById('dynamicFoodMenu');
+  if (guestContainer) {
+    const availableItems = foodItems.filter(f => f.available);
+    if (availableItems.length === 0) {
+      guestContainer.innerHTML = `<div class="text-center text-gray-500 py-4 col-span-2" data-i18n="noMenu">Menu not available</div>`;
+    } else {
+      guestContainer.innerHTML = availableItems.map(item => `
+        <div class="glass-card rounded-xl p-3 text-center cursor-pointer hover:shadow-md transition" onclick="addToCart('${item.id}')">
+          <div class="text-2xl mb-1">🍽️</div>
+          <div class="font-semibold text-sm">${item.name}</div>
+          <div class="text-purple-600 font-bold">${hotelSettings.currency}${item.price}</div>
+        </div>
+      `).join('');
+    }
+  }
 }
 
-function renderGuestFoodMenu() {
-  const menu = document.getElementById('dynamicFoodMenu'); if (!menu) return;
-  menu.innerHTML = hotelData.foodMenu.map(f => `<button onclick="addToCart('${f.name}', ${f.price})" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-left hover:bg-gray-200 dark:hover:bg-gray-600 transition"><div class="font-semibold text-sm">${f.name}</div><div class="text-xs text-gray-500">${hotelData.currency?.symbol || '$'}${f.price}</div></button>`).join('') || '<p class="text-gray-500 col-span-2">No items available</p>';
+function deleteFood(id) {
+  if (confirm('Delete this dish?')) {
+    foodItems = foodItems.filter(f => f.id !== id);
+    saveToMongo('food', foodItems);
+    renderFoodMenu();
+    showToast('Dish deleted');
+  }
 }
 
-function deleteFood(idx) { if (confirm('Delete this dish?')) { hotelData.foodMenu.splice(idx, 1); saveHotelData(); renderFoodMenu(); renderGuestFoodMenu(); showToast('Dish deleted'); } }
+function updateFoodPrice(id) {
+  const item = foodItems.find(f => f.id === id);
+  if (!item) return;
 
-// ==================== ✅ TRANSPORT PRICING & CURRENCY ====================
-function saveTransportPrices() {
-  hotelData.transport = { 
-    airport: parseFloat(document.getElementById('airportPriceInput').value), 
-    local: parseFloat(document.getElementById('localCabPriceInput').value) 
+  const newPrice = prompt('Enter new price:', item.price);
+  if (newPrice && !isNaN(newPrice)) {
+    item.price = parseFloat(newPrice);
+    item.updatedAt = new Date().toISOString();
+    saveToMongo('food', foodItems);
+    renderFoodMenu();
+    showToast('Price updated');
+  }
+}
+
+// ==================== CRUD: TRANSPORT ====================
+document.getElementById('transportFormModal').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const editId = document.getElementById('transportEditId').value;
+  const transportData = {
+    id: editId || Date.now().toString(),
+    name: document.getElementById('transportNameInput').value,
+    type: document.getElementById('transportTypeInput').value,
+    price: parseFloat(document.getElementById('transportPriceInput').value),
+    currency: document.getElementById('transportCurrencyInput').value,
+    description: document.getElementById('transportDescInput').value || '',
+    available: true,
+    updatedAt: new Date().toISOString()
   };
-  saveHotelData();
-  document.getElementById('airportPriceDisplay').textContent = (hotelData.currency?.symbol || '$') + hotelData.transport.airport;
-  document.getElementById('localPriceDisplay').textContent = (hotelData.currency?.symbol || '$') + hotelData.transport.local;
-  showToast('Transport prices saved!');
+
+  if (editId) {
+    const index = transportItems.findIndex(t => t.id === editId);
+    if (index !== -1) transportItems[index] = transportData;
+    showToast('Transport service updated successfully!');
+  } else {
+    transportItems.push(transportData);
+    showToast('Transport service added successfully!');
+  }
+
+  saveToMongo('transport', transportItems);
+  renderTransportList();
+  closeTransportModal();
+});
+
+function renderTransportList() {
+  const container = document.getElementById('transportList');
+  if (!container) return;
+
+  if (transportItems.length === 0) {
+    container.innerHTML = `<div class="text-center text-gray-500 py-4" data-i18n="noTransport">No transport services added yet</div>`;
+    return;
+  }
+
+  container.innerHTML = transportItems.map(item => `
+    <div class="crud-item">
+      <div>
+        <div class="font-semibold">${item.name}</div>
+        <div class="text-sm text-gray-600">${item.type} • ${item.currency}${item.price}${item.type === 'local' ? '/hr' : ''}</div>
+        ${item.description ? `<div class="text-xs text-gray-500">${item.description}</div>` : ''}
+      </div>
+      <div class="actions">
+        <button class="btn-price" onclick="updateTransportPrice('${item.id}')">${item.currency}</button>
+        <button class="btn-edit" onclick="openTransportModal('${item.id}')">✏️</button>
+        <button class="btn-delete" onclick="deleteTransport('${item.id}')">🗑️</button>
+      </div>
+    </div>
+  `).join('');
 }
 
-// ==================== ✅ HOTEL SETTINGS ====================
+function deleteTransport(id) {
+  if (confirm('Delete this transport service?')) {
+    transportItems = transportItems.filter(t => t.id !== id);
+    saveToMongo('transport', transportItems);
+    renderTransportList();
+    showToast('Transport service deleted');
+  }
+}
+
+function updateTransportPrice(id) {
+  const item = transportItems.find(t => t.id === id);
+  if (!item) return;
+
+  const newPrice = prompt(`Enter new price (${item.currency}):`, item.price);
+  if (newPrice && !isNaN(newPrice)) {
+    item.price = parseFloat(newPrice);
+    item.updatedAt = new Date().toISOString();
+    saveToMongo('transport', transportItems);
+    renderTransportList();
+    updateTransportPrices();
+    showToast('Price updated');
+  }
+}
+
+function updateTransportPrices() {
+  const airport = transportItems.find(t => t.type === 'airport');
+  const local = transportItems.find(t => t.type === 'local');
+
+  if (airport) {
+    document.getElementById('airportPriceDisplay').textContent = `${airport.currency}${airport.price}`;
+  }
+  if (local) {
+    document.getElementById('localPriceDisplay').textContent = `${local.currency}${local.price}/hr`;
+  }
+}
+
+// ==================== HOTEL SETTINGS ====================
 function saveHotelName() {
-  const name = document.getElementById('hotelNameInput').value;
-  hotelData.hotelName = name;
-  saveHotelData();
-  document.getElementById('hotelNameDisplay').textContent = name;
-  document.getElementById('headerHotelName').textContent = name;
-  document.getElementById('guestHeaderHotelName').textContent = name;
-  showToast('Hotel name saved!');
-}
-
-function saveCurrencySettings() {
-  hotelData.currency = { 
-    symbol: document.getElementById('currencySymbolInput').value, 
-    format: document.getElementById('priceFormatInput').value 
-  };
-  saveHotelData();
-  document.getElementById('currencyDisplay').textContent = hotelData.currency.symbol;
-  document.querySelectorAll('.currency-badge').forEach(b => b.textContent = hotelData.currency.symbol);
-  document.getElementById('airportPriceDisplay').textContent = hotelData.currency.symbol + hotelData.transport?.airport;
-  document.getElementById('localPriceDisplay').textContent = hotelData.currency.symbol + hotelData.transport?.local;
-  showToast('Currency settings saved!');
+  const name = document.getElementById('hotelNameInput').value.trim();
+  if (name) {
+    hotelSettings.name = name;
+    saveToMongo('hotelSettings', hotelSettings);
+    updateHotelSettingsUI();
+    showToast('Hotel name saved!');
+  }
 }
 
 function saveWifiPassword() {
-  const pwd = document.getElementById('wifiPasswordInput').value;
-  hotelData.wifiPassword = pwd;
-  saveHotelData();
-  document.getElementById('guestWifiPassword').textContent = pwd;
-  document.getElementById('faqWifiPassword').textContent = pwd;
-  showToast('WiFi password saved!');
+  const password = document.getElementById('wifiPasswordInput').value.trim();
+  if (password) {
+    hotelSettings.wifiPassword = password;
+    saveToMongo('hotelSettings', hotelSettings);
+    updateHotelSettingsUI();
+    showToast('WiFi password saved!');
+  }
 }
 
-// ==================== ✅ REQUESTS SYNC (Guest → Admin) ====================
-function submitGuestRequest(e) {
+function saveCurrencySettings() {
+  const symbol = document.getElementById('currencySymbolInput').value || '$';
+  hotelSettings.currency = symbol;
+  saveToMongo('hotelSettings', hotelSettings);
+  updateCurrencyBadges();
+  updateHotelSettingsUI();
+  showToast('Currency settings saved!');
+}
+
+function saveTransportPrices() {
+  // Update default transport items if they exist
+  const airport = transportItems.find(t => t.type === 'airport');
+  const local = transportItems.find(t => t.type === 'local');
+
+  const airportPrice = parseFloat(document.getElementById('airportPriceInput').value) || 30;
+  const localPrice = parseFloat(document.getElementById('localCabPriceInput').value) || 15;
+
+  if (airport) {
+    airport.price = airportPrice;
+    airport.currency = hotelSettings.currency;
+  } else {
+    transportItems.push({
+      id: 'airport_default',
+      name: 'Airport Transfer',
+      type: 'airport',
+      price: airportPrice,
+      currency: hotelSettings.currency,
+      available: true
+    });
+  }
+
+  if (local) {
+    local.price = localPrice;
+    local.currency = hotelSettings.currency;
+  } else {
+    transportItems.push({
+      id: 'local_default',
+      name: 'Local Cab',
+      type: 'local',
+      price: localPrice,
+      currency: hotelSettings.currency,
+      available: true
+    });
+  }
+
+  saveToMongo('transport', transportItems);
+  renderTransportList();
+  updateTransportPrices();
+  showToast('Transport prices saved!');
+}
+
+function updateHotelSettingsUI() {
+  // Update all hotel name displays
+  document.getElementById('hotelNameDisplay').textContent = hotelSettings.name;
+  document.getElementById('headerHotelName').textContent = hotelSettings.name;
+  document.getElementById('guestHeaderHotelName').textContent = hotelSettings.name;
+  document.getElementById('hotelNameInput').value = hotelSettings.name;
+
+  // Update WiFi password displays
+  document.getElementById('guestWifiPassword').textContent = hotelSettings.wifiPassword;
+  document.getElementById('faqWifiPassword').textContent = hotelSettings.wifiPassword;
+  document.getElementById('wifiPasswordInput').value = hotelSettings.wifiPassword;
+
+  // Update currency
+  document.getElementById('currencySymbolInput').value = hotelSettings.currency;
+  updateCurrencyBadges();
+}
+
+// ==================== REQUESTS - Guest to Admin Sync ====================
+document.getElementById('guestRequestForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const req = { 
-    id: Date.now(), 
-    guestName: currentUser?.name, 
-    guestRoom: currentUser?.room, 
-    department: document.getElementById('guestDepartment').value, 
-    category: document.getElementById('guestCategory').value, 
-    description: document.getElementById('guestDescription').value, 
-    priority: document.getElementById('guestPriority').value, 
-    status: 'open', 
-    createdAt: new Date().toISOString() 
+
+  const request = {
+    id: Date.now().toString(),
+    guestName: currentUser?.name || 'Guest',
+    room: currentUser?.room || 'Unknown',
+    department: document.getElementById('guestDepartment').value,
+    category: document.getElementById('guestCategory').value,
+    description: document.getElementById('guestDescription').value,
+    priority: document.getElementById('guestPriority').value,
+    status: 'open',
+    timestamp: new Date().toISOString(),
+    userId: currentUser?.name
   };
-  hotelData.requests.unshift(req);
-  saveHotelData();
-  renderAdminRequests();
+
+  // Add to requests array
+  guestRequests.push(request);
+
+  // Save to "MongoDB" (triggers sync via storage event)
+  saveToMongo('requests', guestRequests);
+
+  // Show confirmation
+  showToast('Request submitted successfully!');
+  speakText('Your request has been submitted', currentLang === 'hi' ? 'hi-IN' : currentLang === 'ar' ? 'ar-SA' : 'en-US');
+
+  // Reset form and update UI
+  this.reset();
+  renderGuestRequests();
   updateGuestStats();
-  e.target.reset();
-  showToast('Request submitted!');
-}
 
-function submitAdminRequest(e) {
+  // If admin is online, they'll see this via syncGuestToAdmin()
+});
+
+document.getElementById('adminRequestForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const req = { 
-    id: Date.now(), 
-    guestName: document.getElementById('reqGuestName').value, 
-    guestRoom: document.getElementById('reqRoomNumber').value, 
-    department: document.getElementById('reqDepartment').value, 
-    category: document.getElementById('reqCategory').value, 
-    description: document.getElementById('reqDescription').value, 
-    priority: document.getElementById('reqPriority').value, 
-    status: 'open', 
-    createdAt: new Date().toISOString() 
+
+  const request = {
+    id: Date.now().toString(),
+    guestName: document.getElementById('reqGuestName').value,
+    room: document.getElementById('reqRoomNumber').value,
+    department: document.getElementById('reqDepartment').value,
+    category: document.getElementById('reqCategory').value,
+    description: document.getElementById('reqDescription').value,
+    priority: document.getElementById('reqPriority').value,
+    status: 'open',
+    timestamp: new Date().toISOString(),
+    createdBy: 'admin'
   };
-  hotelData.requests.unshift(req);
-  saveHotelData();
+
+  guestRequests.push(request);
+  saveToMongo('requests', guestRequests);
+
+  showToast('Request submitted successfully!');
+  this.reset();
   renderAdminRequests();
   updateAdminStats();
-  e.target.reset();
-  showToast('Request submitted!');
-}
+});
 
 function renderAdminRequests(filter = 'all') {
-  const list = document.getElementById('adminRequestsList'); if (!list) return;
-  let reqs = hotelData.requests;
-  if (filter !== 'all') reqs = reqs.filter(r => filter === 'emergency' ? r.priority === 'emergency' : r.status === filter);
-  const search = document.getElementById('adminSearchInput')?.value?.toLowerCase();
-  if (search) reqs = reqs.filter(r => r.guestName?.toLowerCase().includes(search) || r.description?.toLowerCase().includes(search) || r.category?.toLowerCase().includes(search));
+  const container = document.getElementById('adminRequestsList');
+  if (!container) return;
 
-  list.innerHTML = reqs.map(r => `<div class="request-card ${r.priority === 'emergency' ? 'emergency' : ''} ${r.status === 'completed' ? 'completed' : ''}"><div class="flex justify-between items-start"><div><strong>${r.guestName}</strong> - Room ${r.guestRoom}<br><small>${r.department} • ${r.category}</small><br><span class="text-xs ${r.priority === 'emergency' ? 'text-red-600' : r.priority === 'high' ? 'text-orange-600' : 'text-gray-500'}">${r.priority.toUpperCase()}</span><p class="text-sm mt-1">${r.description}</p><small class="text-gray-400">${new Date(r.createdAt).toLocaleString()}</small></div><div class="flex flex-col gap-1"><select onchange="updateRequestStatus(${r.id}, this.value)" class="text-xs border rounded px-1">${['open','in_progress','completed'].map(s => `<option value="${s}" ${r.status===s?'selected':''}>${s}</option>`).join('')}</select><button onclick="deleteRequest(${r.id})" class="text-red-500 text-xs">🗑️</button></div></div></div>`).join('') || '<p class="text-gray-500">No requests</p>';
+  let filtered = guestRequests;
+  if (filter === 'open') filtered = guestRequests.filter(r => r.status === 'open');
+  else if (filter === 'in_progress') filtered = guestRequests.filter(r => r.status === 'in_progress');
+  else if (filter === 'completed') filtered = guestRequests.filter(r => r.status === 'completed');
+  else if (filter === 'emergency') filtered = guestRequests.filter(r => r.priority === 'emergency');
+
+  // Sort by timestamp (newest first)
+  filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="text-center text-gray-500 py-4" data-i18n="noRequests">No requests found</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(req => `
+    <div class="request-card ${req.priority === 'emergency' ? 'emergency' : ''} ${req.status === 'completed' ? 'completed' : ''}">
+      <div class="flex justify-between items-start mb-2">
+        <div>
+          <div class="font-semibold">${req.guestName} - Room ${req.room}</div>
+          <div class="text-xs text-gray-500">${new Date(req.timestamp).toLocaleString()}</div>
+        </div>
+        <span class="text-xs px-2 py-1 rounded ${
+          req.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
+          req.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+          'bg-green-100 text-green-800'
+        }">${req.status}</span>
+      </div>
+      <div class="text-sm mb-2"><strong>${req.department}</strong> • ${req.category}</div>
+      <div class="text-sm text-gray-700 dark:text-gray-300 mb-3">${req.description}</div>
+      <div class="flex gap-2 flex-wrap">
+        ${req.status !== 'completed' ? `
+          <button class="px-3 py-1 bg-green-100 text-green-700 rounded text-xs" onclick="updateRequestStatus('${req.id}', 'completed')">✅ Complete</button>
+          <button class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs" onclick="updateRequestStatus('${req.id}', 'in_progress')">🔄 In Progress</button>
+        ` : ''}
+        <button class="px-3 py-1 bg-red-100 text-red-700 rounded text-xs" onclick="deleteRequest('${req.id}')">🗑️ Delete</button>
+      </div>
+    </div>
+  `).join('');
 }
 
-function updateRequestStatus(id, status) {
-  const req = hotelData.requests.find(r => r.id === id);
-  if (req) { req.status = status; req.updatedAt = new Date().toISOString(); saveHotelData(); renderAdminRequests(); updateAdminStats(); showToast('Status updated'); }
+function renderGuestRequests() {
+  const container = document.getElementById('guestRequestsList');
+  if (!container) return;
+
+  const myRequests = guestRequests.filter(r => r.room === currentUser?.room);
+  myRequests.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  if (myRequests.length === 0) {
+    container.innerHTML = `<div class="text-center text-gray-500 py-4" data-i18n="noMyRequests">No requests yet</div>`;
+    return;
+  }
+
+  container.innerHTML = myRequests.map(req => `
+    <div class="request-card ${req.priority === 'emergency' ? 'emergency' : ''} ${req.status === 'completed' ? 'completed' : ''}">
+      <div class="flex justify-between items-start mb-2">
+        <div class="font-semibold">${req.category}</div>
+        <span class="text-xs px-2 py-1 rounded ${
+          req.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
+          req.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+          'bg-green-100 text-green-800'
+        }">${req.status}</span>
+      </div>
+      <div class="text-sm text-gray-700 dark:text-gray-300 mb-2">${req.description}</div>
+      <div class="text-xs text-gray-500">${new Date(req.timestamp).toLocaleString()}</div>
+    </div>
+  `).join('');
 }
 
-function deleteRequest(id) { if (confirm('Delete this request?')) { hotelData.requests = hotelData.requests.filter(r => r.id !== id); saveHotelData(); renderAdminRequests(); updateAdminStats(); showToast('Request deleted'); } }
-
-function filterAdminRequests(f) {
-  document.querySelectorAll('#requestsTab button').forEach(b => { b.classList.remove('bg-purple-600','text-white'); b.classList.add('bg-gray-200','dark:bg-gray-700'); });
-  event.target.classList.remove('bg-gray-200','dark:bg-gray-700'); event.target.classList.add('bg-purple-600','text-white');
-  renderAdminRequests(f);
+function updateRequestStatus(id, newStatus) {
+  const req = guestRequests.find(r => r.id === id);
+  if (req) {
+    req.status = newStatus;
+    req.updatedAt = new Date().toISOString();
+    saveToMongo('requests', guestRequests);
+    renderAdminRequests();
+    updateAdminStats();
+    showToast(`Request marked as ${newStatus}`);
+  }
 }
 
+function deleteRequest(id) {
+  if (confirm('Delete this request?')) {
+    guestRequests = guestRequests.filter(r => r.id !== id);
+    saveToMongo('requests', guestRequests);
+    renderAdminRequests();
+    renderGuestRequests();
+    updateAdminStats();
+    updateGuestStats();
+    showToast('Request deleted');
+  }
+}
+
+function filterAdminRequests(filter) {
+  document.querySelectorAll('#requestsTab button').forEach(btn => {
+    btn.classList.remove('bg-purple-600', 'text-white');
+    btn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+  });
+  event.target.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+  event.target.classList.add('bg-purple-600', 'text-white');
+  renderAdminRequests(filter);
+}
+
+// ==================== BULK ACTIONS ====================
 function toggleSelectAll() {
-  const checked = document.getElementById('selectAllCheckbox').checked;
-  document.querySelectorAll('.request-checkbox').forEach(cb => cb.checked = checked);
+  const checkbox = document.getElementById('selectAllCheckbox');
+  const checkboxes = document.querySelectorAll('.request-checkbox');
+  checkboxes.forEach(cb => cb.checked = checkbox.checked);
   updateBulkActions();
 }
 
 function updateBulkActions() {
-  const count = document.querySelectorAll('.request-checkbox:checked').length;
-  const bar = document.getElementById('bulkActionsBar'), cnt = document.getElementById('selectedCount');
-  if (count > 0) { bar.classList.remove('hidden'); cnt.textContent = count; }
-  else bar.classList.add('hidden');
+  const checked = document.querySelectorAll('.request-checkbox:checked').length;
+  const bar = document.getElementById('bulkActionsBar');
+  const count = document.getElementById('selectedCount');
+
+  if (checked > 0) {
+    bar.classList.remove('hidden');
+    count.textContent = checked;
+  } else {
+    bar.classList.add('hidden');
+  }
 }
 
-function bulkComplete() { document.querySelectorAll('.request-checkbox:checked').forEach(cb => { const id = parseInt(cb.dataset.id); updateRequestStatus(id, 'completed'); }); clearSelection(); }
-function bulkDelete() { document.querySelectorAll('.request-checkbox:checked').forEach(cb => { const id = parseInt(cb.dataset.id); deleteRequest(id); }); clearSelection(); }
-function clearSelection() { document.getElementById('selectAllCheckbox').checked = false; document.querySelectorAll('.request-checkbox').forEach(cb => cb.checked = false); document.getElementById('bulkActionsBar').classList.add('hidden'); }
+function bulkComplete() {
+  const checked = document.querySelectorAll('.request-checkbox:checked');
+  checked.forEach(cb => {
+    const id = cb.dataset.id;
+    updateRequestStatus(id, 'completed');
+  });
+  clearSelection();
+  showToast('Selected requests marked as complete!');
+}
 
-// ==================== EXPORT ====================
-function exportToExcel() { const wb = XLSX.utils.book_new(), ws = XLSX.utils.json_to_sheet(hotelData.requests); XLSX.utils.book_append_sheet(wb, ws, "Requests"); XLSX.writeFile(wb, "requests.xlsx"); showToast('Excel exported!'); }
-function printInvoice() { window.print(); }
-function exportAllData() { const blob = new Blob([JSON.stringify(hotelData, null, 2)], { type: 'application/json' }), url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = 'hotel-data.json'; a.click(); showToast('All data exported!'); }
+function bulkDelete() {
+  const checked = document.querySelectorAll('.request-checkbox:checked');
+  checked.forEach(cb => {
+    const id = cb.dataset.id;
+    deleteRequest(id);
+  });
+  clearSelection();
+  showToast('Selected requests deleted!');
+}
 
-// ==================== QR ====================
-function showQRScanner() { document.getElementById('qrScannerModal').classList.remove('hidden'); }
-function processManualQR() { const num = document.getElementById('manualQrInput').value; if (num) { showToast('QR Code for Room ' + num + ' scanned!'); closeQRScanner(); } }
-function downloadQRCode() { showToast('QR Code downloaded!'); closeModal('qrDownloadModal'); }
+function clearSelection() {
+  document.getElementById('selectAllCheckbox').checked = false;
+  document.querySelectorAll('.request-checkbox').forEach(cb => cb.checked = false);
+  document.getElementById('bulkActionsBar').classList.add('hidden');
+}
 
-// ==================== FOOD CART ====================
-function addToCart(name, price) { cart.push({ name, price }); updateCart(); showToast(`${name} added to cart`); }
+// ==================== EXPORT FUNCTIONS ====================
+function exportToExcel() {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(guestRequests);
+  XLSX.utils.book_append_sheet(wb, ws, "Requests");
+  XLSX.writeFile(wb, "requests.xlsx");
+  showToast('Excel exported!');
+}
+
+function printInvoice() {
+  window.print();
+}
+
+function exportAllData() {
+  const data = {
+    requests: guestRequests,
+    rooms: rooms,
+    food: foodItems,
+    transport: transportItems,
+    settings: hotelSettings,
+    exportedAt: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'hotel-data.json';
+  a.click();
+  showToast('All data exported!');
+}
+
+// ==================== QR CODES ====================
+function showQRScanner() {
+  document.getElementById('qrScannerModal').classList.remove('hidden');
+}
+
+function processManualQR() {
+  const roomNum = document.getElementById('manualQrInput').value;
+  if (roomNum) {
+    showToast('QR Code for Room ' + roomNum + ' scanned!');
+    closeQRScanner();
+  }
+}
+
+function downloadQRCode() {
+  showToast('QR Code downloaded!');
+  closeModal('qrDownloadModal');
+}
+
+// ==================== FOOD ORDER CART ====================
+let cart = [];
+
+function addToCart(foodId) {
+  const item = foodItems.find(f => f.id === foodId);
+  if (item && item.available) {
+    cart.push({ ...item, cartId: Date.now() });
+    updateCart();
+    showToast(`${item.name} added to cart`);
+  }
+}
+
 function placeOrder() {
-  if (cart.length === 0) { showToast('Cart is empty!'); return; }
-  const order = { id: Date.now(), guestName: currentUser?.name, guestRoom: currentUser?.room, type: 'food', items: [...cart], total: cart.reduce((a,b) => a + b.price, 0), status: 'pending', createdAt: new Date().toISOString() };
-  hotelData.requests.unshift({ ...order, department: 'restaurant', category: 'food_order', description: `Food Order: ${cart.map(i=>i.name).join(', ')}`, priority: 'medium' });
-  saveHotelData();
-  renderAdminRequests();
-  cart = []; updateCart();
-  showToast('Order placed! Total: ' + (hotelData.currency?.symbol || '$') + order.total);
+  if (cart.length === 0) {
+    showToast('Cart is empty!', 'warning');
+    return;
+  }
+
+  const order = {
+    id: 'order_' + Date.now(),
+    guestName: currentUser?.name,
+    room: currentUser?.room,
+    items: [...cart],
+    total: cart.reduce((sum, item) => sum + item.price, 0),
+    status: 'pending',
+    timestamp: new Date().toISOString()
+  };
+
+  // Add to requests as a food order
+  guestRequests.push({
+    id: order.id,
+    guestName: order.guestName,
+    room: order.room,
+    department: 'restaurant',
+    category: 'Food Order',
+    description: `Order: ${cart.map(i => i.name).join(', ')}`,
+    priority: 'medium',
+    status: 'open',
+    timestamp: order.timestamp,
+    orderDetails: order
+  });
+
+  saveToMongo('requests', guestRequests);
+
+  const total = cart.reduce((a, b) => a + b.price, 0);
+  showToast(`Order placed! Total: ${hotelSettings.currency}${total.toFixed(2)}`);
+  speakText(`Order placed successfully. Total ${hotelSettings.currency}${total.toFixed(2)}`, currentLang === 'hi' ? 'hi-IN' : currentLang === 'ar' ? 'ar-SA' : 'en-US');
+
+  cart = [];
+  updateCart();
+  renderGuestRequests();
+  updateGuestStats();
 }
-function clearCart() { cart = []; updateCart(); showToast('Cart cleared!'); }
-function reorderLast() { showToast('Last order repeated!'); }
+
+function clearCart() {
+  cart = [];
+  updateCart();
+  showToast('Cart cleared!');
+}
+
+function reorderLast() {
+  if (cart.length === 0) {
+    showToast('No items to reorder', 'warning');
+    return;
+  }
+  showToast('Last order repeated!');
+  placeOrder();
+}
+
 function updateCart() {
-  const total = cart.reduce((a,b) => a + b.price, 0);
-  document.getElementById('cartTotal').textContent = total;
-  document.getElementById('cartItems').innerHTML = cart.length ? cart.map(i => `<div>${i.name} - ${hotelData.currency?.symbol || '$'}${i.price}</div>`).join('') : '<div class="text-gray-500">Cart is empty</div>';
+  const total = cart.reduce((a, b) => a + b.price, 0);
+  document.getElementById('cartTotal').textContent = `${hotelSettings.currency}${total.toFixed(2)}`;
+
+  const cartEl = document.getElementById('cartItems');
+  if (cartEl) {
+    cartEl.innerHTML = cart.length ? 
+      cart.map(item => `<div class="flex justify-between text-sm"><span>${item.name}</span><span>${hotelSettings.currency}${item.price}</span></div>`).join('') : 
+      '<div class="text-gray-500 text-center py-2">Cart is empty</div>';
+  }
 }
 
 // ==================== TRANSPORT BOOKING ====================
-function bookTransport(e) {
+document.getElementById('transportForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const type = document.getElementById('transportType').value, time = document.getElementById('transportTime').value, price = type === 'airport' ? hotelData.transport?.airport : hotelData.transport?.local;
-  const booking = { id: Date.now(), guestName: currentUser?.name, guestRoom: currentUser?.room, type: 'transport', transportType: type, time, price, status: 'confirmed', createdAt: new Date().toISOString() };
-  hotelData.requests.unshift({ ...booking, department: 'transport', category: type + '_booking', description: `${type === 'airport' ? 'Airport Transfer' : 'Local Cab'} at ${time}`, priority: 'medium' });
-  saveHotelData();
-  renderAdminRequests();
-  e.target.reset();
-  showToast('Transport booked! ' + (hotelData.currency?.symbol || '$') + price);
-}
+
+  const type = document.getElementById('transportType').value;
+  const time = document.getElementById('transportTime').value;
+  const item = transportItems.find(t => t.type === type);
+
+  if (!item) {
+    showToast('Transport service not available', 'warning');
+    return;
+  }
+
+  const booking = {
+    id: 'transport_' + Date.now(),
+    guestName: currentUser?.name,
+    room: currentUser?.room,
+    service: item.name,
+    type: type,
+    price: item.price,
+    currency: item.currency,
+    scheduledTime: time,
+    status: 'confirmed',
+    timestamp: new Date().toISOString()
+  };
+
+  // Add to requests
+  guestRequests.push({
+    id: booking.id,
+    guestName: booking.guestName,
+    room: booking.room,
+    department: 'transport',
+    category: `Transport: ${item.name}`,
+    description: `Scheduled: ${new Date(time).toLocaleString()}`,
+    priority: 'medium',
+    status: 'open',
+    timestamp: booking.timestamp,
+    transportDetails: booking
+  });
+
+  saveToMongo('requests', guestRequests);
+
+  showToast(`${item.name} booked for ${new Date(time).toLocaleString()}`);
+  speakText('Transport booked successfully', currentLang === 'hi' ? 'hi-IN' : currentLang === 'ar' ? 'ar-SA' : 'en-US');
+
+  this.reset();
+  renderGuestRequests();
+});
 
 function quickBook(type) {
-  const price = type === 'airport' ? hotelData.transport?.airport : hotelData.transport?.local;
-  const booking = { id: Date.now(), guestName: currentUser?.name, guestRoom: currentUser?.room, type: 'transport', transportType: type, price, status: 'confirmed', createdAt: new Date().toISOString() };
-  hotelData.requests.unshift({ ...booking, department: 'transport', category: type + '_booking', description: `Quick ${type === 'airport' ? 'Airport Transfer' : 'Local Cab'}`, priority: 'medium' });
-  saveHotelData();
-  renderAdminRequests();
-  showToast(type + ' transport booked! ' + (hotelData.currency?.symbol || '$') + price);
+  const item = transportItems.find(t => t.type === type);
+  if (!item) {
+    showToast('Service not available', 'warning');
+    return;
+  }
+
+  const now = new Date();
+  now.setMinutes(now.getMinutes() + 30);
+
+  const booking = {
+    id: 'transport_' + Date.now(),
+    guestName: currentUser?.name,
+    room: currentUser?.room,
+    service: item.name,
+    type: type,
+    price: item.price,
+    currency: item.currency,
+    scheduledTime: now.toISOString(),
+    status: 'confirmed',
+    timestamp: new Date().toISOString()
+  };
+
+  guestRequests.push({
+    id: booking.id,
+    guestName: booking.guestName,
+    room: booking.room,
+    department: 'transport',
+    category: `Transport: ${item.name}`,
+    description: 'Quick booking - ASAP',
+    priority: 'high',
+    status: 'open',
+    timestamp: booking.timestamp,
+    transportDetails: booking
+  });
+
+  saveToMongo('requests', guestRequests);
+
+  showToast(`${item.name} booked for ASAP!`);
+  renderGuestRequests();
 }
 
 // ==================== GUEST SERVICES ====================
-function setWakeUpCall() { const t = prompt('Enter wake-up time (HH:MM):'); if (t) showToast('Wake-up call set for ' + t); }
-function toggleDND() { const btn = document.getElementById('dndBtn'), on = btn.textContent.includes('ON'); btn.textContent = on ? '🔕 DND: OFF' : '🔕 DND: ON'; showToast('DND ' + (on ? 'disabled' : 'enabled')); }
-function showLocalGuide() { document.getElementById('localGuideModal').classList.remove('hidden'); }
-function showEventCalendar() { document.getElementById('eventModal').classList.remove('hidden'); }
-function showEmergencyContacts() { document.getElementById('emergencyContactsModal').classList.remove('hidden'); }
-function showFirstAidGuide() { document.getElementById('firstAidModal').classList.remove('hidden'); }
-function showEvacuationMap() { document.getElementById('evacuationModal').classList.remove('hidden'); }
-function showDigitalConcierge() { document.getElementById('conciergeModal').classList.remove('hidden'); }
-function showCheckoutRating() { document.getElementById('ratingModal').classList.remove('hidden'); initRatingStars(); }
+function setWakeUpCall() {
+  const time = prompt('Enter wake-up time (HH:MM):', '07:00');
+  if (time) {
+    showToast(`Wake-up call set for ${time}`);
+    speakText(`Wake up call set for ${time}`, currentLang === 'hi' ? 'hi-IN' : currentLang === 'ar' ? 'ar-SA' : 'en-US');
+  }
+}
 
-// ==================== RATING ====================
-function initRatingStars() { ['rating','cleanliness','staff'].forEach(t => { const c = document.getElementById(t + 'Stars'); c.innerHTML = ''; for (let i = 1; i <= 5; i++) { const s = document.createElement('span'); s.textContent = '☆'; s.style.cursor = 'pointer'; s.onclick = () => setRating(t, i); c.appendChild(s); } }); }
-function setRating(t, v) { rating[t] = v; const c = document.getElementById(t + 'Stars'); Array.from(c.children).forEach((s,i) => { s.textContent = i < v ? '★' : '☆'; s.style.color = i < v ? '#fbbf24' : '#9ca3af'; }); }
-function setRecommend(v) { rating.recommend = v; document.getElementById('recommendYes').classList.toggle('bg-green-500', v); document.getElementById('recommendYes').classList.toggle('bg-gray-300', !v); document.getElementById('recommendNo').classList.toggle('bg-red-500', !v); document.getElementById('recommendNo').classList.toggle('bg-gray-300', v); }
-function submitRating() { if (rating.overall === 0) { showToast('Please select overall rating!'); return; } hotelData.reviews.push({ ...rating, guest: currentUser?.name, room: currentUser?.room, comment: document.getElementById('reviewText').value, date: new Date().toISOString() }); saveHotelData(); showToast('Thank you for your feedback!'); closeModal('ratingModal'); }
+function toggleDND() {
+  const btn = document.getElementById('dndBtn');
+  const isOn = btn.textContent.includes('ON');
+  btn.textContent = isOn ? '🔕 DND: OFF' : '🔕 DND: ON';
+  showToast('DND ' + (isOn ? 'disabled' : 'enabled'));
+}
 
-// ==================== STAFF ====================
-function toggleStaffAttendance() { const b = document.getElementById('staffStatusBadge'), c = b.textContent.includes('Clocked'); b.textContent = c ? '⏳ Not Clocked In' : '✅ Clocked In'; b.classList.toggle('bg-green-500/30', !c); showToast(c ? 'Clocked out!' : 'Clocked in!'); }
+function showLocalGuide() {
+  document.getElementById('localGuideModal').classList.remove('hidden');
+}
+
+function showEventCalendar() {
+  document.getElementById('eventModal').classList.remove('hidden');
+}
+
+function showEmergencyContacts() {
+  document.getElementById('emergencyContactsModal').classList.remove('hidden');
+}
+
+function showFirstAidGuide() {
+  document.getElementById('firstAidModal').classList.remove('hidden');
+}
+
+function showEvacuationMap() {
+  document.getElementById('evacuationModal').classList.remove('hidden');
+}
+
+function showDigitalConcierge() {
+  document.getElementById('conciergeModal').classList.remove('hidden');
+}
+
+function showCheckoutRating() {
+  document.getElementById('ratingModal').classList.remove('hidden');
+  initRatingStars();
+}
+
+// ==================== RATING SYSTEM ====================
+let rating = { overall: 0, cleanliness: 0, staff: 0, recommend: null };
+
+function initRatingStars() {
+  ['rating', 'cleanliness', 'staff'].forEach(type => {
+    const container = document.getElementById(type + 'Stars');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+      const star = document.createElement('span');
+      star.textContent = '☆';
+      star.style.cursor = 'pointer';
+      star.onclick = () => setRating(type, i);
+      container.appendChild(star);
+    }
+  });
+}
+
+function setRating(type, value) {
+  rating[type] = value;
+  const container = document.getElementById(type + 'Stars');
+  if (!container) return;
+  Array.from(container.children).forEach((star, i) => {
+    star.textContent = i < value ? '★' : '☆';
+    star.style.color = i < value ? '#fbbf24' : '#9ca3af';
+  });
+}
+
+function setRecommend(value) {
+  rating.recommend = value;
+  document.getElementById('recommendYes').classList.toggle('bg-green-500', value);
+  document.getElementById('recommendYes').classList.toggle('bg-gray-300', !value);
+  document.getElementById('recommendNo').classList.toggle('bg-red-500', !value);
+  document.getElementById('recommendNo').classList.toggle('bg-gray-300', value);
+}
+
+function submitRating() {
+  if (rating.overall === 0) {
+    showToast('Please select overall rating!', 'warning');
+    return;
+  }
+  showToast('Thank you for your feedback!');
+  speakText('Thank you for your feedback', currentLang === 'hi' ? 'hi-IN' : currentLang === 'ar' ? 'ar-SA' : 'en-US');
+  closeModal('ratingModal');
+  rating = { overall: 0, cleanliness: 0, staff: 0, recommend: null };
+}
+
+// ==================== STAFF ATTENDANCE ====================
+function toggleStaffAttendance() {
+  const badge = document.getElementById('staffStatusBadge');
+  const isClocked = badge.textContent.includes('Clocked');
+  badge.textContent = isClocked ? '⏳ Not Clocked In' : '✅ Clocked In';
+  badge.classList.toggle('bg-green-500/30', !isClocked);
+  showToast(isClocked ? 'Clocked out!' : 'Clocked in!');
+}
+
+// ==================== CHARTS ====================
+function initializeCharts() {
+  // Department Chart
+  const deptCtx = document.getElementById('deptChart');
+  if (deptCtx) {
+    new Chart(deptCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Housekeeping', 'Maintenance', 'Restaurant', 'Laundry', 'IT'],
+        datasets: [{
+          data: [30, 25, 20, 15, 10],
+          backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#667eea']
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+  }
+
+  // Occupancy Chart
+  const occCtx = document.getElementById('occupancyChart');
+  if (occCtx) {
+    new Chart(occCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+        datasets: [{
+          label: 'Occupancy %',
+          data: [75, 82, 68, 90],
+          backgroundColor: '#667eea'
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+  }
+
+  // Rating Chart
+  const ratingCtx = document.getElementById('ratingChart');
+  if (ratingCtx) {
+    new Chart(ratingCtx, {
+      type: 'pie',
+      data: {
+        labels: ['5 Stars', '4 Stars', '3 Stars', '2 Stars', '1 Star'],
+        datasets: [{
+          data: [60, 25, 10, 3, 2],
+          backgroundColor: ['#10b981', '#34d399', '#fbbf24', '#f87171', '#ef4444']
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+  }
+
+  // Peak Hour Chart
+  const peakCtx = document.getElementById('peakHourChart');
+  if (peakCtx) {
+    new Chart(peakCtx, {
+      type: 'line',
+      data: {
+        labels: ['6AM', '9AM', '12PM', '3PM', '6PM', '9PM'],
+        datasets: [{
+          label: 'Requests',
+          data: [5, 15, 25, 20, 30, 10],
+          borderColor: '#667eea',
+          tension: 0.4
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+  }
+}
+
+// Initialize brightness slider listener
+document.getElementById('brightnessSlider')?.addEventListener('input', function() {
+  adjustBrightness(this.value);
+});
 </script>
 
-</div>
+</div> <!-- End #app -->
 </body>
 </html>
