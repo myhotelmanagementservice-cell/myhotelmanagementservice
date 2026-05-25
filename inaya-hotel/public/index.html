@@ -1,779 +1,1778 @@
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#667eea">
-  <title id="pageTitle">Crown Plaza Hotel - Management System</title>
-
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- External Libraries -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-
-  <!-- External CSS -->
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body class="bg-gray-100">
-
-<div id="app">
-
-<!-- ✨ Bottom Language Toolbar (Fixed Center) -->
-<div class="lang-selector" id="langToolbar">
-  <button class="lang-btn active" onclick="changeLanguage('en')">🇬🇧 EN</button>
-  <button class="lang-btn" onclick="changeLanguage('hi')">🇮🇳 हिंदी</button>
-  <button class="lang-btn" onclick="changeLanguage('ar')">🇸🇦 العربية</button>
-  <button class="lang-btn" onclick="toggleDarkMode()" id="darkModeToggle">🌙</button>
-  <button class="lang-btn" onclick="adjustFontSize('increase')">A+</button>
-  <button class="lang-btn" onclick="adjustFontSize('decrease')">A-</button>
-</div>
-
-<!-- Toast Container -->
-<div id="toastContainer" class="notification-toast"></div>
-
-<!-- ==================== LOGIN PAGE ==================== -->
-<div id="loginSelectionPage" class="min-h-screen gradient-bg flex items-center justify-center p-4">
-  <div class="glass-card rounded-3xl shadow-2xl w-full max-w-md p-8">
-
-    <!-- Live Indicator (Top Left - Login Page Only) -->
-    <div id="onlineIndicator" class="online-indicator online" style="position:absolute; top:12px; left:12px;">🟢 Online</div>
-
-    <div class="text-center mb-8">
-      <div class="text-6xl mb-4">👑</div>
-      <h1 class="text-3xl font-bold" id="welcomeTitle" data-i18n="welcomeTitle">Crown Plaza Hotel</h1>
-      <p class="text-gray-600 mt-2" data-i18n="welcomeSubtitle">Complete Management System</p>
-      <div id="liveDateTime" class="text-xs text-gray-500 mt-3"></div>
-    </div>
-
-    <!-- Login Tabs -->
-    <div class="flex gap-2 mb-6">
-      <button onclick="switchLoginType('guest')" id="guestTabBtn" class="flex-1 py-2 rounded-lg font-semibold bg-purple-100 text-purple-700" data-i18n="guestTab">🏨 Guest</button>
-      <button onclick="switchLoginType('admin')" id="adminTabBtn" class="flex-1 py-2 rounded-lg font-semibold bg-gray-100 text-gray-700" data-i18n="adminTab">👑 Admin</button>
-    </div>
-
-    <!-- Guest Login -->
-    <form id="guestLoginForm" class="space-y-4">
-      <input type="text" id="guestNameInput" class="w-full px-4 py-3 border rounded-xl" data-i18n-placeholder="enterName" placeholder="Enter your name" required>
-      <input type="number" id="guestRoomInput" class="w-full px-4 py-3 border rounded-xl" data-i18n-placeholder="e.g., 101" placeholder="Room Number" required>
-      <button type="submit" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold" data-i18n="loginGuest">🔐 Login as Guest</button>
-    </form>
-
-    <!-- Admin Login -->
-    <form id="adminLoginForm" class="space-y-4 hidden">
-      <input type="email" id="adminEmailInput" class="w-full px-4 py-3 border rounded-xl" placeholder="admin@crownplaza.com" required>
-      <input type="password" id="adminPasswordInput" class="w-full px-4 py-3 border rounded-xl" placeholder="••••••••" required>
-      <button type="submit" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold" data-i18n="loginAdmin">🔐 Login as Admin</button>
-    </form>
-
-    <!-- Live Updates (Login Page Only) -->
-    <div class="mt-6 text-center text-xs text-gray-400" id="loginLiveUpdates">
-      <span>🟢 <span data-i18n="liveUpdates">Live Updates</span></span>
-      <span class="ml-3">📱 <span data-i18n="pwaReady">PWA Ready</span></span>
-    </div>
-  </div>
-</div>
-
-<!-- ==================== ADMIN DASHBOARD ==================== -->
-<div id="adminDashboard" class="hidden pb-24">
-  <header class="gradient-bg text-white shadow-lg sticky top-0 z-40">
-    <div class="flex justify-between items-center px-4 py-3">
-      <h1 class="text-lg font-bold">👑 <span id="headerHotelName">Crown Plaza</span></h1>
-      <button onclick="logoutAdmin()" class="bg-white/20 px-3 py-1 rounded-lg text-sm" data-i18n="logout">Logout</button>
-    </div>
-  </header>
-
-  <!-- Admin Tabs -->
-  <div class="bg-white shadow-sm border-b overflow-x-auto">
-    <div class="flex gap-1 px-4 py-2 min-w-max">
-      <button onclick="showAdminTab('overview')" class="px-4 py-2 text-sm font-medium text-purple-600 border-b-2 border-purple-600" data-i18n="tabOverview">📊 Overview</button>
-      <button onclick="showAdminTab('requests')" class="px-4 py-2 text-sm font-medium text-gray-600" data-i18n="tabRequests">📋 Requests</button>
-      <button onclick="showAdminTab('rooms')" class="px-4 py-2 text-sm font-medium text-gray-600" data-i18n="tabRooms">🏨 Rooms</button>
-      <button onclick="showAdminTab('foodmenu')" class="px-4 py-2 text-sm font-medium text-gray-600" data-i18n="tabFoodMenu">🍽️ Food</button>
-      <button onclick="showAdminTab('settings')" class="px-4 py-2 text-sm font-medium text-gray-600" data-i18n="tabSettings">⚙️ Settings</button>
-    </div>
-  </div>
-
-  <div class="px-4 py-6 max-w-7xl mx-auto">
-    <!-- Overview Tab -->
-    <div id="overviewTab">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div class="glass-card rounded-2xl p-4 text-center">
-          <div class="text-2xl">🏨</div>
-          <div id="statTotalRooms" class="text-2xl font-bold">0</div>
-          <div class="text-xs text-gray-500" data-i18n="totalRooms">Total Rooms</div>
-        </div>
-        <div class="glass-card rounded-2xl p-4 text-center">
-          <div class="text-2xl">🟢</div>
-          <div id="statOccupied" class="text-2xl font-bold text-green-600">0</div>
-          <div class="text-xs text-gray-500" data-i18n="occupied">Occupied</div>
-        </div>
-        <div class="glass-card rounded-2xl p-4 text-center">
-          <div class="text-2xl">📋</div>
-          <div id="statOpenRequests" class="text-2xl font-bold text-orange-600">0</div>
-          <div class="text-xs text-gray-500" data-i18n="open">Open</div>
-        </div>
-        <div class="glass-card rounded-2xl p-4 text-center">
-          <div class="text-2xl">✅</div>
-          <div id="statCompleted" class="text-2xl font-bold text-green-600">0</div>
-          <div class="text-xs text-gray-500" data-i18n="completed">Completed</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Requests Tab -->
-    <div id="requestsTab" class="hidden">
-      <div class="glass-card rounded-2xl p-4 mb-4">
-        <form id="adminRequestForm" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input type="text" id="reqGuestName" class="w-full px-3 py-2 border rounded-lg" placeholder="Guest Name" required>
-          <input type="text" id="reqRoomNumber" class="w-full px-3 py-2 border rounded-lg" placeholder="Room Number" required>
-          <select id="reqDepartment" onchange="updateAdminCategories()" class="w-full px-3 py-2 border rounded-lg" required>
-            <option value="">Select Department</option>
-            <option value="housekeeping">🧹 Housekeeping</option>
-            <option value="maintenance">🔧 Maintenance</option>
-            <option value="restaurant">🍽️ Restaurant</option>
-            <option value="laundry">🧺 Laundry</option>
-          </select>
-          <select id="reqCategory" class="w-full px-3 py-2 border rounded-lg" required>
-            <option value="">Select Category</option>
-          </select>
-          <textarea id="reqDescription" rows="2" class="w-full px-3 py-2 border rounded-lg md:col-span-2" placeholder="Description"></textarea>
-          <button type="submit" class="gradient-bg text-white px-4 py-2 rounded-lg font-semibold md:col-span-2" data-i18n="submit">✅ Submit Request</button>
-        </form>
-      </div>
-      <div id="adminRequestsList" class="space-y-2"></div>
-    </div>
-
-    <!-- Rooms Tab -->
-    <div id="roomsTab" class="hidden">
-      <div class="glass-card rounded-2xl p-4">
-        <button onclick="openAddRoomModal()" class="gradient-bg text-white px-4 py-2 rounded-lg mb-4" data-i18n="addNewRoom">+ Add Room</button>
-        <div id="roomsList" class="space-y-2"></div>
-      </div>
-    </div>
-
-    <!-- Food Menu Tab -->
-    <div id="foodmenuTab" class="hidden">
-      <div class="glass-card rounded-2xl p-4">
-        <button onclick="openAddFoodModal()" class="gradient-bg text-white px-4 py-2 rounded-lg mb-4" data-i18n="addNewDish">+ Add Dish</button>
-        <div id="foodMenuList" class="space-y-2"></div>
-      </div>
-    </div>
-
-    <!-- Settings Tab -->
-    <div id="settingsTab" class="hidden">
-      <div class="glass-card rounded-2xl p-6">
-        <h3 class="font-semibold mb-4" data-i18n="hotelSettings">⚙️ Hotel Settings</h3>
-        <div class="space-y-3">
-          <input type="text" id="hotelNameInput" class="w-full px-3 py-2 border rounded-lg" value="Crown Plaza Hotel">
-          <button onclick="saveHotelName()" class="gradient-bg text-white px-4 py-2 rounded-lg" data-i18n="save">💾 Save</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ==================== GUEST DASHBOARD ==================== -->
-<div id="guestDashboard" class="hidden pb-24">
-  <header class="gradient-bg text-white shadow-lg sticky top-0 z-40">
-    <div class="flex justify-between items-center px-4 py-3">
-      <h1 class="text-lg font-bold">🏨 <span id="guestHeaderHotelName">Crown Plaza</span></h1>
-      <button onclick="logoutGuest()" class="bg-white/20 px-3 py-1 rounded-lg text-sm" data-i18n="logout">Logout</button>
-    </div>
-  </header>
-
-  <div class="px-4 py-4 max-w-7xl mx-auto">
-    <!-- Quick Actions -->
-    <div class="grid grid-cols-3 md:grid-cols-5 gap-2 mb-5">
-      <button onclick="showGuestTab('newRequest')" class="p-3 bg-purple-100 rounded-2xl text-center"><div class="text-xl">📝</div><div class="text-xs" data-i18n="request">Request</div></button>
-      <button onclick="showGuestTab('foodOrder')" class="p-3 bg-orange-100 rounded-2xl text-center"><div class="text-xl">🍕</div><div class="text-xs" data-i18n="food">Food</div></button>
-      <button onclick="showGuestTab('transport')" class="p-3 bg-blue-100 rounded-2xl text-center"><div class="text-xl">🚗</div><div class="text-xs" data-i18n="cab">Cab</div></button>
-      <button onclick="showGuestTab('myRequests')" class="p-3 bg-green-100 rounded-2xl text-center"><div class="text-xl">📋</div><div class="text-xs" data-i18n="history">History</div></button>
-      <button onclick="showGuestTab('hotelInfo')" class="p-3 bg-yellow-100 rounded-2xl text-center"><div class="text-xl">ℹ️</div><div class="text-xs" data-i18n="info">Info</div></button>
-    </div>
-
-    <!-- New Request Tab -->
-    <div id="guestNewRequestTab" class="glass-card rounded-2xl p-4 mb-4">
-      <h2 class="font-semibold mb-3" data-i18n="newRequest">📝 New Request</h2>
-      <form id="guestRequestForm" class="space-y-3">
-        <select id="guestDepartment" onchange="updateGuestCategories()" class="w-full px-3 py-2 border rounded-lg" required>
-          <option value="">Select Department</option>
-          <option value="housekeeping">🧹 Housekeeping</option>
-          <option value="maintenance">🔧 Maintenance</option>
-          <option value="restaurant">🍽️ Restaurant</option>
-          <option value="laundry">🧺 Laundry</option>
-        </select>
-        <select id="guestCategory" class="w-full px-3 py-2 border rounded-lg" required>
-          <option value="">Select Service</option>
-        </select>
-        <textarea id="guestDescription" rows="2" class="w-full px-3 py-2 border rounded-lg" placeholder="Describe your issue..." required></textarea>
-        <button type="submit" class="w-full gradient-bg text-white py-2 rounded-lg font-semibold" data-i18n="submitRequest">✅ Submit Request</button>
-      </form>
-    </div>
-
-    <!-- Food Order Tab -->
-    <div id="guestFoodOrderTab" class="hidden glass-card rounded-2xl p-4 mb-4">
-      <h2 class="font-semibold mb-3" data-i18n="foodMenu">🍕 Food Menu</h2>
-      <div id="dynamicFoodMenu" class="grid grid-cols-2 gap-2"></div>
-      <div id="cartItems" class="border-t pt-3 mt-3 text-sm"></div>
-      <button onclick="placeOrder()" class="w-full gradient-bg text-white py-2 rounded-lg font-semibold mt-2" data-i18n="placeOrder">🛒 Place Order (<span id="cartTotal">0</span>)</button>
-    </div>
-
-    <!-- Transport Tab -->
-    <div id="guestTransportTab" class="hidden glass-card rounded-2xl p-4 mb-4">
-      <h2 class="font-semibold mb-3" data-i18n="transport">🚗 Transport</h2>
-      <form id="transportForm" class="space-y-3">
-        <select id="transportType" class="w-full px-3 py-2 border rounded-lg">
-          <option value="airport">✈️ Airport Transfer - $30</option>
-          <option value="local">🚕 Local Cab - $15/hr</option>
-        </select>
-        <button type="submit" class="w-full gradient-bg text-white py-2 rounded-lg font-semibold" data-i18n="bookNow">📅 Book Now</button>
-      </form>
-    </div>
-
-    <!-- My Requests Tab -->
-    <div id="guestMyRequestsTab" class="hidden glass-card rounded-2xl p-4 mb-4">
-      <h2 class="font-semibold mb-3" data-i18n="myRequests">📋 My Requests</h2>
-      <div id="guestRequestsList" class="space-y-2"></div>
-    </div>
-
-    <!-- Hotel Info Tab -->
-    <div id="guestHotelInfoTab" class="hidden glass-card rounded-2xl p-4 mb-4">
-      <h2 class="font-semibold mb-3" data-i18n="hotelInfo">ℹ️ Hotel Info</h2>
-      <div class="space-y-2 text-sm">
-        <div><span data-i18n="wifi">📶 WiFi:</span> <span id="guestWifiPassword" class="font-mono">CrownPlaza@2024</span></div>
-        <div><span data-i18n="localTime">🌍 Local Time:</span> <span id="guestLocalTime"></span></div>
-        <div><span data-i18n="restaurant">🍽️ Restaurant:</span> 7AM-10PM</div>
-        <div><span data-i18n="emergency">🚨 Emergency:</span> Security: 100</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ==================== MODALS ==================== -->
-<!-- Room Modal -->
-<div id="roomModal" class="modal hidden">
-  <div class="modal-content">
-    <h3 class="text-lg font-bold mb-4" id="roomModalTitle">Add New Room</h3>
-    <form id="roomForm" class="space-y-3">
-      <input type="hidden" id="roomEditIndex" value="-1">
-      <input type="number" id="roomNumberInput" class="w-full px-3 py-2 border rounded-lg" placeholder="Room Number *" required>
-      <select id="roomTypeInput" class="w-full px-3 py-2 border rounded-lg" required>
-        <option value="Standard">Standard</option>
-        <option value="Deluxe">Deluxe</option>
-        <option value="Suite">Suite</option>
-      </select>
-      <select id="roomStatusInput" class="w-full px-3 py-2 border rounded-lg" required>
-        <option value="Vacant">Vacant</option>
-        <option value="Occupied">Occupied</option>
-        <option value="Cleaning">Cleaning</option>
-      </select>
-      <div class="flex gap-2">
-        <button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg">💾 Save</button>
-        <button type="button" onclick="closeModal('roomModal')" class="flex-1 bg-gray-200 py-2 rounded-lg">Cancel</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Food Modal -->
-<div id="foodModal" class="modal hidden">
-  <div class="modal-content">
-    <h3 class="text-lg font-bold mb-4" id="foodModalTitle">Add New Dish</h3>
-    <form id="foodForm" class="space-y-3">
-      <input type="hidden" id="foodEditIndex" value="-1">
-      <input type="text" id="foodNameInput" class="w-full px-3 py-2 border rounded-lg" placeholder="Dish Name *" required>
-      <input type="number" id="foodPriceInput" class="w-full px-3 py-2 border rounded-lg" placeholder="Price *" step="0.01" required>
-      <select id="foodCategoryInput" class="w-full px-3 py-2 border rounded-lg">
-        <option value="Main Course">Main Course</option>
-        <option value="Appetizer">Appetizer</option>
-        <option value="Dessert">Dessert</option>
-        <option value="Beverage">Beverage</option>
-      </select>
-      <div class="flex gap-2">
-        <button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg">💾 Save</button>
-        <button type="button" onclick="closeModal('foodModal')" class="flex-1 bg-gray-200 py-2 rounded-lg">Cancel</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- SOS Modal -->
-<div id="sosModal" class="modal hidden">
-  <div class="modal-content text-center bg-red-600 text-white">
-    <div class="text-6xl mb-3">🚨</div>
-    <h2 class="text-2xl font-bold mb-2">EMERGENCY SOS</h2>
-    <p>Emergency services notified! Help is on the way.</p>
-    <button onclick="closeModal('sosModal')" class="mt-4 bg-white text-red-600 px-6 py-2 rounded-lg font-bold">Close</button>
-  </div>
-</div>
-
-<!-- ✨ SIMPLE, CLEAN JAVASCRIPT -->
-<script>
-// ============ GLOBAL DATA (localStorage - Works Offline) ============
-let requests = JSON.parse(localStorage.getItem('cp_requests') || '[]');
-let rooms = JSON.parse(localStorage.getItem('cp_rooms') || '[]');
-let foodMenu = JSON.parse(localStorage.getItem('cp_food') || '[]');
+// ==================== GLOBAL VARIABLES ====================
 let currentGuest = null;
-let currentLanguage = localStorage.getItem('cp_lang') || 'en';
+let currentAdmin = null;
+let currentRole = null;
 let cart = [];
 
-// ============ TRANSLATIONS ============
-const t = {
-  en: {
-    welcomeTitle: "Crown Plaza Hotel", welcomeSubtitle: "Complete Management System",
-    guestTab: "🏨 Guest", adminTab: "👑 Admin", enterName: "Enter your name",
-    loginGuest: "🔐 Login as Guest", loginAdmin: "🔐 Login as Admin",
-    logout: "Logout", liveUpdates: "Live Updates", pwaReady: "PWA Ready",
-    tabOverview: "📊 Overview", tabRequests: "📋 Requests", tabRooms: "🏨 Rooms",
-    tabFoodMenu: "🍽️ Food", tabSettings: "⚙️ Settings",
-    totalRooms: "Total Rooms", occupied: "Occupied", open: "Open", completed: "Completed",
-    addNewRoom: "+ Add Room", addNewDish: "+ Add Dish", submit: "✅ Submit",
-    request: "Request", food: "Food", cab: "Cab", history: "History", info: "Info",
-    newRequest: "📝 New Request", foodMenu: "🍕 Food Menu", placeOrder: "🛒 Place Order",
-    transport: "🚗 Transport", bookNow: "📅 Book Now", myRequests: "📋 My Requests",
-    hotelInfo: "ℹ️ Hotel Info", wifi: "📶 WiFi:", localTime: "🌍 Local Time:",
-    restaurant: "🍽️ Restaurant:", emergency: "🚨 Emergency:",
-    submitRequest: "✅ Submit Request", save: "💾 Save", hotelSettings: "⚙️ Hotel Settings"
-  },
-  hi: {
-    welcomeTitle: "क्राउन प्लाज़ा होटल", welcomeSubtitle: "पूर्ण प्रबंधन प्रणाली",
-    guestTab: "🏨 अतिथि", adminTab: "👑 व्यवस्थापक", enterName: "अपना नाम दर्ज करें",
-    loginGuest: "🔐 अतिथि लॉगिन", loginAdmin: "🔐 व्यवस्थापक लॉगिन",
-    logout: "लॉगआउट", liveUpdates: "लाइव अपडेट", pwaReady: "PWA तैयार",
-    tabOverview: "📊 अवलोकन", tabRequests: "📋 अनुरोध", tabRooms: "🏨 कमरे",
-    tabFoodMenu: "🍽️ फूड मेनू", tabSettings: "⚙️ सेटिंग्स",
-    totalRooms: "कुल कमरे", occupied: "भरे हुए", open: "खुले", completed: "पूरे",
-    addNewRoom: "+ नया कमरा", addNewDish: "+ नया व्यंजन", submit: "✅ जमा करें",
-    request: "अनुरोध", food: "खाना", cab: "कैब", history: "इतिहास", info: "जानकारी",
-    newRequest: "📝 नया अनुरोध", foodMenu: "🍕 फूड मेनू", placeOrder: "🛒 ऑर्डर करें",
-    transport: "🚗 ट्रांसपोर्ट", bookNow: "📅 बुक करें", myRequests: "मेरे अनुरोध",
-    hotelInfo: "ℹ️ होटल जानकारी", wifi: "📶 वाईफाई:", localTime: "🌍 स्थानीय समय:",
-    restaurant: "🍽️ रेस्तरां:", emergency: "🚨 आपातकालीन:",
-    submitRequest: "✅ अनुरोध जमा करें", save: "💾 सहेजें", hotelSettings: "⚙️ होटल सेटिंग्स"
-  },
-  ar: {
-    welcomeTitle: "فندق كراون بلازا", welcomeSubtitle: "نظام الإدارة الكامل",
-    guestTab: "🏨 ضيف", adminTab: "👑 مسؤول", enterName: "أدخل اسمك",
-    loginGuest: "🔐 تسجيل دخول ضيف", loginAdmin: "🔐 تسجيل دخول مسؤول",
-    logout: "تسجيل خروج", liveUpdates: "تحديثات مباشرة", pwaReady: "PWA جاهز",
-    tabOverview: "📊 نظرة عامة", tabRequests: "📋 الطلبات", tabRooms: "🏨 الغرف",
-    tabFoodMenu: "🍽️ قائمة الطعام", tabSettings: "⚙️ الإعدادات",
-    totalRooms: "إجمالي الغرف", occupied: "مشغولة", open: "مفتوحة", completed: "مكتملة",
-    addNewRoom: "+ إضافة غرفة", addNewDish: "+ إضافة طبق", submit: "✅ إرسال",
-    request: "طلب", food: "طعام", cab: "تاكسي", history: "السجل", info: "معلومات",
-    newRequest: "📝 طلب جديد", foodMenu: "🍕 قائمة الطعام", placeOrder: "🛒 تقديم الطلب",
-    transport: "🚗 النقل", bookNow: "📅 احجز الآن", myRequests: "طلباتي",
-    hotelInfo: "ℹ️ معلومات الفندق", wifi: "📶 الواي فاي:", localTime: "🌍 الوقت المحلي:",
-    restaurant: "🍽️ المطعم:", emergency: "🚨 طوارئ:",
-    submitRequest: "✅ إرسال الطلب", save: "💾 حفظ", hotelSettings: "⚙️ إعدادات الفندق"
-  }
-};
+// Global data arrays (will be populated from MongoDB)
+let rooms = [];
+let requests = [];
+let guests = [];
+let foodMenu = [];
+let inventory = [];
+let maintenance = [];
+let blacklist = [];
+let reviews = [];
+let loyalty = [];
+let staff = [];
+let activityLogs = [];
+let hotelSettings = {};
 
-// ============ HELPER FUNCTIONS ============
-function tr(key) { return t[currentLanguage]?.[key] || t['en'][key] || key; }
-function saveData() {
-  localStorage.setItem('cp_requests', JSON.stringify(requests));
-  localStorage.setItem('cp_rooms', JSON.stringify(rooms));
-  localStorage.setItem('cp_food', JSON.stringify(foodMenu));
-}
-function showToast(msg) {
-  const container = document.getElementById('toastContainer');
-  const toast = document.createElement('div');
-  toast.className = 'toast bg-white rounded-lg shadow-lg p-3 mb-2 border-l-4 border-green-500';
-  toast.innerHTML = `<div class="flex items-center"><span class="text-xl mr-2">✅</span><span>${msg}</span></div>`;
-  container.appendChild(toast);
-  setTimeout(() => { toast.style.opacity='0'; setTimeout(()=>toast.remove(),300); }, 3000);
+// UI Preferences (LocalStorage only - NO MongoDB)
+let isOfflineMode = false;
+let fontSizeScale = parseFloat(localStorage.getItem('crown_plaza_fontSize') || '1');
+let currentTheme = localStorage.getItem('crown_plaza_theme') || 'default';
+let isDarkMode = localStorage.getItem('crown_plaza_darkMode') === 'true';
+let brightnessLevel = parseFloat(localStorage.getItem('crown_plaza_brightness') || '1');
+let preferredLanguage = localStorage.getItem('preferredLanguage') || 'en';
+
+// API Base URL
+const API_BASE_URL = window.location.port === '3000' ? 'http://localhost:3000/api' : '/api';
+
+// ==================== API HELPER FUNCTIONS ====================
+async function apiFetch(endpoint, options = {}) {
+    const token = getAuthToken();
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        ...options
+    };
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, defaultOptions);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'API request failed');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`API Error (${endpoint}):`, error);
+        showToast(error.message || 'Network error', 'error');
+        throw error;
+    }
 }
 
-// ============ LANGUAGE ============
-function changeLanguage(lang) {
-  currentLanguage = lang;
-  localStorage.setItem('cp_lang', lang);
-  document.documentElement.lang = lang;
-  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-  document.body.classList.toggle('rtl', lang === 'ar');
-
-  // Update buttons
-  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active','bg-purple-100','text-purple-700'));
-  document.querySelector(`.lang-btn[onclick*="'${lang}'"]`)?.classList.add('active','bg-purple-100','text-purple-700');
-
-  // Update translations
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (key) el.textContent = tr(key);
-  });
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.getAttribute('data-i18n-placeholder');
-    if (key) el.placeholder = tr(key);
-  });
-
-  // Re-render content
-  if (!document.getElementById('adminDashboard').classList.contains('hidden')) {
-    renderAdminRequests(); renderRooms(); renderFoodMenu();
-  }
-  if (!document.getElementById('guestDashboard').classList.contains('hidden')) {
-    renderGuestRequests(); renderDynamicFoodMenu();
-  }
-  updateLiveClock();
+function getAuthToken() {
+    // Get token from cookie (HttpOnly) or localStorage (fallback)
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'authToken') return value;
+    }
+    return localStorage.getItem('authToken');
 }
 
-// ============ LIVE CLOCK ============
-function updateLiveClock() {
-  const now = new Date();
-  const time = now.toLocaleTimeString(currentLanguage === 'hi' ? 'hi-IN' : currentLanguage === 'ar' ? 'ar-SA' : 'en-US', {hour:'2-digit',minute:'2-digit'});
-  ['liveDateTime','guestLocalTime'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = time;
-  });
-}
-setInterval(updateLiveClock, 1000);
-
-// ============ LOGIN ============
-function switchLoginType(type) {
-  document.getElementById('guestLoginForm').classList.toggle('hidden', type !== 'guest');
-  document.getElementById('adminLoginForm').classList.toggle('hidden', type !== 'admin');
-  document.getElementById('guestTabBtn').classList.toggle('bg-purple-100', type === 'guest');
-  document.getElementById('guestTabBtn').classList.toggle('text-purple-700', type === 'guest');
-  document.getElementById('adminTabBtn').classList.toggle('bg-purple-100', type === 'admin');
-  document.getElementById('adminTabBtn').classList.toggle('text-purple-700', type === 'admin');
+function setAuthToken(token, remember = false) {
+    if (remember) {
+        // Set cookie with expiry (30 days)
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 30);
+        document.cookie = `authToken=${token}; path=/; expires=${expiry.toUTCString()}; HttpOnly; Secure`;
+    } else {
+        // Session cookie (expires when browser closes)
+        document.cookie = `authToken=${token}; path=/; HttpOnly; Secure`;
+    }
+    localStorage.setItem('authToken', token);
 }
 
-document.getElementById('guestLoginForm')?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  currentGuest = { name: document.getElementById('guestNameInput').value, room: document.getElementById('guestRoomInput').value };
-  document.getElementById('loginSelectionPage').classList.add('hidden');
-  document.getElementById('guestDashboard').classList.remove('hidden');
-  document.getElementById('guestInfo').textContent = `👤 ${currentGuest.name} | Room ${currentGuest.room}`;
-  showToast(tr('loginGuest'));
-  renderGuestRequests(); renderDynamicFoodMenu();
-});
-
-document.getElementById('adminLoginForm')?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  document.getElementById('loginSelectionPage').classList.add('hidden');
-  document.getElementById('adminDashboard').classList.remove('hidden');
-  showToast('Admin login successful');
-  renderAdminRequests(); renderRooms(); renderFoodMenu();
-});
-
-function logoutGuest() {
-  currentGuest = null;
-  document.getElementById('guestDashboard').classList.add('hidden');
-  document.getElementById('loginSelectionPage').classList.remove('hidden');
-  showToast('Logged out');
-}
-function logoutAdmin() {
-  document.getElementById('adminDashboard').classList.add('hidden');
-  document.getElementById('loginSelectionPage').classList.remove('hidden');
-  showToast('Logged out');
+function clearAuthToken() {
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    localStorage.removeItem('authToken');
 }
 
-// ============ ADMIN TABS ============
-function showAdminTab(tab) {
-  ['overview','requests','rooms','foodmenu','settings'].forEach(t => {
-    document.getElementById(t+'Tab')?.classList.add('hidden');
-  });
-  document.getElementById(tab+'Tab')?.classList.remove('hidden');
-  if (tab === 'requests') renderAdminRequests();
-  if (tab === 'rooms') renderRooms();
-  if (tab === 'foodmenu') renderFoodMenu();
+// ==================== DATA LOAD FUNCTIONS (MongoDB) ====================
+async function loadRooms() {
+    try {
+        rooms = await apiFetch('/rooms');
+        renderRooms();
+        updateStats();
+        return rooms;
+    } catch (error) {
+        console.error('Failed to load rooms:', error);
+        rooms = [];
+        return [];
+    }
 }
 
-// ============ REQUESTS ============
-const categories = {
-  housekeeping: ['Room Cleaning','Extra Towels','Deep Cleaning'],
-  maintenance: ['AC Not Working','TV Issue','Plumbing','Electrical','🔨 Carpenter','💡 Table Lamp','🛋️ Chair Sofa','🛏️ Bed Wheel','🪑 Furniture','🛏️ Head Board','🧊 Fridge','🗄️ Cabinet'],
-  restaurant: ['Order Food','Room Service','Breakfast'],
-  laundry: ['Laundry Pickup','Iron Only','Dry Cleaning']
-};
-
-function updateAdminCategories() {
-  const dept = document.getElementById('reqDepartment').value;
-  const cat = document.getElementById('reqCategory');
-  cat.innerHTML = '<option value="">Select Category</option>';
-  if (categories[dept]) categories[dept].forEach(c => cat.innerHTML += `<option value="${c}">${c}</option>`);
-}
-function updateGuestCategories() {
-  const dept = document.getElementById('guestDepartment').value;
-  const cat = document.getElementById('guestCategory');
-  cat.innerHTML = '<option value="">Select Service</option>';
-  if (categories[dept]) categories[dept].forEach(c => cat.innerHTML += `<option value="${c}">${c}</option>`);
+async function loadRequests() {
+    try {
+        requests = await apiFetch('/requests');
+        renderAdminRequests();
+        updateStats();
+        return requests;
+    } catch (error) {
+        console.error('Failed to load requests:', error);
+        requests = [];
+        return [];
+    }
 }
 
-document.getElementById('adminRequestForm')?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  requests.unshift({
-    id: Date.now(),
-    guestName: document.getElementById('reqGuestName').value,
-    roomNumber: document.getElementById('reqRoomNumber').value,
-    department: document.getElementById('reqDepartment').value,
-    category: document.getElementById('reqCategory').value,
-    description: document.getElementById('reqDescription').value,
-    status: 'open',
-    createdAt: new Date().toISOString()
-  });
-  saveData();
-  e.target.reset();
-  renderAdminRequests();
-  updateAdminDashboard();
-  showToast('Request submitted!');
-});
+async function loadGuests() {
+    try {
+        guests = await apiFetch('/guests');
+        renderGuests();
+        return guests;
+    } catch (error) {
+        console.error('Failed to load guests:', error);
+        guests = [];
+        return [];
+    }
+}
+
+async function loadFoodMenu() {
+    try {
+        foodMenu = await apiFetch('/foodmenu');
+        renderFoodMenu();
+        renderDynamicFoodMenu();
+        return foodMenu;
+    } catch (error) {
+        console.error('Failed to load food menu:', error);
+        foodMenu = [];
+        return [];
+    }
+}
+
+async function loadInventory() {
+    try {
+        inventory = await apiFetch('/inventory');
+        renderInventory();
+        return inventory;
+    } catch (error) {
+        console.error('Failed to load inventory:', error);
+        inventory = [];
+        return [];
+    }
+}
+
+async function loadMaintenance() {
+    try {
+        maintenance = await apiFetch('/maintenance');
+        renderMaintenance();
+        return maintenance;
+    } catch (error) {
+        console.error('Failed to load maintenance:', error);
+        maintenance = [];
+        return [];
+    }
+}
+
+async function loadBlacklist() {
+    try {
+        blacklist = await apiFetch('/blacklist');
+        renderBlacklist();
+        return blacklist;
+    } catch (error) {
+        console.error('Failed to load blacklist:', error);
+        blacklist = [];
+        return [];
+    }
+}
+
+async function loadReviews() {
+    try {
+        reviews = await apiFetch('/reviews');
+        renderReviews();
+        return reviews;
+    } catch (error) {
+        console.error('Failed to load reviews:', error);
+        reviews = [];
+        return [];
+    }
+}
+
+async function loadLoyalty() {
+    try {
+        loyalty = await apiFetch('/loyalty');
+        renderLoyalty();
+        return loyalty;
+    } catch (error) {
+        console.error('Failed to load loyalty:', error);
+        loyalty = [];
+        return [];
+    }
+}
+
+async function loadStaff() {
+    try {
+        staff = await apiFetch('/staff');
+        renderStaff();
+        return staff;
+    } catch (error) {
+        console.error('Failed to load staff:', error);
+        staff = [];
+        return [];
+    }
+}
+
+async function loadActivityLogs() {
+    try {
+        activityLogs = await apiFetch('/logs');
+        renderActivityLogs();
+        return activityLogs;
+    } catch (error) {
+        console.error('Failed to load logs:', error);
+        activityLogs = [];
+        return [];
+    }
+}
+
+async function loadSettings() {
+    try {
+        hotelSettings = await apiFetch('/settings');
+        syncHotelName();
+        updateCurrencySymbols(preferredLanguage);
+        updateTransportPriceDisplays();
+        return hotelSettings;
+    } catch (error) {
+        console.error('Failed to load settings:', error);
+        hotelSettings = { name: 'Crown Plaza Hotel', currency: '$', wifiPassword: 'CrownPlaza@2024' };
+        return hotelSettings;
+    }
+}
+
+// ==================== CRUD OPERATIONS (MongoDB) ====================
+
+// ROOMS CRUD
+async function addRoom(roomData) {
+    try {
+        const newRoom = await apiFetch('/rooms', { method: 'POST', body: JSON.stringify(roomData) });
+        await loadRooms();
+        showToast('Room added successfully', 'success');
+        addActivityLog('room_added', `Room ${roomData.number} added`);
+        return newRoom;
+    } catch (error) {
+        showToast('Failed to add room', 'error');
+        throw error;
+    }
+}
+
+async function updateRoom(id, roomData) {
+    try {
+        await apiFetch(`/rooms/${id}`, { method: 'PUT', body: JSON.stringify(roomData) });
+        await loadRooms();
+        showToast('Room updated successfully', 'success');
+        addActivityLog('room_updated', `Room ${roomData.number} updated`);
+    } catch (error) {
+        showToast('Failed to update room', 'error');
+        throw error;
+    }
+}
+
+async function deleteRoom(id) {
+    if (!confirm('Delete this room?')) return;
+    try {
+        await apiFetch(`/rooms/${id}`, { method: 'DELETE' });
+        await loadRooms();
+        showToast('Room deleted', 'success');
+        addActivityLog('room_deleted', `Room ID: ${id} deleted`);
+    } catch (error) {
+        showToast('Failed to delete room', 'error');
+        throw error;
+    }
+}
+
+// REQUESTS CRUD
+async function addRequest(requestData) {
+    try {
+        const newRequest = await apiFetch('/requests', { method: 'POST', body: JSON.stringify(requestData) });
+        await loadRequests();
+        showToast('Request submitted', 'success');
+        addActivityLog('request_created', `Request for ${requestData.guestName}`);
+        return newRequest;
+    } catch (error) {
+        showToast('Failed to submit request', 'error');
+        throw error;
+    }
+}
+
+async function updateRequestStatus(id, status) {
+    try {
+        await apiFetch(`/requests/${id}`, { method: 'PUT', body: JSON.stringify({ status }) });
+        await loadRequests();
+        showToast(`Request status updated to ${status}`, 'success');
+    } catch (error) {
+        showToast('Failed to update request', 'error');
+        throw error;
+    }
+}
+
+async function deleteRequest(id) {
+    if (!confirm('Delete this request?')) return;
+    try {
+        await apiFetch(`/requests/${id}`, { method: 'DELETE' });
+        await loadRequests();
+        showToast('Request deleted', 'success');
+    } catch (error) {
+        showToast('Failed to delete request', 'error');
+        throw error;
+    }
+}
+
+// FOOD MENU CRUD
+async function addDish(dishData) {
+    try {
+        const newDish = await apiFetch('/foodmenu', { method: 'POST', body: JSON.stringify(dishData) });
+        await loadFoodMenu();
+        showToast('Dish added', 'success');
+        addActivityLog('food_added', `${dishData.name} added to menu`);
+        return newDish;
+    } catch (error) {
+        showToast('Failed to add dish', 'error');
+        throw error;
+    }
+}
+
+async function updateDish(id, dishData) {
+    try {
+        await apiFetch(`/foodmenu/${id}`, { method: 'PUT', body: JSON.stringify(dishData) });
+        await loadFoodMenu();
+        showToast('Dish updated', 'success');
+    } catch (error) {
+        showToast('Failed to update dish', 'error');
+        throw error;
+    }
+}
+
+async function deleteDish(id) {
+    if (!confirm('Delete this dish?')) return;
+    try {
+        await apiFetch(`/foodmenu/${id}`, { method: 'DELETE' });
+        await loadFoodMenu();
+        showToast('Dish deleted', 'success');
+    } catch (error) {
+        showToast('Failed to delete dish', 'error');
+        throw error;
+    }
+}
+
+// INVENTORY CRUD
+async function addInventoryItem(itemData) {
+    try {
+        await apiFetch('/inventory', { method: 'POST', body: JSON.stringify(itemData) });
+        await loadInventory();
+        showToast('Item added', 'success');
+    } catch (error) {
+        showToast('Failed to add item', 'error');
+        throw error;
+    }
+}
+
+async function updateInventoryItem(id, itemData) {
+    try {
+        await apiFetch(`/inventory/${id}`, { method: 'PUT', body: JSON.stringify(itemData) });
+        await loadInventory();
+        showToast('Item updated', 'success');
+    } catch (error) {
+        showToast('Failed to update item', 'error');
+        throw error;
+    }
+}
+
+async function deleteInventoryItem(id) {
+    if (!confirm('Delete this item?')) return;
+    try {
+        await apiFetch(`/inventory/${id}`, { method: 'DELETE' });
+        await loadInventory();
+        showToast('Item deleted', 'success');
+    } catch (error) {
+        showToast('Failed to delete item', 'error');
+        throw error;
+    }
+}
+
+// MAINTENANCE CRUD
+async function addMaintenanceTask(taskData) {
+    try {
+        await apiFetch('/maintenance', { method: 'POST', body: JSON.stringify(taskData) });
+        await loadMaintenance();
+        showToast('Task scheduled', 'success');
+    } catch (error) {
+        showToast('Failed to schedule task', 'error');
+        throw error;
+    }
+}
+
+async function updateMaintenanceTask(id, taskData) {
+    try {
+        await apiFetch(`/maintenance/${id}`, { method: 'PUT', body: JSON.stringify(taskData) });
+        await loadMaintenance();
+        showToast('Task updated', 'success');
+    } catch (error) {
+        showToast('Failed to update task', 'error');
+        throw error;
+    }
+}
+
+async function deleteMaintenanceTask(id) {
+    if (!confirm('Delete this task?')) return;
+    try {
+        await apiFetch(`/maintenance/${id}`, { method: 'DELETE' });
+        await loadMaintenance();
+        showToast('Task deleted', 'success');
+    } catch (error) {
+        showToast('Failed to delete task', 'error');
+        throw error;
+    }
+}
+
+// BLACKLIST CRUD
+async function addToBlacklist(guestData) {
+    try {
+        await apiFetch('/blacklist', { method: 'POST', body: JSON.stringify(guestData) });
+        await loadBlacklist();
+        showToast('Guest blacklisted', 'success');
+        addActivityLog('blacklist_added', `${guestData.name} blacklisted`);
+    } catch (error) {
+        showToast('Failed to blacklist guest', 'error');
+        throw error;
+    }
+}
+
+async function removeFromBlacklist(id) {
+    if (!confirm('Remove from blacklist?')) return;
+    try {
+        await apiFetch(`/blacklist/${id}`, { method: 'DELETE' });
+        await loadBlacklist();
+        showToast('Removed from blacklist', 'success');
+    } catch (error) {
+        showToast('Failed to remove', 'error');
+        throw error;
+    }
+}
+
+// SETTINGS CRUD
+async function saveHotelNameToDB(name) {
+    try {
+        await apiFetch('/settings/hotel', { method: 'POST', body: JSON.stringify({ name }) });
+        hotelSettings.name = name;
+        syncHotelName();
+        showToast('Hotel name saved', 'success');
+        addActivityLog('settings_updated', 'Hotel name changed');
+    } catch (error) {
+        showToast('Failed to save hotel name', 'error');
+        throw error;
+    }
+}
+
+async function saveCurrencySettings(currency, priceFormat) {
+    try {
+        await apiFetch('/settings/currency', { method: 'POST', body: JSON.stringify({ currency, priceFormat }) });
+        hotelSettings.currency = currency;
+        hotelSettings.priceFormat = priceFormat;
+        updateCurrencySymbols(preferredLanguage);
+        showToast('Currency settings saved', 'success');
+    } catch (error) {
+        showToast('Failed to save currency', 'error');
+        throw error;
+    }
+}
+
+async function saveTransportPrices(airportPrice, localCabPrice) {
+    try {
+        await apiFetch('/settings/transport', { method: 'POST', body: JSON.stringify({ airportPrice, localCabPrice }) });
+        hotelSettings.airportPrice = airportPrice;
+        hotelSettings.localCabPrice = localCabPrice;
+        updateTransportPriceDisplays();
+        showToast('Transport prices saved', 'success');
+    } catch (error) {
+        showToast('Failed to save transport prices', 'error');
+        throw error;
+    }
+}
+
+async function saveWifiPasswordToDB(password) {
+    try {
+        await apiFetch('/settings/wifi', { method: 'POST', body: JSON.stringify({ wifiPassword: password }) });
+        hotelSettings.wifiPassword = password;
+        document.getElementById('guestWifiPassword').textContent = password;
+        showToast('WiFi password saved', 'success');
+    } catch (error) {
+        showToast('Failed to save WiFi password', 'error');
+        throw error;
+    }
+}
+
+// REVIEWS
+async function submitReview(reviewData) {
+    try {
+        await apiFetch('/reviews', { method: 'POST', body: JSON.stringify(reviewData) });
+        await loadReviews();
+        showToast('Thank you for your feedback!', 'success');
+        addActivityLog('review_submitted', `${reviewData.guestName} rated ${reviewData.rating}/5`);
+    } catch (error) {
+        showToast('Failed to submit review', 'error');
+        throw error;
+    }
+}
+
+// LOYALTY POINTS
+async function addLoyaltyPoints(guestName, points) {
+    try {
+        await apiFetch('/loyalty', { method: 'POST', body: JSON.stringify({ guestName, points }) });
+        await loadLoyalty();
+        if (currentGuest && currentGuest.name === guestName) {
+            currentGuest.points = (currentGuest.points || 0) + points;
+            updateGuestDashboard();
+        }
+    } catch (error) {
+        console.error('Failed to add loyalty points:', error);
+    }
+}
+
+async function redeemLoyaltyPoints(guestName) {
+    try {
+        const result = await apiFetch('/loyalty/redeem', { method: 'POST', body: JSON.stringify({ guestName, points: 100 }) });
+        await loadLoyalty();
+        showToast(result.message || `${guestName} redeemed 100 points!`, 'success');
+        if (currentGuest && currentGuest.name === guestName) {
+            currentGuest.points = (currentGuest.points || 0) - 100;
+            updateGuestDashboard();
+        }
+    } catch (error) {
+        showToast('Failed to redeem points', 'error');
+        throw error;
+    }
+}
+
+// ACTIVITY LOGS
+async function addActivityLog(action, details) {
+    try {
+        await apiFetch('/logs', { method: 'POST', body: JSON.stringify({ action, details }) });
+        await loadActivityLogs();
+    } catch (error) {
+        console.error('Failed to add log:', error);
+    }
+}
+
+// GUEST FUNCTIONS (MongoDB)
+async function guestLogin(name, room) {
+    try {
+        const result = await apiFetch('/auth/guest', { method: 'POST', body: JSON.stringify({ name, room }) });
+        currentGuest = result.guest;
+        localStorage.setItem('crown_plaza_currentGuest', JSON.stringify(currentGuest));
+
+        document.getElementById('loginSelectionPage').classList.add('hidden');
+        document.getElementById('guestDashboard').classList.remove('hidden');
+        document.getElementById('guestInfo').textContent = `${name} • Room ${room}`;
+
+        await loadGuestRequests();
+        updateGuestDashboard();
+        showToast(`Welcome ${name}!`, 'success');
+        speakText(`Welcome ${name}`);
+        addActivityLog('guest_login', `${name} logged in from room ${room}`);
+        return true;
+    } catch (error) {
+        showToast(error.message || 'Login failed', 'error');
+        return false;
+    }
+}
+
+async function logoutGuest() {
+    if (confirm('Are you sure you want to logout?')) {
+        try {
+            await apiFetch('/auth/guest/logout', { method: 'POST' });
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+        currentGuest = null;
+        localStorage.removeItem('crown_plaza_currentGuest');
+        document.getElementById('guestDashboard').classList.add('hidden');
+        document.getElementById('loginSelectionPage').classList.remove('hidden');
+        document.getElementById('guestLoginForm').reset();
+        showToast('Logged out successfully', 'success');
+        speakText('Logged out');
+        addActivityLog('guest_logout', 'Guest logged out');
+    }
+}
+
+async function loadGuestRequests() {
+    if (!currentGuest) return;
+    try {
+        const guestRequests = await apiFetch(`/requests/guest/${currentGuest.room}`);
+        renderGuestRequests(guestRequests);
+        return guestRequests;
+    } catch (error) {
+        console.error('Failed to load guest requests:', error);
+        return [];
+    }
+}
+
+async function submitGuestRequest(requestData) {
+    if (!currentGuest) return;
+    try {
+        await apiFetch('/requests', { method: 'POST', body: JSON.stringify(requestData) });
+        await loadGuestRequests();
+        updateGuestDashboard();
+        showToast('Request submitted!', 'success');
+        speakText('Your request has been submitted');
+        addActivityLog('guest_request', `${currentGuest.name} submitted request`);
+    } catch (error) {
+        showToast('Failed to submit request', 'error');
+        throw error;
+    }
+}
+
+// ADMIN FUNCTIONS (MongoDB)
+async function adminLogin(email, password) {
+    try {
+        const result = await apiFetch('/auth/admin', { method: 'POST', body: JSON.stringify({ email, password }) });
+        currentAdmin = { email, role: result.role };
+        setAuthToken(result.token, true);
+        localStorage.setItem('crown_plaza_currentAdmin', JSON.stringify(currentAdmin));
+
+        document.getElementById('loginSelectionPage').classList.add('hidden');
+        document.getElementById('roleSelectionPage').classList.remove('hidden');
+        showToast('Admin login successful!', 'success');
+        addActivityLog('admin_login', `${email} logged in`);
+        return true;
+    } catch (error) {
+        showToast(error.message || 'Invalid credentials', 'error');
+        return false;
+    }
+}
+
+async function logoutAdmin() {
+    if (confirm('Are you sure you want to logout?')) {
+        try {
+            await apiFetch('/auth/admin/logout', { method: 'POST' });
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+        currentAdmin = null;
+        currentRole = null;
+        clearAuthToken();
+        localStorage.removeItem('crown_plaza_currentAdmin');
+        localStorage.removeItem('crown_plaza_currentRole');
+        document.getElementById('adminDashboard').classList.add('hidden');
+        document.getElementById('loginSelectionPage').classList.remove('hidden');
+        document.getElementById('adminLoginForm').reset();
+        switchLoginType('guest');
+        showToast('Logged out successfully', 'success');
+        speakText('Admin logged out');
+        addActivityLog('admin_logout', 'Admin logged out');
+    }
+}
+
+async function loginAsRole(role) {
+    currentRole = role;
+    localStorage.setItem('crown_plaza_currentRole', role);
+    document.getElementById('roleSelectionPage').classList.add('hidden');
+    document.getElementById('adminDashboard').classList.remove('hidden');
+    document.getElementById('roleDisplay').textContent = role.replace('_', ' ').toUpperCase();
+    document.getElementById('adminRoleBadge').textContent = role.replace('_', ' ').toUpperCase();
+
+    // Load all data
+    await Promise.all([
+        loadRooms(),
+        loadRequests(),
+        loadGuests(),
+        loadFoodMenu(),
+        loadInventory(),
+        loadMaintenance(),
+        loadBlacklist(),
+        loadReviews(),
+        loadLoyalty(),
+        loadStaff(),
+        loadActivityLogs(),
+        loadSettings()
+    ]);
+
+    showToast(`Logged in as ${role.replace('_', ' ')}`, 'success');
+    showAdminTab('overview');
+    initCharts();
+    addActivityLog('role_selected', `${currentAdmin?.email} logged in as ${role}`);
+}
+
+// ==================== RENDER FUNCTIONS (UI) ====================
+
+function renderRooms() {
+    const container = document.getElementById('roomsList');
+    if (!container) return;
+    container.innerHTML = '';
+    rooms.forEach((room, index) => {
+        const statusColor = room.status === 'Occupied' ? 'text-green-600' : room.status === 'Cleaning' ? 'text-yellow-600' : 'text-gray-600';
+        container.innerHTML += `
+            <tr class="border-b dark:border-gray-700">
+                <td class="p-2">${room.number}</td>
+                <td class="p-2">${room.type}</td>
+                <td class="p-2 ${statusColor}">${room.status}</td>
+                <td class="p-2">${room.guest || '-'}</td>
+                <td class="p-2"><button onclick="generateRoomQR(${room.number})" class="bg-purple-500 text-white px-2 py-1 rounded text-xs">QR</button></td>
+                <td class="p-2">
+                    <button onclick="editRoom('${room._id}')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs mr-1">Edit</button>
+                    <button onclick="deleteRoom('${room._id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Delete</button>
+                </td>
+            </tr>
+        `;
+    });
+}
 
 function renderAdminRequests() {
-  const container = document.getElementById('adminRequestsList');
-  if (!container) return;
-  if (requests.length === 0) { container.innerHTML = '<div class="text-center py-4 text-gray-500">No requests</div>'; return; }
-  container.innerHTML = requests.map(r => `
-    <div class="border-l-4 border-purple-500 bg-gray-50 p-3 rounded-lg text-sm">
-      <div class="flex justify-between">
-        <div><strong>${r.guestName}</strong> - Room ${r.roomNumber}<br>
-        <span class="text-xs text-gray-500">${r.category}</span><br>
-        <span class="text-xs">${r.description}</span></div>
-        <button onclick="completeRequest(${r.id})" class="text-green-600">✅</button>
-      </div>
-    </div>
-  `).join('');
+    const container = document.getElementById('adminRequestsList');
+    if (!container) return;
+    container.innerHTML = '';
+    requests.forEach((req, idx) => {
+        const priorityColor = req.priority === 'emergency' ? 'bg-red-100 dark:bg-red-900/30' : 
+                             req.priority === 'high' ? 'bg-orange-100 dark:bg-orange-900/30' : 
+                             req.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/30' : 'bg-green-100 dark:bg-green-900/30';
+        container.innerHTML += `
+            <div class="request-card ${priorityColor} p-3 rounded-lg mb-2">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <strong>${req.guestName}</strong> - Room ${req.roomNumber}<br>
+                        <span class="text-sm">${req.department}: ${req.description}</span><br>
+                        <span class="text-xs text-gray-500">Priority: ${req.priority} | Status: ${req.status} | ${new Date(req.createdAt).toLocaleString()}</span>
+                    </div>
+                    <div>
+                        <button onclick="updateRequestStatus('${req._id}', 'in_progress')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs ml-1">In Progress</button>
+                        <button onclick="updateRequestStatus('${req._id}', 'completed')" class="bg-green-500 text-white px-2 py-1 rounded text-xs ml-1">Complete</button>
+                        <button onclick="deleteRequest('${req._id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs ml-1">Delete</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
 }
 
-function completeRequest(id) {
-  const req = requests.find(r => r.id === id);
-  if (req) { req.status = 'completed'; saveData(); renderAdminRequests(); updateAdminDashboard(); showToast('Request completed'); }
-}
-
-function updateAdminDashboard() {
-  document.getElementById('statTotalRooms').textContent = rooms.length;
-  document.getElementById('statOccupied').textContent = rooms.filter(r => r.status === 'Occupied').length;
-  document.getElementById('statOpenRequests').textContent = requests.filter(r => r.status === 'open').length;
-  document.getElementById('statCompleted').textContent = requests.filter(r => r.status === 'completed').length;
-}
-
-// ============ ROOMS ============
-function renderRooms() {
-  const container = document.getElementById('roomsList');
-  if (!container) return;
-  if (rooms.length === 0) { container.innerHTML = '<div class="text-center py-4 text-gray-500">No rooms</div>'; return; }
-  container.innerHTML = rooms.map((r,i) => `
-    <div class="flex justify-between items-center p-3 border rounded-lg">
-      <div><strong>Room ${r.number}</strong><br><span class="text-sm">${r.type}</span></div>
-      <span class="badge ${r.status==='Occupied'?'bg-green-100 text-green-700':'bg-blue-100 text-blue-700'}">${r.status}</span>
-      <button onclick="deleteRoom(${i})" class="text-red-500">🗑️</button>
-    </div>
-  `).join('');
-}
-
-function openAddRoomModal() {
-  document.getElementById('roomModalTitle').textContent = 'Add New Room';
-  document.getElementById('roomForm').reset();
-  document.getElementById('roomEditIndex').value = '-1';
-  document.getElementById('roomModal').classList.remove('hidden');
-}
-
-document.getElementById('roomForm')?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const idx = parseInt(document.getElementById('roomEditIndex').value);
-  const room = {
-    id: idx >= 0 ? rooms[idx].id : Date.now(),
-    number: parseInt(document.getElementById('roomNumberInput').value),
-    type: document.getElementById('roomTypeInput').value,
-    status: document.getElementById('roomStatusInput').value
-  };
-  if (idx >= 0) rooms[idx] = room;
-  else rooms.push(room);
-  saveData(); renderRooms(); updateAdminDashboard(); closeModal('roomModal');
-  showToast(idx >= 0 ? 'Room updated' : 'Room added');
-});
-
-function deleteRoom(index) {
-  if (confirm('Delete this room?')) { rooms.splice(index,1); saveData(); renderRooms(); updateAdminDashboard(); showToast('Room deleted'); }
-}
-
-// ============ FOOD MENU ============
 function renderFoodMenu() {
-  const container = document.getElementById('foodMenuList');
-  if (!container) return;
-  if (foodMenu.length === 0) { container.innerHTML = '<div class="text-center py-4 text-gray-500">No menu items</div>'; return; }
-  container.innerHTML = foodMenu.map((f,i) => `
-    <div class="flex justify-between items-center p-3 border rounded-lg">
-      <div><strong>${f.name}</strong><br><span class="text-sm">$${f.price}</span></div>
-      <button onclick="deleteFood(${i})" class="text-red-500">🗑️</button>
-    </div>
-  `).join('');
+    const container = document.getElementById('foodMenuList');
+    if (!container) return;
+    container.innerHTML = '';
+    foodMenu.forEach((item, index) => {
+        container.innerHTML += `
+            <div class="food-item flex justify-between items-center p-3 rounded-lg border">
+                <div>
+                    <strong>${item.name}</strong><br>
+                    <span class="text-sm">${hotelSettings.currency || '$'}${item.price} - ${item.category}</span>
+                </div>
+                <div>
+                    <button onclick="editDish('${item._id}')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs mr-1">Edit</button>
+                    <button onclick="deleteDish('${item._id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Delete</button>
+                </div>
+            </div>
+        `;
+    });
 }
 
 function renderDynamicFoodMenu() {
-  const container = document.getElementById('dynamicFoodMenu');
-  if (!container) return;
-  container.innerHTML = foodMenu.map(f => `
-    <button onclick="addToCart('${f.name}',${f.price})" class="p-3 border rounded-lg text-left hover:bg-purple-50">
-      <div class="font-semibold">${f.name}</div>
-      <div class="text-purple-600 font-bold">$${f.price}</div>
-    </button>
-  `).join('');
+    const container = document.getElementById('dynamicFoodMenu');
+    if (!container || !currentGuest) return;
+    container.innerHTML = '';
+    foodMenu.forEach((item, idx) => {
+        container.innerHTML += `
+            <div class="food-card bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm">
+                <div class="font-semibold">${item.name}</div>
+                <div class="text-sm text-gray-600">${hotelSettings.currency || '$'}${item.price}</div>
+                <button onclick="addToCart('${item._id}')" class="mt-2 bg-purple-500 text-white px-3 py-1 rounded text-xs w-full">Add to Cart</button>
+            </div>
+        `;
+    });
+    updateCart();
 }
 
-function openAddFoodModal() {
-  document.getElementById('foodModalTitle').textContent = 'Add New Dish';
-  document.getElementById('foodForm').reset();
-  document.getElementById('foodEditIndex').value = '-1';
-  document.getElementById('foodModal').classList.remove('hidden');
+function renderInventory() {
+    const container = document.getElementById('inventoryList');
+    if (!container) return;
+    container.innerHTML = '';
+    inventory.forEach((item, index) => {
+        container.innerHTML += `
+            <div class="inventory-item flex justify-between items-center p-3 rounded-lg border">
+                <div>
+                    <strong>${item.name}</strong><br>
+                    <span class="text-sm">Quantity: ${item.quantity} ${item.unit || 'pcs'}</span>
+                </div>
+                <div>
+                    <button onclick="editInventoryItem('${item._id}')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs mr-1">Edit</button>
+                    <button onclick="deleteInventoryItem('${item._id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Delete</button>
+                </div>
+            </div>
+        `;
+    });
 }
 
-document.getElementById('foodForm')?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const idx = parseInt(document.getElementById('foodEditIndex').value);
-  const item = {
-    id: idx >= 0 ? foodMenu[idx].id : Date.now(),
-    name: document.getElementById('foodNameInput').value,
-    price: parseFloat(document.getElementById('foodPriceInput').value),
-    category: document.getElementById('foodCategoryInput').value
-  };
-  if (idx >= 0) foodMenu[idx] = item;
-  else foodMenu.push(item);
-  saveData(); renderFoodMenu(); renderDynamicFoodMenu(); closeModal('foodModal');
-  showToast(idx >= 0 ? 'Item updated' : 'Item added');
+function renderMaintenance() {
+    const container = document.getElementById('maintenanceList');
+    if (!container) return;
+    container.innerHTML = '';
+    maintenance.forEach((task, index) => {
+        container.innerHTML += `
+            <div class="maintenance-item flex justify-between items-center p-3 rounded-lg border">
+                <div>
+                    <strong>${task.title}</strong><br>
+                    <span class="text-sm">Date: ${task.date} | Status: ${task.status || 'Scheduled'}</span>
+                </div>
+                <div>
+                    <button onclick="editMaintenanceTask('${task._id}')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs mr-1">Edit</button>
+                    <button onclick="deleteMaintenanceTask('${task._id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Delete</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function renderBlacklist() {
+    const container = document.getElementById('blacklistList');
+    if (!container) return;
+    container.innerHTML = '';
+    blacklist.forEach((item, index) => {
+        container.innerHTML += `
+            <div class="blacklist-item flex justify-between items-center p-3 rounded-lg border">
+                <div>
+                    <strong>${item.name}</strong><br>
+                    <span class="text-sm">Room ${item.room} - ${item.reason || 'Violation'}</span>
+                </div>
+                <button onclick="removeFromBlacklist('${item._id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Remove</button>
+            </div>
+        `;
+    });
+}
+
+function renderReviews() {
+    const container = document.getElementById('reviewsList');
+    if (!container) return;
+    container.innerHTML = '';
+    reviews.slice().reverse().forEach((review, index) => {
+        container.innerHTML += `
+            <div class="review-card p-3 rounded-lg border">
+                <div class="flex justify-between">
+                    <strong>${review.guestName}</strong>
+                    <span>${'⭐'.repeat(review.rating)}</span>
+                </div>
+                <p class="text-sm mt-1">${review.review || ''}</p>
+                <div class="text-xs text-gray-500 mt-1">${new Date(review.date).toLocaleString()}</div>
+            </div>
+        `;
+    });
+}
+
+function renderLoyalty() {
+    const container = document.getElementById('loyaltyList');
+    if (!container) return;
+    container.innerHTML = '';
+    loyalty.forEach((entry, index) => {
+        container.innerHTML += `
+            <div class="loyalty-item flex justify-between items-center p-3 rounded-lg border">
+                <div>
+                    <strong>${entry.name}</strong><br>
+                    <span class="text-sm">Room ${entry.room}</span>
+                </div>
+                <div>
+                    <span class="text-lg font-bold">${entry.points} pts</span>
+                    <button onclick="redeemLoyaltyPoints('${entry.name}')" class="bg-purple-500 text-white px-2 py-1 rounded text-xs ml-2">Redeem</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function renderStaff() {
+    const container = document.getElementById('staffPerformanceList');
+    if (!container) return;
+    container.innerHTML = '';
+    staff.forEach((member, index) => {
+        const completionRate = member.totalTasks ? Math.round((member.completedTasks / member.totalTasks) * 100) : 0;
+        container.innerHTML += `
+            <div class="staff-item p-3 rounded-lg border">
+                <div class="flex justify-between">
+                    <strong>${member.name}</strong>
+                    <span>${member.role}</span>
+                </div>
+                <div class="text-sm">Tasks Completed: ${member.completedTasks}/${member.totalTasks} (${completionRate}%)</div>
+                <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                    <div class="bg-green-500 h-2 rounded-full" style="width: ${completionRate}%"></div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function renderActivityLogs() {
+    const container = document.getElementById('activityLogsList');
+    if (!container) return;
+    container.innerHTML = activityLogs.slice().reverse().slice(0, 50).map(log => `
+        <div class="text-sm p-2 border-b">
+            <span class="text-gray-500">${new Date(log.timestamp).toLocaleString()}</span> - ${log.action}: ${log.details}
+        </div>
+    `).join('');
+}
+
+function renderGuests() {
+    const container = document.getElementById('guestsList');
+    if (!container) return;
+    container.innerHTML = '';
+    guests.forEach((guest, index) => {
+        container.innerHTML += `
+            <div class="room-card flex justify-between items-center p-3 rounded-lg border">
+                <div>
+                    <strong>${guest.name}</strong> - Room ${guest.room}<br>
+                    <span class="text-xs">Check-in: ${new Date(guest.checkIn).toLocaleString()}</span>
+                </div>
+                <button onclick="checkoutGuest('${guest._id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Checkout</button>
+            </div>
+        `;
+    });
+}
+
+function renderGuestRequests(guestRequests) {
+    const container = document.getElementById('guestRequestsList');
+    if (!container || !currentGuest) return;
+    container.innerHTML = '';
+    (guestRequests || []).slice().reverse().forEach(req => {
+        container.innerHTML += `
+            <div class="request-card p-3 rounded-lg border">
+                <div><strong>${req.department}</strong></div>
+                <div class="text-sm">${req.description}</div>
+                <div class="text-xs text-gray-500 mt-1">Status: ${req.status} | ${new Date(req.createdAt).toLocaleString()}</div>
+            </div>
+        `;
+    });
+}
+
+// ==================== UI PREFERENCES (LocalStorage Only) ====================
+
+function toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    localStorage.setItem('crown_plaza_darkMode', isDarkMode.toString());
+    if (isDarkMode) {
+        document.body.classList.add('dark');
+        document.getElementById('darkModeToggle').innerHTML = '☀️';
+    } else {
+        document.body.classList.remove('dark');
+        document.getElementById('darkModeToggle').innerHTML = '🌙';
+    }
+    showToast(isDarkMode ? 'Dark mode enabled' : 'Light mode enabled', 'success');
+}
+
+function adjustFontSize(action) {
+    if (action === 'increase') {
+        fontSizeScale = Math.min(fontSizeScale + 0.1, 1.5);
+    } else if (action === 'decrease') {
+        fontSizeScale = Math.max(fontSizeScale - 0.1, 0.8);
+    } else {
+        fontSizeScale = 1;
+    }
+    localStorage.setItem('crown_plaza_fontSize', fontSizeScale.toString());
+    document.documentElement.style.setProperty('--font-scale', fontSizeScale);
+    showToast('Font size updated', 'success');
+}
+
+function adjustBrightness(value) {
+    brightnessLevel = parseFloat(value);
+    document.documentElement.style.setProperty('--brightness-filter', `brightness(${brightnessLevel})`);
+    document.getElementById('brightnessValue').textContent = Math.round(brightnessLevel * 100) + '%';
+    localStorage.setItem('crown_plaza_brightness', brightnessLevel.toString());
+}
+
+function setTheme(themeName) {
+    currentTheme = themeName;
+    localStorage.setItem('crown_plaza_theme', themeName);
+    if (themeName === 'default') {
+        document.documentElement.removeAttribute('data-theme');
+    } else {
+        document.documentElement.setAttribute('data-theme', themeName);
+    }
+    showToast('Theme updated!', 'success');
+}
+
+function changeLanguage(lang) {
+    preferredLanguage = lang;
+    localStorage.setItem('preferredLanguage', lang);
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    // Update UI texts here (i18n implementation)
+    showToast(`Language changed to ${lang}`, 'success');
+}
+
+function toggleHighContrast() {
+    document.body.classList.toggle('high-contrast');
+    showToast(document.body.classList.contains('high-contrast') ? 'High contrast enabled' : 'High contrast disabled', 'success');
+}
+
+function updateCurrencySymbols(lang) {
+    const currencyMap = { en: '$', hi: '₹', ar: 'ر.س' };
+    const symbol = hotelSettings.currency || currencyMap[lang] || '$';
+    document.querySelectorAll('.currency-badge').forEach(el => el.textContent = symbol);
+}
+
+function updateTransportPriceDisplays() {
+    const airportSpan = document.getElementById('airportPriceDisplay');
+    const localSpan = document.getElementById('localPriceDisplay');
+    if (airportSpan) airportSpan.textContent = `${hotelSettings.currency || '$'}${hotelSettings.airportPrice || 30}`;
+    if (localSpan) localSpan.textContent = `${hotelSettings.currency || '$'}${hotelSettings.localCabPrice || 15}`;
+}
+
+// ==================== EVENT LISTENERS & INITIALIZATION ====================
+
+document.getElementById('guestLoginForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('guestNameInput').value.trim();
+    const room = document.getElementById('guestRoomInput').value.trim();
+    if (name && room) {
+        await guestLogin(name, room);
+    }
 });
 
-function deleteFood(index) {
-  if (confirm('Delete this item?')) { foodMenu.splice(index,1); saveData(); renderFoodMenu(); renderDynamicFoodMenu(); showToast('Item deleted'); }
+document.getElementById('adminLoginForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('adminEmailInput').value.trim();
+    const password = document.getElementById('adminPasswordInput').value.trim();
+    if (email && password) {
+        await adminLogin(email, password);
+    }
+});
+
+document.getElementById('adminRequestForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const requestData = {
+        guestName: document.getElementById('reqGuestName').value,
+        roomNumber: document.getElementById('reqRoomNumber').value,
+        department: document.getElementById('reqDepartment').value,
+        category: document.getElementById('reqCategory').value,
+        description: document.getElementById('reqDescription').value,
+        priority: document.getElementById('reqPriority').value,
+        status: 'open',
+        createdAt: new Date().toISOString()
+    };
+    await addRequest(requestData);
+    document.getElementById('adminRequestForm').reset();
+});
+
+document.getElementById('guestRequestForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentGuest) return;
+    const requestData = {
+        guestName: currentGuest.name,
+        roomNumber: currentGuest.room,
+        department: document.getElementById('guestDepartment').value,
+        category: document.getElementById('guestCategory').value,
+        description: document.getElementById('guestDescription').value,
+        priority: document.getElementById('guestPriority').value,
+        status: 'open',
+        createdAt: new Date().toISOString()
+    };
+    await submitGuestRequest(requestData);
+    document.getElementById('guestRequestForm').reset();
+});
+
+document.getElementById('roomForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const editId = document.getElementById('roomEditId').value;
+    const roomData = {
+        number: parseInt(document.getElementById('roomNumberInput').value),
+        type: document.getElementById('roomTypeInput').value,
+        status: document.getElementById('roomStatusInput').value,
+        guest: document.getElementById('roomGuestInput').value || ''
+    };
+    if (editId) {
+        await updateRoom(editId, roomData);
+    } else {
+        await addRoom(roomData);
+    }
+    closeRoomModal();
+});
+
+document.getElementById('foodForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const editId = document.getElementById('foodEditId').value;
+    const dishData = {
+        name: document.getElementById('foodNameInput').value,
+        price: parseFloat(document.getElementById('foodPriceInput').value),
+        category: document.getElementById('foodCategoryInput').value,
+        description: document.getElementById('foodDescInput').value
+    };
+    if (editId) {
+        await updateDish(editId, dishData);
+    } else {
+        await addDish(dishData);
+    }
+    closeFoodModal();
+});
+
+document.getElementById('transportForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const type = document.getElementById('transportType').value;
+    const time = document.getElementById('transportTime').value;
+    const price = type === 'airport' ? hotelSettings.airportPrice : hotelSettings.localCabPrice;
+    showToast(`${type === 'airport' ? 'Airport Transfer' : 'Local Cab'} booked! Price: ${hotelSettings.currency || '$'}${price}`, 'success');
+    await addActivityLog('transport_booked', `${currentGuest?.name} booked ${type} transport`);
+    document.getElementById('transportForm').reset();
+});
+
+// ==================== WRAPPER FUNCTIONS FOR UI BUTTONS ====================
+
+async function openAddRoomModal() {
+    document.getElementById('roomEditId').value = '';
+    document.getElementById('roomNumberInput').value = '';
+    document.getElementById('roomTypeInput').value = 'Standard';
+    document.getElementById('roomStatusInput').value = 'Vacant';
+    document.getElementById('roomGuestInput').value = '';
+    document.getElementById('roomModal').classList.add('active');
 }
 
-// ============ GUEST FOOD CART ============
-function addToCart(name, price) {
-  cart.push({ name, price });
-  updateCart();
-  showToast(name + ' added to cart');
+async function editRoom(id) {
+    const room = rooms.find(r => r._id === id);
+    if (room) {
+        document.getElementById('roomEditId').value = id;
+        document.getElementById('roomNumberInput').value = room.number;
+        document.getElementById('roomTypeInput').value = room.type;
+        document.getElementById('roomStatusInput').value = room.status;
+        document.getElementById('roomGuestInput').value = room.guest || '';
+        document.getElementById('roomModal').classList.add('active');
+    }
+}
+
+async function openAddFoodModal() {
+    document.getElementById('foodEditId').value = '';
+    document.getElementById('foodNameInput').value = '';
+    document.getElementById('foodPriceInput').value = '';
+    document.getElementById('foodCategoryInput').value = 'Main Course';
+    document.getElementById('foodDescInput').value = '';
+    document.getElementById('foodModal').classList.add('active');
+}
+
+async function editDish(id) {
+    const dish = foodMenu.find(d => d._id === id);
+    if (dish) {
+        document.getElementById('foodEditId').value = id;
+        document.getElementById('foodNameInput').value = dish.name;
+        document.getElementById('foodPriceInput').value = dish.price;
+        document.getElementById('foodCategoryInput').value = dish.category;
+        document.getElementById('foodDescInput').value = dish.description || '';
+        document.getElementById('foodModal').classList.add('active');
+    }
+}
+
+async function addInventoryItem() {
+    const name = prompt('Enter item name:');
+    if (!name) return;
+    const quantity = prompt('Enter quantity:');
+    if (!quantity) return;
+    await addInventoryItem({ name, quantity: parseInt(quantity), unit: 'pcs' });
+}
+
+async function editInventoryItem(id) {
+    const item = inventory.find(i => i._id === id);
+    if (item) {
+        const newQty = prompt('Enter new quantity:', item.quantity);
+        if (newQty) {
+            await updateInventoryItem(id, { ...item, quantity: parseInt(newQty) });
+        }
+    }
+}
+
+async function addMaintenanceTask() {
+    const title = prompt('Enter task title:');
+    if (!title) return;
+    const date = prompt('Enter date (YYYY-MM-DD):');
+    await addMaintenanceTask({ title, date: date || new Date().toISOString().split('T')[0], status: 'Scheduled' });
+}
+
+async function editMaintenanceTask(id) {
+    const task = maintenance.find(m => m._id === id);
+    if (task) {
+        const newStatus = prompt('Enter new status (Scheduled/In Progress/Completed):', task.status);
+        if (newStatus) {
+            await updateMaintenanceTask(id, { ...task, status: newStatus });
+        }
+    }
+}
+
+async function addToBlacklist() {
+    const name = prompt('Enter guest name:');
+    if (!name) return;
+    const room = prompt('Enter room number:');
+    const reason = prompt('Reason for blacklist:');
+    await addToBlacklist({ name, room, reason: reason || 'Violation', date: new Date().toISOString() });
+}
+
+async function saveHotelName() {
+    const name = document.getElementById('hotelNameInput').value;
+    await saveHotelNameToDB(name);
+}
+
+async function saveCurrencySettings() {
+    const currency = document.getElementById('currencySymbolInput').value;
+    const priceFormat = document.getElementById('priceFormatInput').value;
+    await saveCurrencySettings(currency, priceFormat);
+}
+
+async function saveTransportPrices() {
+    const airportPrice = parseInt(document.getElementById('airportPriceInput').value);
+    const localCabPrice = parseInt(document.getElementById('localCabPriceInput').value);
+    await saveTransportPrices(airportPrice, localCabPrice);
+}
+
+async function saveWifiPassword() {
+    const password = document.getElementById('wifiPasswordInput').value;
+    await saveWifiPasswordToDB(password);
+}
+
+async function generateReport(type) {
+    const output = document.getElementById('reportOutput');
+    let report = `<h4 class="font-bold">${type.toUpperCase()} REPORT</h4><hr class="my-2">`;
+    if (type === 'daily') {
+        const today = new Date().toISOString().split('T')[0];
+        const todayRequests = requests.filter(r => r.createdAt?.split('T')[0] === today);
+        report += `<p>Date: ${today}</p><p>Total Requests Today: ${todayRequests.length}</p>`;
+        report += `<p>Rooms Occupied: ${rooms.filter(r => r.status === 'Occupied').length}</p>`;
+    } else if (type === 'weekly') {
+        const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+        const weekRequests = requests.filter(r => r.createdAt >= weekAgo);
+        report += `<p>Last 7 Days</p><p>Total Requests: ${weekRequests.length}</p>`;
+        report += `<p>Average Daily: ${(weekRequests.length / 7).toFixed(1)}</p>`;
+    } else if (type === 'monthly') {
+        const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+        const monthRequests = requests.filter(r => r.createdAt >= monthAgo);
+        report += `<p>Last 30 Days</p><p>Total Requests: ${monthRequests.length}</p>`;
+        report += `<p>Total Reviews: ${reviews.length}</p>`;
+        const avgRating = reviews.length ? (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1) : 0;
+        report += `<p>Average Rating: ${avgRating}/5</p>`;
+    }
+    output.innerHTML = report;
+}
+
+async function checkoutGuest(id) {
+    const guest = guests.find(g => g._id === id);
+    if (guest && confirm(`Checkout ${guest.name}?`)) {
+        await apiFetch(`/guests/${id}`, { method: 'DELETE' });
+        await loadGuests();
+        const room = rooms.find(r => r.number == guest.room);
+        if (room) {
+            await updateRoom(room._id, { ...room, status: 'Vacant', guest: '' });
+        }
+        await addActivityLog('guest_checkout', `${guest.name} checked out`);
+        showToast(`${guest.name} checked out`);
+    }
+}
+
+async function submitRating() {
+    const rating = parseInt(document.getElementById('ratingValue')?.value || 5);
+    const review = document.getElementById('reviewText')?.value || '';
+    if (currentGuest) {
+        await submitReview({
+            guestName: currentGuest.name,
+            roomNumber: currentGuest.room,
+            rating: rating,
+            review: review,
+            date: new Date().toISOString()
+        });
+        await addLoyaltyPoints(currentGuest.name, 50);
+        closeModal('ratingModal');
+        setTimeout(() => logoutGuest(), 1500);
+    }
+}
+
+// ==================== UTILITY FUNCTIONS ====================
+
+function syncHotelName() {
+    const name = hotelSettings.name || 'Crown Plaza Hotel';
+    document.getElementById('welcomeTitle').textContent = name;
+    document.getElementById('headerHotelName').textContent = name;
+    document.getElementById('guestHeaderHotelName').textContent = name;
+    document.getElementById('hotelNameDisplay').textContent = name;
+    document.title = `${name} - Ultimate Management System`;
+}
+
+function updateStats() {
+    const occupiedCount = rooms.filter(r => r.status === 'Occupied').length;
+    const openRequests = requests.filter(r => r.status === 'open').length;
+    const inProgressRequests = requests.filter(r => r.status === 'in_progress').length;
+    const emergencyRequests = requests.filter(r => r.priority === 'emergency' && r.status !== 'completed').length;
+    const avgRating = reviews.length ? (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1) : 0;
+
+    document.getElementById('statTotalRooms').textContent = rooms.length;
+    document.getElementById('statOccupied').textContent = occupiedCount;
+    document.getElementById('statOpenRequests').textContent = openRequests;
+    document.getElementById('statInProgress').textContent = inProgressRequests;
+    document.getElementById('statEmergency').textContent = emergencyRequests;
+    document.getElementById('statAvgRating').textContent = avgRating;
+}
+
+function updateGuestDashboard() {
+    if (!currentGuest) return;
+    const guestRequests = requests.filter(r => r.roomNumber == currentGuest.room);
+    document.getElementById('guestTotalRequests').textContent = guestRequests.length;
+    document.getElementById('guestPendingCount').textContent = guestRequests.filter(r => r.status !== 'completed').length;
+    document.getElementById('guestCompletedCount').textContent = guestRequests.filter(r => r.status === 'completed').length;
+    document.getElementById('guestPoints').textContent = `⭐ ${currentGuest.points || 0} pts`;
+}
+
+function showAdminTab(tabName) {
+    const tabs = ['overview', 'requests', 'rooms', 'guests', 'reviews', 'reports', 'qrcodes', 'logs', 
+                  'inventory', 'maintenance', 'blacklist', 'loyalty', 'staff', 'foodmenu', 'settings'];
+    tabs.forEach(tab => {
+        const el = document.getElementById(tab + 'Tab');
+        if (el) el.classList.add('hidden');
+    });
+    const selectedTab = document.getElementById(tabName + 'Tab');
+    if (selectedTab) selectedTab.classList.remove('hidden');
+}
+
+function showGuestTab(tabName) {
+    const tabs = ['newRequest', 'foodOrder', 'transport', 'myRequests', 'hotelInfo'];
+    tabs.forEach(tab => {
+        const el = document.getElementById('guest' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'Tab');
+        if (el) el.classList.add('hidden');
+    });
+    const selectedTab = document.getElementById('guest' + tabName.charAt(0).toUpperCase() + tabName.slice(1) + 'Tab');
+    if (selectedTab) selectedTab.classList.remove('hidden');
+    if (tabName === 'foodOrder') renderDynamicFoodMenu();
+}
+
+function switchLoginType(type) {
+    const guestForm = document.getElementById('guestLoginForm');
+    const adminForm = document.getElementById('adminLoginForm');
+    const closeBtn = document.getElementById('closeAdminFormBtn');
+    if (type === 'guest') {
+        guestForm.classList.remove('hidden');
+        adminForm.classList.add('hidden');
+        if (closeBtn) closeBtn.classList.add('hidden');
+    } else {
+        guestForm.classList.add('hidden');
+        adminForm.classList.remove('hidden');
+        if (closeBtn) closeBtn.classList.remove('hidden');
+    }
+}
+
+function backToMain() {
+    document.getElementById('roleSelectionPage').classList.add('hidden');
+    document.getElementById('loginSelectionPage').classList.remove('hidden');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+}
+
+function closeRoomModal() {
+    document.getElementById('roomModal').classList.remove('active');
+}
+
+function closeFoodModal() {
+    document.getElementById('foodModal').classList.remove('active');
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    document.getElementById('toastContainer')?.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+function speakText(text) {
+    if (!text || typeof window.speechSynthesis === 'undefined') return;
+    try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        utterance.pitch = 1.1;
+        utterance.lang = preferredLanguage === 'hi' ? 'hi-IN' : preferredLanguage === 'ar' ? 'ar-SA' : 'en-US';
+        window.speechSynthesis.speak(utterance);
+    } catch(e) {
+        console.log('Speech error:', e);
+    }
+}
+
+function copyWifiPassword() {
+    const password = document.getElementById('guestWifiPassword').textContent;
+    navigator.clipboard.writeText(password).then(() => showToast('Password copied!'));
+}
+
+function copyReferralCode() {
+    const code = document.getElementById('referralCodeDisplay').textContent;
+    navigator.clipboard.writeText(code).then(() => showToast('Code copied!'));
+}
+
+function testHaptic() {
+    if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+        showToast('📳 Haptic feedback!');
+    } else {
+        showToast('Haptic not supported', 'warning');
+    }
+}
+
+function requestPushPermission() {
+    if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+            showToast(permission === 'granted' ? '🔔 Notifications enabled!' : '🔕 Notifications denied', 
+                     permission === 'granted' ? 'success' : 'warning');
+        });
+    }
+}
+
+function updateOnlineStatus() {
+    const indicator = document.getElementById('onlineIndicator');
+    if (navigator.onLine && !isOfflineMode) {
+        indicator.className = 'online-indicator online';
+        indicator.textContent = '🟢 Online';
+    } else {
+        indicator.className = 'online-indicator offline';
+        indicator.textContent = '🔴 Offline';
+    }
+}
+
+function toggleOfflineMode() {
+    isOfflineMode = !isOfflineMode;
+    localStorage.setItem('crown_plaza_offlineMode', isOfflineMode.toString());
+    updateOnlineStatus();
+    showToast(isOfflineMode ? '📴 Offline mode enabled' : '📴 Offline mode disabled', 'warning');
+}
+
+function startLiveClock() {
+    function updateClock() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const dateString = now.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'});
+        const elements = ['liveDateTime', 'liveClockAdmin', 'liveClockGuest', 'guestLocalTime', 'localTimeDisplay'];
+        elements.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                if (id === 'liveDateTime') el.textContent = `${dateString} • ${timeString}`;
+                else if (id === 'localTimeDisplay') el.textContent = now.toLocaleString();
+                else el.textContent = timeString;
+            }
+        });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+}
+
+function initCharts() {
+    // Chart initialization code here
+}
+
+function updateAdminDashboard() { updateStats(); }
+function updateGuestDashboard() { /* handled above */ }
+
+// ==================== INITIALIZATION ====================
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Apply UI preferences
+    document.documentElement.style.setProperty('--font-scale', fontSizeScale);
+    document.documentElement.style.setProperty('--brightness-filter', `brightness(${brightnessLevel})`);
+    if (currentTheme !== 'default') document.documentElement.setAttribute('data-theme', currentTheme);
+    if (isDarkMode) {
+        document.body.classList.add('dark');
+        document.getElementById('darkModeToggle').innerHTML = '☀️';
+    }
+
+    // Load settings first
+    await loadSettings();
+    syncHotelName();
+
+    // Load language
+    changeLanguage(preferredLanguage);
+
+    // Check for existing session
+    const savedGuest = localStorage.getItem('crown_plaza_currentGuest');
+    const savedAdmin = localStorage.getItem('crown_plaza_currentAdmin');
+    const savedRole = localStorage.getItem('crown_plaza_currentRole');
+
+    if (savedGuest) {
+        currentGuest = JSON.parse(savedGuest);
+        document.getElementById('loginSelectionPage').classList.add('hidden');
+        document.getElementById('guestDashboard').classList.remove('hidden');
+        document.getElementById('guestInfo').textContent = `${currentGuest.name} • Room ${currentGuest.room}`;
+        await loadGuestRequests();
+        await loadFoodMenu();
+        updateGuestDashboard();
+        renderDynamicFoodMenu();
+    } else if (savedAdmin && savedRole) {
+        currentAdmin = JSON.parse(savedAdmin);
+        currentRole = savedRole;
+        document.getElementById('loginSelectionPage').classList.add('hidden');
+        document.getElementById('roleSelectionPage').classList.add('hidden');
+        document.getElementById('adminDashboard').classList.remove('hidden');
+        document.getElementById('roleDisplay').textContent = currentRole.replace('_', ' ').toUpperCase();
+
+        // Load all data
+        await Promise.all([
+            loadRooms(),
+            loadRequests(),
+            loadGuests(),
+            loadFoodMenu(),
+            loadInventory(),
+            loadMaintenance(),
+            loadBlacklist(),
+            loadReviews(),
+            loadLoyalty(),
+            loadStaff(),
+            loadActivityLogs()
+        ]);
+
+        updateStats();
+        showAdminTab('overview');
+        initCharts();
+    }
+
+    startLiveClock();
+    updateOnlineStatus();
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    // Category dropdowns
+    if (document.getElementById('reqDepartment')) updateAdminCategories();
+    if (document.getElementById('guestDepartment')) updateGuestCategories();
+});
+
+// Category functions
+function updateAdminCategories() {
+    const dept = document.getElementById('reqDepartment')?.value;
+    const catSelect = document.getElementById('reqCategory');
+    if (!dept || !catSelect) return;
+    const categories = {
+        housekeeping: ['Room Cleaning', 'Extra Towels', 'Deep Cleaning', 'Bed Sheets'],
+        maintenance: ['AC Not Working', 'TV Issue', 'Plumbing', 'Electrical', 'Furniture Repair'],
+        restaurant: ['Order Food', 'Room Service', 'Special Request', 'Breakfast'],
+        laundry: ['Laundry Pickup', 'Iron Only', 'Dry Cleaning'],
+        it: ['WiFi Issue', 'TV Help', 'Charging Problem']
+    };
+    catSelect.innerHTML = '<option value="">Select Category</option>';
+    if (categories[dept]) {
+        categories[dept].forEach(cat => {
+            catSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+        });
+    }
+}
+
+function updateGuestCategories() {
+    const dept = document.getElementById('guestDepartment')?.value;
+    const catSelect = document.getElementById('guestCategory');
+    if (!dept || !catSelect) return;
+    const categories = {
+        housekeeping: ['Room Cleaning', 'Extra Towels', 'Deep Cleaning', 'Bed Sheets'],
+        maintenance: ['AC Not Working', 'TV Issue', 'Plumbing', 'Electrical', 'Furniture Repair'],
+        restaurant: ['Order Food', 'Room Service', 'Special Request', 'Breakfast'],
+        laundry: ['Laundry Pickup', 'Iron Only', 'Dry Cleaning'],
+        it: ['WiFi Issue', 'TV Help', 'Charging Problem']
+    };
+    catSelect.innerHTML = '<option value="">Select Service</option>';
+    if (categories[dept]) {
+        categories[dept].forEach(cat => {
+            catSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+        });
+    }
+}
+
+// Cart functions (local only - order goes to MongoDB)
+let cart = [];
+
+function addToCart(itemId) {
+    const item = foodMenu.find(f => f._id === itemId);
+    if (item) {
+        cart.push(item);
+        updateCart();
+        showToast(`${item.name} added to cart!`, 'success');
+    }
 }
 
 function updateCart() {
-  const container = document.getElementById('cartItems');
-  const totalEl = document.getElementById('cartTotal');
-  if (cart.length === 0) { container.innerHTML = '<div class="text-gray-500">Cart is empty</div>'; totalEl.textContent = '0'; return; }
-  const total = cart.reduce((s,i) => s + i.price, 0);
-  container.innerHTML = cart.map((item,idx) => `<div class="flex justify-between py-1"><span>${item.name}</span><span>$${item.price} <button onclick="cart.splice(${idx},1);updateCart()" class="text-red-500 ml-2">✕</button></span></div>`).join('') + `<div class="font-bold border-t pt-2">Total: $${total.toFixed(2)}</div>`;
-  totalEl.textContent = total.toFixed(2);
+    const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
+    document.getElementById('cartTotal').textContent = cartTotal.toFixed(2);
+    const cartItemsDiv = document.getElementById('cartItems');
+    if (cartItemsDiv) {
+        if (cart.length === 0) {
+            cartItemsDiv.innerHTML = '<div class="text-center text-gray-500">Cart is empty</div>';
+        } else {
+            cartItemsDiv.innerHTML = cart.map((item, i) => `
+                <div class="flex justify-between text-sm mb-1">
+                    <span>${item.name}</span>
+                    <span>${hotelSettings.currency || '$'}${item.price}</span>
+                    <button onclick="removeFromCart(${i})" class="text-red-500 text-xs">Remove</button>
+                </div>
+            `).join('');
+        }
+    }
 }
 
-function placeOrder() {
-  if (cart.length === 0) { showToast('Cart is empty!'); return; }
-  requests.unshift({
-    id: Date.now(), guestName: currentGuest.name, roomNumber: currentGuest.room,
-    department: 'restaurant', category: 'Food Order',
-    description: 'Order: ' + cart.map(c => c.name).join(', '),
-    status: 'open', createdAt: new Date().toISOString()
-  });
-  saveData(); cart = []; updateCart(); renderGuestRequests(); showToast('Order placed!');
+function removeFromCart(index) {
+    cart.splice(index, 1);
+    updateCart();
 }
 
-// ============ GUEST REQUESTS ============
-document.getElementById('guestRequestForm')?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  requests.unshift({
-    id: Date.now(), guestName: currentGuest.name, roomNumber: currentGuest.room,
-    department: document.getElementById('guestDepartment').value,
-    category: document.getElementById('guestCategory').value,
-    description: document.getElementById('guestDescription').value,
-    status: 'open', createdAt: new Date().toISOString()
-  });
-  saveData(); e.target.reset(); renderGuestRequests(); showToast('Request submitted!');
-});
-
-function renderGuestRequests() {
-  const container = document.getElementById('guestRequestsList');
-  if (!container || !currentGuest) return;
-  const myReqs = requests.filter(r => r.guestName === currentGuest.name && r.roomNumber === currentGuest.room);
-  if (myReqs.length === 0) { container.innerHTML = '<div class="text-center py-4 text-gray-500">No requests yet</div>'; return; }
-  container.innerHTML = myReqs.map(r => `
-    <div class="border-l-4 ${r.status==='completed'?'border-green-500':'border-yellow-500'} bg-gray-50 p-3 rounded-lg">
-      <strong>${r.category}</strong><p class="text-sm">${r.description}</p>
-      <span class="text-xs ${r.status==='completed'?'text-green-600':'text-yellow-600'}">${r.status==='completed'?'✅ Resolved':'⏳ Pending'}</span>
-    </div>
-  `).join('');
+function clearCart() {
+    cart = [];
+    updateCart();
+    showToast('Cart cleared', 'warning');
 }
 
-// ============ GUEST TABS ============
-function showGuestTab(tab) {
-  ['newRequest','foodOrder','transport','myRequests','hotelInfo'].forEach(t => {
-    document.getElementById('guest'+t.charAt(0).toUpperCase()+t.slice(1)+'Tab')?.classList.add('hidden');
-  });
-  document.getElementById('guest'+tab.charAt(0).toUpperCase()+tab.slice(1)+'Tab')?.classList.remove('hidden');
-  if (tab === 'myRequests') renderGuestRequests();
-  if (tab === 'foodOrder') renderDynamicFoodMenu();
+function reorderLast() {
+    const lastOrder = JSON.parse(localStorage.getItem('crown_plaza_last_order') || '[]');
+    if (lastOrder.length) {
+        cart = [...lastOrder];
+        updateCart();
+        showToast('Last order repeated', 'success');
+    } else {
+        showToast('No previous order found', 'warning');
+    }
 }
 
-// ============ TRANSPORT ============
-document.getElementById('transportForm')?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  requests.unshift({
-    id: Date.now(), guestName: currentGuest.name, roomNumber: currentGuest.room,
-    department: 'transport', category: document.getElementById('transportType').value,
-    description: 'Transport booking', status: 'open', createdAt: new Date().toISOString()
-  });
-  saveData(); showToast('Transport booked!'); e.target.reset(); showGuestTab('myRequests');
-});
-
-// ============ SETTINGS ============
-function saveHotelName() {
-  const name = document.getElementById('hotelNameInput').value;
-  ['welcomeTitle','headerHotelName','guestHeaderHotelName','pageTitle'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.textContent = name;
-  });
-  localStorage.setItem('cp_hotel_name', name);
-  showToast('Hotel name saved');
+async function placeOrder() {
+    if (cart.length === 0) {
+        showToast('Cart is empty!', 'warning');
+        return;
+    }
+    if (!currentGuest) {
+        showToast('Please login first!', 'error');
+        return;
+    }
+    const total = cart.reduce((sum, item) => sum + item.price, 0);
+    const order = {
+        guestName: currentGuest.name,
+        roomNumber: currentGuest.room,
+        items: cart.map(item => ({ id: item._id, name: item.name, price: item.price })),
+        total: total,
+        orderTime: new Date().toISOString()
+    };
+    try {
+        await apiFetch('/orders', { method: 'POST', body: JSON.stringify(order) });
+        localStorage.setItem('crown_plaza_last_order', JSON.stringify(cart));
+        await addActivityLog('food_order', `${currentGuest.name} placed order worth ${hotelSettings.currency || '$'}${total}`);
+        showToast(`✅ Order placed! Total: ${hotelSettings.currency || '$'}${total}`, 'success');
+        speakText(`Your order of ${cart.length} items has been placed`);
+        cart = [];
+        updateCart();
+    } catch (error) {
+        showToast('Failed to place order', 'error');
+    }
 }
 
-// ============ UI UTILITIES ============
-function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
-function toggleDarkMode() {
-  document.body.classList.toggle('dark');
-  const isDark = document.body.classList.contains('dark');
-  localStorage.setItem('cp_dark', isDark);
-  document.getElementById('darkModeToggle').textContent = isDark ? '☀️' : '🌙';
-}
-function adjustFontSize(action) {
-  const body = document.body;
-  if (action === 'increase') body.style.fontSize = '1.1em';
-  else if (action === 'decrease') body.style.fontSize = '0.9em';
-  else body.style.fontSize = '1em';
+function quickBook(type) {
+    const price = type === 'airport' ? hotelSettings.airportPrice : hotelSettings.localCabPrice;
+    showToast(`${type === 'airport' ? 'Airport Transfer' : 'Local Cab'} booked! Price: ${hotelSettings.currency || '$'}${price}`, 'success');
+    addActivityLog('transport_booked', `${currentGuest?.name} booked quick ${type}`);
 }
 
-// ============ INIT ============
-document.addEventListener('DOMContentLoaded', () => {
-  // Load saved preferences
-  if (localStorage.getItem('cp_dark') === 'true') { document.body.classList.add('dark'); document.getElementById('darkModeToggle').textContent = '☀️'; }
-  if (localStorage.getItem('cp_hotel_name')) {
-    const name = localStorage.getItem('cp_hotel_name');
-    ['welcomeTitle','headerHotelName','guestHeaderHotelName','pageTitle'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.textContent = name;
+function showSOSAlert() {
+    document.getElementById('sosModal').classList.remove('hidden');
+    addActivityLog('sos_triggered', `${currentGuest?.name || 'Someone'} triggered SOS`);
+    showToast('🚨 SOS Alert! Help is on the way.', 'error');
+    speakText('Emergency services have been notified');
+}
+
+function closeSOSModal() {
+    document.getElementById('sosModal').classList.add('hidden');
+}
+
+function showQRScanner() {
+    document.getElementById('qrScannerModal').classList.remove('hidden');
+}
+
+function closeQRScanner() {
+    document.getElementById('qrScannerModal').classList.add('hidden');
+}
+
+function processManualQR() {
+    const room = document.getElementById('manualQrInput').value;
+    if (room) {
+        showToast(`QR scanned for Room ${room}`, 'success');
+        closeQRScanner();
+    }
+}
+
+function showCheckoutRating() {
+    document.getElementById('ratingModal').classList.add('active');
+}
+
+function setWakeUpCall() {
+    const time = prompt('Enter wake-up time (HH:MM):');
+    if (time) showToast(`Wake-up call set for ${time}`, 'success');
+}
+
+function toggleDND() {
+    const btn = document.getElementById('dndBtn');
+    const isDND = btn.textContent.includes('ON');
+    btn.textContent = isDND ? '🔕 DND: OFF' : '🔕 DND: ON';
+    showToast(`DND ${isDND ? 'OFF' : 'ON'}`, 'success');
+}
+
+function showLocalGuide() {
+    document.getElementById('localGuideModal').classList.add('active');
+    document.getElementById('localGuideContent').innerHTML = `
+        <p>📍 Nearby Attractions: City Center Mall, Central Park, Museum</p>
+        <p>🍽️ Recommended Restaurants: The Grand, Spice Village, Ocean Delight</p>
+        <p>🛍️ Shopping: City Mall (5 min walk), Local Market (10 min)</p>
+    `;
+}
+
+function showEventCalendar() {
+    document.getElementById('eventModal').classList.add('active');
+    document.getElementById('eventContent').innerHTML = `
+        <p>📅 Today: Live Music 7PM-9PM</p>
+        <p>📅 Tomorrow: Pool Party 2PM-6PM</p>
+        <p>📅 This Weekend: BBQ Night</p>
+    `;
+}
+
+function showEmergencyContacts() {
+    document.getElementById('emergencyContactsModal').classList.add('active');
+}
+
+function showFirstAidGuide() {
+    document.getElementById('firstAidModal').classList.add('active');
+}
+
+function showEvacuationMap() {
+    document.getElementById('evacuationModal').classList.add('active');
+}
+
+function showDigitalConcierge() {
+    document.getElementById('conciergeModal').classList.add('active');
+}
+
+function generateRoomQR(roomNumber) {
+    document.getElementById('qrRoomLabel').textContent = `Room ${roomNumber}`;
+    document.getElementById('qrPreviewContainer').innerHTML = `<div id="tempQR"></div>`;
+    new QRCode(document.getElementById('tempQR'), {
+        text: `${window.location.origin}?room=${roomNumber}`,
+        width: 150,
+        height: 150
     });
-  }
-  // Initialize language
-  if (currentLanguage !== 'en') changeLanguage(currentLanguage);
-  // Start clock
-  updateLiveClock();
-  // Initialize sample data if empty
-  if (rooms.length === 0) {
-    for (let i=101; i<=120; i++) rooms.push({ id:i, number:i, type:i%3===0?'Suite':'Standard', status:i%4===0?'Vacant':'Occupied' });
-    saveData();
-  }
-  if (foodMenu.length === 0) {
-    foodMenu = [
-      {id:1, name:'Burger', price:12, category:'Main Course'},
-      {id:2, name:'Pizza', price:15, category:'Main Course'},
-      {id:3, name:'Coffee', price:4, category:'Beverage'},
-      {id:4, name:'Salad', price:10, category:'Appetizer'}
-    ];
-    saveData();
-  }
-  // Update stats
-  updateAdminDashboard();
-  console.log('✅ App loaded successfully');
-});
-</script>
+    document.getElementById('qrDownloadModal').classList.add('active');
+}
 
-</div> <!-- End #app -->
-</body>
-</html>
+function downloadQRCode() {
+    const canvas = document.querySelector('#qrPreviewContainer canvas');
+    if (canvas) {
+        const link = document.createElement('a');
+        link.download = 'qr_code.png';
+        link.href = canvas.toDataURL();
+        link.click();
+        showToast('QR Code downloaded');
+    }
+}
+
+function toggleThemeSelector() {
+    document.getElementById('themeMenu').classList.toggle('hidden');
+}
+
+function filterAdminRequests(filter) {
+    // Filter logic here
+}
+
+function exportToExcel() {
+    const exportData = [...rooms.map(r => ({ Type: 'Room', ...r })), ...requests.map(r => ({ Type: 'Request', ...r }))];
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'HotelData');
+    XLSX.writeFile(wb, `hotel_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('Exported to Excel');
+}
+
+function printInvoice() {
+    window.print();
+}
+
+function exportAllData() {
+    exportToExcel();
+}
+
+function toggleSelectAll() {}
+function bulkComplete() {}
+function bulkDelete() {}
+function clearSelection() {}
+function toggleStaffAttendance() {}
+function saveToLocal() {}
