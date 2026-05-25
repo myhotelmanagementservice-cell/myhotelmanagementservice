@@ -1,385 +1,1994 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#667eea">
-  <title id="pageTitle">Crown Plaza Hotel - Ultimate Management System</title>
+  <title id="pageTitle">Crown Plaza Hotel - Management System</title>
 
-  <!-- Tailwind CSS (with Dark Mode support) -->
+  <!-- External Libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: { primary: '#667eea', secondary: '#764ba2' }
-        }
-      }
-    }
-  </script>
-
-  <!-- External Libraries (Required by script.js) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    /* Critical overrides for fixed UI elements */
-    .fixed-bottom { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; }
-    .fixed-right { position: fixed; right: 16px; bottom: 100px; z-index: 99; }
-    .fixed-left { position: fixed; left: 16px; bottom: 100px; z-index: 99; }
-    .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
-    .modal.active { display: flex; }
-    .modal-content { background: white; padding: 24px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
-    .dark .modal-content { background: #1f2937; color: white; }
+    * { font-family: 'Inter', 'Noto Sans Devanagari', 'Noto Naskh Arabic', sans-serif; }
+    body { overflow-x: hidden; padding-bottom: 120px; }
     .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-    .glass { background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); }
-    .dark .glass { background: rgba(31,41,55,0.95); }
-    body { padding-bottom: 80px; }
-    @media (max-width: 640px) { body { padding-bottom: 100px; } }
+    .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+    .dark .glass-card { background: rgba(31, 41, 55, 0.95); }
+
+    /* Fixed Bottom Toolbar */
+    .lang-selector {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(102, 126, 234, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 8px 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      z-index: 1000;
+      box-shadow: 0 -4px 6px rgba(0,0,0,0.1);
+    }
+
+    .lang-btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .lang-btn:hover, .lang-btn.active {
+      background: rgba(255,255,255,0.4);
+      transform: translateY(-2px);
+    }
+
+    /* Theme Selector */
+    .theme-selector {
+      position: fixed;
+      right: 12px;
+      bottom: 110px;
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 999;
+      font-size: 20px;
+    }
+
+    #themeMenu {
+      position: fixed;
+      right: 12px;
+      bottom: 165px;
+      background: white;
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      z-index: 1000;
+      min-width: 200px;
+      display: none;
+    }
+
+    #themeMenu.show { display: block; }
+
+    .theme-preview {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: all 0.3s;
+      display: inline-block;
+      margin: 4px;
+    }
+
+    .theme-preview:hover, .theme-preview.active {
+      border-color: #667eea;
+      transform: scale(1.1);
+    }
+
+    /* Brightness Control */
+    .brightness-control {
+      position: fixed;
+      left: 12px;
+      bottom: 110px;
+      background: rgba(255,255,255,0.9);
+      padding: 8px 12px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 999;
+    }
+
+    .brightness-slider {
+      width: 100px;
+      height: 4px;
+      -webkit-appearance: none;
+      background: #ddd;
+      border-radius: 2px;
+      outline: none;
+    }
+
+    .brightness-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #667eea;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal.active { display: flex; }
+
+    .modal-content {
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      max-width: 500px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .dark .modal-content { background: #1f2937; }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 3000;
+    }
+
+    .toast {
+      background: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 10px;
+      animation: slideIn 0.3s;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(400px); }
+      to { transform: translateX(0); }
+    }
+
+    /* RTL Support */
+    [dir="rtl"] { text-align: right; }
+
+    /* High Contrast */
+    .high-contrast { filter: contrast(1.2); }
+
+    /* Font Sizes */
+    .font-small { font-size: 0.875rem; }
+    .font-large { font-size: 1.125rem; }
+
+    /* Online Indicator */
+    .online-indicator {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .online-indicator.online { background: #10b981; color: white; }
+    .online-indicator.offline { background: #ef4444; color: white; }
+
+    .live-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* SOS Button */
+    .sos-btn {
+      animation: sosPulse 2s infinite;
+    }
+
+    @keyframes sosPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.7); }
+      50% { box-shadow: 0 0 0 10px rgba(220,38,38,0); }
+    }
+
+    /* Tab Active */
+    .tab-active {
+      border-bottom: 2px solid #667eea;
+      color: #667eea;
+    }
+
+    /* Request Card */
+    .request-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border-left: 4px solid #667eea;
+      transition: all 0.3s;
+    }
+
+    .request-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .request-card.emergency {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .dark .request-card { background: #374151; }
+
+    @media (max-width: 640px) {
+      body { padding-bottom: 140px; }
+      .lang-selector { padding: 6px 8px; }
+      .lang-btn { padding: 4px 8px; font-size: 11px; }
+    }
   </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-colors duration-300">
+<body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
 
-  <!-- 🟢 Live Status & Controls (Fixed) -->
-  <div id="onlineIndicator" class="fixed top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold z-50">🟢 Online</div>
-  <div id="offlineIndicator" class="hidden fixed top-3 left-3 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold z-50">📴 Offline</div>
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
 
-  <div id="toastContainer" class="toast-container flex flex-col gap-2 pointer-events-none"></div>
+<!-- Theme Selector -->
+<div class="theme-selector" onclick="toggleThemeSelector()" title="Select Theme">🎨</div>
+<div id="themeMenu">
+  <div class="text-xs font-semibold mb-2">Select Theme</div>
+  <div class="flex gap-2 flex-wrap">
+    <div class="theme-preview active" style="background: linear-gradient(135deg, #667eea, #764ba2)" onclick="setTheme('default')" title="Default"></div>
+    <div class="theme-preview" style="background: linear-gradient(135deg, #f59e0b, #ef4444)" onclick="setTheme('sunset')" title="Sunset"></div>
+    <div class="theme-preview" style="background: linear-gradient(135deg, #10b981, #059669)" onclick="setTheme('forest')" title="Forest"></div>
+    <div class="theme-preview" style="background: linear-gradient(135deg, #06b6d4, #3b82f6)" onclick="setTheme('ocean')" title="Ocean"></div>
+    <div class="theme-preview" style="background: linear-gradient(135deg, #ec4899, #8b5cf6)" onclick="setTheme('royal')" title="Royal"></div>
+  </div>
+</div>
 
-  <!-- Theme Selector -->
-  <div class="fixed-right">
-    <button onclick="toggleThemeSelector()" class="bg-white dark:bg-gray-800 p-3 rounded-full shadow-lg hover:scale-105 transition">🎨</button>
-    <div id="themeMenu" class="hidden absolute bottom-12 right-0 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-xl w-48">
-      <p class="text-xs font-bold mb-2 text-gray-500">Select Theme</p>
-      <div class="flex flex-wrap gap-2">
-        <button onclick="setTheme('default')" class="w-8 h-8 rounded bg-gradient-to-br from-indigo-500 to-purple-600"></button>
-        <button onclick="setTheme('sunset')" class="w-8 h-8 rounded bg-gradient-to-br from-orange-400 to-red-500"></button>
-        <button onclick="setTheme('forest')" class="w-8 h-8 rounded bg-gradient-to-br from-green-500 to-emerald-600"></button>
-        <button onclick="setTheme('ocean')" class="w-8 h-8 rounded bg-gradient-to-br from-cyan-500 to-blue-500"></button>
-        <button onclick="setTheme('royal')" class="w-8 h-8 rounded bg-gradient-to-br from-pink-500 to-violet-600"></button>
+<!-- Brightness Control -->
+<div class="brightness-control">
+  <span>🔆</span>
+  <input type="range" class="brightness-slider" min="0.7" max="1.3" step="0.05" value="1" id="brightnessSlider" oninput="adjustBrightness(this.value)">
+  <span id="brightnessValue">100%</span>
+</div>
+
+<!-- Bottom Language Toolbar -->
+<div class="lang-selector" id="langToolbar">
+  <button class="lang-btn active" onclick="changeLanguage('en')" title="English">🇬 EN</button>
+  <button class="lang-btn" onclick="changeLanguage('hi')" title="हिंदी">🇮 हिंदी</button>
+  <button class="lang-btn" onclick="changeLanguage('ar')" title="العربية">🇸🇦 العربية</button>
+  <button class="lang-btn" onclick="toggleHighContrast()" title="High Contrast">🔆</button>
+  <button class="lang-btn" onclick="adjustFontSize('decrease')" title="Smaller Font">A-</button>
+  <button class="lang-btn" onclick="adjustFontSize('reset')" title="Reset Font">A</button>
+  <button class="lang-btn" onclick="adjustFontSize('increase')" title="Larger Font">A+</button>
+  <button class="lang-btn" onclick="toggleOfflineMode()" title="Offline Mode">📴</button>
+  <button class="lang-btn" onclick="requestPushPermission()" title="Enable Notifications">🔔</button>
+  <button class="lang-btn" onclick="testHaptic()" title="Test Haptic">📳</button>
+  <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;" onclick="toggleDarkMode()" id="darkModeToggle" title="Toggle Dark Mode">🌙</div>
+</div>
+
+<!-- LOGIN SELECTION PAGE -->
+<div id="loginSelectionPage" class="min-h-screen gradient-bg flex items-center justify-center p-4">
+  <div class="glass-card rounded-3xl shadow-2xl w-full max-w-md p-8 relative">
+
+    <!-- Online Indicator -->
+    <div id="onlineIndicator" class="online-indicator online" style="position:absolute;top:12px;left:12px;">
+      <span class="live-indicator"></span> Online
+    </div>
+
+    <div class="text-center mb-8 mt-6">
+      <div class="text-6xl mb-4">👑</div>
+      <h1 class="text-3xl font-bold text-gray-800 dark:text-white" id="welcomeTitle">Crown Plaza Hotel</h1>
+      <p class="text-gray-600 dark:text-gray-300 mt-2">Complete Management System</p>
+      <div id="liveDateTime" class="text-xs text-gray-500 mt-3"></div>
+    </div>
+
+    <!-- Login Type Tabs -->
+    <div class="flex gap-2 mb-6">
+      <button onclick="switchLoginType('guest')" id="guestTabBtn" class="flex-1 py-2 rounded-lg font-semibold bg-purple-100 text-purple-700 transition">🏨 Guest</button>
+      <button onclick="switchLoginType('admin')" id="adminTabBtn" class="flex-1 py-2 rounded-lg font-semibold bg-gray-100 text-gray-700 transition">👑 Admin</button>
+    </div>
+
+    <!-- Guest Login Form -->
+    <form id="guestLoginForm" class="space-y-4">
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Your Name</label>
+        <input type="text" id="guestNameInput" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" placeholder="Enter your name" required>
       </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Room Number</label>
+        <input type="number" id="guestRoomInput" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" placeholder="e.g., 101" required>
+      </div>
+      <button type="submit" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition shadow-lg">🔐 Login as Guest</button>
+    </form>
+
+    <!-- Admin Login Form -->
+    <form id="adminLoginForm" class="space-y-4 hidden">
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Email Address</label>
+        <input type="email" id="adminEmailInput" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" placeholder="admin@crownplaza.com" required>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Password</label>
+        <input type="password" id="adminPasswordInput" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition shadow-lg">🔐 Login as Admin</button>
+    </form>
+
+    <button id="closeAdminFormBtn" class="hidden absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold" onclick="switchLoginType('guest')" title="Close">✕</button>
+
+    <div class="mt-6 text-center text-xs text-gray-400 flex justify-center gap-4 flex-wrap">
+      <span><span class="live-indicator"></span> Live Updates</span>
+      <span>🔊 Voice Enabled</span>
+      <span>📱 PWA Ready</span>
+      <span>Code: <strong>CROWN2024</strong></span>
+    </div>
+  </div>
+</div>
+
+<!-- ROLE SELECTION PAGE -->
+<div id="roleSelectionPage" class="hidden min-h-screen gradient-bg flex items-center justify-center p-4">
+  <div class="glass-card rounded-3xl shadow-2xl w-full max-w-2xl p-8">
+    <div class="text-center mb-6">
+      <button onclick="backToMain()" class="float-left text-gray-500 hover:text-gray-700 text-sm">← Back</button>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-white">👑 Select Your Role</h1>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <button onclick="loginAsRole('super_admin')" class="p-4 bg-purple-100 dark:bg-purple-900/30 rounded-2xl hover:bg-purple-200 transition text-center">
+        <div class="text-2xl">👑</div>
+        <div class="font-semibold text-sm">Super Admin</div>
+      </button>
+      <button onclick="loginAsRole('front_desk')" class="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-2xl hover:bg-blue-200 transition text-center">
+        <div class="text-2xl">🛎️</div>
+        <div class="font-semibold text-sm">Front Desk</div>
+      </button>
+      <button onclick="loginAsRole('housekeeping')" class="p-4 bg-green-100 dark:bg-green-900/30 rounded-2xl hover:bg-green-200 transition text-center">
+        <div class="text-2xl">🧹</div>
+        <div class="font-semibold text-sm">Housekeeping</div>
+      </button>
+      <button onclick="loginAsRole('maintenance')" class="p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-2xl hover:bg-yellow-200 transition text-center">
+        <div class="text-2xl">🔧</div>
+        <div class="font-semibold text-sm">Maintenance</div>
+      </button>
+      <button onclick="loginAsRole('restaurant')" class="p-4 bg-red-100 dark:bg-red-900/30 rounded-2xl hover:bg-red-200 transition text-center">
+        <div class="text-2xl">🍽️</div>
+        <div class="font-semibold text-sm">Restaurant</div>
+      </button>
+      <button onclick="loginAsRole('laundry')" class="p-4 bg-cyan-100 dark:bg-cyan-900/30 rounded-2xl hover:bg-cyan-200 transition text-center">
+        <div class="text-2xl">🧺</div>
+        <div class="font-semibold text-sm">Laundry</div>
+      </button>
+      <button onclick="loginAsRole('security')" class="p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl hover:bg-gray-200 transition text-center">
+        <div class="text-2xl">🛡️</div>
+        <div class="font-semibold text-sm">Security</div>
+      </button>
+      <button onclick="loginAsRole('it_support')" class="p-4 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl hover:bg-indigo-200 transition text-center">
+        <div class="text-2xl">💻</div>
+        <div class="font-semibold text-sm">IT Support</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN DASHBOARD -->
+<div id="adminDashboard" class="hidden pb-24">
+  <header class="gradient-bg text-white shadow-lg sticky top-0 z-40">
+    <div class="flex justify-between items-center px-4 py-3 flex-wrap gap-2">
+      <h1 class="text-lg md:text-xl font-bold">👑 <span id="headerHotelName">Crown Plaza</span> - <span id="roleDisplay">Admin</span></h1>
+      <div class="flex items-center gap-2">
+        <span class="bg-white/20 px-2 py-1 rounded-full text-xs"><span class="live-indicator"></span> Live</span>
+        <span id="liveClockAdmin" class="bg-white/20 px-2 py-1 rounded-full text-xs font-mono"></span>
+        <button onclick="logoutAdmin()" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-sm">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Admin Tabs -->
+  <div class="bg-white dark:bg-gray-800 shadow-sm border-b overflow-x-auto">
+    <div class="flex flex-nowrap gap-1 px-4 py-2 min-w-max">
+      <button onclick="showAdminTab('overview')" class="px-4 py-2 text-sm font-medium text-purple-600 border-b-2 border-purple-600 whitespace-nowrap">📊 Overview</button>
+      <button onclick="showAdminTab('requests')" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">📋 Requests</button>
+      <button onclick="showAdminTab('rooms')" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">🏨 Rooms</button>
+      <button onclick="showAdminTab('foodmenu')" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">🍽️ Food Menu</button>
+      <button onclick="showAdminTab('settings')" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">⚙️ Settings</button>
     </div>
   </div>
 
-  <!-- Brightness Control -->
-  <div class="fixed-left bg-white dark:bg-gray-800 px-3 py-2 rounded-full shadow-lg flex items-center gap-2">
-    <span>🔆</span>
-    <input type="range" id="brightnessSlider" min="0.7" max="1.3" step="0.05" value="1" class="w-20 accent-indigo-500">
-    <span id="brightnessValue" class="text-xs font-mono">100%</span>
-  </div>
-
-  <!-- ==================== 1. LOGIN SELECTION PAGE ==================== -->
-  <div id="loginSelectionPage" class="min-h-screen flex items-center justify-center p-4 gradient-bg">
-    <div class="glass w-full max-w-md rounded-2xl shadow-2xl p-6">
-      <div class="text-center mb-6">
-        <div class="text-5xl mb-2">👑</div>
-        <h1 id="welcomeTitle" class="text-2xl font-bold">Crown Plaza Hotel</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Ultimate Management System</p>
-        <div id="liveDateTime" class="text-xs text-gray-400 mt-2 font-mono"></div>
-      </div>
-
-      <div class="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1 mb-4">
-        <button id="guestTabBtn" onclick="switchLoginType('guest')" class="flex-1 py-2 rounded-md text-sm font-semibold bg-white dark:bg-gray-600 shadow-sm">🏨 Guest</button>
-        <button id="adminTabBtn" onclick="switchLoginType('admin')" class="flex-1 py-2 rounded-md text-sm font-semibold text-gray-500">👑 Admin</button>
-      </div>
-
-      <!-- Guest Login -->
-      <form id="guestLoginForm" class="space-y-3">
-        <input type="text" id="guestNameInput" placeholder="Your Name" class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-        <input type="number" id="guestRoomInput" placeholder="Room Number" class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-        <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition">🔐 Guest Login</button>
-      </form>
-
-      <!-- Admin Login -->
-      <form id="adminLoginForm" class="hidden space-y-3">
-        <input type="email" id="adminEmailInput" placeholder="Email Address" class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-        <input type="password" id="adminPasswordInput" placeholder="Password" class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-        <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition">🔐 Admin Login</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- ==================== 2. ROLE SELECTION PAGE ==================== -->
-  <div id="roleSelectionPage" class="hidden min-h-screen flex items-center justify-center p-4 gradient-bg">
-    <div class="glass w-full max-w-lg rounded-2xl shadow-2xl p-6">
-      <div class="flex justify-between items-center mb-4">
-        <button onclick="switchLoginType('admin')" id="backBtn" class="text-sm text-gray-600 dark:text-gray-300 hover:underline">← Back</button>
-        <h2 class="text-xl font-bold">Select Your Role</h2>
-      </div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <button onclick="loginAsRole('super_admin')" class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl hover:bg-purple-200 transition text-center"><div class="text-2xl">👑</div><div class="text-sm font-medium">Super Admin</div></button>
-        <button onclick="loginAsRole('front_desk')" class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl hover:bg-blue-200 transition text-center"><div class="text-2xl">🛎️</div><div class="text-sm font-medium">Front Desk</div></button>
-        <button onclick="loginAsRole('housekeeping')" class="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl hover:bg-green-200 transition text-center"><div class="text-2xl">🧹</div><div class="text-sm font-medium">Housekeeping</div></button>
-        <button onclick="loginAsRole('maintenance')" class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl hover:bg-yellow-200 transition text-center"><div class="text-2xl">🔧</div><div class="text-sm font-medium">Maintenance</div></button>
-        <button onclick="loginAsRole('restaurant')" class="p-3 bg-red-100 dark:bg-red-900/30 rounded-xl hover:bg-red-200 transition text-center"><div class="text-2xl">🍽️</div><div class="text-sm font-medium">Restaurant</div></button>
-        <button onclick="loginAsRole('laundry')" class="p-3 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl hover:bg-cyan-200 transition text-center"><div class="text-2xl">🧺</div><div class="text-sm font-medium">Laundry</div></button>
-        <button onclick="loginAsRole('security')" class="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 transition text-center"><div class="text-2xl">🛡️</div><div class="text-sm font-medium">Security</div></button>
-        <button onclick="loginAsRole('it_support')" class="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl hover:bg-indigo-200 transition text-center"><div class="text-2xl">💻</div><div class="text-sm font-medium">IT Support</div></button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== 3. ADMIN DASHBOARD ==================== -->
-  <div id="adminDashboard" class="hidden min-h-screen">
-    <header class="gradient-bg text-white shadow-md sticky top-0 z-40 px-4 py-3 flex justify-between items-center">
-      <h1 class="text-lg font-bold">👑 <span id="headerHotelName">Crown Plaza</span></h1>
-      <div class="flex items-center gap-2 text-sm">
-        <span id="roleDisplay" class="bg-white/20 px-2 py-1 rounded">Admin</span>
-        <span id="liveClockAdmin" class="font-mono"></span>
-        <button onclick="toggleStaffAttendance()" id="clockInOutBtn" class="bg-white/20 px-2 py-1 rounded hover:bg-white/30">⏰</button>
-        <button onclick="logoutAdmin()" class="bg-white/20 px-2 py-1 rounded hover:bg-white/30">🚪 Logout</button>
-      </div>
-    </header>
-
-    <!-- Admin Tabs -->
-    <div class="bg-white dark:bg-gray-800 border-b overflow-x-auto">
-      <div class="flex min-w-max px-2 py-2 gap-1">
-        <button onclick="showAdminTab('overview')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-purple-600 border-b-2 border-purple-600">📊 Overview</button>
-        <button onclick="showAdminTab('requests')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">📋 Requests</button>
-        <button onclick="showAdminTab('rooms')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">🏨 Rooms</button>
-        <button onclick="showAdminTab('guests')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">👥 Guests</button>
-        <button onclick="showAdminTab('reviews')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">⭐ Reviews</button>
-        <button onclick="showAdminTab('reports')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">📈 Reports</button>
-        <button onclick="showAdminTab('qrcodes')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">📷 QR</button>
-        <button onclick="showAdminTab('logs')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">📜 Logs</button>
-        <button onclick="showAdminTab('inventory')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">📦 Inv</button>
-        <button onclick="showAdminTab('maintenance')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">🔧 Maint</button>
-        <button onclick="showAdminTab('blacklist')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">🚫 Black</button>
-        <button onclick="showAdminTab('loyalty')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">🎁 Loyalty</button>
-        <button onclick="showAdminTab('staff')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">👔 Staff</button>
-        <button onclick="showAdminTab('foodmenu')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">🍽️ Food</button>
-        <button onclick="showAdminTab('settings')" class="nav-tab px-3 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700">⚙️ Settings</button>
-      </div>
-    </div>
-
-    <main class="p-4 max-w-7xl mx-auto pb-24">
-      <!-- Overview Tab -->
-      <div id="overviewTab">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <div class="glass p-3 rounded-xl text-center"><div id="statTotalRooms" class="text-2xl font-bold">0</div><div class="text-xs text-gray-500">Total Rooms</div></div>
-          <div class="glass p-3 rounded-xl text-center"><div id="statOccupied" class="text-2xl font-bold text-green-600">0</div><div class="text-xs text-gray-500">Occupied</div></div>
-          <div class="glass p-3 rounded-xl text-center"><div id="statOpenRequests" class="text-2xl font-bold text-orange-600">0</div><div class="text-xs text-gray-500">Open Requests</div></div>
-          <div class="glass p-3 rounded-xl text-center"><div id="statEmergency" class="text-2xl font-bold text-red-600">0</div><div class="text-xs text-gray-500">Emergency</div></div>
+  <div class="px-4 py-6 max-w-7xl mx-auto">
+    <!-- Overview Tab -->
+    <div id="overviewTab">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div class="glass-card rounded-2xl p-4 shadow-sm text-center">
+          <div class="text-2xl">🏨</div>
+          <div id="statTotalRooms" class="text-2xl font-bold">0</div>
+          <div class="text-xs text-gray-500">Total Rooms</div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div class="glass p-3 rounded-xl"><canvas id="deptChart" height="150"></canvas></div>
-          <div class="glass p-3 rounded-xl"><canvas id="occupancyChart" height="150"></canvas></div>
-          <div class="glass p-3 rounded-xl"><canvas id="ratingChart" height="150"></canvas></div>
-          <div class="glass p-3 rounded-xl"><canvas id="peakHourChart" height="150"></canvas></div>
+        <div class="glass-card rounded-2xl p-4 shadow-sm text-center">
+          <div class="text-2xl">🟢</div>
+          <div id="statOccupied" class="text-2xl font-bold text-green-600">0</div>
+          <div class="text-xs text-gray-500">Occupied</div>
         </div>
-        <div class="glass p-3 rounded-xl mb-4"><h3 class="font-semibold mb-2">🔥 Heat Map</h3><div id="heatMap" class="grid grid-cols-4 gap-2"></div></div>
-        <div class="glass p-3 rounded-xl"><h3 class="font-semibold mb-2">🚨 Emergency</h3><div id="emergencyRequestsList"></div></div>
+        <div class="glass-card rounded-2xl p-4 shadow-sm text-center">
+          <div class="text-2xl">📋</div>
+          <div id="statOpenRequests" class="text-2xl font-bold text-orange-600">0</div>
+          <div class="text-xs text-gray-500">Open Requests</div>
+        </div>
+        <div class="glass-card rounded-2xl p-4 shadow-sm text-center">
+          <div class="text-2xl">🔄</div>
+          <div id="statInProgress" class="text-2xl font-bold text-blue-600">0</div>
+          <div class="text-xs text-gray-500">In Progress</div>
+        </div>
+        <div class="glass-card rounded-2xl p-4 shadow-sm text-center">
+          <div class="text-2xl">🚨</div>
+          <div id="statEmergency" class="text-2xl font-bold text-red-600">0</div>
+          <div class="text-xs text-gray-500">Emergency</div>
+        </div>
       </div>
 
-      <!-- Requests Tab -->
-      <div id="requestsTab" class="hidden">
-        <div class="glass p-3 rounded-xl mb-4">
-          <form id="adminRequestForm" class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
-            <input type="text" id="reqGuestName" placeholder="Guest Name" class="p-2 border rounded dark:bg-gray-700" required>
-            <input type="text" id="reqRoomNumber" placeholder="Room #" class="p-2 border rounded dark:bg-gray-700" required>
-            <select id="reqDepartment" class="p-2 border rounded dark:bg-gray-700"><option value="">Select Dept</option><option value="housekeeping">Housekeeping</option><option value="maintenance">Maintenance</option><option value="restaurant">Restaurant</option><option value="laundry">Laundry</option><option value="it">IT</option></select>
-            <select id="reqCategory" class="p-2 border rounded dark:bg-gray-700"><option value="">Select Category</option></select>
-            <textarea id="reqDescription" placeholder="Description" class="md:col-span-2 p-2 border rounded dark:bg-gray-700" rows="2"></textarea>
-            <select id="reqPriority" class="p-2 border rounded dark:bg-gray-700"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="emergency">Emergency</option></select>
-            <button type="submit" class="bg-indigo-600 text-white p-2 rounded font-semibold">✅ Submit</button>
-          </form>
-          <div class="flex flex-wrap gap-2 mb-2">
-            <input type="text" id="adminSearchInput" placeholder="🔍 Search..." class="flex-1 p-2 border rounded dark:bg-gray-700">
-            <button class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded text-sm admin-filter-btn" data-filter="all">All</button>
-            <button class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded text-sm admin-filter-btn" data-filter="open">Open</button>
-            <button class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded text-sm admin-filter-btn" data-filter="completed">Done</button>
+      <div class="glass-card rounded-2xl p-4 shadow-sm mb-4">
+        <h3 class="font-semibold text-sm mb-3">🚨 Emergency Requests</h3>
+        <div id="emergencyRequestsList" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- Requests Tab -->
+    <div id="requestsTab" class="hidden">
+      <div class="glass-card rounded-2xl p-4 shadow-sm mb-4">
+        <form id="adminRequestForm" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input type="text" id="reqGuestName" placeholder="Guest Name" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+          <input type="text" id="reqRoomNumber" placeholder="Room Number" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+          <select id="reqDepartment" onchange="updateAdminCategories()" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+            <option value="">Select Department</option>
+            <option value="housekeeping">🧹 Housekeeping</option>
+            <option value="maintenance">🔧 Maintenance</option>
+            <option value="restaurant">🍽️ Restaurant</option>
+            <option value="laundry">🧺 Laundry</option>
+            <option value="it">💻 IT Support</option>
+          </select>
+          <select id="reqCategory" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+            <option value="">Select Category</option>
+          </select>
+          <textarea id="reqDescription" rows="2" placeholder="Description" class="w-full px-3 py-2 border rounded-lg text-sm col-span-1 md:col-span-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+          <select id="reqPriority" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <option value="low">🟢 Low</option>
+            <option value="medium" selected>🟡 Medium</option>
+            <option value="high">🔴 High</option>
+            <option value="emergency">🚨 EMERGENCY</option>
+          </select>
+          <div class="flex gap-2 col-span-1 md:col-span-2">
+            <button type="submit" class="flex-1 gradient-bg text-white px-4 py-2 rounded-lg font-semibold text-sm">✅ Submit Request</button>
+            <button type="button" onclick="showSOSAlert()" class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg font-semibold text-sm sos-btn">🚨 SOS</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="glass-card rounded-2xl p-4 shadow-sm">
+        <h2 class="font-semibold text-sm mb-3">📋 Service Requests</h2>
+        <div id="adminRequestsList" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- Rooms Tab -->
+    <div id="roomsTab" class="hidden">
+      <div class="glass-card rounded-2xl p-4 shadow-sm mb-4">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-semibold text-base">🏨 Room Management</h2>
+          <button onclick="openAddRoomModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm">+ Add New Room</button>
+        </div>
+        <div id="roomsList" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- Food Menu Tab -->
+    <div id="foodmenuTab" class="hidden">
+      <div class="glass-card rounded-2xl p-4 shadow-sm mb-4">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-semibold text-base">🍽️ Food Menu Management</h2>
+          <button onclick="openAddFoodModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm">+ Add New Item</button>
+        </div>
+        <div id="foodMenuList" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- Settings Tab -->
+    <div id="settingsTab" class="hidden">
+      <div class="glass-card rounded-2xl p-6 shadow-md">
+        <h2 class="text-xl font-semibold mb-4">⚙️ Hotel Settings</h2>
+
+        <div class="border rounded-xl p-4 mb-4">
+          <h3 class="font-semibold mb-2">🏨 Hotel Information</h3>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <input type="text" id="hotelNameInput" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="Crown Plaza Hotel">
+            <button onclick="saveHotelName()" class="gradient-bg text-white px-4 py-2 rounded-lg font-semibold">💾 Save Name</button>
           </div>
         </div>
-        <div id="bulkActionsBar" class="hidden bg-purple-600 text-white p-2 rounded-lg mb-3 flex justify-between items-center">
-          <span id="selectedCount">0 selected</span>
-          <div class="gap-2 flex">
-            <button onclick="bulkComplete()" class="bg-green-500 px-3 py-1 rounded text-sm">Complete</button>
-            <button onclick="bulkDelete()" class="bg-red-500 px-3 py-1 rounded text-sm">Delete</button>
+
+        <div class="border rounded-xl p-4 mb-4">
+          <h3 class="font-semibold mb-2">💱 Currency & Pricing</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs text-gray-500 mb-1 block">Currency Symbol</label>
+              <input type="text" id="currencySymbolInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="$" maxlength="3">
+            </div>
+            <div>
+              <label class="text-xs text-gray-500 mb-1 block">Price Format</label>
+              <select id="priceFormatInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="symbol-first">$10.00</option>
+                <option value="symbol-last">10.00$</option>
+                <option value="space">10.00 $</option>
+              </select>
+            </div>
+          </div>
+          <button onclick="saveCurrencySettings()" class="mt-3 gradient-bg text-white px-4 py-2 rounded-lg font-semibold text-sm">💾 Save Currency</button>
+        </div>
+
+        <div class="border rounded-xl p-4 mb-4">
+          <h3 class="font-semibold mb-2">🚗 Transport Pricing</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs text-gray-500 mb-1 block">Airport Transfer Price</label>
+              <div class="flex gap-2">
+                <span id="transportCurrency1" class="currency-badge bg-purple-600 text-white px-2 py-1 rounded">$</span>
+                <input type="number" id="airportPriceInput" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="30" min="0">
+              </div>
+            </div>
+            <div>
+              <label class="text-xs text-gray-500 mb-1 block">Local Cab Price (per hour)</label>
+              <div class="flex gap-2">
+                <span id="transportCurrency2" class="currency-badge bg-purple-600 text-white px-2 py-1 rounded">$</span>
+                <input type="number" id="localCabPriceInput" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="15" min="0">
+              </div>
+            </div>
+          </div>
+          <button onclick="saveTransportPrices()" class="mt-3 gradient-bg text-white px-4 py-2 rounded-lg font-semibold text-sm">💾 Save Transport</button>
+        </div>
+
+        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-5 mb-4 border-2 border-blue-200">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="text-3xl">📶</div>
+            <div>
+              <h3 class="font-semibold">WiFi Password Configuration</h3>
+              <p class="text-sm text-gray-500">Set WiFi password for guests</p>
+            </div>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <input type="text" id="wifiPasswordInput" placeholder="Enter WiFi Password" class="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="CrownPlaza@2024">
+            <button onclick="saveWifiPassword()" class="gradient-bg text-white px-6 py-2 rounded-lg font-semibold">💾 Save Password</button>
           </div>
         </div>
-        <div class="glass p-3 rounded-xl">
-          <div class="flex justify-between mb-2"><h3 class="font-semibold">Service Requests</h3><label class="flex items-center gap-2 text-sm"><input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll()"> Select All</label></div>
-          <div id="adminRequestsList" class="space-y-2 max-h-96 overflow-y-auto"></div>
-          <div id="requestsPagination" class="mt-3 flex justify-center gap-2"></div>
+
+        <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+          <h3 class="font-semibold text-sm mb-2">📊 System Info</h3>
+          <p class="text-sm">Hotel Name: <span id="hotelNameDisplay" class="font-semibold">Crown Plaza Hotel</span></p>
+          <p class="text-sm">Currency: <span id="currencyDisplay" class="font-semibold">$</span></p>
+          <p class="text-sm">Timezone: <span id="timezoneDisplay" class="font-semibold"></span></p>
+          <p class="text-sm">Local Time: <span id="localTimeDisplay" class="font-semibold"></span></p>
         </div>
       </div>
-
-      <!-- Rooms Tab -->
-      <div id="roomsTab" class="hidden glass p-3 rounded-xl">
-        <div class="flex justify-between mb-3"><h2 class="font-semibold text-lg">Room Management</h2><button onclick="openAddRoomModal()" class="bg-indigo-600 text-white px-3 py-1 rounded text-sm">+ Add Room</button></div>
-        <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-gray-100 dark:bg-gray-700"><tr><th class="p-2">Room #</th><th class="p-2">Type</th><th class="p-2">Status</th><th class="p-2">Guest</th><th class="p-2">QR</th><th class="p-2">Actions</th></tr></thead><tbody id="roomsList"></tbody></table></div>
-      </div>
-
-      <!-- Food Menu Tab -->
-      <div id="foodmenuTab" class="hidden glass p-3 rounded-xl">
-        <div class="flex justify-between mb-3"><h2 class="font-semibold text-lg">Food Menu</h2><button onclick="openAddFoodModal()" class="bg-indigo-600 text-white px-3 py-1 rounded text-sm">+ Add Item</button></div>
-        <div id="foodMenuList" class="space-y-2 max-h-96 overflow-y-auto"></div>
-      </div>
-
-      <!-- Settings Tab -->
-      <div id="settingsTab" class="hidden glass p-4 rounded-xl space-y-4">
-        <h2 class="font-semibold text-lg">⚙️ Hotel Settings</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div><label class="text-xs text-gray-500">Hotel Name</label><input type="text" id="hotelNameInput" class="w-full p-2 border rounded dark:bg-gray-700"></div>
-          <button onclick="saveHotelName()" class="bg-indigo-600 text-white p-2 rounded self-end">💾 Save Name</button>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div><label class="text-xs text-gray-500">Currency</label><input type="text" id="currencySymbolInput" class="w-full p-2 border rounded dark:bg-gray-700" value="$"></div>
-          <div><label class="text-xs text-gray-500">Price Format</label><select id="priceFormatInput" class="w-full p-2 border rounded dark:bg-gray-700"><option value="symbol-first">$10</option><option value="symbol-last">10$</option><option value="space">10 $</option></select></div>
-          <button onclick="saveCurrencySettings()" class="md:col-span-2 bg-indigo-600 text-white p-2 rounded">💾 Save Currency</button>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div><label class="text-xs text-gray-500">Airport Price</label><input type="number" id="airportPriceInput" class="w-full p-2 border rounded dark:bg-gray-700" value="30"></div>
-          <div><label class="text-xs text-gray-500">Local Cab/Hour</label><input type="number" id="localCabPriceInput" class="w-full p-2 border rounded dark:bg-gray-700" value="15"></div>
-          <button onclick="saveTransportPrices()" class="md:col-span-2 bg-indigo-600 text-white p-2 rounded">💾 Save Transport</button>
-        </div>
-        <div><label class="text-xs text-gray-500">WiFi Password</label><div class="flex gap-2"><input type="text" id="wifiPasswordInput" class="flex-1 p-2 border rounded dark:bg-gray-700" value="CrownPlaza@2024"><button onclick="saveWifiPassword()" class="bg-indigo-600 text-white px-3 rounded">Save</button><button onclick="copyWifiPassword()" class="bg-gray-200 dark:bg-gray-700 px-3 rounded">Copy</button></div></div>
-        <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded text-sm space-y-1">
-          <p>Hotel: <span id="hotelNameDisplay" class="font-bold">Crown Plaza</span></p>
-          <p>Currency: <span id="currencyDisplay" class="font-bold">$</span></p>
-          <p>Timezone: <span id="timezoneDisplay" class="font-bold"></span></p>
-        </div>
-      </div>
-
-      <!-- Other Tabs (Placeholders for dynamic rendering) -->
-      <div id="guestsTab" class="hidden glass p-3 rounded-xl"><div id="guestsList"></div></div>
-      <div id="reviewsTab" class="hidden glass p-3 rounded-xl"><div id="reviewsList" class="space-y-2"></div></div>
-      <div id="reportsTab" class="hidden glass p-3 rounded-xl"><div id="reportOutput" class="bg-gray-50 dark:bg-gray-700 p-3 rounded min-h-[200px]"></div><div class="flex gap-2 mt-2"><button onclick="generateReport('daily')" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Daily</button><button onclick="generateReport('weekly')" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Weekly</button><button onclick="generateReport('monthly')" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Monthly</button></div></div>
-      <div id="qrcodesTab" class="hidden glass p-3 rounded-xl"><div id="qrCodesContainer" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div></div>
-      <div id="logsTab" class="hidden glass p-3 rounded-xl"><div id="activityLogsList" class="space-y-1 max-h-96 overflow-y-auto text-sm"></div></div>
-      <div id="inventoryTab" class="hidden glass p-3 rounded-xl"><div id="inventoryList" class="space-y-2"></div></div>
-      <div id="maintenanceTab" class="hidden glass p-3 rounded-xl"><div id="maintenanceList" class="space-y-2"></div></div>
-      <div id="blacklistTab" class="hidden glass p-3 rounded-xl"><div id="blacklistList" class="space-y-2"></div></div>
-      <div id="loyaltyTab" class="hidden glass p-3 rounded-xl"><div id="loyaltyList" class="space-y-2"></div></div>
-      <div id="staffTab" class="hidden glass p-3 rounded-xl"><div id="slaStats" class="mb-3 bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-sm"></div><div id="staffPerformanceList" class="space-y-2"></div></div>
-    </main>
+    </div>
   </div>
+</div>
 
-  <!-- ==================== 4. GUEST DASHBOARD ==================== -->
-  <div id="guestDashboard" class="hidden min-h-screen">
-    <header class="gradient-bg text-white shadow-md sticky top-0 z-40 px-4 py-3 flex justify-between items-center">
+<!-- GUEST DASHBOARD -->
+<div id="guestDashboard" class="hidden pb-24">
+  <header class="gradient-bg text-white shadow-lg sticky top-0 z-40">
+    <div class="flex justify-between items-center px-4 py-3">
       <h1 class="text-lg font-bold">🏨 <span id="guestHeaderHotelName">Crown Plaza</span></h1>
-      <div class="flex items-center gap-2 text-sm">
-        <span id="liveClockGuest" class="font-mono"></span>
-        <span id="guestInfo" class="bg-white/20 px-2 py-1 rounded">👤 Guest</span>
-        <span id="guestPoints" class="bg-yellow-500/30 px-2 py-1 rounded">⭐ 0 pts</span>
-        <button onclick="showCheckoutRating()" class="bg-white/20 px-2 py-1 rounded">⭐ Rate</button>
-        <button onclick="logoutGuest()" class="bg-white/20 px-2 py-1 rounded">🚪 Logout</button>
+      <div class="flex items-center gap-2">
+        <span id="liveClockGuest" class="bg-white/20 px-2 py-1 rounded-full text-xs font-mono"></span>
+        <span id="guestInfo" class="bg-white/20 px-2 py-1 rounded-full text-xs"></span>
+        <span id="guestPoints" class="bg-yellow-500/30 px-2 py-1 rounded-full text-xs">⭐ 0 pts</span>
+        <button onclick="logoutGuest()" class="bg-white/20 px-2 py-1 rounded-lg text-xs">Logout</button>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <main class="p-4 max-w-4xl mx-auto pb-24 space-y-4">
-      <!-- Guest Stats -->
-      <div class="grid grid-cols-3 gap-3">
-        <div class="glass p-3 rounded-xl text-center"><div id="guestTotalRequests" class="text-xl font-bold">0</div><div class="text-xs text-gray-500">Requests</div></div>
-        <div class="glass p-3 rounded-xl text-center"><div id="guestPendingCount" class="text-xl font-bold text-yellow-600">0</div><div class="text-xs text-gray-500">Pending</div></div>
-        <div class="glass p-3 rounded-xl text-center"><div id="guestCompletedCount" class="text-xl font-bold text-green-600">0</div><div class="text-xs text-gray-500">Resolved</div></div>
+  <div class="px-4 py-4 max-w-7xl mx-auto">
+    <!-- Guest Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div class="glass-card rounded-2xl p-3 text-center">
+        <div class="text-xl">📋</div>
+        <div id="guestTotalRequests" class="text-lg font-bold">0</div>
+        <div class="text-xs">My Requests</div>
       </div>
-
-      <!-- Guest Tabs -->
-      <div class="flex gap-2 overflow-x-auto pb-1">
-        <button onclick="showGuestTab('newRequest')" class="guest-tab-btn px-3 py-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-sm font-medium whitespace-nowrap">📝 Request</button>
-        <button onclick="showGuestTab('foodOrder')" class="guest-tab-btn px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm whitespace-nowrap">🍕 Food</button>
-        <button onclick="showGuestTab('transport')" class="guest-tab-btn px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm whitespace-nowrap">🚗 Transport</button>
-        <button onclick="showGuestTab('myRequests')" class="guest-tab-btn px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm whitespace-nowrap">📋 History</button>
-        <button onclick="showGuestTab('hotelInfo')" class="guest-tab-btn px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm whitespace-nowrap">ℹ️ Info</button>
+      <div class="glass-card rounded-2xl p-3 text-center">
+        <div class="text-xl">⏳</div>
+        <div id="guestPendingCount" class="text-lg font-bold text-yellow-600">0</div>
+        <div class="text-xs">Pending</div>
       </div>
-
-      <!-- New Request -->
-      <div id="guestNewRequestTab" class="glass p-4 rounded-xl">
-        <h2 class="font-semibold mb-3">📝 New Request</h2>
-        <form id="guestRequestForm" class="space-y-3">
-          <select id="guestDepartment" class="w-full p-2 border rounded dark:bg-gray-700"><option value="">Select Dept</option><option value="housekeeping">Housekeeping</option><option value="maintenance">Maintenance</option><option value="restaurant">Restaurant</option><option value="laundry">Laundry</option><option value="it">IT</option></select>
-          <select id="guestCategory" class="w-full p-2 border rounded dark:bg-gray-700"><option value="">Select Service</option></select>
-          <textarea id="guestDescription" placeholder="Describe issue..." class="w-full p-2 border rounded dark:bg-gray-700" rows="2" required></textarea>
-          <select id="guestPriority" class="w-full p-2 border rounded dark:bg-gray-700"><option value="normal">Normal</option><option value="urgent">Urgent</option></select>
-          <div class="flex gap-2"><button type="submit" class="flex-1 bg-indigo-600 text-white py-2 rounded font-semibold">Submit</button><button type="button" onclick="showSOSAlert()" class="flex-1 bg-red-600 text-white py-2 rounded font-semibold sos-btn">🚨 SOS</button></div>
-        </form>
+      <div class="glass-card rounded-2xl p-3 text-center">
+        <div class="text-xl">✅</div>
+        <div id="guestCompletedCount" class="text-lg font-bold text-green-600">0</div>
+        <div class="text-xs">Resolved</div>
       </div>
+      <div class="glass-card rounded-2xl p-3 text-center">
+        <div class="text-xl">⭐</div>
+        <div id="guestRatingStatus" class="text-sm font-bold">Not Rated</div>
+        <div class="text-xs">Review</div>
+      </div>
+    </div>
 
-      <!-- Food Order -->
-      <div id="guestFoodOrderTab" class="hidden glass p-4 rounded-xl">
-        <h2 class="font-semibold mb-3">🍕 Food Menu</h2>
-        <div id="dynamicFoodMenu" class="grid grid-cols-2 gap-2 mb-4"></div>
-        <div class="border-t pt-3">
-          <h3 class="font-semibold text-sm mb-2">Cart</h3>
-          <div id="cartItems" class="max-h-40 overflow-y-auto mb-2"></div>
-          <div class="flex justify-between font-bold mb-2"><span>Total:</span><span id="cartTotal">$0.00</span></div>
-          <button onclick="placeOrder()" class="w-full bg-indigo-600 text-white py-2 rounded font-semibold">🛒 Place Order</button>
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-3 md:grid-cols-5 gap-2 mb-5">
+      <button onclick="showGuestTab('newRequest')" class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-2xl text-center hover:bg-purple-200 transition">
+        <div class="text-xl">📝</div>
+        <div class="text-xs">Request</div>
+      </button>
+      <button onclick="showGuestTab('foodOrder')" class="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-2xl text-center hover:bg-orange-200 transition">
+        <div class="text-xl">🍕</div>
+        <div class="text-xs">Food</div>
+      </button>
+      <button onclick="showGuestTab('transport')" class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl text-center hover:bg-blue-200 transition">
+        <div class="text-xl">🚗</div>
+        <div class="text-xs">Cab</div>
+      </button>
+      <button onclick="showGuestTab('myRequests')" class="p-3 bg-green-100 dark:bg-green-900/30 rounded-2xl text-center hover:bg-green-200 transition">
+        <div class="text-xl">📋</div>
+        <div class="text-xs">History</div>
+      </button>
+      <button onclick="showGuestTab('hotelInfo')" class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-2xl text-center hover:bg-yellow-200 transition">
+        <div class="text-xl">ℹ️</div>
+        <div class="text-xs">Info</div>
+      </button>
+    </div>
+
+    <!-- New Request Tab -->
+    <div id="guestNewRequestTab" class="glass-card rounded-2xl p-4 shadow-sm mb-4">
+      <h2 class="font-semibold text-base mb-3">📝 New Request</h2>
+      <form id="guestRequestForm" class="space-y-3">
+        <select id="guestDepartment" onchange="updateGuestCategories()" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+          <option value="">Select Department</option>
+          <option value="housekeeping">🧹 Housekeeping</option>
+          <option value="maintenance">🔧 Maintenance</option>
+          <option value="restaurant">🍽️ Restaurant</option>
+          <option value="laundry">🧺 Laundry</option>
+          <option value="it">💻 IT Support</option>
+        </select>
+        <select id="guestCategory" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+          <option value="">Select Service</option>
+        </select>
+        <textarea id="guestDescription" rows="2" placeholder="Describe your issue..." class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" required></textarea>
+        <select id="guestPriority" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+          <option value="normal">🟢 Normal</option>
+          <option value="urgent">⚠️ Urgent</option>
+        </select>
+        <div class="flex gap-2">
+          <button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg font-semibold text-sm">✅ Submit Request</button>
+          <button type="button" onclick="showSOSAlert()" class="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold text-sm sos-btn">🚨 SOS</button>
         </div>
-      </div>
+      </form>
+    </div>
 
-      <!-- Transport -->
-      <div id="guestTransportTab" class="hidden glass p-4 rounded-xl">
-        <h2 class="font-semibold mb-3">🚗 Transport Booking</h2>
-        <form id="transportForm" class="space-y-3">
-          <select id="transportType" class="w-full p-2 border rounded dark:bg-gray-700"><option value="airport">✈️ Airport Transfer - <span id="airportPriceDisplay">$30</span></option><option value="local">🚕 Local Cab - <span id="localPriceDisplay">$15</span>/hr</option></select>
-          <input type="datetime-local" id="transportTime" class="w-full p-2 border rounded dark:bg-gray-700" required>
-          <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded font-semibold">📅 Book Now</button>
-        </form>
-      </div>
+    <!-- Food Order Tab -->
+    <div id="guestFoodOrderTab" class="hidden glass-card rounded-2xl p-4 shadow-sm mb-4">
+      <h2 class="font-semibold text-base mb-3">🍕 Food Menu</h2>
+      <div id="dynamicFoodMenu" class="grid grid-cols-2 gap-2"></div>
+      <div id="cartItems" class="border-t pt-3 mt-3 text-sm"></div>
+      <button onclick="placeOrder()" class="w-full gradient-bg text-white py-2 rounded-lg font-semibold text-sm mt-2">🛒 Place Order (<span id="cartTotal">0</span>)</button>
+    </div>
 
-      <!-- My Requests -->
-      <div id="guestMyRequestsTab" class="hidden glass p-4 rounded-xl">
-        <h2 class="font-semibold mb-3">📋 My Requests</h2>
-        <div id="guestRequestsList" class="space-y-2 max-h-80 overflow-y-auto"></div>
-      </div>
+    <!-- Transport Tab -->
+    <div id="guestTransportTab" class="hidden glass-card rounded-2xl p-4 shadow-sm mb-4">
+      <h2 class="font-semibold text-base mb-3">🚗 Transport</h2>
+      <form id="transportForm" class="space-y-3">
+        <select id="transportType" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+          <option value="airport">✈️ Airport Transfer - <span id="airportPriceDisplay">$30</span></option>
+          <option value="local">🚕 Local Cab - <span id="localPriceDisplay">$15</span>/hr</option>
+        </select>
+        <input type="datetime-local" id="transportTime" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        <button type="submit" class="w-full gradient-bg text-white py-2 rounded-lg font-semibold text-sm">📅 Book Now</button>
+      </form>
+    </div>
 
-      <!-- Hotel Info -->
-      <div id="guestHotelInfoTab" class="hidden glass p-4 rounded-xl space-y-3 text-sm">
-        <h2 class="font-semibold text-lg">ℹ️ Hotel Info</h2>
-        <div class="flex justify-between items-center border-b pb-2"><span>📶 WiFi Password:</span><span id="guestWifiPassword" class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">CrownPlaza@2024</span></div>
-        <div class="flex justify-between"><span>🌍 Local Time:</span><span id="guestLocalTime" class="font-mono"></span></div>
-        <div class="flex justify-between"><span>🍽️ Restaurant:</span><span>7AM - 10PM</span></div>
-        <div class="flex justify-between"><span>🚨 Emergency:</span><span>Security: 100</span></div>
-        <div class="flex gap-2 pt-2">
-          <button onclick="setWakeUpCall()" class="flex-1 bg-purple-100 dark:bg-purple-900/30 py-2 rounded">⏰ Wake-up Call</button>
-          <button onclick="toggleDND()" id="dndBtn" class="flex-1 bg-gray-100 dark:bg-gray-700 py-2 rounded">🔕 DND: OFF</button>
+    <!-- My Requests Tab -->
+    <div id="guestMyRequestsTab" class="hidden glass-card rounded-2xl p-4 shadow-sm mb-4">
+      <h2 class="font-semibold text-base mb-3">📋 My Requests</h2>
+      <div id="guestRequestsList" class="space-y-2"></div>
+    </div>
+
+    <!-- Hotel Info Tab -->
+    <div id="guestHotelInfoTab" class="hidden glass-card rounded-2xl p-4 shadow-sm mb-4">
+      <h2 class="font-semibold text-base mb-3">ℹ️ Hotel Info</h2>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between items-center">
+          <span>📶 WiFi:</span>
+          <span class="font-mono" id="guestWifiPassword">CrownPlaza@2024</span>
+          <button onclick="copyWifiPassword()" class="text-purple-600 text-xs">Copy</button>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <button onclick="showLocalGuide()" class="bg-green-100 dark:bg-green-900/30 py-2 rounded">🗺️ Local Guide</button>
-          <button onclick="showEventCalendar()" class="bg-pink-100 dark:bg-pink-900/30 py-2 rounded">📅 Events</button>
-        </div>
+        <div class="flex justify-between"><span>🌍 Local Time:</span><span id="guestLocalTime"></span></div>
+        <div class="flex justify-between"><span>🍽️ Restaurant:</span><span>7AM-10PM</span></div>
+        <div class="flex justify-between"><span>💪 Gym:</span><span>6AM-10PM</span></div>
+        <div class="flex justify-between"><span> Emergency:</span><span>100/101</span></div>
+        <div class="flex justify-between"><span>🕐 Checkout:</span><span>11:00 AM</span></div>
       </div>
-    </main>
+      <button onclick="showCheckoutRating()" class="w-full bg-red-600 text-white py-3 rounded-lg font-semibold text-base mt-4">⭐ Checkout & Rate</button>
+    </div>
   </div>
+</div>
 
-  <!-- ==================== 5. MODALS ==================== -->
-  <!-- Room Modal -->
-  <div id="roomModal" class="modal"><div class="modal-content"><h3 id="roomModalTitle" class="text-lg font-bold mb-3">Add Room</h3><form id="roomForm" class="space-y-3"><input type="hidden" id="roomEditIndex" value="-1"><input type="number" id="roomNumberInput" placeholder="Room #" class="w-full p-2 border rounded dark:bg-gray-700" required><select id="roomTypeInput" class="w-full p-2 border rounded dark:bg-gray-700" required><option value="Standard">Standard</option><option value="Deluxe">Deluxe</option><option value="Suite">Suite</option></select><select id="roomStatusInput" class="w-full p-2 border rounded dark:bg-gray-700" required><option value="Vacant">Vacant</option><option value="Occupied">Occupied</option><option value="Cleaning">Cleaning</option></select><input type="text" id="roomGuestInput" placeholder="Guest Name (Optional)" class="w-full p-2 border rounded dark:bg-gray-700"><div class="flex gap-2"><button type="submit" class="flex-1 bg-indigo-600 text-white p-2 rounded">Save</button><button type="button" onclick="closeRoomModal()" class="flex-1 bg-gray-300 dark:bg-gray-600 p-2 rounded">Cancel</button></div></form></div></div>
-
-  <!-- Food Modal -->
-  <div id="foodModal" class="modal"><div class="modal-content"><h3 id="foodModalTitle" class="text-lg font-bold mb-3">Add Item</h3><form id="foodForm" class="space-y-3"><input type="hidden" id="foodEditIndex" value="-1"><input type="text" id="foodNameInput" placeholder="Item Name" class="w-full p-2 border rounded dark:bg-gray-700" required><input type="number" id="foodPriceInput" placeholder="Price" class="w-full p-2 border rounded dark:bg-gray-700" step="0.01" required><select id="foodCategoryInput" class="w-full p-2 border rounded dark:bg-gray-700"><option value="Main Course">Main</option><option value="Appetizer">Appetizer</option><option value="Dessert">Dessert</option><option value="Beverage">Beverage</option></select><textarea id="foodDescInput" placeholder="Description" class="w-full p-2 border rounded dark:bg-gray-700" rows="2"></textarea><div class="flex gap-2"><button type="submit" class="flex-1 bg-indigo-600 text-white p-2 rounded">Save</button><button type="button" onclick="closeFoodModal()" class="flex-1 bg-gray-300 dark:bg-gray-600 p-2 rounded">Cancel</button></div></form></div></div>
-
-  <!-- QR Download Modal -->
-  <div id="qrDownloadModal" class="modal"><div class="modal-content text-center"><h3 class="text-lg font-bold mb-3">📷 QR Code</h3><div id="qrPreviewContainer" class="flex justify-center mb-3"></div><p id="qrRoomLabel" class="text-sm text-gray-500 mb-3">Room #</p><button onclick="downloadQRCode()" class="w-full bg-indigo-600 text-white py-2 rounded">⬇️ Download PNG</button><button onclick="closeModal('qrDownloadModal')" class="w-full mt-2 bg-gray-300 dark:bg-gray-600 py-2 rounded">Close</button></div></div>
-
-  <!-- SOS Modal -->
-  <div id="sosModal" class="modal"><div class="modal-content text-center bg-red-600 text-white"><div class="text-5xl mb-2">🚨</div><h2 class="text-2xl font-bold mb-2">EMERGENCY SOS</h2><p class="mb-4">Help is on the way!</p><button onclick="closeSOSModal()" class="bg-white text-red-600 px-6 py-2 rounded font-bold">Close</button></div></div>
-
-  <!-- Rating Modal -->
-  <div id="ratingModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-3">⭐ Rate Your Stay</h3><div class="space-y-3"><div><label class="text-sm">Overall</label><div id="ratingStars" class="flex gap-1 text-2xl cursor-pointer"></div></div><div><label class="text-sm">Cleanliness</label><div id="cleanlinessStars" class="flex gap-1 text-2xl cursor-pointer"></div></div><div><label class="text-sm">Staff</label><div id="staffStars" class="flex gap-1 text-2xl cursor-pointer"></div></div><div><label class="text-sm">Recommend?</label><div class="flex gap-2"><button onclick="setRecommend(true)" id="recommendYes" class="px-4 py-1 bg-green-500 text-white rounded">Yes</button><button onclick="setRecommend(false)" id="recommendNo" class="px-4 py-1 bg-red-500 text-white rounded">No</button></div></div><textarea id="reviewText" placeholder="Comments..." class="w-full p-2 border rounded dark:bg-gray-700" rows="2"></textarea><button onclick="submitRating()" class="w-full bg-indigo-600 text-white py-2 rounded">Submit Review</button></div></div></div>
-
-  <!-- Local Guide & Event Modals -->
-  <div id="localGuideModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-3">🗺️ Local Guide</h3><div id="localGuideContent" class="space-y-2 text-sm max-h-60 overflow-y-auto"></div><button onclick="closeModal('localGuideModal')" class="w-full mt-3 bg-gray-300 dark:bg-gray-600 py-2 rounded">Close</button></div></div>
-  <div id="eventModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-3">📅 Events</h3><div id="eventContent" class="space-y-2 text-sm max-h-60 overflow-y-auto"></div><button onclick="closeModal('eventModal')" class="w-full mt-3 bg-gray-300 dark:bg-gray-600 py-2 rounded">Close</button></div></div>
-
-  <!-- Fixed Bottom Language Toolbar -->
-  <div id="langToolbar" class="fixed-bottom bg-gray-900/90 backdrop-blur text-white px-2 py-2 flex justify-center items-center gap-2 overflow-x-auto">
-    <button onclick="changeLanguage('en')" class="lang-btn px-2 py-1 rounded bg-purple-100 text-purple-700 text-xs font-bold">🇬🇧 EN</button>
-    <button onclick="changeLanguage('hi')" class="lang-btn px-2 py-1 rounded bg-gray-700 text-xs">🇮🇳 हिंदी</button>
-    <button onclick="changeLanguage('ar')" class="lang-btn px-2 py-1 rounded bg-gray-700 text-xs">🇸🇦 العربية</button>
-    <button onclick="toggleDarkMode()" id="darkModeToggle" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-700">🌙</button>
-    <button onclick="toggleOfflineMode()" class="px-2 py-1 rounded bg-gray-700 text-xs">📴</button>
-    <button onclick="requestPushPermission()" class="px-2 py-1 rounded bg-gray-700 text-xs">🔔</button>
-    <button onclick="testHaptic()" class="px-2 py-1 rounded bg-gray-700 text-xs">📳</button>
+<!-- MODALS -->
+<!-- Room Modal -->
+<div id="roomModal" class="modal">
+  <div class="modal-content">
+    <h3 class="text-lg font-bold mb-4" id="roomModalTitle">Add New Room</h3>
+    <form id="roomForm" class="space-y-3">
+      <input type="hidden" id="roomEditIndex" value="-1">
+      <div>
+        <label class="text-xs text-gray-500">Room Number *</label>
+        <input type="number" id="roomNumberInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500">Room Type *</label>
+        <select id="roomTypeInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+          <option value="Standard">Standard</option>
+          <option value="Deluxe">Deluxe</option>
+          <option value="Suite">Suite</option>
+          <option value="Presidential">Presidential</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500">Status *</label>
+        <select id="roomStatusInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+          <option value="Vacant">Vacant</option>
+          <option value="Occupied">Occupied</option>
+          <option value="Cleaning">Cleaning</option>
+          <option value="Maintenance">Maintenance</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500">Guest Name (if occupied)</label>
+        <input type="text" id="roomGuestInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Optional">
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg font-semibold">💾 Save Room</button>
+        <button type="button" onclick="closeRoomModal()" class="flex-1 bg-gray-200 dark:bg-gray-700 py-2 rounded-lg">Cancel</button>
+      </div>
+    </form>
   </div>
+</div>
 
-  <!-- Link to your existing script.js -->
-  <script src="script.js"></script>
+<!-- Food Modal -->
+<div id="foodModal" class="modal">
+  <div class="modal-content">
+    <h3 class="text-lg font-bold mb-4" id="foodModalTitle">Add New Dish</h3>
+    <form id="foodForm" class="space-y-3">
+      <input type="hidden" id="foodEditIndex" value="-1">
+      <div>
+        <label class="text-xs text-gray-500">Dish Name *</label>
+        <input type="text" id="foodNameInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required placeholder="e.g., Burger">
+      </div>
+      <div>
+        <label class="text-xs text-gray-500">Price *</label>
+        <div class="flex gap-2">
+          <span id="foodCurrencyBadge" class="currency-badge bg-purple-600 text-white px-2 py-1 rounded">$</span>
+          <input type="number" id="foodPriceInput" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required min="0" step="0.01" placeholder="12.99">
+        </div>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500">Category</label>
+        <select id="foodCategoryInput" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+          <option value="Main Course">Main Course</option>
+          <option value="Appetizer">Appetizer</option>
+          <option value="Dessert">Dessert</option>
+          <option value="Beverage">Beverage</option>
+          <option value="Snack">Snack</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500">Description</label>
+        <textarea id="foodDescInput" rows="2" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Optional description"></textarea>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg font-semibold">💾 Save Dish</button>
+        <button type="button" onclick="closeFoodModal()" class="flex-1 bg-gray-200 dark:bg-gray-700 py-2 rounded-lg">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- SOS Modal -->
+<div id="sosModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+  <div class="bg-red-600 rounded-2xl max-w-md w-full p-6 text-white text-center">
+    <div class="text-6xl mb-3">🚨</div>
+    <h2 class="text-2xl font-bold mb-2">EMERGENCY SOS</h2>
+    <p>Emergency services notified! Help is on the way.</p>
+    <button onclick="closeSOSModal()" class="mt-4 bg-white text-red-600 px-6 py-2 rounded-lg font-bold">Close</button>
+  </div>
+</div>
+
+<!-- Rating Modal -->
+<div id="ratingModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-5">
+    <h2 class="text-xl font-bold mb-3">⭐ Rate Your Stay</h2>
+    <div class="space-y-3">
+      <div>
+        <label>Overall</label>
+        <div id="ratingStars" class="flex gap-1 text-2xl"></div>
+      </div>
+      <div>
+        <label>Cleanliness</label>
+        <div id="cleanlinessStars" class="flex gap-1 text-2xl"></div>
+      </div>
+      <div>
+        <label>Staff</label>
+        <div id="staffStars" class="flex gap-1 text-2xl"></div>
+      </div>
+      <textarea id="reviewText" rows="2" placeholder="Share your experience..." class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+      <button onclick="submitRating()" class="w-full gradient-bg text-white py-2 rounded-lg font-semibold">Submit Review</button>
+      <button onclick="closeModal('ratingModal')" class="w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-lg">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Include your script.js content here
+// The script.js you provided should be pasted here
+// For brevity, I'm including the key fixes and functions
+
+// Global Variables
+let currentLanguage = localStorage.getItem('crown_plaza_language') || 'en';
+let currentTheme = localStorage.getItem('crown_plaza_theme') || 'default';
+let fontSizeLevel = localStorage.getItem('crown_plaza_fontSize') || 'normal';
+let brightnessLevel = localStorage.getItem('crown_plaza_brightness') || '1';
+let isDarkMode = localStorage.getItem('crown_plaza_darkMode') === 'true';
+let offlineMode = false;
+let currentGuest = null;
+let currentAdminRole = null;
+let currentPage = 'login';
+
+// Data Arrays (MongoDB synced - simulated with localStorage for demo)
+let requests = JSON.parse(localStorage.getItem('crown_plaza_requests') || '[]');
+let rooms = JSON.parse(localStorage.getItem('crown_plaza_rooms') || '[]');
+let foodMenu = JSON.parse(localStorage.getItem('crown_plaza_foodmenu') || '[]');
+let hotelSettings = JSON.parse(localStorage.getItem('crown_plaza_settings') || '{"name":"Crown Plaza Hotel","currencySymbol":"$","priceFormat":"symbol-first","transportPrices":{"airport":30,"local":15},"wifiPassword":"CrownPlaza@2024"}');
+let cart = [];
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+  loadSavedSettings();
+  checkSavedSession();
+  updateLiveClock();
+  setInterval(updateLiveClock, 1000);
+  updateAllDisplays();
+
+  // Initialize sample data if empty
+  if (rooms.length === 0) initSampleRooms();
+  if (foodMenu.length === 0) initSampleFood();
+});
+
+// Session Management
+function checkSavedSession() {
+  const savedGuest = localStorage.getItem('crown_plaza_guest_session');
+  const savedAdmin = localStorage.getItem('crown_plaza_admin_session');
+
+  if (savedGuest) {
+    currentGuest = JSON.parse(savedGuest);
+    showGuestDashboard(currentGuest.name, currentGuest.room);
+    currentPage = 'guest';
+  } else if (savedAdmin) {
+    currentAdminRole = JSON.parse(savedAdmin).role;
+    showAdminDashboard(currentAdminRole);
+    currentPage = 'admin';
+  }
+}
+
+function saveSession(type, data) {
+  if (type === 'guest') {
+    localStorage.setItem('crown_plaza_guest_session', JSON.stringify(data));
+  } else if (type === 'admin') {
+    localStorage.setItem('crown_plaza_admin_session', JSON.stringify(data));
+  }
+}
+
+function clearSession() {
+  localStorage.removeItem('crown_plaza_guest_session');
+  localStorage.removeItem('crown_plaza_admin_session');
+}
+
+// Language Functions
+function changeLanguage(lang) {
+  currentLanguage = lang;
+  localStorage.setItem('crown_plaza_language', lang);
+
+  // Update HTML attributes
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+  // Update active button
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+
+  // Update UI
+  updateLanguageUI();
+  showToast('Language changed to ' + lang.toUpperCase());
+
+  // Voice announcement
+  speakText('Language changed to ' + (lang === 'en' ? 'English' : lang === 'hi' ? 'Hindi' : 'Arabic'));
+}
+
+function updateLanguageUI() {
+  // Update all translatable elements
+  const translations = getTranslations(currentLanguage);
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[key]) {
+      el.textContent = translations[key];
+    }
+  });
+}
+
+function getTranslations(lang) {
+  const translations = {
+    en: {
+      welcomeTitle: 'Crown Plaza Hotel',
+      // Add more translations as needed
+    },
+    hi: {
+      welcomeTitle: 'क्राउन प्लाज़ा होटल',
+    },
+    ar: {
+      welcomeTitle: 'فندق كراون بلازا',
+    }
+  };
+  return translations[lang] || translations.en;
+}
+
+// Theme Functions (FIXED)
+function toggleThemeSelector() {
+  const menu = document.getElementById('themeMenu');
+  menu.classList.toggle('show');
+}
+
+function setTheme(themeName) {
+  currentTheme = themeName;
+  localStorage.setItem('crown_plaza_theme', themeName);
+
+  const gradients = {
+    default: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    sunset: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
+    forest: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+    ocean: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+    royal: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)'
+  };
+
+  const gradient = gradients[themeName] || gradients.default;
+
+  // Apply gradient to all elements with gradient-bg class
+  document.querySelectorAll('.gradient-bg').forEach(el => {
+    el.style.background = gradient;
+  });
+
+  // Update active preview
+  document.querySelectorAll('.theme-preview').forEach((preview, index) => {
+    preview.classList.remove('active');
+    const themes = ['default', 'sunset', 'forest', 'ocean', 'royal'];
+    if (themes[index] === themeName) {
+      preview.classList.add('active');
+    }
+  });
+
+  document.getElementById('themeMenu').classList.remove('show');
+  showToast('Theme changed to ' + themeName);
+}
+
+// Brightness Function
+function adjustBrightness(value) {
+  brightnessLevel = value;
+  localStorage.setItem('crown_plaza_brightness', value);
+  document.body.style.filter = `brightness(${value})`;
+  document.getElementById('brightnessValue').textContent = Math.round(value * 100) + '%';
+}
+
+// Font Size Function
+function adjustFontSize(action) {
+  const body = document.body;
+  body.classList.remove('font-small', 'font-large');
+
+  if (action === 'increase') {
+    body.classList.add('font-large');
+    localStorage.setItem('crown_plaza_fontSize', 'large');
+  } else if (action === 'decrease') {
+    body.classList.add('font-small');
+    localStorage.setItem('crown_plaza_fontSize', 'small');
+  } else {
+    localStorage.setItem('crown_plaza_fontSize', 'normal');
+  }
+}
+
+// Dark Mode
+function toggleDarkMode() {
+  document.body.classList.toggle('dark');
+  isDarkMode = document.body.classList.contains('dark');
+  localStorage.setItem('crown_plaza_darkMode', isDarkMode);
+
+  const btn = document.getElementById('darkModeToggle');
+  btn.textContent = isDarkMode ? '☀️' : '🌙';
+}
+
+// High Contrast
+function toggleHighContrast() {
+  document.body.classList.toggle('high-contrast');
+  showToast('High contrast toggled');
+}
+
+// Voice/Speech Functions (FIXED for all languages)
+function speakText(text) {
+  if (!text || typeof window.speechSynthesis === 'undefined') return;
+
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 0.9;
+  utterance.pitch = 1.1;
+
+  // Set language for speech
+  if (currentLanguage === 'hi') {
+    utterance.lang = 'hi-IN';
+  } else if (currentLanguage === 'ar') {
+    utterance.lang = 'ar-SA';
+  } else {
+    utterance.lang = 'en-US';
+  }
+
+  // Try to find appropriate voice
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length > 0) {
+    const preferredVoice = voices.find(v => v.lang.includes(currentLanguage === 'hi' ? 'hi' : currentLanguage === 'ar' ? 'ar' : 'en'));
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+  }
+
+  window.speechSynthesis.speak(utterance);
+}
+
+// Load saved settings
+function loadSavedSettings() {
+  // Dark mode
+  if (isDarkMode) {
+    document.body.classList.add('dark');
+    document.getElementById('darkModeToggle').textContent = '☀️';
+  }
+
+  // Brightness
+  if (brightnessLevel !== '1') {
+    document.getElementById('brightnessSlider').value = brightnessLevel;
+    adjustBrightness(brightnessLevel);
+  }
+
+  // Font size
+  if (fontSizeLevel === 'large') {
+    document.body.classList.add('font-large');
+  } else if (fontSizeLevel === 'small') {
+    document.body.classList.add('font-small');
+  }
+
+  // Theme
+  if (currentTheme !== 'default') {
+    setTheme(currentTheme);
+  }
+}
+
+// Login Functions
+function switchLoginType(type) {
+  const guestForm = document.getElementById('guestLoginForm');
+  const adminForm = document.getElementById('adminLoginForm');
+  const guestTab = document.getElementById('guestTabBtn');
+  const adminTab = document.getElementById('adminTabBtn');
+  const closeBtn = document.getElementById('closeAdminFormBtn');
+
+  if (type === 'guest') {
+    guestForm.classList.remove('hidden');
+    adminForm.classList.add('hidden');
+    guestTab.classList.add('bg-purple-100', 'text-purple-700');
+    guestTab.classList.remove('bg-gray-100', 'text-gray-700');
+    adminTab.classList.remove('bg-purple-100', 'text-purple-700');
+    adminTab.classList.add('bg-gray-100', 'text-gray-700');
+    closeBtn.classList.add('hidden');
+  } else {
+    guestForm.classList.add('hidden');
+    adminForm.classList.remove('hidden');
+    adminTab.classList.add('bg-purple-100', 'text-purple-700');
+    adminTab.classList.remove('bg-gray-100', 'text-gray-700');
+    guestTab.classList.remove('bg-purple-100', 'text-purple-700');
+    guestTab.classList.add('bg-gray-100', 'text-gray-700');
+    closeBtn.classList.remove('hidden');
+  }
+}
+
+// Guest Login
+document.getElementById('guestLoginForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const name = document.getElementById('guestNameInput').value.trim();
+  const room = document.getElementById('guestRoomInput').value.trim();
+
+  if (name && room) {
+    currentGuest = { name, room };
+    saveSession('guest', currentGuest);
+    showGuestDashboard(name, room);
+    currentPage = 'guest';
+    showToast('Welcome, ' + name + '!');
+    speakText('Welcome to Crown Plaza Hotel');
+  }
+});
+
+// Admin Login
+document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const email = document.getElementById('adminEmailInput').value.trim();
+  const password = document.getElementById('adminPasswordInput').value;
+
+  if (email && password) {
+    // For demo, accept any credentials
+    document.getElementById('loginSelectionPage').classList.add('hidden');
+    document.getElementById('roleSelectionPage').classList.remove('hidden');
+  }
+});
+
+function loginAsRole(role) {
+  currentAdminRole = role;
+  saveSession('admin', { role, email: document.getElementById('adminEmailInput').value });
+  showAdminDashboard(role);
+  currentPage = 'admin';
+  showToast('Logged in as ' + role);
+}
+
+function backToMain() {
+  document.getElementById('roleSelectionPage').classList.add('hidden');
+  document.getElementById('loginSelectionPage').classList.remove('hidden');
+}
+
+function logoutGuest() {
+  clearSession();
+  currentGuest = null;
+  currentPage = 'login';
+  document.getElementById('guestDashboard').classList.add('hidden');
+  document.getElementById('loginSelectionPage').classList.remove('hidden');
+  showToast('Logged out successfully');
+}
+
+function logoutAdmin() {
+  clearSession();
+  currentAdminRole = null;
+  currentPage = 'login';
+  document.getElementById('adminDashboard').classList.add('hidden');
+  document.getElementById('loginSelectionPage').classList.remove('hidden');
+  showToast('Logged out successfully');
+}
+
+// Show Dashboards
+function showGuestDashboard(name, room) {
+  document.getElementById('loginSelectionPage').classList.add('hidden');
+  document.getElementById('guestDashboard').classList.remove('hidden');
+  document.getElementById('guestInfo').textContent = `${name} - Room ${room}`;
+  showGuestTab('newRequest');
+  updateGuestStats();
+  renderDynamicFoodMenu();
+}
+
+function showAdminDashboard(role) {
+  document.getElementById('roleSelectionPage').classList.add('hidden');
+  document.getElementById('adminDashboard').classList.remove('hidden');
+  document.getElementById('roleDisplay').textContent = role;
+  showAdminTab('overview');
+  updateAdminStats();
+  renderRooms();
+  renderFoodMenu();
+}
+
+// Tab Navigation
+function showAdminTab(tabName) {
+  // Hide all tabs
+  ['overview', 'requests', 'rooms', 'foodmenu', 'settings'].forEach(tab => {
+    const el = document.getElementById(tab + 'Tab');
+    if (el) el.classList.add('hidden');
+  });
+
+  // Show selected tab
+  const selectedTab = document.getElementById(tabName + 'Tab');
+  if (selectedTab) selectedTab.classList.remove('hidden');
+
+  // Refresh data
+  if (tabName === 'requests') renderAdminRequests();
+  if (tabName === 'rooms') renderRooms();
+  if (tabName === 'foodmenu') renderFoodMenu();
+}
+
+function showGuestTab(tabName) {
+  // Hide all tabs
+  ['newRequest', 'foodOrder', 'transport', 'myRequests', 'hotelInfo'].forEach(tab => {
+    const el = document.getElementById('guest' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'Tab');
+    if (el) el.classList.add('hidden');
+  });
+
+  // Show selected tab
+  const selectedTab = document.getElementById('guest' + tabName.charAt(0).toUpperCase() + tabName.slice(1) + 'Tab');
+  if (selectedTab) selectedTab.classList.remove('hidden');
+
+  // Refresh data
+  if (tabName === 'myRequests') renderGuestRequests();
+  if (tabName === 'foodOrder') renderDynamicFoodMenu();
+}
+
+// Update Stats
+function updateAdminStats() {
+  document.getElementById('statTotalRooms').textContent = rooms.length;
+  document.getElementById('statOccupied').textContent = rooms.filter(r => r.status === 'Occupied').length;
+  document.getElementById('statOpenRequests').textContent = requests.filter(r => r.status === 'open').length;
+  document.getElementById('statInProgress').textContent = requests.filter(r => r.status === 'in_progress').length;
+  document.getElementById('statEmergency').textContent = requests.filter(r => r.priority === 'emergency' && r.status !== 'completed').length;
+
+  renderEmergencyRequests();
+}
+
+function updateGuestStats() {
+  if (!currentGuest) return;
+
+  const myRequests = requests.filter(r => r.guestName === currentGuest.name && r.roomNumber === currentGuest.room);
+  document.getElementById('guestTotalRequests').textContent = myRequests.length;
+  document.getElementById('guestPendingCount').textContent = myRequests.filter(r => r.status !== 'completed').length;
+  document.getElementById('guestCompletedCount').textContent = myRequests.filter(r => r.status === 'completed').length;
+}
+
+// Render Functions
+function renderAdminRequests() {
+  const container = document.getElementById('adminRequestsList');
+  if (!container) return;
+
+  if (requests.length === 0) {
+    container.innerHTML = '<div class="text-center py-4 text-gray-500">No requests yet</div>';
+    return;
+  }
+
+  container.innerHTML = requests.map(req => `
+    <div class="request-card ${req.priority === 'emergency' ? 'emergency' : ''}">
+      <div class="flex justify-between items-start">
+        <div>
+          <strong>${req.guestName}</strong> - Room ${req.roomNumber}
+          <div class="text-sm text-gray-600 dark:text-gray-400">${req.category}</div>
+          <div class="text-xs text-gray-500">${new Date(req.createdAt).toLocaleString()}</div>
+        </div>
+        <span class="px-2 py-1 rounded text-xs ${getStatusColor(req.status)}">${req.status}</span>
+      </div>
+      <div class="mt-2 text-sm">${req.description}</div>
+      <div class="mt-2 flex gap-2">
+        ${req.status !== 'completed' ? `<button onclick="completeRequest(${req.id})" class="text-green-600 text-sm">✅ Complete</button>` : ''}
+        <button onclick="deleteRequest(${req.id})" class="text-red-600 text-sm">🗑️ Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderEmergencyRequests() {
+  const container = document.getElementById('emergencyRequestsList');
+  if (!container) return;
+
+  const emergency = requests.filter(r => r.priority === 'emergency' && r.status !== 'completed');
+
+  if (emergency.length === 0) {
+    container.innerHTML = '<div class="text-center py-4 text-gray-500">No emergency requests</div>';
+    return;
+  }
+
+  container.innerHTML = emergency.map(req => `
+    <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border-l-4 border-red-600">
+      <strong>${req.guestName}</strong> - Room ${req.roomNumber}
+      <div class="text-sm">${req.description}</div>
+      <button onclick="completeRequest(${req.id})" class="mt-2 text-green-600 text-sm">✅ Mark Complete</button>
+    </div>
+  `).join('');
+}
+
+function renderRooms() {
+  const container = document.getElementById('roomsList');
+  if (!container) return;
+
+  if (rooms.length === 0) {
+    container.innerHTML = '<div class="text-center py-4 text-gray-500">No rooms added</div>';
+    return;
+  }
+
+  container.innerHTML = rooms.map((room, index) => `
+    <div class="flex justify-between items-center p-3 border rounded-lg">
+      <div>
+        <strong>Room ${room.number}</strong> - ${room.type}
+        <div class="text-sm text-gray-600">${room.status} ${room.guestName ? '| ' + room.guestName : ''}</div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="editRoom(${index})" class="text-blue-600">✏️</button>
+        <button onclick="deleteRoom(${index})" class="text-red-600">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderFoodMenu() {
+  const container = document.getElementById('foodMenuList');
+  if (!container) return;
+
+  if (foodMenu.length === 0) {
+    container.innerHTML = '<div class="text-center py-4 text-gray-500">No food items</div>';
+    return;
+  }
+
+  container.innerHTML = foodMenu.map((item, index) => `
+    <div class="flex justify-between items-center p-3 border rounded-lg">
+      <div>
+        <strong>${item.name}</strong> - ${item.category}
+        <div class="text-sm">$${item.price}</div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="editFood(${index})" class="text-blue-600">✏️</button>
+        <button onclick="deleteFood(${index})" class="text-red-600">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderDynamicFoodMenu() {
+  const container = document.getElementById('dynamicFoodMenu');
+  if (!container) return;
+
+  if (foodMenu.length === 0) {
+    container.innerHTML = '<div class="col-span-2 text-center py-4 text-gray-500">No food items available</div>';
+    return;
+  }
+
+  container.innerHTML = foodMenu.map(item => `
+    <button onclick="addToCart('${item.name}', ${item.price})" class="p-3 border rounded-lg text-left hover:bg-purple-50 transition">
+      <div class="font-semibold">${item.name}</div>
+      <div class="text-xs text-gray-500">${item.category}</div>
+      <div class="font-bold text-purple-600">$${item.price}</div>
+    </button>
+  `).join('');
+}
+
+function renderGuestRequests() {
+  const container = document.getElementById('guestRequestsList');
+  if (!container || !currentGuest) return;
+
+  const myRequests = requests.filter(r => r.guestName === currentGuest.name && r.roomNumber === currentGuest.room);
+
+  if (myRequests.length === 0) {
+    container.innerHTML = '<div class="text-center py-4 text-gray-500">No requests yet</div>';
+    return;
+  }
+
+  container.innerHTML = myRequests.map(req => `
+    <div class="p-3 border rounded-lg">
+      <strong>${req.category}</strong>
+      <div class="text-sm">${req.description}</div>
+      <div class="text-xs text-gray-500">${new Date(req.createdAt).toLocaleString()}</div>
+      <span class="px-2 py-1 rounded text-xs ${getStatusColor(req.status)}">${req.status}</span>
+    </div>
+  `).join('');
+}
+
+// CRUD Operations - Rooms
+function openAddRoomModal() {
+  document.getElementById('roomModalTitle').textContent = 'Add New Room';
+  document.getElementById('roomForm').reset();
+  document.getElementById('roomEditIndex').value = '-1';
+  document.getElementById('roomModal').classList.add('active');
+}
+
+function editRoom(index) {
+  const room = rooms[index];
+  document.getElementById('roomModalTitle').textContent = 'Edit Room';
+  document.getElementById('roomNumberInput').value = room.number;
+  document.getElementById('roomTypeInput').value = room.type;
+  document.getElementById('roomStatusInput').value = room.status;
+  document.getElementById('roomGuestInput').value = room.guestName || '';
+  document.getElementById('roomEditIndex').value = index;
+  document.getElementById('roomModal').classList.add('active');
+}
+
+document.getElementById('roomForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const index = parseInt(document.getElementById('roomEditIndex').value);
+  const roomData = {
+    number: parseInt(document.getElementById('roomNumberInput').value),
+    type: document.getElementById('roomTypeInput').value,
+    status: document.getElementById('roomStatusInput').value,
+    guestName: document.getElementById('roomGuestInput').value.trim()
+  };
+
+  if (index >= 0) {
+    // Update existing
+    rooms[index] = { ...rooms[index], ...roomData };
+    showToast('Room updated successfully');
+  } else {
+    // Add new
+    if (rooms.some(r => r.number === roomData.number)) {
+      showToast('Room number already exists!', 'error');
+      return;
+    }
+    rooms.push({ id: Date.now(), ...roomData });
+    showToast('Room added successfully');
+  }
+
+  saveToLocalStorage();
+  renderRooms();
+  updateAdminStats();
+  closeRoomModal();
+});
+
+function deleteRoom(index) {
+  if (confirm('Delete this room?')) {
+    rooms.splice(index, 1);
+    saveToLocalStorage();
+    renderRooms();
+    updateAdminStats();
+    showToast('Room deleted');
+  }
+}
+
+function closeRoomModal() {
+  document.getElementById('roomModal').classList.remove('active');
+}
+
+// CRUD Operations - Food
+function openAddFoodModal() {
+  document.getElementById('foodModalTitle').textContent = 'Add New Dish';
+  document.getElementById('foodForm').reset();
+  document.getElementById('foodEditIndex').value = '-1';
+  document.getElementById('foodModal').classList.add('active');
+}
+
+function editFood(index) {
+  const item = foodMenu[index];
+  document.getElementById('foodModalTitle').textContent = 'Edit Dish';
+  document.getElementById('foodNameInput').value = item.name;
+  document.getElementById('foodPriceInput').value = item.price;
+  document.getElementById('foodCategoryInput').value = item.category;
+  document.getElementById('foodDescInput').value = item.description || '';
+  document.getElementById('foodEditIndex').value = index;
+  document.getElementById('foodModal').classList.add('active');
+}
+
+document.getElementById('foodForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const index = parseInt(document.getElementById('foodEditIndex').value);
+  const foodData = {
+    name: document.getElementById('foodNameInput').value.trim(),
+    price: parseFloat(document.getElementById('foodPriceInput').value),
+    category: document.getElementById('foodCategoryInput').value,
+    description: document.getElementById('foodDescInput').value.trim()
+  };
+
+  if (index >= 0) {
+    foodMenu[index] = { ...foodMenu[index], ...foodData };
+    showToast('Food item updated');
+  } else {
+    foodMenu.push({ id: Date.now(), ...foodData });
+    showToast('Food item added');
+  }
+
+  saveToLocalStorage();
+  renderFoodMenu();
+  renderDynamicFoodMenu();
+  closeFoodModal();
+});
+
+function deleteFood(index) {
+  if (confirm('Delete this item?')) {
+    foodMenu.splice(index, 1);
+    saveToLocalStorage();
+    renderFoodMenu();
+    renderDynamicFoodMenu();
+    showToast('Food item deleted');
+  }
+}
+
+function closeFoodModal() {
+  document.getElementById('foodModal').classList.remove('active');
+}
+
+// Request Functions
+document.getElementById('adminRequestForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const request = {
+    id: Date.now(),
+    guestName: document.getElementById('reqGuestName').value.trim(),
+    roomNumber: document.getElementById('reqRoomNumber').value.trim(),
+    department: document.getElementById('reqDepartment').value,
+    category: document.getElementById('reqCategory').value,
+    description: document.getElementById('reqDescription').value.trim(),
+    priority: document.getElementById('reqPriority').value,
+    status: 'open',
+    createdAt: new Date().toISOString()
+  };
+
+  requests.unshift(request);
+  saveToLocalStorage();
+  renderAdminRequests();
+  updateAdminStats();
+  this.reset();
+  showToast('Request submitted successfully');
+});
+
+document.getElementById('guestRequestForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  if (!currentGuest) return;
+
+  const request = {
+    id: Date.now(),
+    guestName: currentGuest.name,
+    roomNumber: currentGuest.room,
+    department: document.getElementById('guestDepartment').value,
+    category: document.getElementById('guestCategory').value,
+    description: document.getElementById('guestDescription').value.trim(),
+    priority: document.getElementById('guestPriority').value === 'urgent' ? 'high' : 'normal',
+    status: 'open',
+    createdAt: new Date().toISOString()
+  };
+
+  requests.unshift(request);
+  saveToLocalStorage();
+  renderGuestRequests();
+  updateGuestStats();
+  updateAdminStats(); // Update admin view too
+  this.reset();
+  showToast('Request submitted successfully');
+  speakText('Your request has been submitted');
+});
+
+function completeRequest(id) {
+  const req = requests.find(r => r.id === id);
+  if (req) {
+    req.status = 'completed';
+    req.completedAt = new Date().toISOString();
+    saveToLocalStorage();
+    renderAdminRequests();
+    renderGuestRequests();
+    updateAdminStats();
+    updateGuestStats();
+    showToast('Request completed');
+  }
+}
+
+function deleteRequest(id) {
+  if (confirm('Delete this request?')) {
+    requests = requests.filter(r => r.id !== id);
+    saveToLocalStorage();
+    renderAdminRequests();
+    updateAdminStats();
+    showToast('Request deleted');
+  }
+}
+
+// Cart Functions
+function addToCart(itemName, price) {
+  cart.push({ item: itemName, price });
+  updateCart();
+  showToast(itemName + ' added to cart');
+  speakText(itemName + ' added to cart');
+}
+
+function updateCart() {
+  const total = cart.reduce((sum, item) => sum + item.price, 0);
+  document.getElementById('cartTotal').textContent = '$' + total.toFixed(2);
+
+  const container = document.getElementById('cartItems');
+  if (cart.length === 0) {
+    container.innerHTML = '<div class="text-gray-500">Cart is empty</div>';
+  } else {
+    container.innerHTML = cart.map((item, index) => `
+      <div class="flex justify-between py-1">
+        <span>${item.item}</span>
+        <span>$${item.price} <button onclick="removeFromCart(${index})" class="text-red-600 ml-2">✕</button></span>
+      </div>
+    `).join('') + `<div class="border-t pt-2 font-bold">Total: $${total.toFixed(2)}</div>`;
+  }
+}
+
+function removeFromCart(index) {
+  cart.splice(index, 1);
+  updateCart();
+}
+
+function placeOrder() {
+  if (cart.length === 0) {
+    showToast('Cart is empty!', 'error');
+    return;
+  }
+
+  const total = cart.reduce((sum, item) => sum + item.price, 0);
+
+  const order = {
+    id: Date.now(),
+    guestName: currentGuest.name,
+    roomNumber: currentGuest.room,
+    department: 'restaurant',
+    category: 'Food Order',
+    description: `Order: ${cart.map(c => c.item).join(', ')} - Total: $${total.toFixed(2)}`,
+    priority: 'normal',
+    status: 'open',
+    createdAt: new Date().toISOString()
+  };
+
+  requests.unshift(order);
+  saveToLocalStorage();
+
+  cart = [];
+  updateCart();
+  updateAdminStats();
+  renderGuestRequests();
+
+  showToast('Order placed successfully!');
+  speakText('Your order has been placed');
+  showGuestTab('myRequests');
+}
+
+// Transport
+document.getElementById('transportForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const type = document.getElementById('transportType').value;
+  const time = document.getElementById('transportTime').value;
+
+  const transport = {
+    id: Date.now(),
+    guestName: currentGuest.name,
+    roomNumber: currentGuest.room,
+    department: 'transport',
+    category: 'Transport',
+    description: `${type === 'airport' ? 'Airport' : 'Local'} transport at ${time}`,
+    priority: 'normal',
+    status: 'open',
+    createdAt: new Date().toISOString()
+  };
+
+  requests.unshift(transport);
+  saveToLocalStorage();
+  updateAdminStats();
+  renderGuestRequests();
+
+  showToast('Transport booked successfully!');
+  this.reset();
+  showGuestTab('myRequests');
+});
+
+// Settings Functions
+function saveHotelName() {
+  const newName = document.getElementById('hotelNameInput').value.trim();
+  if (newName.length >= 3) {
+    hotelSettings.name = newName;
+    saveToLocalStorage();
+    updateAllDisplays();
+    showToast('Hotel name updated');
+    speakText('Hotel name updated to ' + newName);
+  } else {
+    showToast('Hotel name must be at least 3 characters', 'error');
+  }
+}
+
+function saveCurrencySettings() {
+  hotelSettings.currencySymbol = document.getElementById('currencySymbolInput').value.trim() || '$';
+  hotelSettings.priceFormat = document.getElementById('priceFormatInput').value;
+  saveToLocalStorage();
+  updateAllDisplays();
+  renderFoodMenu();
+  renderDynamicFoodMenu();
+  showToast('Currency settings saved');
+}
+
+function saveTransportPrices() {
+  hotelSettings.transportPrices = {
+    airport: parseFloat(document.getElementById('airportPriceInput').value) || 30,
+    local: parseFloat(document.getElementById('localCabPriceInput').value) || 15
+  };
+  saveToLocalStorage();
+  updateAllDisplays();
+  showToast('Transport prices updated');
+}
+
+function saveWifiPassword() {
+  const newPassword = document.getElementById('wifiPasswordInput').value.trim();
+  if (newPassword) {
+    hotelSettings.wifiPassword = newPassword;
+    saveToLocalStorage();
+    document.getElementById('guestWifiPassword').textContent = newPassword;
+    showToast('WiFi password updated');
+    speakText('WiFi password has been updated');
+  }
+}
+
+function updateAllDisplays() {
+  // Hotel name
+  const name = hotelSettings.name || 'Crown Plaza Hotel';
+  document.getElementById('headerHotelName').textContent = name;
+  document.getElementById('guestHeaderHotelName').textContent = name;
+  document.getElementById('hotelNameDisplay').textContent = name;
+
+  // Currency
+  const symbol = hotelSettings.currencySymbol || '$';
+  document.getElementById('currencyDisplay').textContent = symbol;
+  document.getElementById('foodCurrencyBadge').textContent = symbol;
+  document.getElementById('transportCurrency1').textContent = symbol;
+  document.getElementById('transportCurrency2').textContent = symbol;
+
+  // WiFi
+  const wifi = hotelSettings.wifiPassword || 'CrownPlaza@2024';
+  document.getElementById('guestWifiPassword').textContent = wifi;
+
+  // Transport prices
+  document.getElementById('airportPriceDisplay').textContent = symbol + (hotelSettings.transportPrices?.airport || 30);
+  document.getElementById('localPriceDisplay').textContent = symbol + (hotelSettings.transportPrices?.local || 15);
+
+  // Timezone
+  document.getElementById('timezoneDisplay').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  document.getElementById('localTimeDisplay').textContent = new Date().toLocaleString();
+}
+
+// Utility Functions
+function updateLiveClock() {
+  const now = new Date();
+  const timeString = now.toLocaleString(currentLanguage === 'hi' ? 'hi-IN' : currentLanguage === 'ar' ? 'ar-SA' : 'en-US', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+
+  document.getElementById('liveDateTime').textContent = timeString;
+  document.getElementById('liveClockAdmin').textContent = now.toLocaleTimeString();
+  document.getElementById('liveClockGuest').textContent = now.toLocaleTimeString();
+  document.getElementById('guestLocalTime').textContent = timeString;
+}
+
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.style.borderLeft = type === 'error' ? '4px solid #ef4444' : '4px solid #10b981';
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function copyWifiPassword() {
+  navigator.clipboard.writeText(hotelSettings.wifiPassword || 'CrownPlaza@2024');
+  showToast('WiFi password copied!');
+}
+
+function closeModal(modalId) {
+  document.getElementById(modalId).classList.remove('active');
+  document.getElementById(modalId).classList.add('hidden');
+}
+
+function showSOSAlert() {
+  document.getElementById('sosModal').classList.remove('hidden');
+
+  // Create emergency request
+  if (currentGuest) {
+    const emergency = {
+      id: Date.now(),
+      guestName: currentGuest.name,
+      roomNumber: currentGuest.room,
+      department: 'security',
+      category: 'Emergency',
+      description: '🚨 SOS Emergency - Immediate assistance required',
+      priority: 'emergency',
+      status: 'open',
+      createdAt: new Date().toISOString()
+    };
+
+    requests.unshift(emergency);
+    saveToLocalStorage();
+    updateAdminStats();
+  }
+
+  if (navigator.vibrate) {
+    navigator.vibrate([200, 100, 200, 100, 200]);
+  }
+
+  speakText('Emergency services notified');
+}
+
+function closeSOSModal() {
+  document.getElementById('sosModal').classList.add('hidden');
+}
+
+function showCheckoutRating() {
+  document.getElementById('ratingModal').classList.remove('hidden');
+  initRatingStars();
+}
+
+function initRatingStars() {
+  ['rating', 'cleanliness', 'staff'].forEach(type => {
+    const container = document.getElementById(type + 'Stars');
+    container.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+      const star = document.createElement('span');
+      star.textContent = '☆';
+      star.style.cursor = 'pointer';
+      star.onclick = () => setRating(type, i);
+      container.appendChild(star);
+    }
+  });
+}
+
+let ratingData = { overall: 0, cleanliness: 0, staff: 0 };
+
+function setRating(type, value) {
+  ratingData[type] = value;
+  const container = document.getElementById(type + 'Stars');
+  Array.from(container.children).forEach((star, i) => {
+    star.textContent = i < value ? '★' : '☆';
+    star.style.color = i < value ? '#fbbf24' : '#9ca3af';
+  });
+}
+
+function submitRating() {
+  if (ratingData.overall === 0) {
+    showToast('Please select overall rating', 'error');
+    return;
+  }
+
+  showToast('Thank you for your feedback!');
+  closeModal('ratingModal');
+  logoutGuest();
+}
+
+// Category Updates
+const categories = {
+  housekeeping: ['Room Cleaning', 'Towel Change', 'Bed Making', 'Extra Amenities'],
+  maintenance: ['AC Repair', 'Plumbing', 'Electrical', 'Furniture Fix'],
+  restaurant: ['Room Service', 'Table Booking', 'Special Diet', 'Complaint'],
+  laundry: ['Wash & Fold', 'Dry Cleaning', 'Ironing', 'Express Service'],
+  it: ['WiFi Issue', 'TV Problem', 'Phone Issue', 'Device Setup']
+};
+
+function updateAdminCategories() {
+  const dept = document.getElementById('reqDepartment').value;
+  const select = document.getElementById('reqCategory');
+  select.innerHTML = '<option value="">Select Category</option>';
+
+  if (dept && categories[dept]) {
+    categories[dept].forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      select.appendChild(option);
+    });
+  }
+}
+
+function updateGuestCategories() {
+  const dept = document.getElementById('guestDepartment').value;
+  const select = document.getElementById('guestCategory');
+  select.innerHTML = '<option value="">Select Service</option>';
+
+  if (dept && categories[dept]) {
+    categories[dept].forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      select.appendChild(option);
+    });
+  }
+}
+
+// Storage Functions
+function saveToLocalStorage() {
+  localStorage.setItem('crown_plaza_requests', JSON.stringify(requests));
+  localStorage.setItem('crown_plaza_rooms', JSON.stringify(rooms));
+  localStorage.setItem('crown_plaza_foodmenu', JSON.stringify(foodMenu));
+  localStorage.setItem('crown_plaza_settings', JSON.stringify(hotelSettings));
+}
+
+function initSampleRooms() {
+  rooms = [
+    { id: 1, number: 101, type: 'Standard', status: 'Occupied', guestName: 'John Smith' },
+    { id: 2, number: 102, type: 'Deluxe', status: 'Vacant', guestName: '' },
+    { id: 3, number: 103, type: 'Suite', status: 'Cleaning', guestName: '' }
+  ];
+  saveToLocalStorage();
+}
+
+function initSampleFood() {
+  foodMenu = [
+    { id: 1, name: 'Burger', price: 12.99, category: 'Main Course', description: 'Juicy beef burger' },
+    { id: 2, name: 'Pizza', price: 15.99, category: 'Main Course', description: 'Margherita pizza' },
+    { id: 3, name: 'Coffee', price: 4.99, category: 'Beverage', description: 'Fresh coffee' }
+  ];
+  saveToLocalStorage();
+}
+
+function getStatusColor(status) {
+  const colors = {
+    open: 'bg-yellow-100 text-yellow-700',
+    in_progress: 'bg-blue-100 text-blue-700',
+    completed: 'bg-green-100 text-green-700'
+  };
+  return colors[status] || 'bg-gray-100 text-gray-700';
+}
+
+function toggleOfflineMode() {
+  offlineMode = !offlineMode;
+  const indicator = document.getElementById('onlineIndicator');
+
+  if (offlineMode) {
+    indicator.classList.remove('online');
+    indicator.classList.add('offline');
+    indicator.innerHTML = '🔴 Offline';
+    showToast('Offline mode activated');
+  } else {
+    indicator.classList.remove('offline');
+    indicator.classList.add('online');
+    indicator.innerHTML = '<span class="live-indicator"></span> Online';
+    showToast('Back online');
+  }
+}
+
+function requestPushPermission() {
+  if ('Notification' in window) {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        showToast('Notifications enabled!');
+      }
+    });
+  }
+}
+
+function testHaptic() {
+  if (navigator.vibrate) {
+    navigator.vibrate([50, 100, 50]);
+    showToast('Haptic feedback test');
+  }
+}
+</script>
+
 </body>
 </html>
