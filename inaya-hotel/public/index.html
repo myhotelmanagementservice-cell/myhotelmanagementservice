@@ -24,6 +24,14 @@
 
   <!-- External CSS File -->
   <link rel="stylesheet" href="styles.css">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#667eea">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Crown Plaza">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
 </head>
 <body class="bg-gray-100">
 
@@ -73,10 +81,7 @@
 <!-- ==================== LOGIN SELECTION PAGE ==================== -->
 <div id="loginSelectionPage" class="min-h-screen gradient-bg flex items-center justify-center p-0 md:p-4">
   <div class="glass-card rounded-t-none md:rounded-3xl shadow-2xl w-full md:max-w-md p-8 animate-fade-in relative">
-
-    <!-- ✨ Live Indicator & Updates - ONLY ON LOGIN PAGE (Top Left) -->
     <div id="onlineIndicator" class="online-indicator online" style="position:absolute; top:12px; left:12px;">🟢 Online</div>
-
     <div class="text-center mb-8 mt-6 md:mt-0">
       <div class="icon text-6xl mb-4 animate-bounce">👑</div>
       <h1 class="text-3xl font-bold text-gray-800 dark:text-white" id="welcomeTitle" data-i18n="welcomeTitle">Crown Plaza Hotel</h1>
@@ -84,14 +89,10 @@
       <div id="liveDateTime" class="text-xs text-gray-500 mt-3 live-clock"></div>
       <div id="offlineIndicator" class="hidden text-xs text-yellow-600 mt-2" data-i18n="offlineActive">📴 Offline Mode Active</div>
     </div>
-
-    <!-- Login Type Tabs -->
     <div class="flex gap-2 mb-6">
       <button onclick="switchLoginType('guest')" id="guestTabBtn" class="flex-1 py-2 rounded-lg font-semibold bg-purple-100 text-purple-700 transition" data-i18n="guestTab">🏨 Guest</button>
       <button onclick="switchLoginType('admin')" id="adminTabBtn" class="flex-1 py-2 rounded-lg font-semibold bg-gray-100 text-gray-700 transition" data-i18n="adminTab">👑 Admin</button>
     </div>
-
-    <!-- Guest Login Form -->
     <form id="guestLoginForm" class="space-y-4">
       <div>
         <label class="text-xs text-gray-500 mb-1 block" data-i18n="yourName">Your Name</label>
@@ -103,8 +104,6 @@
       </div>
       <button type="submit" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition shadow-lg" data-i18n="loginGuest">🔐 Login as Guest</button>
     </form>
-
-    <!-- Admin Login Form -->
     <form id="adminLoginForm" class="space-y-4 hidden">
       <div>
         <label class="text-xs text-gray-500 mb-1 block" data-i18n="emailAddress">Email Address</label>
@@ -116,18 +115,13 @@
       </div>
       <button type="submit" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition shadow-lg" data-i18n="loginAdmin">🔐 Login as Admin</button>
     </form>
-
-    <!-- Admin Close Button -->
     <button id="closeAdminFormBtn" class="hidden absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold" onclick="switchLoginType('guest')" title="Close Admin Login">✕</button>
-
-    <!-- ✨ Live Updates Section - ONLY VISIBLE ON LOGIN PAGE -->
     <div class="mt-6 text-center text-xs text-gray-400 flex justify-center gap-4 flex-wrap" id="loginLiveUpdates">
       <span><span class="live-indicator"></span> <span id="liveUpdatesText" data-i18n="liveUpdates">Live Updates</span></span>
       <span>🔊 <span id="voiceText" data-i18n="voiceEnabled">Voice Enabled</span></span>
       <span>📱 <span id="pwaText" data-i18n="pwaReady">PWA Ready</span></span>
       <span> Code: <strong id="referralCodeDisplay">CROWN2024</strong> <button onclick="copyReferralCode()" class="text-purple-600" data-i18n="copy">Copy</button></span>
     </div>
-
   </div>
 </div>
 
@@ -167,8 +161,6 @@
       </div>
     </div>
   </header>
-
-  <!-- Admin Tab Navigation -->
   <div class="bg-white dark:bg-gray-800 shadow-sm border-b overflow-x-auto">
     <div class="flex flex-nowrap gap-1 px-4 py-2 min-w-max">
       <button onclick="showAdminTab('overview')" id="tabOverview" class="px-4 py-2 text-sm font-medium text-purple-600 border-b-2 border-purple-600 whitespace-nowrap" data-i18n="tabOverview">📊 Overview</button>
@@ -188,7 +180,6 @@
       <button onclick="showAdminTab('settings')" id="tabSettings" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap" data-i18n="tabSettings">⚙️ Settings</button>
     </div>
   </div>
-
   <div class="px-4 py-6 max-w-7xl mx-auto">
     <!-- OVERVIEW TAB -->
     <div id="overviewTab">
@@ -208,7 +199,6 @@
       <div class="glass-card rounded-2xl p-4 shadow-sm mb-4"><h3 class="font-semibold text-sm mb-3" data-i18n="heatMap">🔥 Heat Map - Busy Areas</h3><div id="heatMap" class="grid grid-cols-3 gap-2"></div></div>
       <div class="glass-card rounded-2xl p-4 shadow-sm"><h3 class="font-semibold text-sm mb-3" data-i18n="emergencyRequests">🚨 Emergency Requests</h3><div id="emergencyRequestsList" class="space-y-2"></div></div>
     </div>
-
     <!-- REQUESTS TAB -->
     <div id="requestsTab" class="hidden">
       <div class="glass-card rounded-2xl p-4 shadow-sm mb-4">
@@ -234,9 +224,7 @@
             <option value="laundry" data-i18n="deptLaundry">🧺 Laundry</option>
             <option value="it" data-i18n="deptIT">💻 IT Support</option>
           </select>
-          <select id="reqCategory" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
-            <option value="" data-i18n="selectCategory">🎯 Select Category</option>
-          </select>
+          <select id="reqCategory" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" required><option value="" data-i18n="selectCategory">🎯 Select Category</option></select>
           <textarea id="reqDescription" rows="2" data-i18n-placeholder="description" placeholder="Description" class="w-full px-3 py-2 border rounded-lg text-sm col-span-1 md:col-span-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
           <select id="reqPriority" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
             <option value="low" data-i18n="priorityLow">🟢 Low</option>
@@ -251,7 +239,6 @@
         </form>
         <div class="mt-3 text-xs text-gray-500" data-i18n="dragTip">💡 Drag and drop requests to change priority order</div>
       </div>
-
       <div id="bulkActionsBar" class="hidden bulk-actions-bar mb-4">
         <div class="bg-purple-600 text-white rounded-xl p-4 shadow-lg flex justify-between items-center flex-wrap gap-2">
           <div class="flex items-center gap-3"><span id="selectedCount">0</span> <span data-i18n="requestsSelected">requests selected</span></div>
@@ -262,7 +249,6 @@
           </div>
         </div>
       </div>
-
       <div class="glass-card rounded-2xl p-4 shadow-sm">
         <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
           <h2 class="font-semibold text-sm" data-i18n="serviceRequests">📋 Service Requests</h2>
@@ -275,8 +261,7 @@
         <div id="infiniteScrollTrigger" class="infinite-scroll-trigger"></div>
       </div>
     </div>
-
-    <!-- Other Admin Tabs (Structure Preserved) -->
+    <!-- Other Admin Tabs -->
     <div id="roomsTab" class="hidden"><div class="glass-card rounded-2xl p-4 shadow-sm mb-4"><h2 class="font-semibold text-base" data-i18n="roomManagement">🏨 Room Management</h2><div id="roomsList"></div></div></div>
     <div id="guestsTab" class="hidden"><div class="glass-card rounded-2xl p-4 shadow-sm"><div id="guestsList" class="space-y-2"></div></div></div>
     <div id="reviewsTab" class="hidden"><div class="glass-card rounded-2xl p-4 shadow-sm"><div id="reviewsList" class="space-y-3"></div></div></div>
@@ -288,7 +273,6 @@
     <div id="blacklistTab" class="hidden"><div class="glass-card rounded-2xl p-4 shadow-sm"><h2 class="font-semibold text-base mb-3" data-i18n="guestBlacklist">🚫 Guest Blacklist</h2><div id="blacklistList" class="space-y-3"></div></div></div>
     <div id="loyaltyTab" class="hidden"><div class="glass-card rounded-2xl p-4 shadow-sm"><h2 class="font-semibold text-base mb-3" data-i18n="loyaltyPoints">⭐ Loyalty Points System</h2><div id="loyaltyList" class="space-y-3"></div></div></div>
     <div id="staffTab" class="hidden"><div class="glass-card rounded-2xl p-4 shadow-sm"><h2 class="font-semibold text-base mb-3" data-i18n="staffPerformance">👔 Staff Performance Dashboard</h2><div id="staffPerformanceList" class="space-y-3"></div></div></div>
-
     <!-- SETTINGS TAB -->
     <div id="settingsTab" class="hidden">
       <div class="glass-card rounded-2xl p-6 shadow-md">
@@ -338,7 +322,6 @@
         </div>
       </div>
     </div>
-
     <div id="logsTab" class="hidden"><div class="glass-card rounded-2xl p-4 shadow-sm"><h2 class="font-semibold text-base mb-3" data-i18n="activityLogs">📝 Activity Logs</h2><div id="activityLogsList" class="space-y-2 max-h-96 overflow-auto"></div></div></div>
   </div>
 </div>
@@ -358,17 +341,13 @@
       </div>
     </div>
   </header>
-
   <div class="px-4 py-4 max-w-7xl mx-auto">
-    <!-- Guest Stats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
       <div class="glass-card rounded-2xl p-3 text-center"><div class="text-xl">📋</div><div id="guestTotalRequests" class="text-lg font-bold">0</div><div class="text-xs" data-i18n="myRequests">My Requests</div></div>
       <div class="glass-card rounded-2xl p-3 text-center"><div class="text-xl">⏳</div><div id="guestPendingCount" class="text-lg font-bold text-yellow-600">0</div><div class="text-xs" data-i18n="pending">Pending</div></div>
       <div class="glass-card rounded-2xl p-3 text-center"><div class="text-xl">✅</div><div id="guestCompletedCount" class="text-lg font-bold text-green-600">0</div><div class="text-xs" data-i18n="resolved">Resolved</div></div>
       <div class="glass-card rounded-2xl p-3 text-center"><div class="text-xl">⭐</div><div id="guestRatingStatus" class="text-sm font-bold" data-i18n="notRated">Not Rated</div><div class="text-xs" data-i18n="review">Review</div></div>
     </div>
-
-    <!-- Guest Quick Actions -->
     <div class="grid grid-cols-3 md:grid-cols-5 gap-2 mb-5">
       <button onclick="showGuestTab('newRequest')" class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-2xl text-center hover:bg-purple-200 dark:hover:bg-purple-900/50 transition"><div class="text-xl">📝</div><div class="text-xs" data-i18n="request">Request</div></button>
       <button onclick="showGuestTab('foodOrder')" class="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-2xl text-center hover:bg-orange-200 dark:hover:bg-orange-900/50 transition"><div class="text-xl">🍕</div><div class="text-xs" data-i18n="food">Food</div></button>
@@ -376,7 +355,6 @@
       <button onclick="showGuestTab('myRequests')" class="p-3 bg-green-100 dark:bg-green-900/30 rounded-2xl text-center hover:bg-green-200 dark:hover:bg-green-900/50 transition"><div class="text-xl">📋</div><div class="text-xs" data-i18n="history">History</div></button>
       <button onclick="showGuestTab('hotelInfo')" class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-2xl text-center hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition"><div class="text-xl">ℹ️</div><div class="text-xs" data-i18n="info">Info</div></button>
     </div>
-
     <!-- Guest Tab: New Request -->
     <div id="guestNewRequestTab" class="glass-card rounded-2xl p-4 shadow-sm mb-4">
       <h2 class="font-semibold text-base mb-3" data-i18n="newRequest">📝 New Request</h2>
@@ -389,9 +367,7 @@
           <option value="laundry" data-i18n="deptLaundry">🧺 Laundry</option>
           <option value="it" data-i18n="deptIT">💻 IT Support</option>
         </select>
-        <select id="guestCategory" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
-          <option value="" data-i18n="selectService">🎯 Select Service</option>
-        </select>
+        <select id="guestCategory" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" required><option value="" data-i18n="selectService">🎯 Select Service</option></select>
         <textarea id="guestDescription" rows="2" data-i18n-placeholder="describeIssue" placeholder="Describe your issue..." class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" required></textarea>
         <select id="guestPriority" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
           <option value="normal" data-i18n="normal">🟢 Normal</option>
@@ -403,7 +379,6 @@
         </div>
       </form>
     </div>
-
     <!-- Guest Tab: Food Order -->
     <div id="guestFoodOrderTab" class="hidden glass-card rounded-2xl p-4 shadow-sm mb-4">
       <h2 class="font-semibold text-base mb-3" data-i18n="foodMenu">🍕 Food Menu</h2>
@@ -415,7 +390,6 @@
         <button onclick="reorderLast()" class="flex-1 bg-purple-100 dark:bg-purple-900/30 py-1 rounded text-xs" data-i18n="reorderLast">🔄 Reorder Last</button>
       </div>
     </div>
-
     <!-- Guest Tab: Transport -->
     <div id="guestTransportTab" class="hidden glass-card rounded-2xl p-4 shadow-sm mb-4">
       <h2 class="font-semibold text-base mb-3" data-i18n="transport">🚗 Transport</h2>
@@ -432,13 +406,11 @@
         <button onclick="quickBook('local')" class="flex-1 bg-green-100 dark:bg-green-900/30 py-2 rounded text-xs" data-i18n="quickLocal">🚕 Quick Local</button>
       </div>
     </div>
-
     <!-- Guest Tab: My Requests -->
     <div id="guestMyRequestsTab" class="hidden glass-card rounded-2xl p-4 shadow-sm mb-4">
       <h2 class="font-semibold text-base mb-3" data-i18n="myRequests">📋 My Requests</h2>
       <div id="guestRequestsList" class="space-y-2"></div>
     </div>
-
     <!-- Guest Tab: Hotel Info -->
     <div id="guestHotelInfoTab" class="hidden glass-card rounded-2xl p-4 shadow-sm mb-4">
       <h2 class="font-semibold text-base mb-3" data-i18n="hotelInfo">ℹ️ Hotel Info</h2>
@@ -637,8 +609,1484 @@
   </div>
 </div>
 
-<!-- ✨ COMPLETE JAVASCRIPT (Embedded for Full Functionality) -->
-<script src="script.js"></script>
+<!-- ✨ COMPLETE JAVASCRIPT (EMBEDDED) -->
+<script>
+/**
+* 🏨 Crown Plaza Hotel QMS - Embedded JavaScript
+* Multi-tenant, Multi-language (EN/HI/AR), MongoDB Backend
+*/
+(function() {
+'use strict';
+// ============ STORAGE STRATEGY ============
+const ALLOWED_LOCALSTORAGE_KEYS = [
+  'crown_plaza_darkMode', 'crown_plaza_fontSize', 'crown_plaza_brightness',
+  'crown_plaza_language', 'crown_plaza_theme', 'preferredLanguage',
+  'hotelId', 'hotelName', 'crown_plaza_offlineMode', 'crown_plaza_highContrast',
+  'crown_plaza_admin_session', 'crown_plaza_customer_session', 'crown_plaza_page_state',
+  'crown_plaza_settings', 'crown_plaza_backup_requests', 'crown_plaza_backup_rooms',
+  'crown_plaza_backup_guests', 'crown_plaza_backup_food', 'crown_plaza_backup_reviews',
+  'crown_plaza_backup_inventory', 'crown_plaza_backup_maintenance',
+  'crown_plaza_backup_blacklist', 'crown_plaza_backup_loyalty',
+  'crown_plaza_backup_staff', 'crown_plaza_backup_logs'
+];
+const BLOCKED_DATA_KEYS = [
+  'crown_plaza_requests', 'crown_plaza_rooms', 'crown_plaza_guests',
+  'crown_plaza_reviews', 'crown_plaza_inventory', 'crown_plaza_maintenance',
+  'crown_plaza_blacklist', 'crown_plaza_loyalty', 'crown_plaza_staff',
+  'crown_plaza_foodmenu', 'crown_plaza_activity_logs',
+  'crown_plaza_currentAdmin', 'crown_plaza_currentGuest',
+  'crown_plaza_currentRole', 'crown_plaza_page_state'
+];
+const originalSetItem = localStorage.setItem;
+const originalGetItem = localStorage.getItem;
+const originalRemoveItem = localStorage.removeItem;
+localStorage.setItem = function(key, value) {
+  if (BLOCKED_DATA_KEYS.includes(key)) { console.warn(`🔒 BLOCKED: "${key}"`); return; }
+  originalSetItem.call(this, key, value);
+};
+localStorage.getItem = function(key) {
+  if (BLOCKED_DATA_KEYS.includes(key)) { console.warn(`🔒 BLOCKED: Reading "${key}"`); return null; }
+  return originalGetItem.call(this, key);
+};
+BLOCKED_DATA_KEYS.forEach(key => { if (originalGetItem.call(localStorage, key)) originalRemoveItem.call(localStorage, key); });
+console.log('✅ Storage Strategy: Preferences=LocalStorage | Data=MongoDB');
+})();
+
+// ============ GLOBAL CONFIG ============
+const API_BASE_URL = '/api';
+let timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+let currentLanguage = localStorage.getItem('preferredLanguage') || 'en';
+let offlineMode = false;
+let isClockedIn = false;
+let currentAdminRole = null;
+let currentGuest = null;
+let currentHotelId = localStorage.getItem('hotelId') || 'CPH001';
+
+// ============ GLOBAL DATA ARRAYS ============
+let requests = [], rooms = [], guests = [], reviews = [], inventory = [];
+let maintenanceTasks = [], blacklist = [], loyaltyPoints = [], staffPerformance = [];
+let activityLogs = [], foodMenu = [], hotelSettings = {}, cart = [];
+let ratingData = { overall: 0, cleanliness: 0, staff: 0, recommend: null };
+let currentPageState = { adminTab: 'overview', guestTab: 'newRequest', adminFilter: 'all', adminSearch: '' };
+let selectedRequests = new Set(), isLoading = false, hasMore = true, currentPage = 0;
+
+// ============ API HELPER ============
+async function apiCall(endpoint, method = 'GET', data = null) {
+  const options = { method, headers: { 'Content-Type': 'application/json', 'X-Hotel-Id': currentHotelId } };
+  if (document.cookie.includes('authToken=')) options.credentials = 'include';
+  if (data) options.body = JSON.stringify(data);
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+    return await response.json();
+  } catch (error) {
+    console.error(`❌ API Error (${endpoint}):`, error);
+    showToast(t('connectionError'), 'error');
+    return { success: false, error: error.message };
+  }
+}
+
+// ============ TRANSLATIONS ============
+const translations = {
+  en: {
+    // Common
+    connectionError: "Connection error! Using cached data.", offlineModeActive: "📴 Offline mode active",
+    backendConnected: "✅ Connected to server", welcomeBack: "Welcome back!", guestWelcome: "Welcome",
+    adminWelcome: "Welcome", loginSuccess: "Login successful", invalidCredentials: "Invalid credentials",
+    languageChanged: "Language changed to ", switchedTo: "Switched to", save: "Save", cancel: "Cancel",
+    close: "Close", delete: "Delete", loading: "Loading...", noData: "No data available",
+    // Login
+    welcomeTitle: "Crown Plaza Hotel", guestTab: "🏨 Guest", adminTab: "👑 Admin",
+    yourName: "Your Name", roomNumber: "Room Number", enterName: "Enter your name",
+    enterRoom: "Enter room number", loginGuest: "🔐 Guest Login", loginAdmin: "🔐 Admin Login",
+    emailAddress: "Email Address", password: "Password", passwordPlaceholder: "••••••••",
+    // Role Selection
+    selectRole: "👑 Select Your Role", roleSuperAdmin: "Super Admin", roleFrontDesk: "Front Desk",
+    roleHousekeeping: "Housekeeping", roleMaintenance: "Maintenance", roleRestaurant: "Restaurant",
+    roleLaundry: "Laundry", roleSecurity: "Security", roleIT: "IT Support", back: "← Back",
+    // Guest Dashboard
+    newRequest: "📝 New Request", myRequests: "My Requests", pending: "Pending", resolved: "Resolved",
+    notRated: "Not Rated", foodMenu: "🍕 Food Menu", placeOrder: "Place Order", transport: "🚗 Transport",
+    bookNow: "Book Now", hotelInfo: "ℹ️ Hotel Info", wifi: "📶 WiFi:", localTime: "🌍 Local Time:",
+    restaurant: "🍽️ Restaurant:", gym: "💪 Gym:", emergency: "🚨 Emergency:", checkout: "🕐 Checkout:",
+    wakeUpCall: "⏰ Set Wake-up Call", dnd: "🔕 DND:", dndOn: "DND: ON", dndOff: "DND: OFF",
+    localGuide: "🗺️ Local Guide", events: "📅 Events", emergencyContacts: "📞 Emergency Contacts",
+    firstAid: "🚑 First Aid", evacuationMap: "🗺️ Evacuation Map", concierge: "🤖 Digital Concierge",
+    checkoutRate: "⭐ Checkout & Rate", sosEmergency: "🚨 SOS Emergency", logout: "Logout",
+    // Request Form
+    selectDepartment: "Select Department", selectService: "Select Service", describeIssue: "Describe your issue...",
+    submitRequest: "Submit Request", priority: "Priority", normal: "Normal", urgent: "⚠️ Urgent",
+    requestSubmitted: "Request submitted successfully!", requestCreated: "Request created successfully!",
+    // Food & Cart
+    addToCart: "Add to Cart", cart: "Cart", cartIsEmpty: "Cart is empty", total: "Total",
+    orderPlaced: "Order placed!", cartEmpty: "Cart is empty!", itemAddedCart: " added to cart",
+    // Transport
+    airportTransfer: "Airport Transfer", localCab: "Local Cab", perTrip: "/trip", perHour: "/hour",
+    transportBooked: "Transport booked!",
+    // Admin Dashboard
+    tabOverview: "📊 Overview", tabRequests: "📋 Requests", tabRooms: "🏨 Rooms", tabGuests: "👥 Guests",
+    tabReviews: "⭐ Reviews", tabReports: "📈 Reports", tabQRCodes: "📷 QR Codes", tabLogs: "📜 Activity Logs",
+    tabInventory: "📦 Inventory", tabMaintenance: "🔧 Maintenance", tabBlacklist: "🚫 Blacklist",
+    tabLoyalty: "🎁 Loyalty", tabStaff: "👔 Staff", tabFoodMenu: "🍽️ Food Menu", tabSettings: "⚙️ Settings",
+    // Stats
+    totalRooms: "Total Rooms", occupied: "Occupied", vacant: "Vacant", cleaning: "Cleaning",
+    open: "Open", inProgress: "In Progress", emergency: "Emergency", completed: "Completed",
+    // Room Management
+    addNewRoom: "+ Add New Room", editRoom: "Edit Room", roomNumber: "Room #", roomType: "Type",
+    roomStatus: "Status", guestName: "Guest Name", roomUpdated: "Room #", updated: " updated",
+    roomAdded: "Room #", added: " added", roomDeleted: "Room #", deleted: " deleted",
+    roomExists: "Room number already exists!", noRooms: "No rooms to display", deleteRoom: "Delete this room?",
+    // Food Menu
+    addNewItem: "+ Add New Item", editItem: "Edit Item", itemName: "Item Name", price: "Price",
+    category: "Category", description: "Description", foodUpdated: "Item '", updated: "' updated",
+    foodAdded: "Item '", addedToMenu: "' added to menu", foodRemoved: "Item '", removedFromMenu: "' removed",
+    deleteFood: "Delete this menu item?", noFood: "No menu items",
+    // Inventory
+    item: "Item", quantity: "Quantity", unit: "Unit", minStock: "Min Stock",
+    itemAdded: " added to inventory", itemDeleted: " removed from inventory", deleteItem: "Delete this item?",
+    // Maintenance
+    task: "Task", date: "Date", maintenanceScheduled: "Maintenance task scheduled",
+    maintenanceCompleted: "Task marked complete", taskDeleted: "Task deleted", deleteTask: "Delete this task?",
+    // Blacklist & Loyalty
+    reason: "Reason", blacklistAdded: " added to blacklist", blacklistRemoved: "Removed from blacklist",
+    points: "points", pointsRedeemed: " redeemed 100 points for ", discount: " discount",
+    needPoints: "Need 100+ points to redeem", pointsAdded: "Added ", redeem: "Redeem",
+    // Staff Performance
+    rating: "Rating", rated: "Rated ", slaStats: "SLA Stats",
+    // Reviews
+    overall: "Overall", cleanliness: "Cleanliness", staff: "Staff", recommend: "Would Recommend?",
+    yes: "Yes", no: "No", comment: "Comment", thankYouReview: "Thank you for your review!",
+    thankYouStay: "Thank you for staying at ", seeYouAgain: "! Hope to see you again!",
+    provideRating: "Please provide an overall rating",
+    // QR Codes
+    viewQR: "View QR", downloadQR: "Download QR", qrDownloaded: "QR code downloaded",
+    qrWait: "Please wait for QR to generate", roomLabel: "Room ",
+    // Reports & Export
+    dailyReport: "Daily Report", weeklyReport: "Weekly Report", monthlyReport: "Monthly Report",
+    exportExcel: "Export to Excel", exportAll: "Export All Data", printReport: "Print Report",
+    excelExported: "Excel file exported", dataExported: "Data backup exported",
+    // Settings
+    hotelName: "Hotel Name", currency: "Currency", priceFormat: "Price Format",
+    symbolFirst: "Symbol First ($10)", symbolLast: "Symbol Last (10$)", withSpace: "With Space (10 $)",
+    transportPrices: "Transport Prices", airportPrice: "Airport Transfer", localPrice: "Local Cab/Hour",
+    wifiPassword: "WiFi Password", wifiUpdated: "WiFi password updated", wifiCopied: "WiFi password copied",
+    currencySaved: "Currency settings saved", transportUpdated: "Transport prices updated",
+    hotelNameUpdated: "Hotel name updated", invalidHotelName: "Hotel name must be 3+ characters",
+    // UI Preferences
+    selectTheme: "Select Theme", darkMode: "🌙 Dark Mode", highContrast: "🔆 High Contrast",
+    fontSize: "Font Size", offlineMode: "📴 Offline Mode", pushNotify: "🔔 Push Notifications",
+    haptic: "📳 Haptic Feedback", voiceEnabled: "🔊 Voice Enabled", pwaReady: "📱 PWA Ready",
+    // Notifications
+    notificationsEnabled: "Notifications enabled!", vibrationTest: "Haptic feedback test",
+    emergencyAlert: "🚨 Emergency alert sent!",
+    // Bulk Actions
+    selectAll: "Select All", bulkComplete: "Complete Selected", bulkDelete: "Delete Selected",
+    completeSelected: "Complete ", deleteSelected: "Delete ", requestsCompleted: " requests completed",
+    requestsDeleted: " requests deleted", deleteSelectedWarn: "? This cannot be undone.",
+    // Activity Logs
+    logSystemStart: "System initialized", logGuestLogin: "Guest login", logAdminLogin: "Admin login",
+    logAdminLogout: "Admin logout", logGuestLogout: "Guest logout", logRequestCreate: "Request created",
+    logRequestComplete: "Request completed", logRequestDelete: "Request deleted",
+    logBulkComplete: "Bulk complete", logBulkDelete: "Bulk delete", logRoomAdd: "Room added",
+    logRoomEdit: "Room edited", logRoomDelete: "Room deleted", logFoodAdd: "Food item added",
+    logFoodEdit: "Food item edited", logFoodDelete: "Food item deleted",
+    logInventoryAdd: "Inventory item added", logInventoryDelete: "Inventory item deleted",
+    logMaintenanceAdd: "Maintenance task added", logMaintenanceComplete: "Task completed",
+    logBlacklistAdd: "Guest blacklisted", logBlacklistRemove: "Removed from blacklist",
+    logLoyaltyAdd: "Loyalty points added", logLoyaltyRedeem: "Points redeemed", logReview: "Review submitted",
+    logExportExcel: "Excel export", logExportAll: "Full backup", logGenerateReport: "Report generated",
+    logHotelNameChange: "Hotel name changed", logCurrencyChange: "Currency settings changed",
+    logTransportChange: "Transport prices changed", logWifiChange: "WiFi password changed",
+    logQRDownload: "QR code downloaded", logStaffAttendance: "Staff attendance", logWakeUp: "Wake-up call set",
+    logSOS: "SOS emergency alert", logTransport: "Transport booked", logGuestRequest: "Guest request submitted",
+    // Service Categories
+    catRoomCleaning: "Room Cleaning", catExtraTowels: "Extra Towels", catDeepCleaning: "Deep Cleaning",
+    catBedSheets: "Bed Sheets Change", catACNotWorking: "AC Not Working", catTVIssue: "TV Issue",
+    catPlumbing: "Plumbing", catElectrical: "Electrical", catFurnitureRepair: "Furniture Repair",
+    catOrderFood: "Order Food", catRoomService: "Room Service", catSpecialRequest: "Special Request",
+    catBreakfast: "Breakfast", catLaundryPickup: "Laundry Pickup", catIronOnly: "Iron Only",
+    catDryCleaning: "Dry Cleaning", catWiFiIssue: "WiFi Issue", catTVHelp: "TV Help",
+    catChargingProblem: "Charging Problem",
+    // Maintenance categories with HI/AR
+    catCarpenter: "🔨 Carpenter", catTableLamp: "💡 Table Lamp", catChairSofa: "🛋️ Chair Sofa",
+    catBedWheel: "🛏️ Bed Wheel", catFurniture: "🪑 Furniture", catHeadBoard: "🛏️ Head Board",
+    catFridge: "🧊 Fridge", catCabinet: "🗄️ Cabinet",
+    // Validation
+    fillRequired: "Please fill all required fields", deleteRequest: "Delete this request?",
+    deleteFood: "Delete this item?", deleteItem: "Delete this item?", deleteTask: "Delete this task?"
+  },
+  hi: {
+    // Common
+    connectionError: "कनेक्शन त्रुटि! कैश डेटा उपयोग हो रहा है।", offlineModeActive: "📴 ऑफ़लाइन मोड सक्रिय",
+    backendConnected: "✅ सर्वर से कनेक्ट", welcomeBack: "वापसी पर स्वागत है!", guestWelcome: "स्वागत है",
+    adminWelcome: "स्वागत है", loginSuccess: "लॉगिन सफल", invalidCredentials: "अमान्य क्रेडेंशियल",
+    languageChanged: "भाषा बदलकर हुई ", switchedTo: "स्विच किया: ", save: "सहेजें", cancel: "रद्द करें",
+    close: "बंद करें", delete: "हटाएं", loading: "लोड हो रहा है...", noData: "कोई डेटा उपलब्ध नहीं",
+    // Login
+    welcomeTitle: "क्राउन प्लाज़ा होटल", guestTab: "🏨 अतिथि", adminTab: "👑 व्यवस्थापक",
+    yourName: "आपका नाम", roomNumber: "कमरा संख्या", enterName: "अपना नाम दर्ज करें",
+    enterRoom: "कमरा संख्या दर्ज करें", loginGuest: "🔐 अतिथि लॉगिन", loginAdmin: "🔐 व्यवस्थापक लॉगिन",
+    emailAddress: "ईमेल पता", password: "पासवर्ड", passwordPlaceholder: "••••••••",
+    // Role Selection
+    selectRole: "👑 अपनी भूमिका चुनें", roleSuperAdmin: "सुपर व्यवस्थापक", roleFrontDesk: "फ्रंट डेस्क",
+    roleHousekeeping: "हाउसकीपिंग", roleMaintenance: "मेंटेनेंस", roleRestaurant: "रेस्तरां",
+    roleLaundry: "लॉन्ड्री", roleSecurity: "सुरक्षा", roleIT: "आईटी सपोर्ट", back: "← वापस",
+    // Guest Dashboard
+    newRequest: "📝 नया अनुरोध", myRequests: "मेरे अनुरोध", pending: "लंबित", resolved: "हल किए गए",
+    notRated: "रेटेड नहीं", foodMenu: "🍕 फूड मेनू", placeOrder: "ऑर्डर करें", transport: "🚗 ट्रांसपोर्ट",
+    bookNow: "अभी बुक करें", hotelInfo: "ℹ️ होटल जानकारी", wifi: "📶 वाईफाई:", localTime: "🌍 स्थानीय समय:",
+    restaurant: "🍽️ रेस्तरां:", gym: "💪 जिम:", emergency: "🚨 आपातकालीन:", checkout: "🕐 चेकआउट:",
+    wakeUpCall: "⏰ वेक-अप कॉल सेट करें", dnd: "🔕 डीएनडी:", dndOn: "डीएनडी: चालू", dndOff: "डीएनडी: बंद",
+    localGuide: "🗺️ स्थानीय गाइड", events: "📅 इवेंट्स", emergencyContacts: "📞 आपातकालीन संपर्क",
+    firstAid: "🚑 प्राथमिक उपचार", evacuationMap: "🗺️ निकासी मानचित्र", concierge: "🤖 डिजिटल कॉन्सियर्ज",
+    checkoutRate: "⭐ चेकआउट और रेट करें", sosEmergency: "🚨 SOS आपातकालीन", logout: "लॉगआउट",
+    // Request Form
+    selectDepartment: "विभाग चुनें", selectService: "सेवा चुनें", describeIssue: "अपनी समस्या बताएं...",
+    submitRequest: "अनुरोध जमा करें", priority: "प्राथमिकता", normal: "सामान्य", urgent: "⚠️ तत्काल",
+    requestSubmitted: "अनुरोध सफलतापूर्वक जमा!", requestCreated: "अनुरोध सफलतापूर्वक बनाया!",
+    // Food & Cart
+    addToCart: "कार्ट में जोड़ें", cart: "कार्ट", cartIsEmpty: "कार्ट खाली है", total: "कुल",
+    orderPlaced: "ऑर्डर प्लेस हुआ!", cartEmpty: "कार्ट खाली है!", itemAddedCart: " कार्ट में जोड़ा गया",
+    // Transport
+    airportTransfer: "एयरपोर्ट ट्रांसफर", localCab: "लोकल कैब", perTrip: "/ट्रिप", perHour: "/घंटा",
+    transportBooked: "ट्रांसपोर्ट बुक हुआ!",
+    // Admin Dashboard
+    tabOverview: "📊 अवलोकन", tabRequests: "📋 अनुरोध", tabRooms: "🏨 कमरे", tabGuests: "👥 अतिथि",
+    tabReviews: "⭐ समीक्षा", tabReports: "📈 रिपोर्ट्स", tabQRCodes: "📷 QR कोड", tabLogs: "📜 गतिविधि लॉग",
+    tabInventory: "📦 इन्वेंट्री", tabMaintenance: "🔧 मेंटेनेंस", tabBlacklist: "🚫 ब्लैकलिस्ट",
+    tabLoyalty: "🎁 लॉयल्टी", tabStaff: "👔 स्टाफ", tabFoodMenu: "🍽️ फूड मेनू", tabSettings: "⚙️ सेटिंग्स",
+    // Stats
+    totalRooms: "कुल कमरे", occupied: "भरे हुए", vacant: "खाली", cleaning: "सफाई",
+    open: "खुले", inProgress: "प्रगति पर", emergency: "आपातकालीन", completed: "पूरे",
+    // Room Management
+    addNewRoom: "+ नया कमरा जोड़ें", editRoom: "कमरा संपादित करें", roomNumber: "कमरा #", roomType: "प्रकार",
+    roomStatus: "स्थिति", guestName: "अतिथि नाम", roomUpdated: "कमरा #", updated: " अपडेट हुआ",
+    roomAdded: "कमरा #", added: " जोड़ा गया", roomDeleted: "कमरा #", deleted: " हटाया गया",
+    roomExists: "कमरा संख्या पहले से मौजूद है!", noRooms: "कोई कमरा नहीं", deleteRoom: "इस कमरे को हटाएं?",
+    // Food Menu
+    addNewItem: "+ नया आइटम जोड़ें", editItem: "आइटम संपादित करें", itemName: "आइटम नाम", price: "मूल्य",
+    category: "श्रेणी", description: "विवरण", foodUpdated: "आइटम '", updated: "' अपडेट हुआ",
+    foodAdded: "आइटम '", addedToMenu: "' मेनू में जोड़ा गया", foodRemoved: "आइटम '", removedFromMenu: "' हटाया गया",
+    deleteFood: "इस मेनू आइटम को हटाएं?", noFood: "कोई मेनू आइटम नहीं",
+    // Inventory
+    item: "आइटम", quantity: "मात्रा", unit: "इकाई", minStock: "न्यूनतम स्टॉक",
+    itemAdded: " इन्वेंट्री में जोड़ा गया", itemDeleted: " इन्वेंट्री से हटाया गया", deleteItem: "इस आइटम को हटाएं?",
+    // Maintenance
+    task: "कार्य", date: "तारीख", maintenanceScheduled: "मेंटेनेंस कार्य शेड्यूल हुआ",
+    maintenanceCompleted: "कार्य पूरा चिह्नित", taskDeleted: "कार्य हटाया गया", deleteTask: "इस कार्य को हटाएं?",
+    // Blacklist & Loyalty
+    reason: "कारण", blacklistAdded: " ब्लैकलिस्ट में जोड़ा गया", blacklistRemoved: "ब्लैकलिस्ट से हटाया गया",
+    points: "पॉइंट्स", pointsRedeemed: " ने 100 पॉइंट्स रिडीम किए ", discount: " छूट के लिए",
+    needPoints: "रिडीम करने के लिए 100+ पॉइंट्स चाहिए", pointsAdded: "जोड़े गए ", redeem: "रिडीम करें",
+    // Staff Performance
+    rating: "रेटिंग", rated: "रेट किया: ", slaStats: "SLA स्टैट्स",
+    // Reviews
+    overall: "समग्र", cleanliness: "सफाई", staff: "स्टाफ", recommend: "सुझाएंगे?",
+    yes: "हाँ", no: "नहीं", comment: "टिप्पणी", thankYouReview: "आपकी समीक्षा के लिए धन्यवाद!",
+    thankYouStay: "के साथ रहने के लिए धन्यवाद ", seeYouAgain: "! फिर मिलेंगे!",
+    provideRating: "कृपया समग्र रेटिंग प्रदान करें",
+    // QR Codes
+    viewQR: "QR देखें", downloadQR: "QR डाउनलोड करें", qrDownloaded: "QR कोड डाउनलोड हुआ",
+    qrWait: "QR जनरेट होने की प्रतीक्षा करें", roomLabel: "कमरा ",
+    // Reports & Export
+    dailyReport: "दैनिक रिपोर्ट", weeklyReport: "साप्ताहिक रिपोर्ट", monthlyReport: "मासिक रिपोर्ट",
+    exportExcel: "Excel में एक्सपोर्ट", exportAll: "सभी डेटा एक्सपोर्ट", printReport: "रिपोर्ट प्रिंट करें",
+    excelExported: "Excel फाइल एक्सपोर्ट हुई", dataExported: "डेटा बैकअप एक्सपोर्ट हुआ",
+    // Settings
+    hotelName: "होटल नाम", currency: "मुद्रा", priceFormat: "मूल्य प्रारूप",
+    symbolFirst: "सिंबल पहले (₹10)", symbolLast: "सिंबल बाद (10₹)", withSpace: "स्पेस के साथ (10 ₹)",
+    transportPrices: "ट्रांसपोर्ट मूल्य", airportPrice: "एयरपोर्ट ट्रांसफर", localPrice: "लोकल कैब/घंटा",
+    wifiPassword: "वाईफाई पासवर्ड", wifiUpdated: "वाईफाई पासवर्ड अपडेट हुआ", wifiCopied: "वाईफाई पासवर्ड कॉपी हुआ",
+    currencySaved: "मुद्रा सेटिंग्स सहेजी गईं", transportUpdated: "ट्रांसपोर्ट मूल्य अपडेट हुए",
+    hotelNameUpdated: "होटल नाम अपडेट हुआ", invalidHotelName: "होटल नाम 3+ अक्षर का होना चाहिए",
+    // UI Preferences
+    selectTheme: "थीम चुनें", darkMode: "🌙 डार्क मोड", highContrast: "🔆 हाई कॉन्ट्रास्ट",
+    fontSize: "फ़ॉन्ट साइज", offlineMode: "📴 ऑफ़लाइन मोड", pushNotify: "🔔 पुश नोटिफिकेशन",
+    haptic: "📳 हैप्टिक फीडबैक", voiceEnabled: "🔊 वॉइस सक्षम", pwaReady: "📱 PWA तैयार",
+    // Notifications
+    notificationsEnabled: "नोटिफिकेशन सक्षम!", vibrationTest: "हैप्टिक फीडबैक टेस्ट",
+    emergencyAlert: "🚨 आपातकालीन अलर्ट भेजा गया!",
+    // Bulk Actions
+    selectAll: "सभी चुनें", bulkComplete: "चयनित पूरे करें", bulkDelete: "चयनित हटाएं",
+    completeSelected: "पूरे करें ", deleteSelected: "हटाएं ", requestsCompleted: " अनुरोध पूरे हुए",
+    requestsDeleted: " अनुरोध हटाए गए", deleteSelectedWarn: "? यह पूर्ववत नहीं किया जा सकता।",
+    // Activity Logs
+    logSystemStart: "सिस्टम आरंभ", logGuestLogin: "अतिथि लॉगिन", logAdminLogin: "व्यवस्थापक लॉगिन",
+    logAdminLogout: "व्यवस्थापक लॉगआउट", logGuestLogout: "अतिथि लॉगआउट", logRequestCreate: "अनुरोध बनाया",
+    logRequestComplete: "अनुरोध पूरा हुआ", logRequestDelete: "अनुरोध हटाया",
+    logBulkComplete: "बल्क कंप्लीट", logBulkDelete: "बल्क डिलीट", logRoomAdd: "कमरा जोड़ा",
+    logRoomEdit: "कमरा संपादित", logRoomDelete: "कमरा हटाया", logFoodAdd: "फूड आइटम जोड़ा",
+    logFoodEdit: "फूड आइटम संपादित", logFoodDelete: "फूड आइटम हटाया",
+    logInventoryAdd: "इन्वेंट्री आइटम जोड़ा", logInventoryDelete: "इन्वेंट्री आइटम हटाया",
+    logMaintenanceAdd: "मेंटेनेंस कार्य जोड़ा", logMaintenanceComplete: "कार्य पूरा",
+    logBlacklistAdd: "अतिथि ब्लैकलिस्ट", logBlacklistRemove: "ब्लैकलिस्ट से हटाया",
+    logLoyaltyAdd: "लॉयल्टी पॉइंट्स जोड़े", logLoyaltyRedeem: "पॉइंट्स रिडीम", logReview: "समीक्षा जमा",
+    logExportExcel: "Excel एक्सपोर्ट", logExportAll: "पूर्ण बैकअप", logGenerateReport: "रिपोर्ट जनरेट",
+    logHotelNameChange: "होटल नाम बदला", logCurrencyChange: "मुद्रा सेटिंग्स बदली",
+    logTransportChange: "ट्रांसपोर्ट मूल्य बदले", logWifiChange: "वाईफाई पासवर्ड बदला",
+    logQRDownload: "QR कोड डाउनलोड", logStaffAttendance: "स्टाफ उपस्थिति", logWakeUp: "वेक-अप कॉल सेट",
+    logSOS: "SOS आपातकालीन अलर्ट", logTransport: "ट्रांसपोर्ट बुक", logGuestRequest: "अतिथि अनुरोध जमा",
+    // Service Categories
+    catRoomCleaning: "कमरा सफाई", catExtraTowels: "अतिरिक्त तौलिए", catDeepCleaning: "गहरी सफाई",
+    catBedSheets: "बेड शीट बदलें", catACNotWorking: "AC काम नहीं कर रहा", catTVIssue: "TV समस्या",
+    catPlumbing: "प्लंबिंग", catElectrical: "इलेक्ट्रिकल", catFurnitureRepair: "फर्नीचर मरम्मत",
+    catOrderFood: "खाना ऑर्डर करें", catRoomService: "रूम सर्विस", catSpecialRequest: "विशेष अनुरोध",
+    catBreakfast: "नाश्ता", catLaundryPickup: "लॉन्ड्री पिकअप", catIronOnly: "केवल इस्त्री",
+    catDryCleaning: "ड्राई क्लीनिंग", catWiFiIssue: "WiFi समस्या", catTVHelp: "TV सहायता",
+    catChargingProblem: "चार्जिंग समस्या",
+    // Maintenance categories with HI/AR
+    catCarpenter: "🔨 बढ़ई", catTableLamp: "💡 टेबल लैंप", catChairSofa: "🛋️ कुर्सी सोफा",
+    catBedWheel: "🛏️ बिस्तर पहिया", catFurniture: "🪑 फर्नीचर", catHeadBoard: "🛏️ हेड बोर्ड",
+    catFridge: "🧊 फ्रिज", catCabinet: "🗄️ अलमारी",
+    // Validation
+    fillRequired: "कृपया सभी आवश्यक फ़ील्ड भरें", deleteRequest: "इस अनुरोध को हटाएं?",
+    deleteFood: "इस आइटम को हटाएं?", deleteItem: "इस आइटम को हटाएं?", deleteTask: "इस कार्य को हटाएं?"
+  },
+  ar: {
+    // Common
+    connectionError: "خطأ في الاتصال! استخدام البيانات المخزنة مؤقتًا.", offlineModeActive: "📴 وضع عدم الاتصال نشط",
+    backendConnected: "✅ متصل بالخادم", welcomeBack: "مرحبًا بعودتك!", guestWelcome: "مرحبًا",
+    adminWelcome: "مرحبًا", loginSuccess: "تسجيل الدخول ناجح", invalidCredentials: "بيانات الاعتماد غير صالحة",
+    languageChanged: "تم تغيير اللغة إلى ", switchedTo: "تم التبديل إلى ", save: "حفظ", cancel: "إلغاء",
+    close: "إغلاق", delete: "حذف", loading: "جاري التحميل...", noData: "لا توجد بيانات متاحة",
+    // Login
+    welcomeTitle: "فندق كراون بلازا", guestTab: "🏨 ضيف", adminTab: "👑 مسؤول",
+    yourName: "اسمك", roomNumber: "رقم الغرفة", enterName: "أدخل اسمك",
+    enterRoom: "أدخل رقم الغرفة", loginGuest: "🔐 تسجيل دخول ضيف", loginAdmin: "🔐 تسجيل دخول مسؤول",
+    emailAddress: "عنوان البريد الإلكتروني", password: "كلمة المرور", passwordPlaceholder: "••••••••",
+    // Role Selection
+    selectRole: "👑 اختر دورك", roleSuperAdmin: "مدير عام", roleFrontDesk: "مكتب الاستقبال",
+    roleHousekeeping: "التنظيف", roleMaintenance: "الصيانة", roleRestaurant: "المطعم",
+    roleLaundry: "الغسيل", roleSecurity: "الأمن", roleIT: "دعم تقنية المعلومات", back: "← عودة",
+    // Guest Dashboard
+    newRequest: "📝 طلب جديد", myRequests: "طلباتي", pending: "قيد الانتظار", resolved: "تم الحل",
+    notRated: "لم يتم التقييم", foodMenu: "🍕 قائمة الطعام", placeOrder: "تقديم الطلب", transport: "🚗 النقل",
+    bookNow: "احجز الآن", hotelInfo: "ℹ️ معلومات الفندق", wifi: "📶 الواي فاي:", localTime: "🌍 الوقت المحلي:",
+    restaurant: "🍽️ المطعم:", gym: "💪 الصالة الرياضية:", emergency: "🚨 طوارئ:", checkout: "🕐 تسجيل الخروج:",
+    wakeUpCall: "⏰ تعيين مكالمة إيقاظ", dnd: "🔕 عدم الإزعاج:", dndOn: "عدم الإزعاج: مفعل", dndOff: "عدم الإزعاج: معطل",
+    localGuide: "🗺️ الدليل المحلي", events: "📅 الفعاليات", emergencyContacts: "📞 جهات اتصال الطوارئ",
+    firstAid: "🚑 الإسعافات الأولية", evacuationMap: "🗺️ خريطة الإخلاء", concierge: "🤖 الكونسيرج الرقمي",
+    checkoutRate: "⭐ تسجيل الخروج والتقييم", sosEmergency: "🚨 SOS طوارئ", logout: "تسجيل خروج",
+    // Request Form
+    selectDepartment: "اختر القسم", selectService: "اختر الخدمة", describeIssue: "صف مشكلتك...",
+    submitRequest: "إرسال الطلب", priority: "الأولوية", normal: "عادي", urgent: "⚠️ عاجل",
+    requestSubmitted: "تم إرسال الطلب بنجاح!", requestCreated: "تم إنشاء الطلب بنجاح!",
+    // Food & Cart
+    addToCart: "أضف للسلة", cart: "السلة", cartIsEmpty: "السلة فارغة", total: "المجموع",
+    orderPlaced: "تم تقديم الطلب!", cartEmpty: "السلة فارغة!", itemAddedCart: " تمت إضافته للسلة",
+    // Transport
+    airportTransfer: "نقل المطار", localCab: "تاكسي محلي", perTrip: "/رحلة", perHour: "/ساعة",
+    transportBooked: "تم حجز النقل!",
+    // Admin Dashboard
+    tabOverview: "📊 نظرة عامة", tabRequests: "📋 الطلبات", tabRooms: "🏨 الغرف", tabGuests: "👥 الضيوف",
+    tabReviews: "⭐ التقييمات", tabReports: "📈 التقارير", tabQRCodes: "📷 رموز QR", tabLogs: "📜 سجلات النشاط",
+    tabInventory: "📦 المخزون", tabMaintenance: "🔧 الصيانة", tabBlacklist: "🚫 القائمة السوداء",
+    tabLoyalty: "🎁 الولاء", tabStaff: "👔 الموظفون", tabFoodMenu: "🍽️ قائمة الطعام", tabSettings: "⚙️ الإعدادات",
+    // Stats
+    totalRooms: "إجمالي الغرف", occupied: "مشغولة", vacant: "شاغرة", cleaning: "جارٍ التنظيف",
+    open: "مفتوحة", inProgress: "قيد التنفيذ", emergency: "طارئ", completed: "مكتملة",
+    // Room Management
+    addNewRoom: "+ إضافة غرفة جديدة", editRoom: "تعديل الغرفة", roomNumber: "غرفة #", roomType: "النوع",
+    roomStatus: "الحالة", guestName: "اسم الضيف", roomUpdated: "غرفة #", updated: " تم تحديثها",
+    roomAdded: "غرفة #", added: " تمت إضافتها", roomDeleted: "غرفة #", deleted: " تم حذفها",
+    roomExists: "رقم الغرفة موجود مسبقًا!", noRooms: "لا توجد غرف للعرض", deleteRoom: "حذف هذه الغرفة؟",
+    // Food Menu
+    addNewItem: "+ إضافة عنصر جديد", editItem: "تعديل العنصر", itemName: "اسم العنصر", price: "السعر",
+    category: "الفئة", description: "الوصف", foodUpdated: "العنصر '", updated: "' تم تحديثه",
+    foodAdded: "العنصر '", addedToMenu: "' تمت إضافته للقائمة", foodRemoved: "العنصر '", removedFromMenu: "' تم إزالته",
+    deleteFood: "حذف هذا العنصر من القائمة؟", noFood: "لا توجد عناصر في القائمة",
+    // Inventory
+    item: "العنصر", quantity: "الكمية", unit: "الوحدة", minStock: "الحد الأدنى",
+    itemAdded: " تمت إضافته للمخزون", itemDeleted: " تمت إزالته من المخزون", deleteItem: "حذف هذا العنصر؟",
+    // Maintenance
+    task: "المهمة", date: "التاريخ", maintenanceScheduled: "تم جدولة مهمة الصيانة",
+    maintenanceCompleted: "تم تعليم المهمة كمكتملة", taskDeleted: "تم حذف المهمة", deleteTask: "حذف هذه المهمة؟",
+    // Blacklist & Loyalty
+    reason: "السبب", blacklistAdded: " تمت إضافته للقائمة السوداء", blacklistRemoved: "تمت الإزالة من القائمة السوداء",
+    points: "نقاط", pointsRedeemed: " استبدل 100 نقطة للحصول على ", discount: " خصم",
+    needPoints: "تحتاج 100+ نقطة للاستبدال", pointsAdded: "تمت إضافة ", redeem: "استبدال",
+    // Staff Performance
+    rating: "التقييم", rated: "تم تقييم ", slaStats: "إحصائيات SLA",
+    // Reviews
+    overall: "عام", cleanliness: "النظافة", staff: "الموظفون", recommend: "هل توصي؟",
+    yes: "نعم", no: "لا", comment: "تعليق", thankYouReview: "شكرًا لتقييمك!",
+    thankYouStay: "شكرًا لإقامتك في ", seeYouAgain: "! نأمل رؤيتك مجددًا!",
+    provideRating: "يرجى تقديم تقييم عام",
+    // QR Codes
+    viewQR: "عرض رمز الاستجابة", downloadQR: "تحميل رمز الاستجابة", qrDownloaded: "تم تحميل رمز الاستجابة",
+    qrWait: "يرجى الانتظار لتوليد رمز الاستجابة", roomLabel: "غرفة ",
+    // Reports & Export
+    dailyReport: "تقرير يومي", weeklyReport: "تقرير أسبوعي", monthlyReport: "تقرير شهري",
+    exportExcel: "تصدير إلى Excel", exportAll: "تصدير جميع البيانات", printReport: "طباعة التقرير",
+    excelExported: "تم تصدير ملف Excel", dataExported: "تم تصدير نسخة احتياطية",
+    // Settings
+    hotelName: "اسم الفندق", currency: "العملة", priceFormat: "تنسيق السعر",
+    symbolFirst: "الرمز أولاً (ر.س10)", symbolLast: "الرمز أخيرًا (10ر.س)", withSpace: "مع مسافة (10 ر.س)",
+    transportPrices: "أسعار النقل", airportPrice: "نقل المطار", localPrice: "تاكسي محلي/ساعة",
+    wifiPassword: "كلمة مرور الواي فاي", wifiUpdated: "تم تحديث كلمة مرور الواي فاي", wifiCopied: "تم نسخ كلمة مرور الواي فاي",
+    currencySaved: "تم حفظ إعدادات العملة", transportUpdated: "تم تحديث أسعار النقل",
+    hotelNameUpdated: "تم تحديث اسم الفندق", invalidHotelName: "يجب أن يكون اسم الفندق 3 أحرف أو أكثر",
+    // UI Preferences
+    selectTheme: "اختر سمة", darkMode: "🌙 الوضع الداكن", highContrast: "🔆 تباين عالي",
+    fontSize: "حجم الخط", offlineMode: "📴 وضع عدم الاتصال", pushNotify: "🔔 إشعارات الدفع",
+    haptic: "📳 ردود فعل لمسية", voiceEnabled: "🔊 الصوت مفعل", pwaReady: "📱 PWA جاهز",
+    // Notifications
+    notificationsEnabled: "تم تمكين الإشعارات!", vibrationTest: "اختبار الردود اللمسية",
+    emergencyAlert: "🚨 تم إرسال تنبيه الطوارئ!",
+    // Bulk Actions
+    selectAll: "تحديد الكل", bulkComplete: "إكمال المحدد", bulkDelete: "حذف المحدد",
+    completeSelected: "إكمال ", deleteSelected: "حذف ", requestsCompleted: " طلبات مكتملة",
+    requestsDeleted: " طلبات محذوفة", deleteSelectedWarn: "? لا يمكن التراجع عن هذا.",
+    // Activity Logs
+    logSystemStart: "تم تهيئة النظام", logGuestLogin: "تسجيل دخول ضيف", logAdminLogin: "تسجيل دخول مسؤول",
+    logAdminLogout: "تسجيل خروج مسؤول", logGuestLogout: "تسجيل خروج ضيف", logRequestCreate: "تم إنشاء طلب",
+    logRequestComplete: "تم إكمال الطلب", logRequestDelete: "تم حذف الطلب",
+    logBulkComplete: "إكمال بالجملة", logBulkDelete: "حذف بالجملة", logRoomAdd: "تمت إضافة غرفة",
+    logRoomEdit: "تم تعديل غرفة", logRoomDelete: "تم حذف غرفة", logFoodAdd: "تمت إضافة عنصر طعام",
+    logFoodEdit: "تم تعديل عنصر طعام", logFoodDelete: "تم حذف عنصر طعام",
+    logInventoryAdd: "تمت إضافة عنصر مخزون", logInventoryDelete: "تم حذف عنصر مخزون",
+    logMaintenanceAdd: "تمت إضافة مهمة صيانة", logMaintenanceComplete: "تم إكمال المهمة",
+    logBlacklistAdd: "تمت إضافة ضيف للقائمة السوداء", logBlacklistRemove: "تمت الإزالة من القائمة السوداء",
+    logLoyaltyAdd: "تمت إضافة نقاط ولاء", logLoyaltyRedeem: "تم استبدال النقاط", logReview: "تم إرسال تقييم",
+    logExportExcel: "تصدير Excel", logExportAll: "نسخة احتياطية كاملة", logGenerateReport: "تم توليد تقرير",
+    logHotelNameChange: "تم تغيير اسم الفندق", logCurrencyChange: "تم تغيير إعدادات العملة",
+    logTransportChange: "تم تغيير أسعار النقل", logWifiChange: "تم تغيير كلمة مرور الواي فاي",
+    logQRDownload: "تم تحميل رمز الاستجابة", logStaffAttendance: "حضور الموظفين", logWakeUp: "تم تعيين مكالمة إيقاظ",
+    logSOS: "تنبيه طوارئ SOS", logTransport: "تم حجز نقل", logGuestRequest: "تم إرسال طلب ضيف",
+    // Service Categories
+    catRoomCleaning: "تنظيف الغرفة", catExtraTowels: "مناشف إضافية", catDeepCleaning: "تنظيف عميق",
+    catBedSheets: "تغيير ملاءات السرير", catACNotWorking: "مكيف الهواء لا يعمل", catTVIssue: "مشكلة في التلفزيون",
+    catPlumbing: "سباكة", catElectrical: "كهرباء", catFurnitureRepair: "إصلاح الأثاث",
+    catOrderFood: "طلب طعام", catRoomService: "خدمة الغرف", catSpecialRequest: "طلب خاص",
+    catBreakfast: "الإفطار", catLaundryPickup: "استلام الغسيل", catIronOnly: "كي فقط",
+    catDryCleaning: "تنظيف جاف", catWiFiIssue: "مشكلة في الواي فاي", catTVHelp: "مساعدة التلفزيون",
+    catChargingProblem: "مشكلة في الشحن",
+    // Maintenance categories with HI/AR
+    catCarpenter: "🔨 نجار", catTableLamp: "💡 مصباح طاولة", catChairSofa: "🛋️ كرسي أريكة",
+    catBedWheel: "🛏️ عجلة السرير", catFurniture: "🪑 أثاث", catHeadBoard: "🛏️ رأس السرير",
+    catFridge: "🧊 ثلاجة", catCabinet: "🗄️ خزانة",
+    // Validation
+    fillRequired: "يرجى ملء جميع الحقول المطلوبة", deleteRequest: "حذف هذا الطلب؟",
+    deleteFood: "حذف هذا العنصر؟", deleteItem: "حذف هذا العنصر؟", deleteTask: "حذف هذه المهمة؟"
+  }
+};
+
+// ============ TRANSLATION HELPER ============
+function t(key, params = {}) {
+  if (!translations[currentLanguage]) currentLanguage = 'en';
+  let text = translations[currentLanguage]?.[key] || translations['en'][key] || key;
+  for (const [k, v] of Object.entries(params)) text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+  return text;
+}
+
+// ============ LANGUAGE CHANGE ============
+function changeLanguage(lang) {
+  if (!['en', 'hi', 'ar'].includes(lang)) lang = 'en';
+  currentLanguage = lang;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+  if (lang === 'ar') { document.body.classList.add('rtl'); document.body.style.textAlign = 'right'; document.body.style.direction = 'rtl'; }
+  else { document.body.classList.remove('rtl'); document.body.style.textAlign = ''; document.body.style.direction = 'ltr'; }
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.remove('active', 'bg-purple-100', 'text-purple-700');
+    btn.classList.add('bg-gray-100', 'text-gray-700');
+  });
+  const activeBtn = document.querySelector(`.lang-btn[onclick*="'${lang}'"]`);
+  if (activeBtn) { activeBtn.classList.remove('bg-gray-100', 'text-gray-700'); activeBtn.classList.add('active', 'bg-purple-100', 'text-purple-700'); }
+  updateCurrencyForLanguage(lang);
+  refreshAllContent();
+  updateLiveClock();
+  localStorage.setItem('preferredLanguage', lang);
+  speakText(t('languageChanged') + lang);
+}
+
+// ============ CURRENCY UPDATE ============
+function updateCurrencyForLanguage(lang) {
+  const currencyMap = { en: '$', hi: '₹', ar: 'ر.س' };
+  const newSymbol = currencyMap[lang] || '$';
+  if (typeof hotelSettings === 'object') hotelSettings.currencySymbol = newSymbol;
+  document.querySelectorAll('.currency-badge, .currency-symbol').forEach(el => { el.textContent = newSymbol; });
+  ['currencyDisplay', 'loyaltyCurrencyDisplay', 'foodCurrencyBadge', 'transportCurrency1', 'transportCurrency2', 'cartCurrency'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = newSymbol;
+  });
+  updateTransportPriceDisplays();
+  if (typeof renderFoodMenu === 'function') renderFoodMenu();
+  if (typeof renderDynamicFoodMenu === 'function') renderDynamicFoodMenu();
+  updateCart();
+}
+
+// ============ REFRESH CONTENT ============
+function refreshAllContent() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (key && translations[currentLanguage]?.[key]) el.textContent = t(key); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { const key = el.getAttribute('data-i18n-placeholder'); if (key && translations[currentLanguage]?.[key]) el.placeholder = t(key); });
+  updateAdminCategories(); updateGuestCategories();
+  if (document.getElementById('adminDashboard') && !document.getElementById('adminDashboard').classList.contains('hidden')) {
+    updateAdminDashboard(); renderAdminRequests(); renderRooms(); renderGuests(); renderFoodMenu(); renderReviews(); renderInventory(); renderMaintenance(); renderBlacklist(); renderLoyalty(); renderStaffPerformance(); renderQRCodes(); renderActivityLogs();
+  }
+  if (document.getElementById('guestDashboard') && !document.getElementById('guestDashboard').classList.contains('hidden')) {
+    updateGuestDashboard(); renderGuestRequests(); renderDynamicFoodMenu(); updateAllDisplays();
+  }
+  updateModalTranslations();
+}
+
+// ============ UPDATE MODAL TRANSLATIONS ============
+function updateModalTranslations() {
+  const roomModalTitle = document.getElementById('roomModalTitle');
+  if (roomModalTitle) { const isEdit = roomModalTitle.textContent.includes('Edit'); roomModalTitle.textContent = isEdit ? t('editRoom') : t('addNewRoom'); }
+  const foodModalTitle = document.getElementById('foodModalTitle');
+  if (foodModalTitle) { const isEdit = foodModalTitle.textContent.includes('Edit'); foodModalTitle.textContent = isEdit ? t('editItem') : t('addNewItem'); }
+  document.querySelectorAll('button[data-i18n], .modal-btn[data-i18n]').forEach(btn => { const key = btn.getAttribute('data-i18n'); if (key) btn.textContent = t(key); });
+}
+
+// ============ SERVICE CATEGORIES ============
+const serviceCategories = {
+  housekeeping: [{ key: 'catRoomCleaning', default: 'Room Cleaning' }, { key: 'catExtraTowels', default: 'Extra Towels' }, { key: 'catDeepCleaning', default: 'Deep Cleaning' }, { key: 'catBedSheets', default: 'Bed Sheets Change' }],
+  maintenance: [{ key: 'catACNotWorking', default: 'AC Not Working' }, { key: 'catTVIssue', default: 'TV Issue' }, { key: 'catPlumbing', default: 'Plumbing' }, { key: 'catElectrical', default: 'Electrical' }, { key: 'catFurnitureRepair', default: 'Furniture Repair' }, { key: 'catCarpenter', default: 'Carpenter' }, { key: 'catTableLamp', default: 'Table Lamp' }, { key: 'catChairSofa', default: 'Chair Sofa' }, { key: 'catBedWheel', default: 'Bed Wheel' }, { key: 'catFurniture', default: 'Furniture' }, { key: 'catHeadBoard', default: 'Head Board' }, { key: 'catFridge', default: 'Fridge' }, { key: 'catCabinet', default: 'Cabinet' }],
+  restaurant: [{ key: 'catOrderFood', default: 'Order Food' }, { key: 'catRoomService', default: 'Room Service' }, { key: 'catSpecialRequest', default: 'Special Request' }, { key: 'catBreakfast', default: 'Breakfast' }],
+  laundry: [{ key: 'catLaundryPickup', default: 'Laundry Pickup' }, { key: 'catIronOnly', default: 'Iron Only' }, { key: 'catDryCleaning', default: 'Dry Cleaning' }],
+  it: [{ key: 'catWiFiIssue', default: 'WiFi Issue' }, { key: 'catTVHelp', default: 'TV Help' }, { key: 'catChargingProblem', default: 'Charging Problem' }]
+};
+
+// ============ UPDATE CATEGORIES ============
+function updateAdminCategories() {
+  const dept = document.getElementById('reqDepartment'); const catSelect = document.getElementById('reqCategory');
+  if (!dept || !catSelect) return;
+  catSelect.innerHTML = `<option value="">${t('selectService')}</option>`;
+  const selectedDept = dept.value;
+  if (selectedDept && serviceCategories[selectedDept]) {
+    serviceCategories[selectedDept].forEach(cat => {
+      let labelKey = cat.key;
+      if (currentLanguage === 'hi' && translations['hi'][cat.key]) labelKey = cat.key;
+      if (currentLanguage === 'ar' && translations['ar'][cat.key]) labelKey = cat.key;
+      const label = t(labelKey) || cat.default;
+      catSelect.innerHTML += `<option value="${cat.default}">${label}</option>`;
+    });
+  }
+}
+function updateGuestCategories() {
+  const dept = document.getElementById('guestDepartment'); const catSelect = document.getElementById('guestCategory');
+  if (!dept || !catSelect) return;
+  catSelect.innerHTML = `<option value="">${t('selectService')}</option>`;
+  const selectedDept = dept.value;
+  if (selectedDept && serviceCategories[selectedDept]) {
+    serviceCategories[selectedDept].forEach(cat => {
+      let labelKey = cat.key;
+      if (currentLanguage === 'hi' && translations['hi'][cat.key]) labelKey = cat.key;
+      if (currentLanguage === 'ar' && translations['ar'][cat.key]) labelKey = cat.key;
+      const label = t(labelKey) || cat.default;
+      catSelect.innerHTML += `<option value="${cat.default}">${label}</option>`;
+    });
+  }
+}
+
+// ============ SESSION PERSISTENCE ============
+const SESSION_TTL = 24 * 60 * 60 * 1000;
+function checkSavedSession() {
+  const savedAdmin = localStorage.getItem('crown_plaza_admin_session');
+  if (savedAdmin) {
+    try {
+      const session = JSON.parse(savedAdmin);
+      if (session.role && session.timestamp && (Date.now() - session.timestamp < SESSION_TTL)) {
+        currentAdminRole = session.role;
+        setupAdminUI(session);
+        return true;
+      } else { clearAdminSession(); }
+    } catch(e) { console.error('Admin session parse error:', e); clearAdminSession(); }
+  }
+  const savedGuest = localStorage.getItem('crown_plaza_customer_session');
+  if (savedGuest) {
+    try {
+      const session = JSON.parse(savedGuest);
+      if (session.name && session.room && session.timestamp && (Date.now() - session.timestamp < SESSION_TTL)) {
+        currentGuest = { name: session.name, room: session.room };
+        setupGuestUI();
+        return true;
+      } else { clearGuestSession(); }
+    } catch(e) { console.error('Guest session parse error:', e); clearGuestSession(); }
+  }
+  return false;
+}
+function setupAdminUI(session) {
+  const roleNames = { super_admin: 'Super Admin', front_desk: 'Front Desk', housekeeping: 'Housekeeping', maintenance: 'Maintenance', restaurant: 'Restaurant', laundry: 'Laundry', security: 'Security', it_support: 'IT Support' };
+  document.getElementById('roleDisplay').textContent = roleNames[session.role] || session.role;
+  document.getElementById('adminRoleBadge').textContent = roleNames[session.role] || session.role;
+  document.getElementById('loginSelectionPage')?.classList.add('hidden');
+  document.getElementById('roleSelectionPage')?.classList.add('hidden');
+  document.getElementById('adminDashboard')?.classList.remove('hidden');
+  document.documentElement.setAttribute('data-session', 'admin');
+  setTimeout(() => { restorePageState('admin'); updateAdminDashboard(); initCharts(); renderHeatMap(); renderInventory(); renderMaintenance(); renderBlacklist(); renderLoyalty(); renderStaffPerformance(); updateSLAStats(); renderQRCodes(); renderRooms(); renderFoodMenu(); showToast(t('welcomeBack'), 'success'); }, 100);
+}
+function setupGuestUI() {
+  document.getElementById('loginSelectionPage')?.classList.add('hidden');
+  document.getElementById('guestDashboard')?.classList.remove('hidden');
+  const guestInfo = document.getElementById('guestInfo');
+  if (guestInfo) guestInfo.innerHTML = `👤 ${currentGuest.name} | Room ${currentGuest.room}`;
+  document.documentElement.setAttribute('data-session', 'guest');
+  setTimeout(() => { restorePageState('guest'); updateGuestDashboard(); renderDynamicFoodMenu(); showToast(`${t('guestWelcome')} ${currentGuest.name}!`, 'success'); }, 100);
+}
+function clearAdminSession() { localStorage.removeItem('crown_plaza_admin_session'); document.documentElement.removeAttribute('data-session'); currentAdminRole = null; }
+function clearGuestSession() { localStorage.removeItem('crown_plaza_customer_session'); document.documentElement.removeAttribute('data-session'); currentGuest = null; }
+
+// ============ LOGIN TYPE SWITCHER ============
+function switchLoginType(type) {
+  document.getElementById('guestTabBtn')?.classList.toggle('bg-purple-100', type === 'guest');
+  document.getElementById('guestTabBtn')?.classList.toggle('text-purple-700', type === 'guest');
+  document.getElementById('guestTabBtn')?.classList.toggle('bg-gray-100', type !== 'guest');
+  document.getElementById('guestTabBtn')?.classList.toggle('text-gray-700', type !== 'guest');
+  document.getElementById('adminTabBtn')?.classList.toggle('bg-purple-100', type === 'admin');
+  document.getElementById('adminTabBtn')?.classList.toggle('text-purple-700', type === 'admin');
+  document.getElementById('adminTabBtn')?.classList.toggle('bg-gray-100', type !== 'admin');
+  document.getElementById('adminTabBtn')?.classList.toggle('text-gray-700', type !== 'admin');
+  const guestForm = document.getElementById('guestLoginForm'); const adminForm = document.getElementById('adminLoginForm');
+  if (guestForm && adminForm) { guestForm.classList.toggle('hidden', type !== 'guest'); adminForm.classList.toggle('hidden', type !== 'admin'); }
+}
+
+// ============ GUEST LOGIN ============
+document.addEventListener('DOMContentLoaded', () => {
+  const guestForm = document.getElementById('guestLoginForm');
+  if (guestForm) {
+    guestForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('guestNameInput')?.value.trim();
+      const room = document.getElementById('guestRoomInput')?.value.trim();
+      if (name && room) {
+        const result = await apiCall('/auth/guest-login', 'POST', { name, room, hotelId: currentHotelId });
+        if (result.success) {
+          currentGuest = { name, room };
+          localStorage.setItem('crown_plaza_customer_session', JSON.stringify({ name, room, timestamp: Date.now() }));
+          setupGuestUI();
+          addActivityLog(t('logGuestLogin'), `${name} - Room ${room}`);
+        } else { showToast(result.error || t('invalidCredentials'), 'error'); }
+      }
+    });
+  }
+  const adminForm = document.getElementById('adminLoginForm');
+  if (adminForm) {
+    adminForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('adminEmailInput')?.value.trim();
+      const password = document.getElementById('adminPasswordInput')?.value;
+      if (email && password) {
+        const result = await apiCall('/auth/admin-login', 'POST', { email, password, hotelId: currentHotelId });
+        if (result.success) {
+          document.getElementById('loginSelectionPage')?.classList.add('hidden');
+          document.getElementById('roleSelectionPage')?.classList.remove('hidden');
+          showToast(t('loginSuccess'), 'success');
+          addActivityLog('ADMIN_LOGIN_ATTEMPT', email);
+        } else { showToast(result.error || t('invalidCredentials'), 'error'); }
+      }
+    });
+  }
+});
+
+// ============ ROLE SELECTION ============
+function loginAsRole(role) {
+  currentAdminRole = role;
+  const roleNames = { super_admin: 'Super Admin', front_desk: 'Front Desk', housekeeping: 'Housekeeping', maintenance: 'Maintenance', restaurant: 'Restaurant', laundry: 'Laundry', security: 'Security', it_support: 'IT Support' };
+  document.getElementById('roleDisplay').textContent = roleNames[role];
+  document.getElementById('adminRoleBadge').textContent = roleNames[role];
+  document.getElementById('roleSelectionPage')?.classList.add('hidden');
+  document.getElementById('adminDashboard')?.classList.remove('hidden');
+  document.documentElement.setAttribute('data-session', 'admin');
+  localStorage.setItem('crown_plaza_admin_session', JSON.stringify({ role, timestamp: Date.now() }));
+  clearGuestSession();
+  restorePageState('admin');
+  updateAdminDashboard();
+  initCharts();
+  renderHeatMap();
+  renderInventory();
+  renderMaintenance();
+  renderBlacklist();
+  renderLoyalty();
+  renderStaffPerformance();
+  updateSLAStats();
+  renderQRCodes();
+  renderRooms();
+  renderFoodMenu();
+  showToast(`${t('adminWelcome')} ${roleNames[role]}!`, 'success');
+  addActivityLog(t('logAdminLogin'), roleNames[role]);
+}
+
+// ============ LOGOUT ============
+async function logoutAdmin() {
+  await apiCall('/auth/logout', 'POST');
+  document.getElementById('adminDashboard')?.classList.add('hidden');
+  document.getElementById('loginSelectionPage')?.classList.remove('hidden');
+  clearAdminSession();
+  selectedRequests.clear();
+  showToast('Logged out', 'info');
+  speakText('Logged out from admin panel');
+  addActivityLog(t('logAdminLogout'), 'Logged out');
+}
+function logoutGuest() {
+  document.getElementById('guestDashboard')?.classList.add('hidden');
+  document.getElementById('loginSelectionPage')?.classList.remove('hidden');
+  clearGuestSession();
+  showToast('Logged out', 'info');
+  speakText('Logged out');
+  addActivityLog(t('logGuestLogout'), 'Logged out');
+}
+
+// ============ DATA LOADING ============
+async function loadAllDataFromBackend() {
+  if (offlineMode) { loadFromLocal(); return; }
+  try {
+    showSyncIndicator(true);
+    const [roomsRes, requestsRes, guestsRes, foodRes, reviewsRes, inventoryRes, maintenanceRes, blacklistRes, loyaltyRes, staffRes] = await Promise.all([
+      apiCall('/rooms'), apiCall('/requests'), apiCall('/guests'), apiCall('/food'), apiCall('/reviews'),
+      apiCall('/inventory'), apiCall('/maintenance'), apiCall('/blacklist'), apiCall('/loyalty'), apiCall('/staff')
+    ]);
+    if (roomsRes.success) rooms = roomsRes.data || [];
+    if (requestsRes.success) requests = requestsRes.data || [];
+    if (guestsRes.success) guests = guestsRes.data || [];
+    if (foodRes.success) foodMenu = foodRes.data || [];
+    if (reviewsRes.success) reviews = reviewsRes.data || [];
+    if (inventoryRes.success) inventory = inventoryRes.data || [];
+    if (maintenanceRes.success) maintenanceTasks = maintenanceRes.data || [];
+    if (blacklistRes.success) blacklist = blacklistRes.data || [];
+    if (loyaltyRes.success) loyaltyPoints = loyaltyPoints.data || [];
+    if (staffRes.success) staffPerformance = staffRes.data || [];
+    const settingsRes = await apiCall('/settings');
+    if (settingsRes.success) hotelSettings = { ...hotelSettings, ...settingsRes.data };
+    const logsRes = await apiCall('/logs');
+    if (logsRes.success) activityLogs = logsRes.data || [];
+    console.log('✅ Data loaded from MongoDB');
+    saveToLocal();
+    refreshAllUI();
+    showSyncIndicator(false);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to load from backend:', error);
+    showToast(t('connectionError'), 'error');
+    loadFromLocal();
+    showSyncIndicator(false);
+    return false;
+  }
+}
+
+// ============ SAVE/DELETE BACKEND ============
+async function saveToBackend(entityType, data, id = null) {
+  if (offlineMode) return { success: true };
+  try {
+    const endpoint = id ? `/${entityType}/${id}` : `/${entityType}`;
+    const method = id ? 'PUT' : 'POST';
+    return await apiCall(endpoint, method, data);
+  } catch (error) {
+    console.error(`❌ Save ${entityType} error:`, error);
+    return { success: false, error: error.message };
+  }
+}
+async function deleteFromBackend(entityType, id) {
+  if (offlineMode) return { success: true };
+  try { return await apiCall(`/${entityType}/${id}`, 'DELETE'); }
+  catch (error) { console.error(`❌ Delete ${entityType} error:`, error); return { success: false, error: error.message }; }
+}
+
+// ============ LOCAL STORAGE BACKUP ============
+function saveToLocal() {
+  localStorage.setItem('crown_plaza_language', currentLanguage);
+  try {
+    localStorage.setItem('crown_plaza_backup_requests', JSON.stringify(requests));
+    localStorage.setItem('crown_plaza_backup_rooms', JSON.stringify(rooms));
+    localStorage.setItem('crown_plaza_backup_guests', JSON.stringify(guests));
+    localStorage.setItem('crown_plaza_backup_food', JSON.stringify(foodMenu));
+    localStorage.setItem('crown_plaza_backup_reviews', JSON.stringify(reviews));
+    localStorage.setItem('crown_plaza_backup_inventory', JSON.stringify(inventory));
+    localStorage.setItem('crown_plaza_backup_maintenance', JSON.stringify(maintenanceTasks));
+    localStorage.setItem('crown_plaza_backup_blacklist', JSON.stringify(blacklist));
+    localStorage.setItem('crown_plaza_backup_loyalty', JSON.stringify(loyaltyPoints));
+    localStorage.setItem('crown_plaza_backup_staff', JSON.stringify(staffPerformance));
+    localStorage.setItem('crown_plaza_backup_logs', JSON.stringify(activityLogs));
+    localStorage.setItem('crown_plaza_backup_settings', JSON.stringify(hotelSettings));
+  } catch (e) { console.warn('⚠️ localStorage backup failed:', e); }
+}
+function loadFromLocal() {
+  try {
+    const backup = {
+      requests: localStorage.getItem('crown_plaza_backup_requests'), rooms: localStorage.getItem('crown_plaza_backup_rooms'),
+      guests: localStorage.getItem('crown_plaza_backup_guests'), food: localStorage.getItem('crown_plaza_backup_food'),
+      reviews: localStorage.getItem('crown_plaza_backup_reviews'), inventory: localStorage.getItem('crown_plaza_backup_inventory'),
+      maintenance: localStorage.getItem('crown_plaza_backup_maintenance'), blacklist: localStorage.getItem('crown_plaza_backup_blacklist'),
+      loyalty: localStorage.getItem('crown_plaza_backup_loyalty'), staff: localStorage.getItem('crown_plaza_backup_staff'),
+      logs: localStorage.getItem('crown_plaza_backup_logs'), settings: localStorage.getItem('crown_plaza_backup_settings')
+    };
+    if (backup.requests) requests = JSON.parse(backup.requests);
+    if (backup.rooms) rooms = JSON.parse(backup.rooms);
+    if (backup.guests) guests = JSON.parse(backup.guests);
+    if (backup.food) foodMenu = JSON.parse(backup.food);
+    if (backup.reviews) reviews = JSON.parse(backup.reviews);
+    if (backup.inventory) inventory = JSON.parse(backup.inventory);
+    if (backup.maintenance) maintenanceTasks = JSON.parse(backup.maintenance);
+    if (backup.blacklist) blacklist = JSON.parse(backup.blacklist);
+    if (backup.loyalty) loyaltyPoints = JSON.parse(backup.loyalty);
+    if (backup.staff) staffPerformance = JSON.parse(backup.staff);
+    if (backup.logs) activityLogs = JSON.parse(backup.logs);
+    if (backup.settings) hotelSettings = { ...hotelSettings, ...JSON.parse(backup.settings) };
+    console.log('📦 Loaded from localStorage backup');
+  } catch (e) { console.error('❌ Failed to load from localStorage:', e); initSampleData(); }
+}
+
+// ============ SAMPLE DATA ============
+function initSampleData() {
+  if (rooms.length === 0) { for (let i = 101; i <= 150; i++) rooms.push({ id: i, number: i, type: i % 3 === 0 ? 'Suite' : (i % 2 === 0 ? 'Deluxe' : 'Standard'), status: i % 4 === 0 ? 'Vacant' : (i % 3 === 0 ? 'Cleaning' : 'Occupied'), guestName: i % 4 === 0 ? '' : `Guest ${i}` }); }
+  if (guests.length === 0) guests.push({ name: 'John Smith', room: 101, checkIn: '2024-01-15', checkOut: '2024-01-20', points: 120, phone: '+1234567890', email: 'john@example.com' }, { name: 'Sarah Johnson', room: 102, checkIn: '2024-01-16', checkOut: '2024-01-21', points: 75, phone: '+1234567891', email: 'sarah@example.com' }, { name: 'Michael Brown', room: 103, checkIn: '2024-01-17', checkOut: '2024-01-22', points: 200, phone: '+1234567892', email: 'michael@example.com' });
+  if (reviews.length === 0) reviews.push({ guestName: 'John Smith', room: 101, overall: 5, cleanliness: 5, staff: 5, recommend: true, comment: 'Excellent stay! Very helpful staff.', date: '2024-01-20' });
+  if (inventory.length === 0) inventory = [{ item: 'Towels', quantity: 150, unit: 'pcs', minStock: 50 }, { item: 'Linen Sheets', quantity: 80, unit: 'sets', minStock: 30 }, { item: 'Pillows', quantity: 60, unit: 'pcs', minStock: 20 }, { item: 'Bathrobes', quantity: 45, unit: 'pcs', minStock: 15 }, { item: 'Toiletries Kit', quantity: 200, unit: 'pcs', minStock: 80 }];
+  if (maintenanceTasks.length === 0) maintenanceTasks = [{ id: 1, room: 105, task: 'AC Service', date: '2024-01-25', status: 'Scheduled', priority: 'high' }, { id: 2, room: 108, task: 'TV Repair', date: '2024-01-26', status: 'Pending', priority: 'medium' }, { id: 3, room: 112, task: 'Plumbing Leak', date: '2024-01-27', status: 'Scheduled', priority: 'high' }];
+  if (blacklist.length === 0) blacklist = [{ name: 'Fraud User', room: 999, reason: 'Payment default', date: '2024-01-10', phone: '1234567890' }];
+  if (loyaltyPoints.length === 0) loyaltyPoints = guests.map(g => ({ name: g.name, points: g.points || 0, phone: g.phone }));
+  if (staffPerformance.length === 0) staffPerformance = [{ name: 'John (Housekeeping)', completed: 45, pending: 2, rating: 4.8, department: 'housekeeping' }, { name: 'Mike (Maintenance)', completed: 32, pending: 5, rating: 4.5, department: 'maintenance' }, { name: 'Sarah (Restaurant)', completed: 28, pending: 1, rating: 4.9, department: 'restaurant' }, { name: 'David (Front Desk)', completed: 56, pending: 3, rating: 4.7, department: 'front_desk' }];
+  if (requests.length === 0) requests.push({ id: 1, guestName: 'John Smith', roomNumber: '101', department: 'maintenance', category: 'AC Not Working', description: 'AC not cooling properly', priority: 'high', status: 'in_progress', createdAt: new Date().toISOString() }, { id: 2, guestName: 'Sarah Johnson', roomNumber: '102', department: 'housekeeping', category: 'Extra Towels', description: 'Need extra towels', priority: 'medium', status: 'open', createdAt: new Date(Date.now() - 3600000).toISOString() }, { id: 3, guestName: 'Michael Brown', roomNumber: '103', department: 'restaurant', category: 'Room Service', description: 'Dinner for 2', priority: 'normal', status: 'completed', createdAt: new Date(Date.now() - 86400000).toISOString(), completedAt: new Date(Date.now() - 43200000).toISOString() });
+  if (foodMenu.length === 0) foodMenu = [{ id: 1, name: 'Burger', price: 12, category: 'Main Course', description: 'Juicy beef burger with fries' }, { id: 2, name: 'Pizza', price: 15, category: 'Main Course', description: 'Margherita pizza' }, { id: 3, name: 'Pasta', price: 14, category: 'Main Course', description: 'Creamy Alfredo pasta' }, { id: 4, name: 'Coffee', price: 4, category: 'Beverage', description: 'Freshly brewed coffee' }, { id: 5, name: 'Caesar Salad', price: 10, category: 'Appetizer', description: 'Fresh greens with parmesan' }, { id: 6, name: 'Chocolate Cake', price: 8, category: 'Dessert', description: 'Rich chocolate layer cake' }];
+  if (activityLogs.length === 0) activityLogs = [{ id: 1, action: t('logSystemStart'), details: 'System initialized', timestamp: new Date().toLocaleString() }];
+  hotelSettings = { name: 'Crown Plaza Hotel', currencySymbol: '$', priceFormat: 'symbol-first', transportPrices: { airport: 30, local: 15 }, wifiPassword: 'CrownPlaza@2024' };
+}
+
+// ============ REFRESH UI ============
+function refreshAllUI() {
+  if (document.getElementById('adminDashboard') && !document.getElementById('adminDashboard').classList.contains('hidden')) {
+    updateAdminDashboard(); renderAdminRequests(); renderRooms(); renderGuests(); renderFoodMenu(); renderReviews(); renderInventory(); renderMaintenance(); renderBlacklist(); renderLoyalty(); renderStaffPerformance(); renderQRCodes(); renderActivityLogs(); updateAllDisplays();
+  }
+  if (document.getElementById('guestDashboard') && !document.getElementById('guestDashboard').classList.contains('hidden')) {
+    updateGuestDashboard(); renderGuestRequests(); renderDynamicFoodMenu(); updateCart(); updateAllDisplays();
+  }
+}
+
+// ============ ADMIN DASHBOARD ============
+function updateAdminDashboard() {
+  const openReqs = requests.filter(r => r.status === 'open').length;
+  const inProgress = requests.filter(r => r.status === 'in_progress').length;
+  const emergencyReqs = requests.filter(r => r.priority === 'emergency' && r.status !== 'completed').length;
+  const occupied = rooms.filter(r => r.status === 'Occupied').length;
+  const vacant = rooms.filter(r => r.status === 'Vacant').length;
+  const cleaning = rooms.filter(r => r.status === 'Cleaning').length;
+  const statElements = { 'statOpenRequests': openReqs, 'statInProgress': inProgress, 'statEmergency': emergencyReqs, 'statOccupied': occupied, 'statVacant': vacant, 'statCleaning': cleaning, 'statTotalRooms': rooms.length, 'statTotalGuests': guests.length, 'statPendingRequests': requests.filter(r => r.status !== 'completed').length, 'statCompletedToday': requests.filter(r => { const today = new Date().toDateString(); return r.status === 'completed' && new Date(r.completedAt || r.createdAt).toDateString() === today; }).length };
+  for (const [id, value] of Object.entries(statElements)) { const el = document.getElementById(id); if (el) el.textContent = value; }
+  if (typeof Chart !== 'undefined') updateCharts();
+  renderEmergencyRequests();
+  updateSLAStats();
+}
+function updateCharts() {
+  const deptStats = { housekeeping: 0, maintenance: 0, restaurant: 0, laundry: 0, it: 0 };
+  requests.forEach(r => { if (deptStats[r.department] !== undefined) deptStats[r.department]++; });
+  if (window.deptChart) { window.deptChart.data.datasets[0].data = [deptStats.housekeeping, deptStats.maintenance, deptStats.restaurant, deptStats.laundry, deptStats.it]; window.deptChart.update(); }
+  if (window.occupancyChart) { window.occupancyChart.data.datasets[0].data = [rooms.filter(r => r.status === 'Occupied').length, rooms.filter(r => r.status === 'Vacant').length, rooms.filter(r => r.status === 'Cleaning').length]; window.occupancyChart.update(); }
+  const avgRating = reviews.length ? (reviews.reduce((s, r) => s + r.overall, 0) / reviews.length).toFixed(1) : 0;
+  if (window.ratingChart) { window.ratingChart.data.datasets[0].data = [avgRating, 5 - avgRating]; window.ratingChart.update(); }
+  if (window.peakHourChart) window.peakHourChart.update();
+}
+function renderEmergencyRequests() {
+  const container = document.getElementById('emergencyRequestsList');
+  if (!container) return;
+  const emergencyList = requests.filter(r => r.priority === 'emergency' && r.status !== 'completed');
+  if (emergencyList.length === 0) { container.innerHTML = `<div class="text-gray-500 text-sm text-center py-4">${t('noEmergency')}</div>`; return; }
+  container.innerHTML = emergencyList.map(r => `<div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border-l-4 border-red-600 mb-2"><div class="flex justify-between items-start"><div><strong class="text-red-700 dark:text-red-300">${escapeHtml(r.guestName)}</strong><span class="text-sm">- Room ${r.roomNumber}</span><p class="text-xs mt-1 text-gray-600 dark:text-gray-400">${escapeHtml(r.description)}</p><span class="text-xs text-gray-400">📅 ${new Date(r.createdAt).toLocaleTimeString()}</span></div><button onclick="completeRequest(${r.id})" class="text-green-600 hover:text-green-800 text-lg" title="${t('complete')}">✅</button></div></div>`).join('');
+}
+
+// ============ REQUESTS LIST ============
+function getFilteredRequestsForAdmin() {
+  let filtered = [...requests];
+  if (currentPageState.adminFilter !== 'all') filtered = filtered.filter(r => r.status === currentPageState.adminFilter);
+  if (currentPageState.adminSearch) { const query = currentPageState.adminSearch.toLowerCase(); filtered = filtered.filter(r => r.guestName?.toLowerCase().includes(query) || r.roomNumber?.toLowerCase().includes(query) || r.category?.toLowerCase().includes(query) || r.description?.toLowerCase().includes(query)); }
+  if (currentAdminRole && currentAdminRole !== 'super_admin' && currentAdminRole !== 'front_desk') filtered = filtered.filter(r => r.department === currentAdminRole);
+  const priorityOrder = { emergency: 0, high: 1, medium: 2, low: 3 };
+  const statusOrder = { open: 0, in_progress: 1, completed: 2 };
+  filtered.sort((a, b) => { if (statusOrder[a.status] !== statusOrder[b.status]) return statusOrder[a.status] - statusOrder[b.status]; return (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3); });
+  return filtered;
+}
+function renderAdminRequests() {
+  const container = document.getElementById('adminRequestsList');
+  if (!container) return;
+  const filtered = getFilteredRequestsForAdmin();
+  if (filtered.length === 0) { container.innerHTML = `<div class="text-center py-8 text-gray-500">${t('noRequests')}</div>`; return; }
+  const pageSize = 20; const startIndex = currentPage * pageSize; const endIndex = startIndex + pageSize; const pageItems = filtered.slice(startIndex, endIndex);
+  container.innerHTML = pageItems.map(req => {
+    const priorityClass = req.priority === 'emergency' ? 'priority-emergency' : req.priority === 'high' ? 'priority-high' : req.priority === 'medium' ? 'priority-medium' : 'priority-low';
+    const statusBadge = req.status === 'completed' ? `<span class="badge bg-green-100 text-green-700">✅ ${t('completed')}</span>` : req.status === 'in_progress' ? `<span class="badge bg-blue-100 text-blue-700">🔄 ${t('inProgress')}</span>` : `<span class="badge bg-yellow-100 text-yellow-700">⏳ ${t('pending')}</span>`;
+    return `<div class="border-l-4 ${priorityClass} bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-sm mb-2 hover:shadow-md transition" data-id="${req.id}" draggable="true"><div class="flex flex-wrap justify-between gap-2"><div class="flex-1 min-w-0"><div class="flex items-center gap-2 mb-1 flex-wrap"><input type="checkbox" class="request-checkbox rounded" ${selectedRequests.has(req.id) ? 'checked' : ''} onclick="toggleSelectRequest(${req.id})" title="${t('select')}"><strong class="truncate">${escapeHtml(req.guestName)}</strong><span class="text-gray-500">- Room ${req.roomNumber}</span>${statusBadge}${req.priority === 'emergency' ? '<span class="badge bg-red-600 text-white text-xs">🚨 ' + t('emergency') + '</span>' : ''}</div><div class="ml-6"><span class="text-xs font-semibold text-gray-700 dark:text-gray-300">${escapeHtml(req.category || req.department)}</span><p class="text-xs mt-1 text-gray-600 dark:text-gray-400 line-clamp-2">${escapeHtml(req.description) || t('noDescription')}</p><div class="flex items-center gap-2 mt-1 text-xs text-gray-400"><span>📅 ${new Date(req.createdAt).toLocaleString(currentLanguage === 'hi' ? 'hi-IN' : currentLanguage === 'ar' ? 'ar-SA' : 'en-US')}</span>${req.completedAt ? `<span class="text-green-600">✅ ${t('resolved')}: ${new Date(req.completedAt).toLocaleTimeString()}</span>` : ''}</div></div></div><div class="flex gap-1 flex-shrink-0">${req.status !== 'completed' ? `<button onclick="completeRequest(${req.id})" class="text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-100" title="${t('complete')}">✅</button>` : '<span class="text-green-600 px-2">✓</span>'}<button onclick="deleteRequest(${req.id})" class="text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-100" title="${t('delete')}">🗑️</button></div></div></div>`;
+  }).join('');
+  updatePaginationControls(filtered.length, pageSize);
+  updateBulkUI();
+}
+function updatePaginationControls(total, pageSize) {
+  const totalPages = Math.ceil(total / pageSize);
+  const paginationEl = document.getElementById('requestsPagination');
+  if (!paginationEl) return;
+  if (totalPages <= 1) { paginationEl.innerHTML = ''; return; }
+  let html = `<div class="flex items-center justify-center gap-2 mt-4">`;
+  html += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 0 ? 'disabled class="opacity-50"' : ''} class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">←</button>`;
+  for (let i = Math.max(0, currentPage - 2); i <= Math.min(totalPages - 1, currentPage + 2); i++) html += `<button onclick="changePage(${i})" class="px-3 py-1 rounded ${i === currentPage ? 'bg-purple-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}">${i + 1}</button>`;
+  html += `<button onclick="changePage(${currentPage + 1})" ${currentPage >= totalPages - 1 ? 'disabled class="opacity-50"' : ''} class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">→</button><span class="text-sm text-gray-500 ml-2">${currentPage + 1}/${totalPages}</span></div>`;
+  paginationEl.innerHTML = html;
+}
+function changePage(page) {
+  const filtered = getFilteredRequestsForAdmin();
+  const totalPages = Math.ceil(filtered.length / 20);
+  if (page >= 0 && page < totalPages) { currentPage = page; renderAdminRequests(); }
+}
+
+// ============ BULK ACTIONS ============
+function toggleSelectRequest(id) { if (selectedRequests.has(id)) selectedRequests.delete(id); else selectedRequests.add(id); updateBulkUI(); renderAdminRequests(); }
+function toggleSelectAll() { const filtered = getFilteredRequestsForAdmin(); if (selectedRequests.size === filtered.length) selectedRequests.clear(); else filtered.forEach(r => selectedRequests.add(r.id)); updateBulkUI(); renderAdminRequests(); }
+function updateBulkUI() {
+  const bar = document.getElementById('bulkActionsBar'); const count = selectedRequests.size;
+  if (bar) { if (count > 0) { bar.classList.remove('hidden'); document.getElementById('selectedCount').textContent = count; } else bar.classList.add('hidden'); }
+  const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+  if (selectAllCheckbox) { const filtered = getFilteredRequestsForAdmin(); selectAllCheckbox.checked = selectedRequests.size === filtered.length && filtered.length > 0; selectAllCheckbox.indeterminate = selectedRequests.size > 0 && selectedRequests.size < filtered.length; }
+}
+function bulkComplete() {
+  if (selectedRequests.size === 0) return;
+  if (confirm(`${t('completeSelected')} ${selectedRequests.size} ${t('requestsCompleted')}`)) {
+    let completedCount = 0;
+    requests = requests.map(r => { if (selectedRequests.has(r.id) && r.status !== 'completed') { r.status = 'completed'; r.completedAt = new Date().toISOString(); addLoyaltyPoints(r.guestName, 10); completedCount++; saveToBackend('requests', r, r.id); } return r; });
+    selectedRequests.clear(); saveToLocal(); updateAdminDashboard(); if (currentGuest) updateGuestDashboard(); showToast(`✅ ${completedCount} ${t('requestsCompleted')}`, 'success'); updateBulkUI(); addActivityLog(t('logBulkComplete'), `${completedCount} requests completed`);
+  }
+}
+function bulkDelete() {
+  if (selectedRequests.size === 0) return;
+  if (confirm(`${t('deleteSelected')} ${selectedRequests.size} ${t('deleteSelectedWarn')}`)) {
+    let deletedCount = 0;
+    requests = requests.filter(r => { if (selectedRequests.has(r.id)) { deleteFromBackend('requests', r.id); deletedCount++; return false; } return true; });
+    selectedRequests.clear(); saveToLocal(); updateAdminDashboard(); if (currentGuest) updateGuestDashboard(); showToast(`🗑️ ${deletedCount} ${t('requestsDeleted')}`, 'info'); updateBulkUI(); addActivityLog(t('logBulkDelete'), `${deletedCount} requests deleted`);
+  }
+}
+function clearSelection() { selectedRequests.clear(); updateBulkUI(); renderAdminRequests(); }
+
+// ============ REQUEST ACTIONS ============
+function completeRequest(id) {
+  const req = requests.find(r => r.id === id);
+  if (req && req.status !== 'completed') {
+    req.status = 'completed'; req.completedAt = new Date().toISOString();
+    addLoyaltyPoints(req.guestName, 10);
+    saveToBackend('requests', req, id);
+    saveToLocal();
+    updateAdminDashboard();
+    showToast(`${t('completedFor')} ${req.guestName}`, 'success');
+    addActivityLog(t('logRequestComplete'), `${req.guestName} - ${req.category}`);
+    const staff = staffPerformance.find(s => s.department === req.department);
+    if (staff) { staff.completed++; staff.pending = Math.max(0, staff.pending - 1); renderStaffPerformance(); }
+    if (currentGuest && currentGuest.name === req.guestName) renderGuestRequests();
+    updateBulkUI();
+  }
+}
+function deleteRequest(id) {
+  if (confirm(t('deleteRequest'))) {
+    const req = requests.find(r => r.id === id);
+    deleteFromBackend('requests', id);
+    requests = requests.filter(r => r.id !== id);
+    selectedRequests.delete(id);
+    saveToLocal();
+    updateAdminDashboard();
+    showToast(t('deleted'), 'info');
+    addActivityLog(t('logRequestDelete'), `${req?.guestName} - ${req?.category}`);
+    updateBulkUI();
+  }
+}
+
+// ============ ROOMS MANAGEMENT ============
+function renderRooms() {
+  const tbody = document.getElementById('roomsList');
+  if (!tbody) return;
+  if (rooms.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">${t('noRooms')}</td></tr>`; return; }
+  tbody.innerHTML = rooms.map((room, index) => {
+    const statusClass = room.status === 'Occupied' ? 'bg-green-100 text-green-700' : room.status === 'Vacant' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700';
+    const statusText = room.status === 'Occupied' ? t('occupied') : room.status === 'Vacant' ? t('vacant') : t('cleaning');
+    return `<tr class="border-b hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"><td class="p-3 font-semibold">#${room.number}</td><td class="p-3">${room.type}</td><td class="p-3"><span class="badge ${statusClass}">${statusText}</span></td><td class="p-3">${room.guestName || '-'}</td><td class="p-3"><button onclick="showQRForRoom(${room.number})" class="room-action-btn qr text-xs px-2 py-1">📷 ${t('viewQR')}</button></td><td class="p-3 flex gap-1"><button onclick="openEditRoomModal(${index})" class="room-action-btn edit text-xs px-2 py-1">✏️ ${t('edit')}</button><button onclick="deleteRoom(${index})" class="room-action-btn delete text-xs px-2 py-1">🗑️ ${t('delete')}</button></td></tr>`;
+  }).join('');
+}
+function openAddRoomModal() { document.getElementById('roomModalTitle').textContent = t('addNewRoom'); document.getElementById('roomForm').reset(); document.getElementById('roomEditIndex').value = '-1'; document.getElementById('roomModal').classList.add('active'); }
+function openEditRoomModal(index) { const room = rooms[index]; document.getElementById('roomModalTitle').textContent = `${t('editRoom')} #${room.number}`; document.getElementById('roomNumberInput').value = room.number; document.getElementById('roomTypeInput').value = room.type; document.getElementById('roomStatusInput').value = room.status; document.getElementById('roomGuestInput').value = room.guestName || ''; document.getElementById('roomEditIndex').value = index; document.getElementById('roomModal').classList.add('active'); }
+function closeRoomModal() { document.getElementById('roomModal').classList.remove('active'); }
+document.addEventListener('DOMContentLoaded', () => {
+  const roomForm = document.getElementById('roomForm');
+  if (roomForm) {
+    roomForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const index = parseInt(document.getElementById('roomEditIndex').value);
+      const newRoom = { id: index >= 0 ? rooms[index].id : Date.now(), number: parseInt(document.getElementById('roomNumberInput').value), type: document.getElementById('roomTypeInput').value, status: document.getElementById('roomStatusInput').value, guestName: document.getElementById('roomGuestInput').value.trim() || '' };
+      if (index >= 0) { rooms[index] = newRoom; await saveToBackend('rooms', newRoom, newRoom.id); showToast(`${t('roomUpdated')} ${newRoom.number} ${t('updated')}`, 'success'); addActivityLog(t('logRoomEdit'), `Room #${newRoom.number}`); }
+      else { if (rooms.some(r => r.number === newRoom.number)) { showToast(t('roomExists'), 'error'); return; } rooms.push(newRoom); await saveToBackend('rooms', newRoom); document.getElementById('statTotalRooms').textContent = rooms.length; showToast(`${t('roomAdded')} ${newRoom.number} ${t('added')}`, 'success'); addActivityLog(t('logRoomAdd'), `Room #${newRoom.number}`); }
+      saveToLocal(); renderRooms(); renderQRCodes(); closeRoomModal(); updateAdminDashboard();
+    });
+  }
+});
+function deleteRoom(index) { if (confirm(t('deleteRoom'))) { const room = rooms[index]; deleteFromBackend('rooms', room.id); rooms.splice(index, 1); saveToLocal(); renderRooms(); renderQRCodes(); document.getElementById('statTotalRooms').textContent = rooms.length; showToast(`${t('roomDeleted')} ${room.number} ${t('deleted')}`, 'info'); addActivityLog(t('logRoomDelete'), `Room #${room.number}`); updateAdminDashboard(); } }
+
+// ============ GUEST DASHBOARD ============
+function updateGuestDashboard() {
+  if (!currentGuest) return;
+  const myRequests = requests.filter(r => r.guestName === currentGuest.name && r.roomNumber === currentGuest.room);
+  const elements = { 'guestTotalRequests': myRequests.length, 'guestPendingCount': myRequests.filter(r => r.status !== 'completed').length, 'guestCompletedCount': myRequests.filter(r => r.status === 'completed').length };
+  for (const [id, value] of Object.entries(elements)) { const el = document.getElementById(id); if (el) el.textContent = value; }
+  const points = loyaltyPoints.find(l => l.name === currentGuest.name)?.points || 0;
+  const pointsEl = document.getElementById('guestPoints'); if (pointsEl) pointsEl.innerHTML = `⭐ ${points} ${t('points')}`;
+  const hasRating = reviews.some(r => r.guestName === currentGuest.name);
+  const ratingEl = document.getElementById('guestRatingStatus'); if (ratingEl) ratingEl.textContent = hasRating ? `⭐ ${t('rated')}` : t('notRated');
+}
+function renderGuestRequests() {
+  const container = document.getElementById('guestRequestsList');
+  if (!container) return;
+  const myRequests = requests.filter(r => r.guestName === currentGuest?.name && r.roomNumber === currentGuest?.room);
+  if (myRequests.length === 0) { container.innerHTML = `<div class="text-center py-4 text-gray-500">${t('noGuestRequests')}</div>`; return; }
+  container.innerHTML = myRequests.map(req => {
+    const borderClass = req.status === 'completed' ? 'border-green-500' : 'border-yellow-500';
+    const badgeClass = req.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
+    const statusText = req.status === 'completed' ? t('resolved') + ' ✓' : t('pending');
+    return `<div class="border-l-4 ${borderClass} bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-sm mb-2"><div class="flex justify-between items-start"><div><strong>${escapeHtml(req.category || req.department)}</strong><p class="text-xs text-gray-600 dark:text-gray-400 mt-1">${escapeHtml(req.description)}</p><small class="text-gray-400">${new Date(req.createdAt).toLocaleString()}</small></div><div class="text-right"><span class="badge ${badgeClass} text-xs">${statusText}</span>${req.status === 'completed' ? '<span class="verified-tick ml-1 text-green-600">✓</span>' : ''}</div></div></div>`;
+  }).join('');
+}
+function showGuestTab(tab) {
+  ['newRequest', 'foodOrder', 'transport', 'myRequests', 'hotelInfo'].forEach(t => { const el = document.getElementById(`guest${t.charAt(0).toUpperCase() + t.slice(1)}Tab`); if (el) el.classList.add('hidden'); });
+  const targetEl = document.getElementById(`guest${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`); if (targetEl) targetEl.classList.remove('hidden');
+  document.querySelectorAll('.guest-tab-btn').forEach(btn => { btn.classList.remove('bg-purple-100', 'text-purple-700'); btn.classList.add('bg-gray-100', 'text-gray-700'); });
+  const activeBtn = document.querySelector(`.guest-tab-btn[onclick*="showGuestTab('${tab}')"]`); if (activeBtn) { activeBtn.classList.remove('bg-gray-100', 'text-gray-700'); activeBtn.classList.add('bg-purple-100', 'text-purple-700'); }
+  if (tab === 'myRequests') renderGuestRequests(); if (tab === 'hotelInfo') updateAllDisplays(); if (tab === 'foodOrder') renderDynamicFoodMenu();
+  currentPageState.guestTab = tab; savePageState();
+}
+
+// ============ FOOD MENU (Guest) ============
+function renderDynamicFoodMenu() {
+  const container = document.getElementById('dynamicFoodMenu');
+  if (!container) return;
+  if (foodMenu.length === 0) { container.innerHTML = `<div class="col-span-2 text-center py-4 text-gray-500">${t('menuUpdating')}</div>`; return; }
+  container.innerHTML = foodMenu.map(item => `<button onclick="addToCart('${escapeHtml(item.name)}', ${item.price})" class="p-3 border rounded-lg text-sm text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition w-full"><div class="font-semibold">${escapeHtml(item.name)}</div><div class="text-xs text-gray-500 dark:text-gray-400">${item.category}</div><div class="text-xs text-gray-400 mt-1 line-clamp-1">${item.description || ''}</div><div class="font-bold text-purple-600 mt-1">${formatPrice(item.price)}</div></button>`).join('');
+}
+function addToCart(itemName, price) { cart.push({ item: itemName, price }); updateCart(); showToast(`${itemName} ${t('itemAddedCart')}`, 'success'); if ('vibrate' in navigator) navigator.vibrate(50); }
+function updateCart() {
+  const cartDiv = document.getElementById('cartItems'); const totalEl = document.getElementById('cartTotal');
+  if (!cartDiv) return;
+  if (cart.length === 0) { cartDiv.innerHTML = `<div class="text-center text-gray-500 py-4">${t('cartIsEmpty')}</div>`; if (totalEl) totalEl.textContent = formatPrice(0); return; }
+  const total = cart.reduce((sum, item) => sum + item.price, 0);
+  cartDiv.innerHTML = cart.map((item, index) => `<div class="flex justify-between items-center py-2 border-b last:border-0"><span class="flex-1">${escapeHtml(item.item)}</span><span class="font-medium">${formatPrice(item.price)}</span><button onclick="removeFromCart(${index})" class="text-red-500 hover:text-red-700 ml-2" title="${t('remove')}">✕</button></div>`).join('') + `<div class="border-t pt-3 mt-2 font-bold flex justify-between"><span>${t('total')}:</span><span>${formatPrice(total)}</span></div>`;
+  if (totalEl) totalEl.textContent = formatPrice(total);
+}
+function removeFromCart(index) { cart.splice(index, 1); updateCart(); }
+function placeOrder() {
+  if (cart.length === 0) { showToast(t('cartEmpty'), 'error'); return; }
+  const order = { id: Date.now(), guestName: currentGuest.name, roomNumber: currentGuest.room, department: 'restaurant', category: 'Food Order', description: `Order: ${cart.map(c => c.item).join(', ')}`, priority: 'normal', status: 'open', createdAt: new Date().toISOString() };
+  requests.unshift(order); saveToBackend('requests', order); saveToLocal();
+  cart = []; updateCart(); updateAdminDashboard(); showToast(t('orderPlaced'), 'success'); speakText(t('orderPlaced'));
+  addLoyaltyPoints(currentGuest.name, 5); showGuestTab('myRequests'); renderGuestRequests();
+}
+
+// ============ TRANSPORT ============
+function updateTransportPriceDisplays() {
+  const airportEl = document.getElementById('airportPriceDisplay'); const localEl = document.getElementById('localPriceDisplay');
+  if (airportEl) airportEl.textContent = formatPrice(hotelSettings.transportPrices?.airport || 30);
+  if (localEl) localEl.textContent = formatPrice(hotelSettings.transportPrices?.local || 15);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const transportForm = document.getElementById('transportForm');
+  if (transportForm) {
+    transportForm.addEventListener('submit', async (e) => {
+      e.preventDefault(); if (!currentGuest) return;
+      const transportType = document.getElementById('transportType')?.value; const transportTime = document.getElementById('transportTime')?.value;
+      const transportReq = { id: Date.now(), guestName: currentGuest.name, roomNumber: currentGuest.room, department: 'transport', category: 'Transport', description: `${transportType} at ${transportTime}`, priority: 'normal', status: 'open', createdAt: new Date().toISOString() };
+      requests.unshift(transportReq); await saveToBackend('requests', transportReq); saveToLocal();
+      updateAdminDashboard(); showToast(t('transportBooked'), 'success'); addActivityLog(t('logTransport'), `${currentGuest.name} booked transport`);
+      e.target.reset(); showGuestTab('myRequests'); renderGuestRequests();
+    });
+  }
+});
+
+// ============ FOOD MENU (Admin) ============
+function renderFoodMenu() {
+  const container = document.getElementById('foodMenuList');
+  if (!container) return;
+  if (foodMenu.length === 0) { container.innerHTML = `<div class="text-center py-8 text-gray-500">${t('noFood')}</div>`; return; }
+  container.innerHTML = foodMenu.map((item, index) => `<div class="food-item-card flex justify-between items-start p-3 border rounded-lg mb-2 hover:shadow-md transition"><div class="flex-1"><div class="font-semibold">${escapeHtml(item.name)}</div><div class="text-sm text-gray-600 dark:text-gray-400">${item.category}</div><div class="text-xs text-gray-400 mt-1 line-clamp-1">${item.description || t('noDescription')}</div><div class="font-bold text-purple-600 mt-1">${formatPrice(item.price)}</div></div><div class="flex flex-col gap-1"><button onclick="openEditFoodModal(${index})" class="room-action-btn edit text-xs px-2 py-1">✏️ ${t('edit')}</button><button onclick="deleteFoodItem(${index})" class="room-action-btn delete text-xs px-2 py-1">🗑️ ${t('delete')}</button></div></div>`).join('');
+}
+function openAddFoodModal() { document.getElementById('foodModalTitle').textContent = t('addNewItem'); document.getElementById('foodForm').reset(); document.getElementById('foodEditIndex').value = '-1'; document.getElementById('foodModal').classList.add('active'); }
+function openEditFoodModal(index) { const item = foodMenu[index]; document.getElementById('foodModalTitle').textContent = `${t('editItem')}: ${item.name}`; document.getElementById('foodNameInput').value = item.name; document.getElementById('foodPriceInput').value = item.price; document.getElementById('foodCategoryInput').value = item.category; document.getElementById('foodDescInput').value = item.description || ''; document.getElementById('foodEditIndex').value = index; document.getElementById('foodModal').classList.add('active'); }
+function closeFoodModal() { document.getElementById('foodModal').classList.remove('active'); }
+document.addEventListener('DOMContentLoaded', () => {
+  const foodForm = document.getElementById('foodForm');
+  if (foodForm) {
+    foodForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const index = parseInt(document.getElementById('foodEditIndex').value);
+      const newItem = { id: index >= 0 ? foodMenu[index].id : Date.now(), name: document.getElementById('foodNameInput').value.trim(), price: parseFloat(document.getElementById('foodPriceInput').value) || 0, category: document.getElementById('foodCategoryInput').value, description: document.getElementById('foodDescInput').value.trim() };
+      if (index >= 0) { foodMenu[index] = newItem; await saveToBackend('food', newItem, newItem.id); showToast(`${t('foodUpdated')} "${newItem.name}" ${t('updated')}`, 'success'); addActivityLog(t('logFoodEdit'), newItem.name); }
+      else { foodMenu.push(newItem); await saveToBackend('food', newItem); showToast(`${t('foodAdded')} "${newItem.name}" ${t('addedToMenu')}`, 'success'); addActivityLog(t('logFoodAdd'), newItem.name); }
+      saveToLocal(); renderFoodMenu(); renderDynamicFoodMenu(); closeFoodModal();
+    });
+  }
+});
+function deleteFoodItem(index) { if (confirm(t('deleteFood'))) { const item = foodMenu[index]; deleteFromBackend('food', item.id); foodMenu.splice(index, 1); saveToLocal(); renderFoodMenu(); renderDynamicFoodMenu(); showToast(`${t('foodRemoved')} "${item.name}" ${t('removedFromMenu')}`, 'info'); addActivityLog(t('logFoodDelete'), item.name); } }
+
+// ============ UTILITIES ============
+function escapeHtml(str) { if (!str) return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+function formatPrice(amount) { const { currencySymbol = '$', priceFormat = 'symbol-first' } = hotelSettings || {}; const formatted = parseFloat(amount).toFixed(2); switch (priceFormat) { case 'symbol-first': return `${currencySymbol}${formatted}`; case 'symbol-last': return `${formatted}${currencySymbol}`; case 'space': return `${formatted} ${currencySymbol}`; default: return `${currencySymbol}${formatted}`; } }
+function updateLiveClock() {
+  const now = new Date(); const langCode = currentLanguage === 'hi' ? 'hi-IN' : currentLanguage === 'ar' ? 'ar-SA' : 'en-US';
+  const options = { timeZone: timezone, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+  const formattedTime = now.toLocaleString(langCode, options);
+  ['liveDateTime', 'liveClockAdmin', 'liveClockGuest', 'guestLocalTime', 'localTimeDisplay'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = formattedTime; });
+  const tzEl = document.getElementById('timezoneDisplay'); if (tzEl) tzEl.textContent = timezone;
+}
+setInterval(updateLiveClock, 1000);
+
+// ============ TOAST ============
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer'); if (!container) return;
+  const toast = document.createElement('div');
+  const bgColor = type === 'success' ? 'border-green-500' : type === 'error' ? 'border-red-500' : 'border-blue-500';
+  const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : '🔔';
+  toast.className = `bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 mb-2 border-l-4 ${bgColor} fade-in animate-slide-in`;
+  toast.innerHTML = `<div class="flex items-center"><div class="flex-shrink-0 text-xl">${icon}</div><div class="ml-3 flex-1"><p class="text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(message)}</p></div><button onclick="this.closest('.fade-in')?.remove()" class="ml-auto text-gray-400 hover:text-gray-600">✕</button></div>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(-10px)'; setTimeout(() => toast.remove(), 300); }, 5000);
+  speakText(message); sendPushNotification('Crown Plaza', message);
+}
+
+// ============ SPEECH ============
+function speakText(text) {
+  if (!text || typeof window.speechSynthesis === 'undefined') return;
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text); utterance.rate = 0.9; utterance.pitch = 1.1;
+    const voices = window.speechSynthesis.getVoices();
+    if (currentLanguage === 'hi') { const hiVoice = voices.find(v => v.lang.includes('hi') || v.name.includes('Hindi')); if (hiVoice) utterance.voice = hiVoice; }
+    else if (currentLanguage === 'ar') { const arVoice = voices.find(v => v.lang.includes('ar') || v.name.includes('Arabic')); if (arVoice) utterance.voice = arVoice; }
+    window.speechSynthesis.speak(utterance);
+  } catch (e) { console.log('Speech synthesis not supported'); }
+}
+
+// ============ PUSH NOTIFICATIONS ============
+function sendPushNotification(title, body) { if ('Notification' in window && Notification.permission === 'granted') { try { new Notification(title, { body, icon: '/icons/icon-192.png', tag: 'crown-plaza-notification' }); } catch (e) { console.log('Push notification failed:', e); } } }
+function requestPushPermission() { if ('Notification' in window) { Notification.requestPermission().then(permission => { if (permission === 'granted') { showToast(t('notificationsEnabled'), 'success'); testNotification(); } }); } }
+function testNotification() { if (Notification.permission === 'granted') { new Notification('Crown Plaza Hotel', { body: '🔔 Notifications are working! You will receive real-time updates.', icon: '/icons/icon-192.png' }); } }
+
+// ============ HAPTIC ============
+function testHaptic() { if ('vibrate' in navigator) { navigator.vibrate([100, 50, 100]); showToast(t('vibrationTest'), 'info'); } else { showToast('Haptic feedback not supported', 'info'); } }
+
+// ============ OFFLINE MODE ============
+function toggleOfflineMode() {
+  offlineMode = !offlineMode;
+  if (offlineMode) { document.body.classList.add('offline-mode'); showToast(t('offlineModeActive'), 'info'); }
+  else { document.body.classList.remove('offline-mode'); showToast(t('backendConnected'), 'success'); loadAllDataFromBackend(); }
+  localStorage.setItem('crown_plaza_offlineMode', offlineMode);
+}
+
+// ============ THEME ============
+function toggleThemeSelector() { document.getElementById('themeMenu')?.classList.toggle('hidden'); }
+function setTheme(themeName) {
+  const gradients = { default: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', sunset: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)', forest: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', ocean: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)', royal: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)' };
+  const gradient = gradients[themeName] || gradients.default;
+  document.querySelectorAll('.gradient-bg').forEach(el => { el.style.background = gradient; });
+  localStorage.setItem('crown_plaza_theme', themeName); document.getElementById('themeMenu')?.classList.add('hidden');
+}
+function toggleDarkMode() { document.body.classList.toggle('dark'); const isDark = document.body.classList.contains('dark'); localStorage.setItem('crown_plaza_darkMode', isDark); const toggleBtn = document.getElementById('darkModeToggle'); if (toggleBtn) toggleBtn.textContent = isDark ? '☀️' : '🌙'; }
+function toggleHighContrast() { document.body.classList.toggle('high-contrast'); const isHighContrast = document.body.classList.contains('high-contrast'); localStorage.setItem('crown_plaza_highContrast', isHighContrast); speakText(isHighContrast ? 'High contrast enabled' : 'High contrast disabled'); }
+function adjustFontSize(action) { const body = document.body; body.classList.remove('font-small', 'font-large'); if (action === 'increase') { body.classList.add('font-large'); localStorage.setItem('crown_plaza_fontSize', 'large'); } else if (action === 'decrease') { body.classList.add('font-small'); localStorage.setItem('crown_plaza_fontSize', 'small'); } else { localStorage.setItem('crown_plaza_fontSize', 'normal'); } }
+
+// ============ ACTIVITY LOGS ============
+function addActivityLog(action, details) {
+  const log = { id: Date.now(), action, details, timestamp: new Date().toLocaleString(), user: currentAdminRole || currentGuest?.name || 'System' };
+  activityLogs.unshift(log); if (activityLogs.length > 200) activityLogs.pop();
+  saveToBackend('logs', log); saveToLocal(); renderActivityLogs();
+}
+function renderActivityLogs() {
+  const container = document.getElementById('activityLogsList'); if (!container) return;
+  if (activityLogs.length === 0) { container.innerHTML = `<div class="text-center py-4 text-gray-500">${t('noData')}</div>`; return; }
+  container.innerHTML = activityLogs.slice(0, 100).map(log => `<div class="border-b py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-700/50 px-2"><span class="text-gray-400">${log.timestamp}</span><span class="font-medium text-gray-700 dark:text-gray-300">[${log.user}]</span><strong class="text-gray-900 dark:text-white">${escapeHtml(log.action)}</strong>:<span class="text-gray-600 dark:text-gray-400">${escapeHtml(log.details)}</span></div>`).join('');
+}
+
+// ============ EVENT LISTENERS ============
+function setupEventListeners() {
+  document.querySelectorAll('.modal').forEach(modal => { modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); }); });
+  const adminRequestForm = document.getElementById('adminRequestForm');
+  if (adminRequestForm) {
+    adminRequestForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newReq = { id: Date.now(), guestName: document.getElementById('reqGuestName')?.value.trim(), roomNumber: document.getElementById('reqRoomNumber')?.value.trim(), department: document.getElementById('reqDepartment')?.value, category: document.getElementById('reqCategory')?.value, description: document.getElementById('reqDescription')?.value.trim(), priority: document.getElementById('reqPriority')?.value, status: 'open', createdAt: new Date().toISOString() };
+      if (!newReq.guestName || !newReq.roomNumber || !newReq.department) { showToast(t('fillRequired'), 'error'); return; }
+      requests.unshift(newReq); await saveToBackend('requests', newReq); saveToLocal(); updateAdminDashboard(); e.target.reset(); showToast(t('requestCreated'), 'success'); addActivityLog(t('logRequestCreate'), `${newReq.guestName} - ${newReq.category}`);
+    });
+  }
+  const guestRequestForm = document.getElementById('guestRequestForm');
+  if (guestRequestForm) {
+    guestRequestForm.addEventListener('submit', async (e) => {
+      e.preventDefault(); if (!currentGuest) return;
+      const newReq = { id: Date.now(), guestName: currentGuest.name, roomNumber: currentGuest.room, department: document.getElementById('guestDepartment')?.value, category: document.getElementById('guestCategory')?.value, description: document.getElementById('guestDescription')?.value.trim(), priority: document.getElementById('guestPriority')?.value === 'urgent' ? 'high' : 'normal', status: 'open', createdAt: new Date().toISOString() };
+      requests.unshift(newReq); await saveToBackend('requests', newReq); saveToLocal(); updateAdminDashboard(); updateGuestDashboard(); renderGuestRequests(); e.target.reset(); showToast(t('requestSubmitted'), 'success'); addActivityLog(t('logGuestRequest'), `${currentGuest.name} - ${newReq.category}`);
+    });
+  }
+  const adminDept = document.getElementById('reqDepartment'); const guestDept = document.getElementById('guestDepartment');
+  if (adminDept) adminDept.addEventListener('change', updateAdminCategories); if (guestDept) guestDept.addEventListener('change', updateGuestCategories);
+  const adminSearch = document.getElementById('adminSearchInput');
+  if (adminSearch) { adminSearch.addEventListener('input', (e) => { currentPageState.adminSearch = e.target.value; currentPage = 0; renderAdminRequests(); }); }
+  document.querySelectorAll('.admin-filter-btn').forEach(btn => { btn.addEventListener('click', (e) => { const filter = e.target.dataset.filter; if (filter) { currentPageState.adminFilter = filter; currentPage = 0; renderAdminRequests(); document.querySelectorAll('.admin-filter-btn').forEach(b => { b.classList.remove('bg-purple-100', 'text-purple-700'); b.classList.add('bg-gray-100', 'text-gray-700'); }); e.target.classList.remove('bg-gray-100', 'text-gray-700'); e.target.classList.add('bg-purple-100', 'text-purple-700'); } }); });
+}
+document.addEventListener('DOMContentLoaded', setupEventListeners);
+
+// ============ PAGE STATE ============
+function savePageState() { try { const state = { adminTab: currentPageState.adminTab, guestTab: currentPageState.guestTab, adminFilter: currentPageState.adminFilter, adminSearch: currentPageState.adminSearch, timestamp: Date.now() }; localStorage.setItem('crown_plaza_page_state', JSON.stringify(state)); } catch (e) { console.warn('Failed to save page state:', e); } }
+function restorePageState(userType) {
+  try {
+    const saved = localStorage.getItem('crown_plaza_page_state'); if (!saved) return;
+    const state = JSON.parse(saved); if (Date.now() - state.timestamp > 24 * 60 * 60 * 1000) return;
+    if (userType === 'admin' && state.adminTab) { showAdminTab(state.adminTab); if (state.adminFilter) { currentPageState.adminFilter = state.adminFilter; const filterBtn = document.querySelector(`.admin-filter-btn[data-filter="${state.adminFilter}"]`); if (filterBtn) { document.querySelectorAll('.admin-filter-btn').forEach(b => { b.classList.remove('bg-purple-100', 'text-purple-700'); b.classList.add('bg-gray-100', 'text-gray-700'); }); filterBtn.classList.remove('bg-gray-100', 'text-gray-700'); filterBtn.classList.add('bg-purple-100', 'text-purple-700'); } } if (state.adminSearch) { currentPageState.adminSearch = state.adminSearch; const searchInput = document.getElementById('adminSearchInput'); if (searchInput) searchInput.value = state.adminSearch; } }
+    if (userType === 'guest' && state.guestTab) showGuestTab(state.guestTab);
+  } catch (e) { console.warn('Failed to restore page state:', e); }
+}
+
+// ============ ADMIN TAB NAVIGATION ============
+function showAdminTab(tab) {
+  ['overview', 'requests', 'rooms', 'guests', 'reviews', 'reports', 'qrcodes', 'logs', 'inventory', 'maintenance', 'blacklist', 'loyalty', 'staff', 'foodmenu', 'settings'].forEach(t => { const el = document.getElementById(`${t}Tab`); if (el) el.classList.add('hidden'); });
+  const targetEl = document.getElementById(`${tab}Tab`); if (targetEl) targetEl.classList.remove('hidden');
+  document.querySelectorAll('.nav-tab').forEach(btn => { btn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600'); });
+  const activeBtn = document.querySelector(`button[onclick="showAdminTab('${tab}')"]`); if (activeBtn) activeBtn.classList.add('text-purple-600', 'border-b-2', 'border-purple-600');
+  switch (tab) { case 'rooms': renderRooms(); break; case 'guests': renderGuests(); break; case 'reviews': renderReviews(); break; case 'qrcodes': renderQRCodes(); break; case 'logs': renderActivityLogs(); break; case 'inventory': renderInventory(); break; case 'maintenance': renderMaintenance(); break; case 'blacklist': renderBlacklist(); break; case 'loyalty': renderLoyalty(); break; case 'staff': renderStaffPerformance(); updateSLAStats(); break; case 'foodmenu': renderFoodMenu(); break; case 'settings': updateAllDisplays(); break; case 'requests': renderAdminRequests(); break; }
+  currentPageState.adminTab = tab; savePageState();
+}
+
+// ============ DISPLAY UPDATES ============
+function updateAllDisplays() {
+  const hotelName = hotelSettings?.name || 'Crown Plaza Hotel';
+  ['welcomeTitle', 'headerHotelName', 'guestHeaderHotelName', 'hotelNameDisplay'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = hotelName; });
+  const titleEl = document.getElementById('pageTitle'); if (titleEl) titleEl.textContent = `${hotelName} - Ultimate Management System`;
+  const currency = hotelSettings?.currencySymbol || '$';
+  ['currencyDisplay', 'loyaltyCurrencyDisplay', 'foodCurrencyBadge', 'transportCurrency1', 'transportCurrency2'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = currency; });
+  const wifi = hotelSettings?.wifiPassword || 'CrownPlaza@2024';
+  ['guestWifiPassword', 'faqWifiPassword'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = wifi; });
+  updateTransportPriceDisplays();
+}
+
+// ============ HOTEL SETTINGS ============
+function saveHotelName() { const newName = document.getElementById('hotelNameInput')?.value.trim(); if (newName && newName.length >= 3) { hotelSettings.name = newName; saveSettings(); updateAllDisplays(); showToast(t('hotelNameUpdated'), 'success'); speakText(`Hotel name changed to ${newName}`); addActivityLog(t('logHotelNameChange'), `Changed to: ${newName}`); } else { showToast(t('invalidHotelName'), 'error'); } }
+function saveCurrencySettings() { const symbol = document.getElementById('currencySymbolInput')?.value.trim() || '$'; const format = document.getElementById('priceFormatInput')?.value || 'symbol-first'; hotelSettings.currencySymbol = symbol; hotelSettings.priceFormat = format; saveSettings(); updateAllDisplays(); renderFoodMenu(); renderDynamicFoodMenu(); updateTransportPriceDisplays(); showToast(t('currencySaved'), 'success'); addActivityLog(t('logCurrencyChange'), `Symbol: ${symbol}, Format: ${format}`); }
+function saveTransportPrices() { const airport = parseFloat(document.getElementById('airportPriceInput')?.value) || 30; const local = parseFloat(document.getElementById('localCabPriceInput')?.value) || 15; hotelSettings.transportPrices = { airport, local }; saveSettings(); updateAllDisplays(); updateTransportPriceDisplays(); showToast(t('transportUpdated'), 'success'); addActivityLog(t('logTransportChange'), `Airport: ${formatPrice(airport)}, Local: ${formatPrice(local)}/hr`); }
+function saveWifiPassword() { const newPassword = document.getElementById('wifiPasswordInput')?.value.trim(); if (newPassword) { hotelSettings.wifiPassword = newPassword; saveSettings(); ['guestWifiPassword', 'faqWifiPassword'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = newPassword; }); showToast(t('wifiUpdated'), 'success'); speakText('WiFi password has been updated'); addActivityLog(t('logWifiChange'), 'Admin updated WiFi password'); } }
+function copyWifiPassword() { navigator.clipboard.writeText(hotelSettings?.wifiPassword || ''); showToast(t('wifiCopied'), 'success'); speakText('WiFi password copied to clipboard'); }
+function saveSettings() { saveToBackend('settings', hotelSettings); localStorage.setItem('crown_plaza_settings', JSON.stringify(hotelSettings)); }
+function loadSettings() { apiCall('/settings').then(result => { if (result.success && result.data) hotelSettings = { ...hotelSettings, ...result.data }; }).catch(() => { const saved = localStorage.getItem('crown_plaza_settings'); if (saved) { try { const loaded = JSON.parse(saved); hotelSettings = { ...hotelSettings, ...loaded }; } catch (e) { console.log('Using default settings'); } } }); }
+
+// ============ QR CODES ============
+function generateQRData(roomNumber) { return JSON.stringify({ room: roomNumber, hotel: hotelSettings?.name, hotelId: currentHotelId, timestamp: Date.now() }); }
+function showQRForRoom(roomNumber) {
+  const container = document.getElementById('qrPreviewContainer'); if (!container) return;
+  container.innerHTML = `<div id="qrCodePreview" class="qr-code-container mx-auto"></div>`;
+  const labelEl = document.getElementById('qrRoomLabel'); if (labelEl) labelEl.textContent = `${t('roomLabel')}${roomNumber} - ${hotelSettings?.name}`;
+  setTimeout(() => { const preview = document.getElementById('qrCodePreview'); if (preview && typeof QRCode !== 'undefined') { preview.innerHTML = ''; new QRCode(preview, { text: generateQRData(roomNumber), width: 150, height: 150, correctLevel: QRCode.CorrectLevel.H }); } }, 100);
+  window.currentQRRoom = roomNumber; document.getElementById('qrDownloadModal')?.classList.add('active');
+}
+function downloadQRCode() { const qrContainer = document.getElementById('qrCodePreview'); if (!qrContainer) return; const canvas = qrContainer.querySelector('canvas'); if (canvas) { const link = document.createElement('a'); link.download = `QR-Room${window.currentQRRoom}-${(hotelSettings?.name || 'Hotel').replace(/\s+/g, '-')}.png`; link.href = canvas.toDataURL('image/png'); link.click(); showToast(t('qrDownloaded'), 'success'); addActivityLog(t('logQRDownload'), `Downloaded QR for Room #${window.currentQRRoom}`); } else { showToast(t('qrWait'), 'info'); } }
+function renderQRCodes() {
+  const container = document.getElementById('qrCodesContainer'); if (!container) return;
+  if (rooms.length === 0) { container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">No rooms to display QR codes</div>'; return; }
+  container.innerHTML = rooms.slice(0, 16).map(room => `<div class="border rounded-xl p-3 text-center bg-gray-50 dark:bg-gray-700/50 hover:shadow-md transition"><div id="qr-${room.number}" class="mx-auto mb-2"></div><div class="font-bold text-sm">Room ${room.number}</div><div class="text-xs text-gray-500">${room.type}</div><div class="flex justify-center gap-1 mt-2"><button onclick="showQRForRoom(${room.number})" class="room-action-btn qr text-xs px-2 py-1">📷 ${t('viewQR')}</button><button onclick="showGuestLoginWithRoom(${room.number})" class="room-action-btn edit text-xs px-2 py-1">🔗 ${t('use')}</button></div></div>`).join('');
+  setTimeout(() => { rooms.slice(0, 16).forEach(room => { const container = document.getElementById(`qr-${room.number}`); if (container && typeof QRCode !== 'undefined') { container.innerHTML = ''; new QRCode(container, { text: generateQRData(room.number), width: 80, height: 80, correctLevel: QRCode.CorrectLevel.H }); } }); }, 200);
+}
+function showGuestLoginWithRoom(room) {
+  document.getElementById('loginSelectionPage')?.classList.add('hidden'); document.getElementById('guestDashboard')?.classList.remove('hidden');
+  currentGuest = { name: `Guest ${room}`, room: room };
+  const guestInfo = document.getElementById('guestInfo'); if (guestInfo) guestInfo.innerHTML = `👤 ${currentGuest.name} | Room ${currentGuest.room}`;
+  showGuestTab('newRequest'); updateGuestDashboard(); renderDynamicFoodMenu(); speakText(`Welcome to Room ${room}`); addActivityLog('GUEST_LOGIN_QR', `Room ${room}`);
+  localStorage.setItem('crown_plaza_customer_session', JSON.stringify({ name: currentGuest.name, room: currentGuest.room, timestamp: Date.now() })); updateAllDisplays();
+}
+
+// ============ SOS ============
+function showSOSAlert() {
+  document.getElementById('sosModal')?.classList.remove('hidden');
+  sendPushNotification('🚨 SOS EMERGENCY', `Emergency alert from ${currentGuest?.room || 'Hotel'}`);
+  addActivityLog(t('logSOS'), `Room ${currentGuest?.room}`); speakText(t('emergencyAlert'));
+  if (currentGuest) {
+    const emergencyReq = { id: Date.now(), guestName: currentGuest.name, roomNumber: currentGuest.room, department: 'security', category: 'Emergency', description: '🚨 SOS Emergency Alert - Immediate assistance required', priority: 'emergency', status: 'open', createdAt: new Date().toISOString() };
+    requests.unshift(emergencyReq); saveToBackend('requests', emergencyReq); saveToLocal(); updateAdminDashboard();
+  }
+}
+function closeSOSModal() { document.getElementById('sosModal')?.classList.add('hidden'); }
+
+// ============ EXPORT ============
+function exportToExcel() {
+  if (typeof XLSX === 'undefined') { showToast('Excel library not loaded', 'error'); return; }
+  const wsData = [['ID', 'Guest', 'Room', 'Department', 'Category', 'Priority', 'Status', 'Created', 'Completed']];
+  requests.forEach(r => { wsData.push([r.id, r.guestName, r.roomNumber, r.department, r.category, r.priority, r.status, new Date(r.createdAt).toLocaleString(), r.completedAt ? new Date(r.completedAt).toLocaleString() : '']); });
+  const ws = XLSX.utils.aoa_to_sheet(wsData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Requests');
+  const fileName = `crown-plaza-requests-${new Date().toISOString().split('T')[0]}.xlsx`; XLSX.writeFile(wb, fileName);
+  showToast(t('excelExported'), 'success'); addActivityLog(t('logExportExcel'), `Exported ${requests.length} requests`);
+}
+function exportAllData() {
+  const data = { requests, rooms, guests, reviews, inventory, maintenanceTasks, blacklist, loyaltyPoints, staffPerformance, activityLogs, foodMenu, hotelSettings, exportDate: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `crown-plaza-full-backup-${new Date().toISOString().split('T')[0]}.json`; a.click();
+  showToast(t('dataExported'), 'success'); addActivityLog(t('logExportAll'), 'Full backup exported');
+}
+function printInvoice() {
+  const printContent = `<!DOCTYPE html><html><head><title>${hotelSettings?.name || 'Crown Plaza'} Report</title><style>body{font-family:Arial,sans-serif;padding:20px}h1{color:#667eea}table{width:100%;border-collapse:collapse;margin:20px 0}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#667eea;color:white}.header{margin-bottom:20px}</style></head><body><div class="header"><h1>${hotelSettings?.name || 'Crown Plaza Hotel'} Report</h1><p>Date: ${new Date().toLocaleString()}</p><p>Generated by: ${currentAdminRole || 'System'}</p></div><table><tr><th>ID</th><th>Guest</th><th>Room</th><th>Type</th><th>Status</th><th>Priority</th></tr>${requests.slice(0, 50).map(r => `<tr><td>${r.id}</td><td>${escapeHtml(r.guestName)}</td><td>${r.roomNumber}</td><td>${escapeHtml(r.category)}</td><td>${r.status}</td><td>${r.priority}</td></tr>`).join('')}</table><p><em>Showing first 50 of ${requests.length} requests</em></p></body></html>`;
+  const win = window.open('', '_blank'); win.document.write(printContent); win.document.close(); win.print();
+}
+function generateReport(type) {
+  let filtered = [...requests];
+  if (type === 'daily') { const today = new Date().toDateString(); filtered = requests.filter(r => new Date(r.createdAt).toDateString() === today); }
+  else if (type === 'weekly') { const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7); filtered = requests.filter(r => new Date(r.createdAt) >= weekAgo); }
+  else if (type === 'monthly') { const monthAgo = new Date(); monthAgo.setMonth(monthAgo.getMonth() - 1); filtered = requests.filter(r => new Date(r.createdAt) >= monthAgo); }
+  const completed = filtered.filter(r => r.status === 'completed').length; const pending = filtered.filter(r => r.status !== 'completed').length;
+  const completionRate = filtered.length ? ((completed / filtered.length) * 100).toFixed(1) : 0;
+  const highPriority = filtered.filter(r => r.priority === 'high' || r.priority === 'emergency').length;
+  const output = `<h3 class="font-bold text-lg">${type.toUpperCase()} ${t('Report')}</h3><p><strong>${t('total')}:</strong> ${filtered.length}</p><p><strong>${t('completed')}:</strong> ${completed}</p><p><strong>${t('pending')}:</strong> ${pending}</p><p><strong>${t('completionRate')}:</strong> ${completionRate}%</p><p><strong>${t('highPriority')}:</strong> ${highPriority}</p>`;
+  const container = document.getElementById('reportOutput'); if (container) container.innerHTML = output;
+  addActivityLog(t('logGenerateReport'), `${type} report`);
+}
+
+// ============ CHARTS ============
+function initCharts() {
+  if (typeof Chart === 'undefined') return;
+  const deptCtx = document.getElementById('deptChart')?.getContext('2d');
+  if (deptCtx) { window.deptChart = new Chart(deptCtx, { type: 'bar', data: { labels: [t('catRoomCleaning'), t('catACNotWorking'), t('catOrderFood'), t('catLaundryPickup'), t('catWiFiIssue')], datasets: [{ label: t('requests'), data: [0, 0, 0, 0, 0], backgroundColor: '#667eea' }] }, options: { responsive: true, maintainAspectRatio: false } }); }
+  const occCtx = document.getElementById('occupancyChart')?.getContext('2d');
+  if (occCtx) { window.occupancyChart = new Chart(occCtx, { type: 'doughnut', data: { labels: [t('occupied'), t('vacant'), t('cleaning')], datasets: [{ data: [0, 0, 0], backgroundColor: ['#10b981', '#3b82f6', '#f59e0b'] }] }, options: { responsive: true, maintainAspectRatio: false } }); }
+  const rateCtx = document.getElementById('ratingChart')?.getContext('2d');
+  if (rateCtx) { window.ratingChart = new Chart(rateCtx, { type: 'doughnut', data: { labels: [t('satisfaction'), 'Remaining'], datasets: [{ data: [0, 5], backgroundColor: ['#f59e0b', '#e5e7eb'] }] }, options: { responsive: true, maintainAspectRatio: false } }); }
+  const peakCtx = document.getElementById('peakHourChart')?.getContext('2d');
+  if (peakCtx) { window.peakHourChart = new Chart(peakCtx, { type: 'line', data: { labels: ['6AM', '9AM', '12PM', '3PM', '6PM', '9PM', '12AM'], datasets: [{ label: t('requests'), data: [2, 8, 15, 12, 20, 18, 5], borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false } }); }
+}
+function renderHeatMap() {
+  const container = document.getElementById('heatMap'); if (!container) return;
+  const areas = [{ name: 'Lobby', icon: '🔥' }, { name: 'Restaurant', icon: '🍽️' }, { name: 'Pool', icon: '🏊' }, { name: 'Gym', icon: '💪' }, { name: 'Spa', icon: '💆' }, { name: 'Conference', icon: '📊' }, { name: 'Bar', icon: '🍸' }, { name: 'Parking', icon: '🅿️' }];
+  container.innerHTML = areas.map(area => { const visitors = Math.floor(Math.random() * 80 + 10); const intensity = visitors > 60 ? '#ef4444' : visitors > 30 ? '#f59e0b' : '#10b981'; return `<div class="p-3 rounded-lg text-center text-white hover:scale-105 transition" style="background: ${intensity}"><div class="text-2xl">${area.icon}</div><div class="text-xs font-medium mt-1">${area.name}</div><div class="text-xs opacity-90">${visitors} ${t('visitors')}</div></div>`; }).join('');
+}
+
+// ============ STAFF & LOYALTY ============
+function renderStaffPerformance() {
+  const container = document.getElementById('staffPerformanceList'); if (!container) return;
+  container.innerHTML = staffPerformance.map(staff => { const total = staff.completed + staff.pending; const progress = total > 0 ? (staff.completed / total) * 100 : 0; return `<div class="flex justify-between items-center p-3 border rounded-lg mb-2 hover:shadow-md transition"><div><strong>${escapeHtml(staff.name)}</strong><br><span class="text-xs text-gray-600 dark:text-gray-400">✅ ${t('completed')}: ${staff.completed} | ⏳ ${t('pending')}: ${staff.pending} | ⭐ ${t('rating')}: ${staff.rating}</span></div><div class="flex items-center gap-3"><div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden"><div class="h-full bg-green-500 rounded-full transition-all" style="width: ${progress}%"></div></div><button onclick="addStaffRating('${escapeHtml(staff.name)}')" class="text-purple-600 hover:text-purple-800 text-xs">⭐ ${t('rate')}</button></div></div>`; }).join('');
+}
+function addStaffRating(name) { const rating = prompt(`${t('enterRating')} (1-5):`, '5'); if (rating && rating >= 1 && rating <= 5) { const staff = staffPerformance.find(s => s.name === name); if (staff) { staff.rating = parseFloat(rating); localStorage.setItem('crown_plaza_staff', JSON.stringify(staffPerformance)); renderStaffPerformance(); showToast(`${t('rated')} ${name} ${rating}⭐`, 'success'); } } }
+function updateSLAStats() {
+  const avgCompleted = staffPerformance.length ? (staffPerformance.reduce((a, b) => a + b.completed, 0) / staffPerformance.length).toFixed(0) : 0;
+  const slaCompliance = 85; const topPerformer = staffPerformance.reduce((a, b) => a.rating > b.rating ? a : b);
+  const container = document.getElementById('slaStats'); if (container) { container.innerHTML = `<p>📊 ${t('avgDaily')}: ${avgCompleted}</p><p>✅ ${t('slaCompliance')}: ${slaCompliance}%</p><p>⏱️ ${t('avgResolution')}: 2.5 ${t('hours')}</p><p>🏆 ${t('topPerformer')}: ${topPerformer?.name || '-'}</p>`; }
+}
+function renderLoyalty() {
+  const container = document.getElementById('loyaltyList'); if (!container) return;
+  container.innerHTML = loyaltyPoints.map((member, index) => `<div class="flex justify-between items-center p-3 border rounded-lg mb-2 hover:shadow-md transition"><div><strong>${escapeHtml(member.name)}</strong><br><span class="text-yellow-600 font-medium">⭐ ${member.points || 0} ${t('points')}</span></div><div class="flex gap-2"><button onclick="redeemPoints(${index})" class="bg-purple-100 hover:bg-purple-200 px-3 py-1 rounded text-purple-600 text-sm transition">${t('redeem')}</button><button onclick="addPointsToGuest(${index})" class="bg-green-100 hover:bg-green-200 px-3 py-1 rounded text-green-600 text-sm transition">+${t('add')}</button></div></div>`).join('');
+}
+function redeemPoints(index) { const member = loyaltyPoints[index]; if (member && member.points >= 100) { member.points -= 100; localStorage.setItem('crown_plaza_loyalty', JSON.stringify(loyaltyPoints)); renderLoyalty(); showToast(`${member.name} ${t('pointsRedeemed')} ${formatPrice(10)} ${t('discount')}!`, 'success'); speakText(`${member.name} redeemed loyalty points`); addActivityLog(t('logLoyaltyRedeem'), `${member.name} redeemed 100 points`); if (currentGuest && currentGuest.name === member.name) updateGuestDashboard(); } else { showToast(t('needPoints'), 'error'); } }
+function addPointsToGuest(index) { const points = prompt(`${t('enterPoints')}:`, '10'); if (points && !isNaN(points) && parseInt(points) > 0) { loyaltyPoints[index].points += parseInt(points); localStorage.setItem('crown_plaza_loyalty', JSON.stringify(loyaltyPoints)); renderLoyalty(); showToast(`${t('pointsAdded')} ${points}`, 'success'); addActivityLog(t('logLoyaltyAdd'), `${loyaltyPoints[index].name} +${points} ${t('points')}`); } }
+function addLoyaltyPoints(guestName, points) { let member = loyaltyPoints.find(l => l.name === guestName); if (member) member.points += points; else loyaltyPoints.push({ name: guestName, points }); localStorage.setItem('crown_plaza_loyalty', JSON.stringify(loyaltyPoints)); renderLoyalty(); if (currentGuest && currentGuest.name === guestName) updateGuestDashboard(); }
+
+// ============ INVENTORY & MAINTENANCE ============
+function renderInventory() {
+  const container = document.getElementById('inventoryList'); if (!container) return;
+  container.innerHTML = inventory.map((item, index) => { const lowStock = item.quantity <= item.minStock; return `<div class="flex justify-between items-center p-3 border rounded-lg mb-2 ${lowStock ? 'border-red-300 bg-red-50' : ''}"><div><strong>${escapeHtml(item.item)}</strong><br><span class="text-sm">${item.quantity} ${item.unit}</span><br><span class="text-xs text-gray-400">${t('minStock')}: ${item.minStock}</span>${lowStock ? '<span class="text-red-600 text-xs font-medium ml-2">⚠️ Low</span>' : ''}</div><div class="flex gap-1"><button onclick="updateInventoryQuantity(${index}, -1)" class="bg-red-100 hover:bg-red-200 px-2 py-1 rounded text-red-600 transition">-1</button><button onclick="updateInventoryQuantity(${index}, 1)" class="bg-green-100 hover:bg-green-200 px-2 py-1 rounded text-green-600 transition">+1</button><button onclick="deleteInventoryItem(${index})" class="bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded text-gray-600 transition">🗑️</button></div></div>`; }).join('');
+}
+function updateInventoryQuantity(index, change) { inventory[index].quantity += change; if (inventory[index].quantity < 0) inventory[index].quantity = 0; localStorage.setItem('crown_plaza_inventory', JSON.stringify(inventory)); renderInventory(); }
+function deleteInventoryItem(index) { if (confirm(t('deleteItem'))) { const item = inventory[index]; inventory.splice(index, 1); localStorage.setItem('crown_plaza_inventory', JSON.stringify(inventory)); renderInventory(); showToast(`${item.item} ${t('itemDeleted')}`, 'info'); addActivityLog(t('logInventoryDelete'), item.item); } }
+function renderMaintenance() {
+  const container = document.getElementById('maintenanceList'); if (!container) return;
+  container.innerHTML = maintenanceTasks.map(task => `<div class="flex justify-between items-center p-3 border rounded-lg mb-2 hover:shadow-md transition"><div><strong>${t('room')} ${task.room}</strong> - ${escapeHtml(task.task)}<br><span class="text-xs text-gray-500">📅 ${task.date} | ${task.status} | <span class="${task.priority === 'high' ? 'text-red-600' : task.priority === 'medium' ? 'text-yellow-600' : 'text-green-600'}">${task.priority}</span></span></div><div class="flex gap-2"><button onclick="completeMaintenance(${task.id})" class="text-green-600 hover:text-green-800" title="${t('complete')}">✅</button><button onclick="deleteMaintenance(${task.id})" class="text-red-600 hover:text-red-800" title="${t('delete')}">🗑️</button></div></div>`).join('');
+}
+function completeMaintenance(id) { maintenanceTasks = maintenanceTasks.filter(t => t.id !== id); localStorage.setItem('crown_plaza_maintenance', JSON.stringify(maintenanceTasks)); renderMaintenance(); showToast(t('maintenanceCompleted'), 'success'); addActivityLog(t('logMaintenanceComplete'), `Task ${id}`); }
+function deleteMaintenance(id) { if (confirm(t('deleteTask'))) { maintenanceTasks = maintenanceTasks.filter(t => t.id !== id); localStorage.setItem('crown_plaza_maintenance', JSON.stringify(maintenanceTasks)); renderMaintenance(); showToast(t('taskDeleted'), 'info'); } }
+
+// ============ BLACKLIST & REVIEWS ============
+function renderBlacklist() {
+  const container = document.getElementById('blacklistList'); if (!container) return;
+  if (blacklist.length === 0) { container.innerHTML = `<div class="text-center py-4 text-gray-500">${t('noBlacklist')}</div>`; return; }
+  container.innerHTML = blacklist.map((entry, index) => `<div class="border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg mb-2"><div class="flex justify-between items-start"><div><strong>${escapeHtml(entry.name)}</strong> - ${t('room')} ${entry.room}<br><span class="text-sm text-gray-600 dark:text-gray-400">${escapeHtml(entry.reason)}</span><br><small class="text-gray-400">${entry.date}</small></div><button onclick="removeFromBlacklist(${index})" class="text-red-600 hover:text-red-800 text-sm">${t('remove')}</button></div></div>`).join('');
+}
+function removeFromBlacklist(index) { const name = blacklist[index].name; blacklist.splice(index, 1); localStorage.setItem('crown_plaza_blacklist', JSON.stringify(blacklist)); renderBlacklist(); showToast(t('blacklistRemoved'), 'info'); addActivityLog(t('logBlacklistRemove'), name); }
+function renderReviews() {
+  const container = document.getElementById('reviewsList'); if (!container) return;
+  if (reviews.length === 0) { container.innerHTML = `<div class="text-center py-4 text-gray-500">${t('noReviews')}</div>`; return; }
+  container.innerHTML = reviews.map(review => `<div class="border rounded-lg p-3 mb-2 hover:shadow-md transition"><div class="flex justify-between items-start"><strong>${escapeHtml(review.guestName)}</strong><span>${'⭐'.repeat(review.overall)}</span></div><p class="text-sm text-gray-700 dark:text-gray-300 mt-1">${escapeHtml(review.comment)}</p><div class="flex gap-3 text-xs text-gray-500 mt-2"><span>🧼 ${t('cleanliness')}: ${review.cleanliness || 4}⭐</span><span>👔 ${t('staff')}: ${review.staff || 4}⭐</span><span>📅 ${review.date}</span></div></div>`).join('');
+}
+
+// ============ GUEST MODALS ============
+function showLocalGuide() {
+  const attractions = [{ name: 'City Mall', distance: '2 km', type: '🛍️' }, { name: 'Beach', distance: '5 km', type: '🏖️' }, { name: 'Temple', distance: '3 km', type: '🛕' }, { name: 'Restaurant District', distance: '1 km', type: '🍽️' }, { name: 'Park', distance: '4 km', type: '🌳' }];
+  const content = attractions.map(a => `<div class="flex justify-between items-center p-3 border-b last:border-0 hover:bg-gray-50"><span><span class="mr-2">${a.type}</span>${a.name}</span><span class="text-gray-500 text-sm">${a.distance}</span></div>`).join('');
+  document.getElementById('localGuideContent').innerHTML = content; document.getElementById('localGuideModal')?.classList.remove('hidden');
+}
+function showEventCalendar() {
+  const events = [{ name: 'Live Music Night', date: 'Every Friday', time: '8PM' }, { name: 'Breakfast Buffet', date: 'Daily', time: '7AM-10AM' }, { name: 'Pool Party', date: 'Saturday', time: '2PM' }, { name: 'Spa Special', date: 'Weekdays', time: '10AM-6PM' }, { name: 'Business Conference', date: 'Monthly', time: '9AM-5PM' }];
+  const content = events.map(e => `<div class="flex justify-between items-center p-3 border-b last:border-0 hover:bg-gray-50"><span>${e.name}</span><span class="text-gray-500 text-sm">${e.date} ${e.time}</span></div>`).join('');
+  document.getElementById('eventContent').innerHTML = content; document.getElementById('eventModal')?.classList.remove('hidden');
+}
+function closeModal(modalId) { document.getElementById(modalId)?.classList.add('hidden'); }
+function setWakeUpCall() { const time = prompt(`${t('wakeUpTime')} (HH:MM):`, '07:00'); if (time && /^\d{2}:\d{2}$/.test(time)) { showToast(`${t('wakeUpSet')} ${time}`, 'success'); addActivityLog(t('logWakeUp'), `Set for ${time} - Room ${currentGuest?.room}`); speakText(`${t('wakeUpSet')} ${time}`); } }
+function toggleDND() { window.dndEnabled = !window.dndEnabled; const btn = document.getElementById('dndBtn'); if (btn) btn.innerHTML = window.dndEnabled ? '🔕 DND: ON' : '🔕 DND: OFF'; showToast(window.dndEnabled ? t('dndOn') : t('dndOff'), 'info'); }
+
+// ============ RATING ============
+function showCheckoutRating() {
+  document.getElementById('ratingModal')?.classList.remove('hidden');
+  ratingData = { overall: 0, cleanliness: 0, staff: 0, recommend: null };
+  const createStars = (containerId, setDataKey) => {
+    const container = document.getElementById(containerId); if (!container) return; container.innerHTML = '';
+    for (let i = 1; i <= 5; i++) { const star = document.createElement('span'); star.innerHTML = '☆'; star.className = 'star-rating cursor-pointer text-xl hover:scale-110 transition'; star.onclick = () => { ratingData[setDataKey] = i; Array.from(container.children).forEach((s, idx) => { s.innerHTML = idx < i ? '★' : '☆'; s.classList.toggle('text-yellow-400', idx < i); }); }; container.appendChild(star); }
+  };
+  createStars('ratingStars', 'overall'); createStars('cleanlinessStars', 'cleanliness'); createStars('staffStars', 'staff');
+  const yesBtn = document.getElementById('recommendYes'); const noBtn = document.getElementById('recommendNo');
+  if (yesBtn && noBtn) { yesBtn.className = 'px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition'; noBtn.className = 'px-4 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition'; }
+}
+function setRecommend(value) {
+  ratingData.recommend = value;
+  const yesBtn = document.getElementById('recommendYes'); const noBtn = document.getElementById('recommendNo');
+  if (yesBtn && noBtn) { yesBtn.className = value ? 'px-4 py-1 bg-green-700 text-white rounded' : 'px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600'; noBtn.className = !value ? 'px-4 py-1 bg-red-700 text-white rounded' : 'px-4 py-1 bg-red-500 text-white rounded hover:bg-red-600'; }
+}
+function submitRating() {
+  if (ratingData.overall === 0) { showToast(t('provideRating'), 'error'); return; }
+  const review = { guestName: currentGuest?.name || 'Anonymous', room: currentGuest?.room || 'N/A', overall: ratingData.overall, cleanliness: ratingData.cleanliness || 4, staff: ratingData.staff || 4, recommend: ratingData.recommend, comment: document.getElementById('reviewText')?.value || '', date: new Date().toISOString().split('T')[0] };
+  reviews.push(review); saveToBackend('reviews', review); saveToLocal();
+  document.getElementById('ratingModal')?.classList.add('hidden'); showToast(t('thankYouReview'), 'success');
+  addLoyaltyPoints(currentGuest?.name, 20); addActivityLog(t('logReview'), `${currentGuest?.name} rated ${ratingData.overall}⭐`);
+  alert(`${t('thankYouStay')} ${hotelSettings?.name} ${t('seeYouAgain')}`); logoutGuest();
+}
+
+// ============ APP INIT ============
+async function checkBackendHealth() { try { const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`); const data = await response.json(); console.log('✅ Backend health:', data); return data.database === 'Connected'; } catch (error) { console.warn('⚠️ Backend not reachable, using localStorage backup'); return false; } }
+async function initWithBackend() { const backendAvailable = await checkBackendHealth(); if (backendAvailable && !offlineMode) { showToast(t('backendConnected'), 'success'); await loadAllDataFromBackend(); } else { offlineMode = true; showToast(t('offlineModeActive'), 'info'); loadFromLocal(); } if (typeof initApp === 'function') initApp(); }
+function initApp() {
+  loadSettings();
+  const sessionRestored = checkSavedSession();
+  if (!sessionRestored) { updateAllDisplays(); renderRooms(); renderFoodMenu(); renderDynamicFoodMenu(); }
+  if (localStorage.getItem('crown_plaza_darkMode') === 'true') { document.body.classList.add('dark'); const toggle = document.getElementById('darkModeToggle'); if (toggle) toggle.textContent = '☀️'; }
+  if (localStorage.getItem('crown_plaza_highContrast') === 'true') document.body.classList.add('high-contrast');
+  const savedTheme = localStorage.getItem('crown_plaza_theme'); if (savedTheme) setTheme(savedTheme);
+  if (localStorage.getItem('crown_plaza_offlineMode') === 'true') { offlineMode = true; document.body.classList.add('offline-mode'); }
+  document.querySelectorAll('.lang-btn').forEach(btn => { btn.classList.remove('active', 'bg-purple-100', 'text-purple-700'); btn.classList.add('bg-gray-100', 'text-gray-700'); });
+  const savedLang = localStorage.getItem('preferredLanguage') || 'en'; const langBtn = document.querySelector(`.lang-btn[onclick*="'${savedLang}'"]`); if (langBtn) { langBtn.classList.remove('bg-gray-100', 'text-gray-700'); langBtn.classList.add('active', 'bg-purple-100', 'text-purple-700'); }
+  if (savedLang !== 'en') changeLanguage(savedLang);
+  setupEventListeners(); renderHotelSwitcher(); console.log('✅ App initialized');
+}
+
+// ============ DOM READY ============
+document.addEventListener('DOMContentLoaded', async function() {
+  await initWithBackend(); updateLiveClock();
+  if ('Notification' in window && Notification.permission === 'default') {}
+  if ('speechSynthesis' in window) { window.speechSynthesis.onvoiceschanged = () => { console.log('✅ Voice list loaded for TTS'); }; }
+});
+
+// ============ GLOBAL FUNCTIONS ============
+window.changeLanguage = changeLanguage; window.switchHotel = switchHotel; window.toggleHotelMenu = toggleHotelMenu;
+window.showAdminTab = showAdminTab; window.showGuestTab = showGuestTab;
+window.completeRequest = completeRequest; window.deleteRequest = deleteRequest;
+window.toggleSelectRequest = toggleSelectRequest; window.toggleSelectAll = toggleSelectAll;
+window.bulkComplete = bulkComplete; window.bulkDelete = bulkDelete; window.clearSelection = clearSelection;
+window.openAddRoomModal = openAddRoomModal; window.openEditRoomModal = openEditRoomModal;
+window.closeRoomModal = closeRoomModal; window.deleteRoom = deleteRoom;
+window.showQRForRoom = showQRForRoom; window.downloadQRCode = downloadQRCode;
+window.openAddFoodModal = openAddFoodModal; window.openEditFoodModal = openEditFoodModal;
+window.closeFoodModal = closeFoodModal; window.deleteFoodItem = deleteFoodItem;
+window.addToCart = addToCart; window.removeFromCart = removeFromCart; window.placeOrder = placeOrder;
+window.showCheckoutRating = showCheckoutRating; window.setRecommend = setRecommend; window.submitRating = submitRating;
+window.closeModal = closeModal; window.showSOSAlert = showSOSAlert; window.closeSOSModal = closeSOSModal;
+window.showLocalGuide = showLocalGuide; window.showEventCalendar = showEventCalendar;
+window.setWakeUpCall = setWakeUpCall; window.toggleDND = toggleDND;
+window.logoutAdmin = logoutAdmin; window.logoutGuest = logoutGuest;
+window.toggleDarkMode = toggleDarkMode; window.toggleHighContrast = toggleHighContrast;
+window.adjustFontSize = adjustFontSize; window.toggleThemeSelector = toggleThemeSelector;
+window.setTheme = setTheme; window.toggleOfflineMode = toggleOfflineMode;
+window.requestPushPermission = requestPushPermission; window.testNotification = testNotification;
+window.testHaptic = testHaptic; window.copyWifiPassword = copyWifiPassword;
+window.saveHotelName = saveHotelName; window.saveCurrencySettings = saveCurrencySettings;
+window.saveTransportPrices = saveTransportPrices; window.saveWifiPassword = saveWifiPassword;
+window.exportToExcel = exportToExcel; window.exportAllData = exportAllData;
+window.printInvoice = printInvoice; window.generateReport = generateReport;
+window.addLoyaltyPoints = addLoyaltyPoints; window.speakText = speakText;
+console.log('🚀 Crown Plaza QMS loaded - All features enabled');
+</script>
 
 </div> <!-- End #app -->
 </body>
