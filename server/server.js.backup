@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { MongoClient } = require('mongodb');
@@ -7,7 +6,8 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../inaya-hotel/public')));
 
-const PORT = process.env.PORT || 5000;
+// Get port from environment
+const PORT = process.env.PORT || 8080;
 const MONGODB_URI = process.env.MONGO_URI || 'mongodb+srv://hotel:hotelinaya@cluster0.hauipx7.mongodb.net/inaya_hotel?retryWrites=true&w=majority&appName=Cluster0';
 const DB_NAME = 'inaya_hotel';
 
@@ -32,16 +32,20 @@ async function connectDB() {
 // API Routes
 app.get('/api/health', (req, res) => {
     res.json({ 
-        message: 'Inaya Hotel Management System API', 
-        status: 'OK',
-        mongodb: db ? 'connected' : 'disconnected'
+        success: true, 
+        status: 'OK', 
+        message: 'Inaya Hotel API',
+        mongodb: db ? 'connected' : 'connecting...',
+        timestamp: new Date().toISOString()
     });
 });
 
 app.get('/api/rooms', async (req, res) => {
-    if (!db) return res.json({ success: true, data: [], message: 'Loading...' });
+    if (!db) {
+        return res.json({ success: true, data: [], message: 'Loading rooms...' });
+    }
     try {
-        const rooms = await db.collection('rooms').find({}).limit(50).toArray();
+        const rooms = await db.collection('rooms').find({}).limit(10).toArray();
         res.json({ success: true, data: rooms });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -49,11 +53,13 @@ app.get('/api/rooms', async (req, res) => {
 });
 
 app.get('/api/rooms/available', async (req, res) => {
-    if (!db) return res.json({ success: true, data: [] });
+    if (!db) {
+        return res.json({ success: true, data: [], message: 'Loading...' });
+    }
     try {
         const rooms = await db.collection('rooms').find({ 
             status: { $in: ['Vacant', 'available'] }
-        }).toArray();
+        }).limit(10).toArray();
         res.json({ success: true, data: rooms });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -61,7 +67,9 @@ app.get('/api/rooms/available', async (req, res) => {
 });
 
 app.post('/api/bookings', async (req, res) => {
-    if (!db) return res.status(503).json({ error: 'Database not connected' });
+    if (!db) {
+        return res.status(503).json({ error: 'Database connecting...' });
+    }
     try {
         const { roomNumber, customerName, checkIn, checkOut, guests, phone, email } = req.body;
         
@@ -99,17 +107,6 @@ app.post('/api/bookings', async (req, res) => {
     }
 });
 
-app.get('/api/bookings', async (req, res) => {
-    if (!db) return res.json({ success: true, data: [] });
-    try {
-        const bookings = await db.collection('bookings').find({}).toArray();
-        res.json({ success: true, data: bookings });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Frontend Routes
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, '../inaya-hotel/public/admin.html'));
 });
@@ -120,14 +117,20 @@ app.get('/', (req, res) => {
 
 // Start server
 app.listen(PORT, '0.0.0.0', async () => {
-    console.log(`\n🚀 Server running on port ${PORT}`);
-    console.log(`UI: http://localhost:${PORT}`);
-    console.log(`Admin: http://localhost:${PORT}/admin`);
-    console.log(`Health: http://localhost:${PORT}/api/health\n`);
-    await connectDB();
+    console.log(`\n🚀 Inaya Hotel Server Started!`);
+    console.log(`🌐 URL: http://localhost:${PORT}`);
+    if (process.env.REPL_SLUG) {
+        console.log(`🌍 Public URL: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+    }
+    console.log(`🔍 Health Check: http://localhost:${PORT}/api/health\n`);
+    
+    // Connect to MongoDB in background
+    setTimeout(() => connectDB(), 1000);
 });
 
-process.on('SIGINT', async () => {
-    if (client) await client.close();
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('Shutting down...');
+    if (client) client.close();
     process.exit(0);
 });

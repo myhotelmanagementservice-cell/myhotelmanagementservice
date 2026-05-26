@@ -1,37 +1,16 @@
 {
   "name": "inaya-hotel",
   "version": "1.0.0",
-  "description": "Inaya Hotel Management System",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
-    "dev": "nodemon server/server.js",
-    "pm2-start": "pm2 start server/server.js --name inaya-hotel",
-    "pm2-stop": "pm2 stop inaya-hotel",
-    "pm2-restart": "pm2 restart inaya-hotel",
-    "pm2-logs": "pm2 logs inaya-hotel"
+    "build": "echo 'Build completed'"
   },
-  "keywords": [
-    "hotel",
-    "management",
-    "express",
-    "mongodb"
-  ],
-  "author": "Inaya Hotel",
-  "license": "MIT",
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "express-rate-limit": "^7.1.5",
-    "jsonwebtoken": "^9.0.2",
-    "mongodb": "^6.3.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.14"
-  },
-  "engines": {
-    "node": ">=14.0.0"
+    "mongodb": "^5.9.0",
+    "dotenv": "^16.3.1",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5"
   }
 }
