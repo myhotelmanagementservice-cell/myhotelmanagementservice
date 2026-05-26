@@ -1,9 +1,10 @@
 {
   "name": "inaya-hotel",
   "version": "1.0.0",
-  "main": "inaya-hotel/server/server.js",
+  "main": "server/server.js",
   "scripts": {
-    "start": "node inaya-hotel/server/server.js",
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
     "build": "exit 0",
     "postinstall": "echo '✅ Installation complete'"
   },
@@ -17,6 +18,9 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.24.0",
     "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   },
   "engines": {
     "node": "20.x",
