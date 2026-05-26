@@ -1,20 +1,20 @@
-language = "nodejs"
-run = "npm start"
+modules = ["nodejs-24"]
 
-[[ports]]
-localPort = 8080
-externalPort = 80
-proxied = false
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
 
-[packager]
-language = "nodejs"
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
 
-[nix]
-channel = "stable"
+[workflows]
+runButton = "Project"
 
-[env]
-NODE_ENV = "production"
-PORT = "8080"
-MONGO_URI = "mongodb+srv://hotel:hotelinaya@cluster0.hauipx7.mongodb.net/inaya_hotel?retryWrites=true&w=majority&appName=Cluster0"
-DB_NAME = "inaya_hotel"
-JWT_SECRET = "inaya_hotel_secret_key_2025"
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
