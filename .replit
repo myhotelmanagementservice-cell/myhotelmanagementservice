@@ -1,89 +1,20 @@
 language = "nodejs"
 run = "npm start"
-modules = ["nodejs-20"]
-
-[env]
-NODE_ENV = "production"
-
-[nix]
-channel = "stable-23_11"
-packages = ["lsof", "psmisc"]
-
-[deployment]
-run = ["npm", "start"]
-build = ["npm", "run", "build"]
-
-[[ports]]
-localPort = 3000
-externalPort = 80
-
-[[ports]]
-localPort = 3001
-externalPort = 3001
-
-[[ports]]
-localPort = 3002
-externalPort = 3002
-
-[[ports]]
-localPort = 3003
-externalPort = 3003
-
-[[ports]]
-localPort = 3005
-externalPort = 6000
-
-[[ports]]
-localPort = 4000
-externalPort = 5173
-
-[[ports]]
-localPort = 5000
-externalPort = 5000
-
-[[ports]]
-localPort = 5001
-externalPort = 3000
 
 [[ports]]
 localPort = 8080
-externalPort = 8080
+externalPort = 80
+proxied = false
 
-[[ports]]
-localPort = 8081
-externalPort = 8081
+[packager]
+language = "nodejs"
 
-[[ports]]
-localPort = 8888
-externalPort = 4200
+[nix]
+channel = "stable"
 
-[[ports]]
-localPort = 9000
-externalPort = 9000
-
-[agent]
-expertMode = true
-
-[workflows]
-runButton = "Project"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Crown Plaza Hotel"
-
-[[workflows.workflow]]
-name = "Crown Plaza Hotel"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=3000 node inaya-hotel/server/server.js"
-waitForPort = 3000
+[env]
+NODE_ENV = "production"
+PORT = "8080"
+MONGO_URI = "mongodb+srv://hotel:hotelinaya@cluster0.hauipx7.mongodb.net/inaya_hotel?retryWrites=true&w=majority&appName=Cluster0"
+DB_NAME = "inaya_hotel"
+JWT_SECRET = "inaya_hotel_secret_key_2025"
