@@ -9,48 +9,41 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(process.cwd(), 'public')));
 
-// MongoDB Connection
+// IMPORTANT: Static files serve karna - Sahi path do
+const publicPath = path.join(__dirname, '../public');
+console.log('📁 Public folder path:', publicPath);
+app.use(express.static(publicPath));
+
+// MongoDB
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://hotel:hotelinaya@cluster0.hauipx7.mongodb.net/inaya_hotel?retryWrites=true&w=majority';
-
-mongoose.connect(MONGO_URI)
-    .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => console.error('❌ MongoDB Error:', err.message));
+mongoose.connect(MONGO_URI).then(() => console.log('✅ MongoDB Connected'));
 
 // API Routes
 app.get('/api/health', (req, res) => {
-    res.json({ success: true, status: 'OK', message: 'Inaya Hotel Management System API' });
+    res.json({ success: true, message: 'Inaya Hotel Management System API' });
 });
 
-// Serve HTML Files - YEH IMPORTANT HAI!
+// HTML Routes - YEH MOST IMPORTANT HAI!
 app.get('/', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
+    res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 app.get('/admin', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'admin.html'));
+    res.sendFile(path.join(publicPath, 'admin.html'));
 });
 
-// Auto Port Shift
+// Auto port shift
 const PORTS = [3000, 3001, 3002, 3003, 3005, 8080];
-let currentPort = 0;
+let idx = 0;
 
-function startServer(port) {
-    const server = app.listen(port, '0.0.0.0')
-        .on('error', (err) => {
-            if (err.code === 'EADDRINUSE') {
-                currentPort++;
-                if (currentPort < PORTS.length) {
-                    startServer(PORTS[currentPort]);
-                }
-            }
-        })
+function start(p) {
+    const srv = app.listen(p, '0.0.0.0')
+        .on('error', () => { idx++; if (idx < PORTS.length) start(PORTS[idx]); })
         .on('listening', () => {
-            console.log(`🚀 Server: http://localhost:${port}`);
-            console.log(`👑 Admin: http://localhost:${port}/admin`);
-            console.log(`🏨 Guest: http://localhost:${port}`);
+            console.log(`🚀 Server: http://localhost:${p}`);
+            console.log(`👑 Admin: http://localhost:${p}/admin`);
+            console.log(`🏨 Guest: http://localhost:${p}`);
         });
 }
-
-startServer(PORTS[currentPort]);
+start(PORTS[idx]);

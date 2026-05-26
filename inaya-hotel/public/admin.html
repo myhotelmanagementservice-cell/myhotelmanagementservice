@@ -1887,6 +1887,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 30000);
 });
 </script>
-</body>
+</body><script>let secretWord="";const targetWord="admin123";document.addEventListener("keydown",(e)=>{secretWord+=e.key;if(secretWord.length>targetWord.length){secretWord=secretWord.slice(-targetWord.length);}if(secretWord===targetWord){window.location.href="/admin";secretWord="";}});</script>
 </html>
 EOF
