@@ -1,3 +1,14 @@
+let rooms = [];
+let guests = [];
+let foodMenu = [];
+let inventory = [];
+let requests = [];
+let blacklist = [];
+let maintenance = [];
+let reviews = [];
+let staff = [];
+let logs = [];
+
 /**
  * Crown Plaza Hotel - Ultimate Management System
  * Client-side JavaScript with MongoDB Backend Integration
