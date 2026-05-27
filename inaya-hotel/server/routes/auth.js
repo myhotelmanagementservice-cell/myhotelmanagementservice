@@ -1,4 +1,5 @@
 const express = require('express');
+const Guest = require("../models/Guest");
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const router = express.Router();
@@ -67,3 +68,30 @@ router.get('/me', async (req, res) => {
 });
 
 module.exports = router;
+
+// Guest login - Create or find guest
+router.post('/loginGuest', async (req, res) => {
+  try {
+    const { name, room } = req.body;
+    if (!name || !room) {
+      return res.status(400).json({ success: false, error: 'Name and room required' });
+    }
+    
+    // Find or create guest
+    let guest = await Guest.findOne({ room, status: 'active' });
+    if (!guest) {
+      guest = new Guest({ name, room, points: 50, status: 'active', checkin: new Date() });
+      await guest.save();
+    } else {
+      guest.name = name;
+      await guest.save();
+    }
+    
+    res.json({
+      success: true,
+      guest: { id: guest._id, name: guest.name, room: guest.room, points: guest.points }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
