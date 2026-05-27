@@ -2,7 +2,7 @@
 <html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
   <meta name="theme-color" content="#667eea">
   <title>Crown Plaza Hotel - Ultimate Management System</title>
 
@@ -20,7 +20,14 @@
 
   <style>
     * { box-sizing: border-box; }
-    body { overflow-x: hidden; padding-bottom: 85px; transition: filter 0.2s, background 0.3s, color 0.3s; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    body { 
+      overflow-x: hidden; 
+      padding-bottom: 85px; 
+      transition: filter 0.2s, background 0.3s; 
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+    }
 
     /* Theme Variables */
     :root { --theme-primary: #667eea; --theme-secondary: #764ba2; --theme-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
@@ -31,54 +38,78 @@
 
     .gradient-bg { background: var(--theme-gradient) !important; }
 
-    /* Dark Mode Styles */
+    /* Dark Mode */
     body.dark { background-color: #111827; color: #f3f4f6; }
-    body.dark .glass-card { background: rgba(31, 41, 55, 0.95); border-color: rgba(255,255,255,0.1); }
+    body.dark .glass-card { background: #1f2937; border-color: #374151; }
     body.dark .request-card { background: #1f2937; }
-    body.dark .inventory-card { background: #1f2937; border-color: #374151; }
+    body.dark .bg-gray-50, body.dark .bg-gray-100 { background-color: #1f2937; }
     body.dark .border-b { border-color: #374151; }
-    body.dark .bg-gray-50 { background-color: #1f2937; }
-    body.dark .bg-gray-100 { background-color: #111827; }
-    body.dark .text-gray-600 { color: #9ca3af; }
-    body.dark .text-gray-500 { color: #9ca3af; }
+    body.dark .text-gray-600, body.dark .text-gray-500 { color: #9ca3af; }
 
-    /* Fixed Bottom Toolbar */
+    /* Glass Card */
+    .glass-card { 
+      background: rgba(255, 255, 255, 0.95); 
+      backdrop-filter: blur(10px); 
+      border-radius: 24px; 
+      border: 1px solid rgba(255,255,255,0.2); 
+      padding: 20px; 
+      margin-bottom: 16px;
+      width: 100%;
+    }
+
+    /* Fixed Bottom Toolbar - FIXED AT BOTTOM, CENTERED */
     .fixed-toolbar {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: rgba(102, 126, 234, 0.95); backdrop-filter: blur(12px);
-      padding: 10px 16px; display: flex; justify-content: center; align-items: center;
-      gap: 8px; flex-wrap: wrap; z-index: 1000;
+      position: fixed; 
+      bottom: 0; 
+      left: 0; 
+      right: 0;
+      background: rgba(102, 126, 234, 0.95); 
+      backdrop-filter: blur(12px);
+      padding: 10px 16px; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
+      gap: 8px; 
+      flex-wrap: wrap; 
+      z-index: 1000;
       box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
       border-top: 1px solid rgba(255,255,255,0.2);
     }
-    body.dark .fixed-toolbar { background: rgba(31, 41, 55, 0.95); border-top-color: rgba(255,255,255,0.1); }
+    body.dark .fixed-toolbar { background: rgba(31, 41, 55, 0.95); }
 
     .toolbar-btn {
-      padding: 6px 12px; border-radius: 8px; border: none;
-      background: rgba(255, 255, 255, 0.2); color: white;
-      font-size: 12px; font-weight: 600; cursor: pointer;
-      transition: all 0.2s; white-space: nowrap;
+      padding: 6px 12px; 
+      border-radius: 8px; 
+      border: none;
+      background: rgba(255, 255, 255, 0.2); 
+      color: white;
+      font-size: 12px; 
+      font-weight: 600; 
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .toolbar-btn:hover, .toolbar-btn.active { background: rgba(255, 255, 255, 0.4); transform: translateY(-1px); }
+    .toolbar-btn:hover { background: rgba(255, 255, 255, 0.4); transform: translateY(-1px); }
+    .toolbar-btn.active { background: rgba(255, 255, 255, 0.4); }
 
-    /* Brightness Control */
     .brightness-slider { width: 80px; height: 4px; -webkit-appearance: none; background: rgba(255,255,255,0.3); border-radius: 2px; }
     .brightness-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: white; border-radius: 50%; cursor: pointer; }
 
-    /* Theme Dropdown */
     .theme-dropdown {
-      position: fixed; bottom: 70px; right: 20px;
-      background: white; padding: 12px; border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1001;
-      display: none; min-width: 180px;
+      position: fixed; 
+      bottom: 70px; 
+      right: 20px;
+      background: white; 
+      padding: 12px; 
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
+      z-index: 1001;
+      display: none; 
+      min-width: 180px;
     }
-    body.dark .theme-dropdown { background: #1f2937; border: 1px solid #374151; color: white; }
+    body.dark .theme-dropdown { background: #1f2937; border: 1px solid #374151; }
     .theme-dropdown.show { display: block; }
     .theme-preview { width: 36px; height: 36px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; display: inline-block; margin: 2px; }
     .theme-preview:hover, .theme-preview.active { border-color: var(--theme-primary); transform: scale(1.05); }
-
-    /* Glass Card */
-    .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 16px; border: 1px solid rgba(255,255,255,0.2); padding: 16px; }
 
     /* Modal */
     .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center; padding: 16px; }
@@ -86,62 +117,82 @@
     .modal-content { background: white; padding: 24px; border-radius: 20px; max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto; }
     body.dark .modal-content { background: #1f2937; color: white; }
 
+    /* Login Page - Full Width */
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
+    }
+    @media (min-width: 640px) {
+      .login-card { max-width: 420px; }
+    }
+
     /* Toast */
-    .toast-container { position: fixed; top: 20px; right: 20px; z-index: 3000; }
-    .toast { background: white; padding: 12px 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); margin-bottom: 8px; animation: slideIn 0.3s ease; border-left: 4px solid var(--theme-primary); }
+    .toast-container { position: fixed; top: 20px; right: 20px; z-index: 3000; max-width: calc(100% - 40px); }
+    .toast { background: white; padding: 12px 20px; border-radius: 10px; margin-bottom: 8px; animation: slideIn 0.3s ease; border-left: 4px solid var(--theme-primary); box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
     body.dark .toast { background: #374151; color: white; }
     @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-    /* Request Card */
-    .request-card { background: white; border-radius: 12px; padding: 14px; margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 4px solid var(--theme-primary); transition: all 0.2s; }
-    .request-card.emergency { border-left-color: #ef4444; background: #fef2f2; }
-    body.dark .request-card.emergency { background: rgba(239,68,68,0.1); }
-    .request-card.completed { border-left-color: #10b981; opacity: 0.9; }
-
-    /* Inventory Item Card */
-    .inventory-card { background: white; border-radius: 12px; padding: 12px; text-align: center; transition: all 0.2s; border: 1px solid #e5e7eb; }
+    /* Cards */
+    .request-card { background: white; border-radius: 12px; padding: 14px; margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 4px solid var(--theme-primary); }
+    body.dark .request-card { background: #1f2937; }
+    .inventory-card { background: white; border-radius: 12px; padding: 12px; text-align: center; border: 1px solid #e5e7eb; transition: all 0.2s; cursor: pointer; }
     body.dark .inventory-card { background: #1f2937; border-color: #374151; }
     .inventory-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
-    /* RTL Support */
+    /* RTL */
     [dir="rtl"] { text-align: right; }
     [dir="rtl"] .request-card { border-left: none; border-right: 4px solid var(--theme-primary); }
-    [dir="rtl"] .emergency { border-right-color: #ef4444; border-left: none; }
 
     .high-contrast { filter: contrast(1.2); }
-
-    /* Status Badges */
     .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
     .status-open { background: #fef3c7; color: #92400e; }
-    .status-in_progress { background: #dbeafe; color: #1e40af; }
     .status-completed { background: #d1fae5; color: #065f46; }
-    .status-vacant { background: #dbeafe; color: #1e40af; }
-    .status-occupied { background: #d1fae5; color: #065f46; }
-    body.dark .status-open { background: rgba(251,191,36,0.2); color: #fbbf24; }
-    body.dark .status-in_progress { background: rgba(59,130,246,0.2); color: #60a5fa; }
-    body.dark .status-completed { background: rgba(16,185,129,0.2); color: #34d399; }
+    .status-pending { background: #dbeafe; color: #1e40af; }
 
-    /* Offline Indicator */
     .offline-indicator { position: fixed; top: 10px; right: 10px; background: #ef4444; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; z-index: 1000; display: none; }
     .offline-indicator.show { display: block; }
+
+    /* Tab Buttons */
+    .tab-btn { transition: all 0.2s; cursor: pointer; }
+    .guest-tab { transition: all 0.2s; cursor: pointer; }
+    .guest-tab.active { background: #e9d5ff !important; }
+    body.dark .guest-tab.active { background: #4c1d95 !important; }
+    .admin-tab { transition: all 0.2s; cursor: pointer; }
+    .admin-tab.active { color: #9333ea !important; border-bottom: 2px solid #9333ea !important; }
+
+    /* Grid */
+    .grid-custom {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
 
     @media (max-width: 640px) {
       .fixed-toolbar { padding: 6px 10px; gap: 5px; }
       .toolbar-btn { padding: 4px 8px; font-size: 10px; }
       body { padding-bottom: 75px; }
+      .glass-card { padding: 16px; }
+      .grid-custom { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
     }
   </style>
 </head>
 <body>
 
-<!-- Offline Indicator -->
 <div id="offlineIndicator" class="offline-indicator">📴 Offline Mode</div>
 
-<!-- Fixed Bottom Toolbar -->
+<!-- Fixed Bottom Toolbar - सबसे नीचे, सेंटर में -->
 <div class="fixed-toolbar">
-  <button class="toolbar-btn" onclick="changeLanguage('en')">🇬🇧 EN</button>
-  <button class="toolbar-btn" onclick="changeLanguage('hi')">🇮🇳 हिंदी</button>
-  <button class="toolbar-btn" onclick="changeLanguage('ar')">🇸🇦 العربية</button>
+  <button class="toolbar-btn" onclick="changeLanguage('en')" id="langBtnEn">🇬🇧 EN</button>
+  <button class="toolbar-btn" onclick="changeLanguage('hi')" id="langBtnHi">🇮🇳 हिंदी</button>
+  <button class="toolbar-btn" onclick="changeLanguage('ar')" id="langBtnAr">🇸🇦 العربية</button>
   <button class="toolbar-btn" onclick="toggleHighContrast()">🔆</button>
   <button class="toolbar-btn" onclick="adjustFontSize('decrease')">A-</button>
   <button class="toolbar-btn" onclick="adjustFontSize('reset')">A</button>
@@ -158,9 +209,8 @@
   <button class="toolbar-btn" onclick="testHaptic()">📳</button>
 </div>
 
-<!-- Theme Dropdown -->
 <div id="themeDropdown" class="theme-dropdown">
-  <div class="text-xs font-semibold mb-2 text-center">Select Theme</div>
+  <div class="text-xs font-semibold mb-2 text-center" data-i18n="selectTheme">Select Theme</div>
   <div class="flex justify-center flex-wrap">
     <div class="theme-preview active" style="background: linear-gradient(135deg, #667eea, #764ba2)" onclick="setTheme('default')" title="Default"></div>
     <div class="theme-preview" style="background: linear-gradient(135deg, #f59e0b, #ef4444)" onclick="setTheme('sunset')" title="Sunset"></div>
@@ -172,63 +222,63 @@
 
 <div id="toastContainer" class="toast-container"></div>
 
-<!-- ==================== LOGIN PAGE ==================== -->
-<div id="loginPage" class="min-h-screen gradient-bg flex items-center justify-center p-4">
-  <div class="glass-card rounded-3xl shadow-2xl w-full max-w-md">
+<!-- ==================== LOGIN PAGE - FULL WIDTH MOBILE ==================== -->
+<div id="loginPage" class="login-container gradient-bg">
+  <div class="glass-card login-card">
     <div class="text-center mb-6">
-      <div class="text-6xl mb-3">👑</div>
-      <h1 class="text-3xl font-bold text-gray-800 dark:text-white" id="hotelNameDisplay">Crown Plaza Hotel</h1>
-      <p class="text-gray-600 dark:text-gray-300 mt-1">Complete Management System</p>
-      <div id="liveClock" class="text-xs text-gray-500 mt-3"></div>
+      <div class="text-6xl mb-3 animate-bounce">👑</div>
+      <h1 class="text-3xl font-bold" id="hotelNameDisplay">Crown Plaza Hotel</h1>
+      <p class="text-gray-600 dark:text-gray-300 mt-1" id="welcomeSubtitle">Complete Management System</p>
+      <div id="liveClock" class="text-xs text-gray-500 dark:text-gray-400 mt-3"></div>
     </div>
 
     <div class="flex gap-2 mb-5">
-      <button onclick="switchLoginType('guest')" id="guestTabBtn" class="flex-1 py-2 rounded-lg font-semibold bg-purple-100 text-purple-700">🏨 Guest</button>
-      <button onclick="switchLoginType('admin')" id="adminTabBtn" class="flex-1 py-2 rounded-lg font-semibold bg-gray-100 text-gray-700">👑 Admin</button>
+      <button onclick="switchLoginType('guest')" id="guestTabBtn" class="flex-1 py-2 rounded-lg font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">🏨 <span data-i18n="guestTab">Guest</span></button>
+      <button onclick="switchLoginType('admin')" id="adminTabBtn" class="flex-1 py-2 rounded-lg font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">👑 <span data-i18n="adminTab">Admin</span></button>
     </div>
 
     <!-- Guest Login -->
     <form id="guestLoginForm" class="space-y-4">
       <div>
-        <label class="text-xs text-gray-500 block mb-1">Your Name</label>
-        <input type="text" id="guestName" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Enter your name" required>
+        <label class="text-xs text-gray-500 block mb-1" data-i18n="yourName">Your Name</label>
+        <input type="text" id="guestName" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600" data-i18n-placeholder="enterName" placeholder="Enter your name" required>
       </div>
       <div>
-        <label class="text-xs text-gray-500 block mb-1">Room Number</label>
-        <input type="number" id="guestRoom" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="e.g., 101" required>
+        <label class="text-xs text-gray-500 block mb-1" data-i18n="roomNumber">Room Number</label>
+        <input type="number" id="guestRoom" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600" data-i18n-placeholder="roomNumberPlaceholder" placeholder="e.g., 101" required>
       </div>
-      <button type="submit" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition">🔐 Login as Guest</button>
+      <button type="submit" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition" data-i18n="loginGuest">🔐 Login as Guest</button>
     </form>
 
     <!-- Admin Login -->
     <form id="adminLoginForm" class="space-y-4 hidden">
       <div>
-        <label class="text-xs text-gray-500 block mb-1">Email Address</label>
-        <input type="email" id="adminEmail" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="admin@crownplaza.com" required>
+        <label class="text-xs text-gray-500 block mb-1" data-i18n="emailAddress">Email Address</label>
+        <input type="email" id="adminEmail" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600" data-i18n-placeholder="adminEmailPlaceholder" placeholder="admin@crownplaza.com" required>
       </div>
       <div>
-        <label class="text-xs text-gray-500 block mb-1">Password</label>
-        <input type="password" id="adminPassword" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="••••••••" required>
+        <label class="text-xs text-gray-500 block mb-1" data-i18n="password">Password</label>
+        <input type="password" id="adminPassword" class="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-600" data-i18n-placeholder="passwordPlaceholder" placeholder="••••••••" required>
       </div>
-      <button type="submit" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition">🔐 Login as Admin</button>
+      <button type="submit" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition" data-i18n="loginAdmin">🔐 Login as Admin</button>
     </form>
   </div>
 </div>
 
 <!-- ==================== ROLE SELECTION ==================== -->
 <div id="rolePage" class="hidden min-h-screen gradient-bg flex items-center justify-center p-4">
-  <div class="glass-card rounded-3xl shadow-2xl w-full max-w-2xl">
-    <button onclick="backToLogin()" class="text-gray-500 hover:text-gray-700 text-sm mb-4">← Back</button>
-    <h1 class="text-2xl font-bold text-center mb-6">👑 Select Your Role</h1>
+  <div class="glass-card rounded-3xl w-full max-w-2xl">
+    <button onclick="backToLogin()" class="text-gray-500 hover:text-gray-700 text-sm mb-4" data-i18n="back">← Back</button>
+    <h1 class="text-2xl font-bold text-center mb-6" data-i18n="selectRole">👑 Select Your Role</h1>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <button onclick="loginAsRole('super_admin')" class="p-4 bg-purple-100 rounded-2xl hover:bg-purple-200 transition"><div class="text-2xl">👑</div><div class="text-sm font-semibold">Super Admin</div></button>
-      <button onclick="loginAsRole('front_desk')" class="p-4 bg-blue-100 rounded-2xl hover:bg-blue-200 transition"><div class="text-2xl">🛎️</div><div class="text-sm font-semibold">Front Desk</div></button>
-      <button onclick="loginAsRole('housekeeping')" class="p-4 bg-green-100 rounded-2xl hover:bg-green-200 transition"><div class="text-2xl">🧹</div><div class="text-sm font-semibold">Housekeeping</div></button>
-      <button onclick="loginAsRole('maintenance')" class="p-4 bg-yellow-100 rounded-2xl hover:bg-yellow-200 transition"><div class="text-2xl">🔧</div><div class="text-sm font-semibold">Maintenance</div></button>
-      <button onclick="loginAsRole('restaurant')" class="p-4 bg-red-100 rounded-2xl hover:bg-red-200 transition"><div class="text-2xl">🍽️</div><div class="text-sm font-semibold">Restaurant</div></button>
-      <button onclick="loginAsRole('laundry')" class="p-4 bg-cyan-100 rounded-2xl hover:bg-cyan-200 transition"><div class="text-2xl">🧺</div><div class="text-sm font-semibold">Laundry</div></button>
-      <button onclick="loginAsRole('security')" class="p-4 bg-gray-100 rounded-2xl hover:bg-gray-200 transition"><div class="text-2xl">🛡️</div><div class="text-sm font-semibold">Security</div></button>
-      <button onclick="loginAsRole('it_support')" class="p-4 bg-indigo-100 rounded-2xl hover:bg-indigo-200 transition"><div class="text-2xl">💻</div><div class="text-sm font-semibold">IT Support</div></button>
+      <button onclick="loginAsRole('super_admin')" class="p-4 bg-purple-100 dark:bg-purple-900/30 rounded-2xl hover:bg-purple-200 transition"><div class="text-2xl">👑</div><div class="text-sm font-semibold" data-i18n="roleSuperAdmin">Super Admin</div></button>
+      <button onclick="loginAsRole('front_desk')" class="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-2xl hover:bg-blue-200 transition"><div class="text-2xl">🛎️</div><div class="text-sm font-semibold" data-i18n="roleFrontDesk">Front Desk</div></button>
+      <button onclick="loginAsRole('housekeeping')" class="p-4 bg-green-100 dark:bg-green-900/30 rounded-2xl hover:bg-green-200 transition"><div class="text-2xl">🧹</div><div class="text-sm font-semibold" data-i18n="roleHousekeeping">Housekeeping</div></button>
+      <button onclick="loginAsRole('maintenance')" class="p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-2xl hover:bg-yellow-200 transition"><div class="text-2xl">🔧</div><div class="text-sm font-semibold" data-i18n="roleMaintenance">Maintenance</div></button>
+      <button onclick="loginAsRole('restaurant')" class="p-4 bg-red-100 dark:bg-red-900/30 rounded-2xl hover:bg-red-200 transition"><div class="text-2xl">🍽️</div><div class="text-sm font-semibold" data-i18n="roleRestaurant">Restaurant</div></button>
+      <button onclick="loginAsRole('laundry')" class="p-4 bg-cyan-100 dark:bg-cyan-900/30 rounded-2xl hover:bg-cyan-200 transition"><div class="text-2xl">🧺</div><div class="text-sm font-semibold" data-i18n="roleLaundry">Laundry</div></button>
+      <button onclick="loginAsRole('security')" class="p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl hover:bg-gray-200 transition"><div class="text-2xl">🛡️</div><div class="text-sm font-semibold" data-i18n="roleSecurity">Security</div></button>
+      <button onclick="loginAsRole('it_support')" class="p-4 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl hover:bg-indigo-200 transition"><div class="text-2xl">💻</div><div class="text-sm font-semibold" data-i18n="roleIT">IT Support</div></button>
     </div>
   </div>
 </div>
@@ -240,135 +290,256 @@
       <h1 class="text-lg font-bold">👑 <span id="adminHotelName">Crown Plaza</span> - <span id="roleDisplay">Admin</span></h1>
       <div class="flex items-center gap-2">
         <span id="adminClock" class="bg-white/20 px-2 py-1 rounded-full text-xs"></span>
-        <button onclick="logoutAdmin()" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-sm">Logout</button>
+        <button onclick="logoutAdmin()" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-sm" data-i18n="logout">Logout</button>
       </div>
     </div>
   </header>
 
-  <div class="bg-white shadow-sm border-b overflow-x-auto" style="background: inherit;">
+  <div class="bg-white dark:bg-gray-800 shadow-sm border-b overflow-x-auto">
     <div class="flex px-4 py-2 gap-1 overflow-x-auto">
-      <button onclick="showAdminTab('overview')" class="admin-tab px-3 py-1 text-sm font-medium text-purple-600 border-b-2 border-purple-600">📊 Overview</button>
-      <button onclick="showAdminTab('rooms')" class="admin-tab px-3 py-1 text-sm font-medium text-gray-600">🏨 Rooms</button>
-      <button onclick="showAdminTab('guests')" class="admin-tab px-3 py-1 text-sm font-medium text-gray-600">👥 Guests</button>
-      <button onclick="showAdminTab('food')" class="admin-tab px-3 py-1 text-sm font-medium text-gray-600">🍽️ Food</button>
-      <button onclick="showAdminTab('inventory')" class="admin-tab px-3 py-1 text-sm font-medium text-gray-600">📦 Inventory</button>
-      <button onclick="showAdminTab('requests')" class="admin-tab px-3 py-1 text-sm font-medium text-gray-600">📋 Requests</button>
-      <button onclick="showAdminTab('settings')" class="admin-tab px-3 py-1 text-sm font-medium text-gray-600">⚙️ Settings</button>
+      <button onclick="showAdminTab('overview')" class="admin-tab px-3 py-1 text-sm font-medium text-purple-600 border-b-2 border-purple-600" data-i18n="tabOverview">📊 Overview</button>
+      <button onclick="showAdminTab('rooms')" class="admin-tab px-3 py-1 text-sm font-medium text-gray-600" data-i18n="tabRooms">🏨 Rooms</button>
+      <button onclick="showAdminTab('guests')" class="admin-tab px-3 py-1 text-sm font-medium text-gray-600" data-i18n="tabGuests">👥 Guests</button>
+      <button onclick="showAdminTab('food')" class="admin-tab px-3 py-1 text-sm font-medium text-gray-600" data-i18n="tabFood">🍽️ Food</button>
+      <button onclick="showAdminTab('inventory')" class="admin-tab px-3 py-1 text-sm font-medium text-gray-600" data-i18n="tabInventory">📦 Inventory</button>
+      <button onclick="showAdminTab('requests')" class="admin-tab px-3 py-1 text-sm font-medium text-gray-600" data-i18n="tabRequests">📋 Requests</button>
+      <button onclick="showAdminTab('settings')" class="admin-tab px-3 py-1 text-sm font-medium text-gray-600" data-i18n="tabSettings">⚙️ Settings</button>
     </div>
   </div>
 
   <div class="p-4 max-w-7xl mx-auto">
     <div id="overviewTab">
       <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        <div class="glass-card text-center"><div class="text-2xl">🏨</div><div id="statTotalRooms" class="text-2xl font-bold">0</div><div class="text-xs">Total Rooms</div></div>
-        <div class="glass-card text-center"><div class="text-2xl">🟢</div><div id="statOccupied" class="text-2xl font-bold text-green-600">0</div><div class="text-xs">Occupied</div></div>
-        <div class="glass-card text-center"><div class="text-2xl">📋</div><div id="statOpenRequests" class="text-2xl font-bold text-orange-600">0</div><div class="text-xs">Open</div></div>
-        <div class="glass-card text-center"><div class="text-2xl">🔄</div><div id="statInProgress" class="text-2xl font-bold text-blue-600">0</div><div class="text-xs">In Progress</div></div>
-        <div class="glass-card text-center"><div class="text-2xl">🚨</div><div id="statEmergency" class="text-2xl font-bold text-red-600">0</div><div class="text-xs">Emergency</div></div>
+        <div class="glass-card text-center"><div class="text-2xl">🏨</div><div id="statTotalRooms" class="text-2xl font-bold">0</div><div class="text-xs" data-i18n="totalRooms">Total Rooms</div></div>
+        <div class="glass-card text-center"><div class="text-2xl">🟢</div><div id="statOccupied" class="text-2xl font-bold text-green-600">0</div><div class="text-xs" data-i18n="occupied">Occupied</div></div>
+        <div class="glass-card text-center"><div class="text-2xl">📋</div><div id="statOpenRequests" class="text-2xl font-bold text-orange-600">0</div><div class="text-xs" data-i18n="open">Open</div></div>
+        <div class="glass-card text-center"><div class="text-2xl">🔄</div><div id="statInProgress" class="text-2xl font-bold text-blue-600">0</div><div class="text-xs" data-i18n="inProgress">In Progress</div></div>
+        <div class="glass-card text-center"><div class="text-2xl">🚨</div><div id="statEmergency" class="text-2xl font-bold text-red-600">0</div><div class="text-xs" data-i18n="emergency">Emergency</div></div>
       </div>
     </div>
 
     <div id="roomsTab" class="hidden">
-      <div class="glass-card"><div class="flex justify-between items-center mb-4"><h3 class="font-semibold">🏨 Room Management</h3><button onclick="openRoomModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm">+ Add Room</button></div>
-      <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-gray-50"><tr><th class="p-2">#</th><th>Type</th><th>Price</th><th>Status</th><th>Guest</th><th>Actions</th></tr></thead><tbody id="roomsList"></tbody></table></div></div>
+      <div class="glass-card"><div class="flex justify-between items-center mb-4 flex-wrap gap-2"><h3 class="font-semibold" data-i18n="roomManagement">🏨 Room Management</h3><button onclick="openRoomModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm" data-i18n="addNewRoom">+ Add Room</button></div>
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-2">#</th><th data-i18n="roomType">Type</th><th data-i18n="price">Price</th><th data-i18n="status">Status</th><th data-i18n="guestName">Guest</th><th data-i18n="actions">Actions</th></tr></thead><tbody id="roomsList"></tbody></table></div></div>
     </div>
 
     <div id="guestsTab" class="hidden">
-      <div class="glass-card"><div class="flex justify-between items-center mb-4"><h3 class="font-semibold">👥 Guest Management</h3><button onclick="openGuestModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm">+ Add Guest</button></div>
-      <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-gray-50"><tr><th class="p-2">Name</th><th>Room</th><th>Points</th><th>Actions</th></tr></thead><tbody id="guestsList"></tbody></table></div></div>
+      <div class="glass-card"><div class="flex justify-between items-center mb-4"><h3 class="font-semibold" data-i18n="guestManagement">👥 Guest Management</h3><button onclick="openGuestModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm" data-i18n="addNewGuest">+ Add Guest</button></div>
+      <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th data-i18n="guestName">Name</th><th data-i18n="roomNumber">Room</th><th data-i18n="points">Points</th><th data-i18n="actions">Actions</th></tr></thead><tbody id="guestsList"></tbody></table></div></div>
     </div>
 
-    <div id="foodTab" class="hidden">
-      <div class="glass-card"><div class="flex justify-between items-center mb-4"><h3 class="font-semibold">🍽️ Food Menu</h3><button onclick="openFoodModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm">+ Add Dish</button></div><div id="foodList" class="space-y-2"></div></div>
-    </div>
+    <div id="foodTab" class="hidden"><div class="glass-card"><div class="flex justify-between items-center mb-4"><h3 class="font-semibold" data-i18n="foodMenuManagement">🍽️ Food Menu</h3><button onclick="openFoodModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm" data-i18n="addNewDish">+ Add Dish</button></div><div id="foodList" class="space-y-2"></div></div></div>
 
-    <div id="inventoryTab" class="hidden">
-      <div class="glass-card"><div class="flex justify-between items-center mb-4"><h3 class="font-semibold">📦 Inventory</h3><button onclick="openInventoryModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm">+ Add Item</button></div>
-      <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-gray-50"><tr><th>Item</th><th>Stock</th><th>Actions</th></tr></thead><tbody id="inventoryList"></tbody></table></div></div>
-    </div>
+    <div id="inventoryTab" class="hidden"><div class="glass-card"><div class="flex justify-between items-center mb-4"><h3 class="font-semibold" data-i18n="inventoryManagement">📦 Inventory</h3><button onclick="openInventoryModal()" class="gradient-bg text-white px-4 py-2 rounded-lg text-sm" data-i18n="addNewItem">+ Add Item</button></div><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th data-i18n="itemName">Item</th><th data-i18n="stock">Stock</th><th data-i18n="actions">Actions</th></tr></thead><tbody id="inventoryList"></tbody></table></div></div></div>
 
-    <div id="requestsTab" class="hidden">
-      <div class="glass-card"><h3 class="font-semibold mb-3">📋 Service Requests</h3><div id="requestsList" class="space-y-2"></div></div>
-    </div>
+    <div id="requestsTab" class="hidden"><div class="glass-card"><h3 class="font-semibold mb-3" data-i18n="serviceRequests">📋 Service Requests</h3><div id="requestsList" class="space-y-2"></div></div></div>
 
-    <div id="settingsTab" class="hidden">
-      <div class="glass-card space-y-4"><h3 class="font-semibold">⚙️ Settings</h3>
-        <div><label class="text-sm font-medium">Hotel Name</label><div class="flex gap-2 mt-1"><input type="text" id="hotelNameSetting" class="flex-1 px-3 py-2 border rounded-lg"><button onclick="saveHotelName()" class="gradient-bg text-white px-4 py-2 rounded-lg">Save</button></div></div>
-        <div><label class="text-sm font-medium">Currency Symbol</label><div class="flex gap-2 mt-1"><input type="text" id="currencySetting" class="w-20 px-3 py-2 border rounded-lg" value="$"><button onclick="saveCurrency()" class="gradient-bg text-white px-4 py-2 rounded-lg">Save</button></div></div>
-        <div><label class="text-sm font-medium">WiFi Password</label><div class="flex gap-2 mt-1"><input type="text" id="wifiSetting" class="flex-1 px-3 py-2 border rounded-lg"><button onclick="saveWifi()" class="gradient-bg text-white px-4 py-2 rounded-lg">Save</button></div></div>
-      </div>
-    </div>
+    <div id="settingsTab" class="hidden"><div class="glass-card space-y-4"><h3 class="font-semibold" data-i18n="hotelSettings">⚙️ Hotel Settings</h3>
+      <div><label class="text-sm font-medium" data-i18n="hotelNameLabel">Hotel Name</label><div class="flex gap-2 mt-1"><input type="text" id="hotelNameSetting" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"><button onclick="saveHotelName()" class="gradient-bg text-white px-4 py-2 rounded-lg" data-i18n="saveName">Save</button></div></div>
+      <div><label class="text-sm font-medium" data-i18n="currencySymbolLabel">Currency Symbol</label><div class="flex gap-2 mt-1"><input type="text" id="currencySetting" class="w-20 px-3 py-2 border rounded-lg dark:bg-gray-700" value="$"><button onclick="saveCurrency()" class="gradient-bg text-white px-4 py-2 rounded-lg" data-i18n="saveCurrency">Save</button></div></div>
+      <div><label class="text-sm font-medium" data-i18n="wifiPasswordLabel">WiFi Password</label><div class="flex gap-2 mt-1"><input type="text" id="wifiSetting" class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700"><button onclick="saveWifi()" class="gradient-bg text-white px-4 py-2 rounded-lg" data-i18n="savePassword">Save</button></div></div>
+    </div></div>
   </div>
 </div>
 
-<!-- ==================== GUEST DASHBOARD ==================== -->
+<!-- ==================== GUEST DASHBOARD - 6 TABS ==================== -->
 <div id="guestDashboard" class="hidden pb-24">
   <header class="gradient-bg text-white shadow-lg sticky top-0 z-40">
-    <div class="flex justify-between items-center px-4 py-3">
+    <div class="flex justify-between items-center px-4 py-3 flex-wrap gap-2">
       <h1 class="text-lg font-bold">🏨 <span id="guestHotelName">Crown Plaza</span></h1>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <span id="guestClock" class="bg-white/20 px-2 py-1 rounded-full text-xs"></span>
         <span id="guestInfo" class="bg-white/20 px-2 py-1 rounded-full text-xs"></span>
         <span id="guestPoints" class="bg-yellow-500/30 px-2 py-1 rounded-full text-xs">⭐ 0 pts</span>
-        <button onclick="logoutGuest()" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-sm">Logout</button>
+        <button onclick="logoutGuest()" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-sm" data-i18n="logout">Logout</button>
       </div>
     </div>
   </header>
 
-  <div class="p-4">
+  <div class="p-4 max-w-7xl mx-auto">
+    <!-- Guest Stats -->
     <div class="grid grid-cols-3 gap-3 mb-5">
-      <div class="glass-card text-center"><div class="text-xl">📋</div><div id="guestTotalRequests" class="text-lg font-bold">0</div><div class="text-xs">My Requests</div></div>
-      <div class="glass-card text-center"><div class="text-xl">⏳</div><div id="guestPending" class="text-lg font-bold text-yellow-600">0</div><div class="text-xs">Pending</div></div>
-      <div class="glass-card text-center"><div class="text-xl">✅</div><div id="guestCompleted" class="text-lg font-bold text-green-600">0</div><div class="text-xs">Completed</div></div>
+      <div class="glass-card text-center"><div class="text-xl">📋</div><div id="guestTotalRequests" class="text-lg font-bold">0</div><div class="text-xs" data-i18n="myRequests">My Requests</div></div>
+      <div class="glass-card text-center"><div class="text-xl">⏳</div><div id="guestPending" class="text-lg font-bold text-yellow-600">0</div><div class="text-xs" data-i18n="pending">Pending</div></div>
+      <div class="glass-card text-center"><div class="text-xl">✅</div><div id="guestCompleted" class="text-lg font-bold text-green-600">0</div><div class="text-xs" data-i18n="completed">Completed</div></div>
     </div>
 
+    <!-- Guest Tabs - 6 Tabs -->
     <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-5">
-      <button onclick="showGuestTab('request')" class="guest-tab p-2 bg-purple-100 rounded-xl text-center"><div class="text-xl">📝</div><div class="text-xs">Request</div></button>
-      <button onclick="showGuestTab('food')" class="guest-tab p-2 bg-orange-100 rounded-xl text-center"><div class="text-xl">🍕</div><div class="text-xs">Food</div></button>
-      <button onclick="showGuestTab('inventory')" class="guest-tab p-2 bg-blue-100 rounded-xl text-center"><div class="text-xl">📦</div><div class="text-xs">Inventory</div></button>
-      <button onclick="showGuestTab('cab')" class="guest-tab p-2 bg-green-100 rounded-xl text-center"><div class="text-xl">🚗</div><div class="text-xs">Cab</div></button>
-      <button onclick="showGuestTab('history')" class="guest-tab p-2 bg-yellow-100 rounded-xl text-center"><div class="text-xl">📋</div><div class="text-xs">History</div></button>
-      <button onclick="showGuestTab('info')" class="guest-tab p-2 bg-red-100 rounded-xl text-center"><div class="text-xl">ℹ️</div><div class="text-xs">Info</div></button>
+      <button onclick="showGuestTab('request')" class="guest-tab p-2 bg-purple-100 dark:bg-purple-900/30 rounded-xl text-center hover:bg-purple-200 transition" data-tab="request"><div class="text-xl">📝</div><div class="text-xs" data-i18n="requestTab">Request</div></button>
+      <button onclick="showGuestTab('food')" class="guest-tab p-2 bg-orange-100 dark:bg-orange-900/30 rounded-xl text-center hover:bg-orange-200 transition" data-tab="food"><div class="text-xl">🍕</div><div class="text-xs" data-i18n="foodTab">Food</div></button>
+      <button onclick="showGuestTab('inventory')" class="guest-tab p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-center hover:bg-blue-200 transition" data-tab="inventory"><div class="text-xl">📦</div><div class="text-xs" data-i18n="inventoryTab">Inventory</div></button>
+      <button onclick="showGuestTab('cab')" class="guest-tab p-2 bg-green-100 dark:bg-green-900/30 rounded-xl text-center hover:bg-green-200 transition" data-tab="cab"><div class="text-xl">🚗</div><div class="text-xs" data-i18n="cabTab">Cab</div></button>
+      <button onclick="showGuestTab('history')" class="guest-tab p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl text-center hover:bg-yellow-200 transition" data-tab="history"><div class="text-xl">📋</div><div class="text-xs" data-i18n="historyTab">History</div></button>
+      <button onclick="showGuestTab('info')" class="guest-tab p-2 bg-red-100 dark:bg-red-900/30 rounded-xl text-center hover:bg-red-200 transition" data-tab="info"><div class="text-xl">ℹ️</div><div class="text-xs" data-i18n="infoTab">Info & Rewards</div></button>
     </div>
 
+    <!-- Request Tab -->
     <div id="guestRequestTab" class="glass-card mb-4">
-      <h3 class="font-semibold mb-3">📝 New Request</h3>
+      <h3 class="font-semibold mb-3" data-i18n="newRequest">📝 New Request</h3>
       <form id="guestRequestForm" class="space-y-3">
-        <select id="guestDept" class="w-full px-3 py-2 border rounded-lg"><option value="Housekeeping">🧹 Housekeeping</option><option value="Maintenance">🔧 Maintenance</option><option value="Restaurant">🍽️ Restaurant</option><option value="Laundry">🧺 Laundry</option><option value="IT">💻 IT</option></select>
-        <select id="guestService" class="w-full px-3 py-2 border rounded-lg"><option value="Room Cleaning">Room Cleaning</option><option value="Extra Towels">Extra Towels</option><option value="Deep Cleaning">Deep Cleaning</option></select>
-        <select id="guestPriority" class="w-full px-3 py-2 border rounded-lg"><option value="normal">🟢 Normal</option><option value="urgent">⚠️ Urgent</option></select>
-        <textarea id="guestDesc" rows="2" placeholder="Describe your issue..." class="w-full px-3 py-2 border rounded-lg"></textarea>
-        <button type="submit" class="w-full gradient-bg text-white py-2 rounded-lg font-semibold">Submit Request</button>
+        <select id="guestDept" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700"><option value="Housekeeping">🧹 Housekeeping</option><option value="Maintenance">🔧 Maintenance</option><option value="Restaurant">🍽️ Restaurant</option><option value="Laundry">🧺 Laundry</option><option value="IT">💻 IT</option></select>
+        <select id="guestService" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700"><option value="Room Cleaning">Room Cleaning</option><option value="Extra Towels">Extra Towels</option></select>
+        <select id="guestPriority" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700"><option value="normal" data-i18n="normal">🟢 Normal</option><option value="urgent" data-i18n="urgent">⚠️ Urgent</option></select>
+        <textarea id="guestDesc" rows="2" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700" data-i18n-placeholder="describeIssue" placeholder="Describe your issue..."></textarea>
+        <button type="submit" class="w-full gradient-bg text-white py-2 rounded-lg font-semibold" data-i18n="submitRequest">Submit Request</button>
       </form>
     </div>
 
-    <div id="guestFoodTab" class="hidden glass-card mb-4"><h3 class="font-semibold mb-3">🍕 Food Menu</h3><div id="guestFoodMenu" class="grid grid-cols-2 gap-2 mb-3"></div><div class="border-t pt-3"><div id="guestCart" class="space-y-1 text-sm mb-2"></div><button onclick="placeOrder()" class="w-full gradient-bg text-white py-2 rounded-lg">🛒 Place Order</button></div></div>
+    <!-- Food Tab -->
+    <div id="guestFoodTab" class="hidden glass-card mb-4"><h3 class="font-semibold mb-3" data-i18n="foodMenu">🍕 Food Menu</h3><div id="guestFoodMenu" class="grid grid-cols-2 gap-2 mb-3"></div><div class="border-t pt-3 dark:border-gray-700"><div class="flex justify-between mb-2"><span class="font-semibold" data-i18n="yourCart">Your Cart</span><span id="cartTotal" class="font-bold text-purple-600">$0</span></div><div id="guestCart" class="space-y-1 text-sm mb-2"></div><button onclick="placeOrder()" class="w-full gradient-bg text-white py-2 rounded-lg" data-i18n="placeOrder">🛒 Place Order</button></div></div>
 
-    <div id="guestInventoryTab" class="hidden glass-card mb-4"><h3 class="font-semibold mb-3">📦 Available Items</h3><div id="guestInventoryList" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div></div>
+    <!-- Inventory Tab -->
+    <div id="guestInventoryTab" class="hidden glass-card mb-4"><h3 class="font-semibold mb-3" data-i18n="itemsAvailable">📦 Items Available</h3><div id="guestInventoryList" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div><div class="mt-3 text-xs text-gray-500 text-center" data-i18n="inventoryTip">💡 Click "Request More" - Items delivered within 10 minutes</div></div>
 
-    <div id="guestCabTab" class="hidden glass-card mb-4"><h3 class="font-semibold mb-3">🚗 Transport</h3><form id="cabForm"><select id="cabType" class="w-full px-3 py-2 border rounded-lg mb-2"><option value="airport">✈️ Airport Transfer - $30</option><option value="local">🚕 Local Cab - $15/hr</option></select><input type="datetime-local" id="cabTime" class="w-full px-3 py-2 border rounded-lg mb-3"><button type="submit" class="w-full gradient-bg text-white py-2 rounded-lg">Book Now</button></form></div>
+    <!-- Cab Tab -->
+    <div id="guestCabTab" class="hidden glass-card mb-4"><h3 class="font-semibold mb-3" data-i18n="transportBooking">🚗 Transport Booking</h3><form id="cabForm"><select id="cabType" class="w-full px-3 py-2 border rounded-lg mb-2 dark:bg-gray-700"><option value="airport" data-i18n="airportTransfer">✈️ Airport Transfer - $30</option><option value="local" data-i18n="localCab">🚕 Local Cab - $15/hr</option></select><input type="datetime-local" id="cabTime" class="w-full px-3 py-2 border rounded-lg mb-3 dark:bg-gray-700"><button type="submit" class="w-full gradient-bg text-white py-2 rounded-lg" data-i18n="bookNow">📅 Book Now</button></form></div>
 
-    <div id="guestHistoryTab" class="hidden glass-card mb-4"><h3 class="font-semibold mb-3">📋 My Requests</h3><div id="guestHistoryList" class="space-y-2"></div></div>
+    <!-- History Tab -->
+    <div id="guestHistoryTab" class="hidden glass-card mb-4"><h3 class="font-semibold mb-3" data-i18n="myRequestsHistory">📋 My Requests</h3><div id="guestHistoryList" class="space-y-2"></div></div>
 
-    <div id="guestInfoTab" class="hidden glass-card mb-4"><h3 class="font-semibold mb-3">ℹ️ Hotel Info</h3><div class="bg-gray-50 p-3 rounded-lg mb-3"><div class="flex justify-between"><span>📶 WiFi:</span><span id="guestWifiDisplay">CrownPlaza@2024</span><button onclick="copyWifi()" class="text-purple-600">Copy</button></div><div class="flex justify-between mt-2"><span>🌍 Time:</span><span id="guestLocalTime"></span></div><div class="flex justify-between mt-2"><span>🍽️ Restaurant:</span><span>7AM-10PM</span></div><div class="flex justify-between mt-2"><span>💪 Gym:</span><span>6AM-10PM</span></div><div class="flex justify-between mt-2"><span>🕐 Checkout:</span><span>11AM</span></div></div><div class="bg-yellow-50 p-3 rounded-lg mb-3"><div class="flex justify-between"><span>⭐ My Points: <span id="guestPointsDisplay">0</span></span><button onclick="showRatingModal()" class="bg-purple-600 text-white px-3 py-1 rounded-lg text-sm">Rate Now</button></div></div><div class="flex flex-wrap gap-2"><button onclick="setWakeUpCall()" class="bg-purple-100 px-3 py-1.5 rounded-lg">⏰ Wake-up</button><button onclick="toggleDND()" id="dndBtn" class="bg-gray-100 px-3 py-1.5 rounded-lg">🔕 DND: OFF</button><button onclick="alert('Local Guide')" class="bg-green-100 px-3 py-1.5 rounded-lg">🗺️ Guide</button><button onclick="alert('Emergency: Police 100')" class="bg-red-100 px-3 py-1.5 rounded-lg">📞 Emergency</button></div></div>
+    <!-- Info & Rewards Tab -->
+    <div id="guestInfoTab" class="hidden glass-card mb-4">
+      <h3 class="font-semibold mb-3" data-i18n="hotelInformation">ℹ️ Hotel Information</h3>
+      <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-3">
+        <div class="flex justify-between py-1"><span data-i18n="wifi">📶 WiFi:</span><span id="guestWifiDisplay" class="font-mono">CrownPlaza@2024</span><button onclick="copyWifi()" class="text-purple-600 text-sm" data-i18n="copy">Copy</button></div>
+        <div class="flex justify-between py-1"><span data-i18n="localTime">🌍 Local Time:</span><span id="guestLocalTime"></span></div>
+        <div class="flex justify-between py-1"><span data-i18n="restaurantTiming">🍽️ Restaurant:</span><span>7AM - 10PM</span></div>
+        <div class="flex justify-between py-1"><span data-i18n="gymTiming">💪 Gym:</span><span>6AM - 10PM</span></div>
+        <div class="flex justify-between py-1"><span data-i18n="checkoutTime">🕐 Checkout:</span><span>11:00 AM</span></div>
+      </div>
+      <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 mb-3">
+        <div class="flex justify-between items-center flex-wrap gap-2"><div><span class="font-semibold" data-i18n="myPoints">⭐ My Points</span><div id="guestPointsDisplay" class="text-2xl font-bold text-yellow-600">0</div></div><button onclick="showRatingModal()" class="bg-purple-600 text-white px-3 py-1 rounded-lg text-sm" data-i18n="rateNow">Rate Now</button></div>
+        <div class="mt-2 text-sm"><p data-i18n="loyaltyBenefits">🏆 100 Points = $10 Discount | 500 Points = Free Night</p></div>
+      </div>
+      <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 mb-3"><p class="font-semibold mb-2" data-i18n="specialOffers">🎁 Today's Offer: Breakfast Buffet - 20% OFF!</p></div>
+      <div class="flex flex-wrap gap-2"><button onclick="setWakeUpCall()" class="bg-purple-100 dark:bg-purple-900/30 px-3 py-1.5 rounded-lg text-sm" data-i18n="wakeUpCall">⏰ Wake-up</button><button onclick="toggleDND()" id="dndBtn" class="bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg text-sm" data-i18n="dnd">🔕 DND: OFF</button><button onclick="alert('Local Guide: Mall 2km, Beach 5km')" class="bg-green-100 dark:bg-green-900/30 px-3 py-1.5 rounded-lg text-sm" data-i18n="localGuide">🗺️ Guide</button><button onclick="alert('Emergency: Police 100, Ambulance 102, Fire 101')" class="bg-red-100 dark:bg-red-900/30 px-3 py-1.5 rounded-lg text-sm" data-i18n="emergencyContacts">📞 Emergency</button></div>
+    </div>
   </div>
 </div>
 
-<!-- ==================== MODALS ==================== -->
-<div id="roomModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-4">Add Room</h3><form id="roomForm"><input type="text" id="roomNumber" placeholder="Room Number" class="w-full px-3 py-2 border rounded-lg mb-2" required><select id="roomType" class="w-full px-3 py-2 border rounded-lg mb-2"><option>Standard</option><option>Deluxe</option><option>Suite</option></select><input type="number" id="roomPrice" placeholder="Price" class="w-full px-3 py-2 border rounded-lg mb-2" required><select id="roomStatus" class="w-full px-3 py-2 border rounded-lg mb-2"><option>Vacant</option><option>Occupied</option></select><div class="flex gap-2"><button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg">Save</button><button type="button" onclick="closeModal('roomModal')" class="flex-1 bg-gray-200 py-2 rounded-lg">Cancel</button></div></form></div></div>
+<!-- Modals -->
+<div id="roomModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-4" data-i18n="addNewRoom">Add Room</h3><form id="roomForm"><input type="text" id="roomNumber" placeholder="Room Number" class="w-full px-3 py-2 border rounded-lg mb-2" required><select id="roomType" class="w-full px-3 py-2 border rounded-lg mb-2"><option value="Standard" data-i18n="typeStandard">Standard</option><option value="Deluxe" data-i18n="typeDeluxe">Deluxe</option><option value="Suite" data-i18n="typeSuite">Suite</option></select><input type="number" id="roomPrice" placeholder="Price" class="w-full px-3 py-2 border rounded-lg mb-2" required><select id="roomStatus" class="w-full px-3 py-2 border rounded-lg mb-2"><option value="Vacant" data-i18n="statusVacant">Vacant</option><option value="Occupied" data-i18n="statusOccupied">Occupied</option></select><div class="flex gap-2"><button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg" data-i18n="save">Save</button><button type="button" onclick="closeModal('roomModal')" class="flex-1 bg-gray-200 dark:bg-gray-700 py-2 rounded-lg" data-i18n="cancel">Cancel</button></div></form></div></div>
 
-<div id="foodModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-4">Add Dish</h3><form id="foodForm"><input type="text" id="foodName" placeholder="Dish Name" class="w-full px-3 py-2 border rounded-lg mb-2" required><input type="number" id="foodPrice" placeholder="Price" class="w-full px-3 py-2 border rounded-lg mb-2" required><div class="flex gap-2"><button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg">Save</button><button type="button" onclick="closeModal('foodModal')" class="flex-1 bg-gray-200 py-2 rounded-lg">Cancel</button></div></form></div></div>
+<div id="foodModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-4" data-i18n="addNewDish">Add Dish</h3><form id="foodForm"><input type="text" id="foodName" placeholder="Dish Name" class="w-full px-3 py-2 border rounded-lg mb-2" required><input type="number" id="foodPrice" placeholder="Price" class="w-full px-3 py-2 border rounded-lg mb-2" required><div class="flex gap-2"><button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg" data-i18n="save">Save</button><button type="button" onclick="closeModal('foodModal')" class="flex-1 bg-gray-200 dark:bg-gray-700 py-2 rounded-lg" data-i18n="cancel">Cancel</button></div></form></div></div>
 
-<div id="guestModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-4">Add Guest</h3><form id="guestForm"><input type="text" id="guestNameField" placeholder="Guest Name" class="w-full px-3 py-2 border rounded-lg mb-2" required><input type="number" id="guestRoomField" placeholder="Room" class="w-full px-3 py-2 border rounded-lg mb-3" required><div class="flex gap-2"><button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg">Save</button><button type="button" onclick="closeModal('guestModal')" class="flex-1 bg-gray-200 py-2 rounded-lg">Cancel</button></div></form></div></div>
+<div id="guestModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-4" data-i18n="addNewGuest">Add Guest</h3><form id="guestForm"><input type="text" id="guestNameField" placeholder="Guest Name" class="w-full px-3 py-2 border rounded-lg mb-2" required><input type="number" id="guestRoomField" placeholder="Room" class="w-full px-3 py-2 border rounded-lg mb-3" required><div class="flex gap-2"><button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg" data-i18n="save">Save</button><button type="button" onclick="closeModal('guestModal')" class="flex-1 bg-gray-200 dark:bg-gray-700 py-2 rounded-lg" data-i18n="cancel">Cancel</button></div></form></div></div>
 
-<div id="inventoryModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-4">Add Item</h3><form id="inventoryForm"><input type="text" id="invName" placeholder="Item Name" class="w-full px-3 py-2 border rounded-lg mb-2" required><input type="number" id="invQty" placeholder="Quantity" class="w-full px-3 py-2 border rounded-lg mb-2" required><div class="flex gap-2"><button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg">Save</button><button type="button" onclick="closeModal('inventoryModal')" class="flex-1 bg-gray-200 py-2 rounded-lg">Cancel</button></div></form></div></div>
+<div id="inventoryModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-4" data-i18n="addNewItem">Add Item</h3><form id="inventoryForm"><input type="text" id="invName" placeholder="Item Name" class="w-full px-3 py-2 border rounded-lg mb-2" required><input type="number" id="invQty" placeholder="Quantity" class="w-full px-3 py-2 border rounded-lg mb-3" required><div class="flex gap-2"><button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg" data-i18n="save">Save</button><button type="button" onclick="closeModal('inventoryModal')" class="flex-1 bg-gray-200 dark:bg-gray-700 py-2 rounded-lg" data-i18n="cancel">Cancel</button></div></form></div></div>
 
-<div id="ratingModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-4">⭐ Rate Your Stay</h3><div><label>Overall</label><div id="overallStars" class="flex gap-1 text-2xl mb-2"></div></div><div><label>Service</label><div id="serviceStars" class="flex gap-1 text-2xl mb-2"></div></div><div><label>Cleanliness</label><div id="cleanStars" class="flex gap-1 text-2xl mb-2"></div></div><textarea id="ratingComment" rows="2" placeholder="Your feedback..." class="w-full px-3 py-2 border rounded-lg mb-3"></textarea><button onclick="submitRating()" class="w-full gradient-bg text-white py-2 rounded-lg">Submit Review</button></div></div>
+<div id="ratingModal" class="modal"><div class="modal-content"><h3 class="text-lg font-bold mb-4" data-i18n="rateYourStay">⭐ Rate Your Stay</h3><div><label data-i18n="overall">Overall</label><div id="overallStars" class="flex gap-1 text-2xl mb-2"></div></div><div><label data-i18n="service">Service</label><div id="serviceStars" class="flex gap-1 text-2xl mb-2"></div></div><div><label data-i18n="cleanliness">Cleanliness</label><div id="cleanStars" class="flex gap-1 text-2xl mb-2"></div></div><textarea id="ratingComment" rows="2" class="w-full px-3 py-2 border rounded-lg mb-3" data-i18n-placeholder="shareExperience" placeholder="Share your experience..."></textarea><button onclick="submitRating()" class="w-full gradient-bg text-white py-2 rounded-lg" data-i18n="submitReview">Submit Review</button></div></div>
 
 <script>
-// ==================== DATA STORAGE (Only 5 preferences in localStorage) ====================
-// Dark Mode, Font Size, Brightness, Language, Theme - ONLY THESE 5!
+// ==================== COMPLETE TRANSLATIONS - ENGLISH, HINDI, ARABIC ====================
+const translations = {
+  en: {
+    welcomeSubtitle: "Complete Management System", guestTab: "Guest", adminTab: "Admin",
+    yourName: "Your Name", enterName: "Enter your name", roomNumber: "Room Number",
+    roomNumberPlaceholder: "e.g., 101", loginGuest: "🔐 Login as Guest", emailAddress: "Email Address",
+    adminEmailPlaceholder: "admin@crownplaza.com", password: "Password", passwordPlaceholder: "••••••••",
+    loginAdmin: "🔐 Login as Admin", back: "← Back", selectRole: "👑 Select Your Role",
+    roleSuperAdmin: "Super Admin", roleFrontDesk: "Front Desk", roleHousekeeping: "Housekeeping",
+    roleMaintenance: "Maintenance", roleRestaurant: "Restaurant", roleLaundry: "Laundry",
+    roleSecurity: "Security", roleIT: "IT Support", logout: "Logout",
+    tabOverview: "📊 Overview", tabRooms: "🏨 Rooms", tabGuests: "👥 Guests", tabFood: "🍽️ Food",
+    tabInventory: "📦 Inventory", tabRequests: "📋 Requests", tabSettings: "⚙️ Settings",
+    totalRooms: "Total Rooms", occupied: "Occupied", open: "Open", inProgress: "In Progress", emergency: "Emergency",
+    roomManagement: "🏨 Room Management", addNewRoom: "+ Add Room", roomType: "Type", price: "Price", status: "Status", guestName: "Guest", actions: "Actions",
+    guestManagement: "👥 Guest Management", addNewGuest: "+ Add Guest", points: "Points",
+    foodMenuManagement: "🍽️ Food Menu", addNewDish: "+ Add Dish",
+    inventoryManagement: "📦 Inventory", addNewItem: "+ Add Item", itemName: "Item", stock: "Stock",
+    serviceRequests: "📋 Service Requests", hotelSettings: "⚙️ Settings", hotelNameLabel: "Hotel Name", saveName: "Save",
+    currencySymbolLabel: "Currency Symbol", saveCurrency: "Save", wifiPasswordLabel: "WiFi Password", savePassword: "Save",
+    requestTab: "Request", foodTab: "Food", inventoryTab: "Inventory", cabTab: "Cab", historyTab: "History", infoTab: "Info & Rewards",
+    myRequests: "My Requests", pending: "Pending", completed: "Completed", newRequest: "📝 New Request",
+    selectDepartment: "Select Department", selectService: "Select Service", normal: "🟢 Normal", urgent: "⚠️ Urgent",
+    describeIssue: "Describe your issue...", submitRequest: "Submit Request", foodMenu: "🍕 Food Menu",
+    yourCart: "Your Cart", placeOrder: "🛒 Place Order", itemsAvailable: "📦 Items Available",
+    inventoryTip: "💡 Click Request More - Items delivered within 10 minutes",
+    transportBooking: "🚗 Transport Booking", airportTransfer: "✈️ Airport Transfer - $30",
+    localCab: "🚕 Local Cab - $15/hr", bookNow: "📅 Book Now", myRequestsHistory: "📋 My Requests",
+    hotelInformation: "ℹ️ Hotel Information", wifi: "📶 WiFi:", localTime: "🌍 Local Time:",
+    restaurantTiming: "🍽️ Restaurant:", gymTiming: "💪 Gym:", checkoutTime: "🕐 Checkout:",
+    copy: "Copy", myPoints: "⭐ My Points", rateNow: "Rate Now", loyaltyBenefits: "🏆 100 Points = $10 Discount | 500 Points = Free Night",
+    specialOffers: "🎁 Today's Offer: Breakfast Buffet - 20% OFF!",
+    wakeUpCall: "⏰ Wake-up", dnd: "🔕 DND: OFF", localGuide: "🗺️ Guide", emergencyContacts: "📞 Emergency",
+    rateYourStay: "⭐ Rate Your Stay", overall: "Overall", service: "Service", cleanliness: "Cleanliness",
+    shareExperience: "Share your experience...", submitReview: "Submit Review",
+    save: "Save", cancel: "Cancel", selectTheme: "Select Theme", typeStandard: "Standard", typeDeluxe: "Deluxe", typeSuite: "Suite", statusVacant: "Vacant", statusOccupied: "Occupied"
+  },
+  hi: {
+    welcomeSubtitle: "संपूर्ण प्रबंधन प्रणाली", guestTab: "अतिथि", adminTab: "व्यवस्थापक",
+    yourName: "आपका नाम", enterName: "अपना नाम दर्ज करें", roomNumber: "कमरा संख्या",
+    roomNumberPlaceholder: "जैसे 101", loginGuest: "🔐 अतिथि के रूप में लॉगिन करें", emailAddress: "ईमेल पता",
+    adminEmailPlaceholder: "admin@crownplaza.com", password: "पासवर्ड", passwordPlaceholder: "••••••••",
+    loginAdmin: "🔐 व्यवस्थापक के रूप में लॉगिन करें", back: "← वापस", selectRole: "👑 अपनी भूमिका चुनें",
+    roleSuperAdmin: "सुपर व्यवस्थापक", roleFrontDesk: "फ्रंट डेस्क", roleHousekeeping: "हाउसकीपिंग",
+    roleMaintenance: "रखरखाव", roleRestaurant: "रेस्तरां", roleLaundry: "लॉन्ड्री",
+    roleSecurity: "सुरक्षा", roleIT: "आईटी सहायता", logout: "लॉगआउट",
+    tabOverview: "📊 अवलोकन", tabRooms: "🏨 कमरे", tabGuests: "👥 अतिथि", tabFood: "🍽️ भोजन",
+    tabInventory: "📦 स्टॉक", tabRequests: "📋 अनुरोध", tabSettings: "⚙️ सेटिंग्स",
+    totalRooms: "कुल कमरे", occupied: "भरे हुए", open: "खुले", inProgress: "प्रगति पर", emergency: "आपातकालीन",
+    roomManagement: "🏨 कमरा प्रबंधन", addNewRoom: "+ कमरा जोड़ें", roomType: "प्रकार", price: "कीमत", status: "स्थिति", guestName: "अतिथि", actions: "कार्य",
+    guestManagement: "👥 अतिथि प्रबंधन", addNewGuest: "+ अतिथि जोड़ें", points: "अंक",
+    foodMenuManagement: "🍽️ भोजन मेनू", addNewDish: "+ व्यंजन जोड़ें",
+    inventoryManagement: "📦 स्टॉक", addNewItem: "+ आइटम जोड़ें", itemName: "आइटम", stock: "स्टॉक",
+    serviceRequests: "📋 सेवा अनुरोध", hotelSettings: "⚙️ सेटिंग्स", hotelNameLabel: "होटल का नाम", saveName: "सहेजें",
+    currencySymbolLabel: "मुद्रा प्रतीक", saveCurrency: "सहेजें", wifiPasswordLabel: "वाईफाई पासवर्ड", savePassword: "सहेजें",
+    requestTab: "अनुरोध", foodTab: "खाना", inventoryTab: "स्टॉक", cabTab: "कैब", historyTab: "इतिहास", infoTab: "जानकारी और पुरस्कार",
+    myRequests: "मेरे अनुरोध", pending: "लंबित", completed: "पूर्ण", newRequest: "📝 नया अनुरोध",
+    selectDepartment: "विभाग चुनें", selectService: "सेवा चुनें", normal: "🟢 सामान्य", urgent: "⚠️ तत्काल",
+    describeIssue: "अपनी समस्या बताएं...", submitRequest: "अनुरोध जमा करें", foodMenu: "🍕 भोजन मेनू",
+    yourCart: "आपका कार्ट", placeOrder: "🛒 ऑर्डर दें", itemsAvailable: "📦 उपलब्ध सामान",
+    inventoryTip: "💡 और चाहिए पर क्लिक करें - सामान 10 मिनट में आ जाएगा",
+    transportBooking: "🚗 परिवहन बुकिंग", airportTransfer: "✈️ एयरपोर्ट ट्रांसफर - ₹30",
+    localCab: "🚕 लोकल कैब - ₹15/घंटा", bookNow: "📅 अभी बुक करें", myRequestsHistory: "📋 मेरे अनुरोध",
+    hotelInformation: "ℹ️ होटल की जानकारी", wifi: "📶 वाईफाई:", localTime: "🌍 स्थानीय समय:",
+    restaurantTiming: "🍽️ रेस्तरां:", gymTiming: "💪 जिम:", checkoutTime: "🕐 चेकआउट:",
+    copy: "कॉपी", myPoints: "⭐ मेरे अंक", rateNow: "अभी रेट करें", loyaltyBenefits: "🏆 100 अंक = ₹10 छूट | 500 अंक = मुफ्त रात",
+    specialOffers: "🎁 आज का ऑफर: ब्रेकफास्ट बुफे - 20% छूट!",
+    wakeUpCall: "⏰ वेक-अप", dnd: "🔕 परेशान न करें", localGuide: "🗺️ गाइड", emergencyContacts: "📞 आपातकालीन",
+    rateYourStay: "⭐ अपने प्रवास को रेट करें", overall: "समग्र", service: "सेवा", cleanliness: "स्वच्छता",
+    shareExperience: "अपना अनुभव साझा करें...", submitReview: "समीक्षा सबमिट करें",
+    save: "सहेजें", cancel: "रद्द करें", selectTheme: "थीम चुनें", typeStandard: "स्टैंडर्ड", typeDeluxe: "डिलक्स", typeSuite: "सूट", statusVacant: "रिक्त", statusOccupied: "भरा हुआ"
+  },
+  ar: {
+    welcomeSubtitle: "نظام إدارة كامل", guestTab: "ضيف", adminTab: "مسؤول",
+    yourName: "اسمك", enterName: "أدخل اسمك", roomNumber: "رقم الغرفة",
+    roomNumberPlaceholder: "مثال 101", loginGuest: "🔐 تسجيل الدخول كضيف", emailAddress: "البريد الإلكتروني",
+    adminEmailPlaceholder: "admin@crownplaza.com", password: "كلمة المرور", passwordPlaceholder: "••••••••",
+    loginAdmin: "🔐 تسجيل الدخول كمسؤول", back: "← رجوع", selectRole: "👑 اختر دورك",
+    roleSuperAdmin: "المسؤول الرئيسي", roleFrontDesk: "مكتب الاستقبال", roleHousekeeping: "التدبير المنزلي",
+    roleMaintenance: "الصيانة", roleRestaurant: "المطعم", roleLaundry: "الغسيل",
+    roleSecurity: "الأمن", roleIT: "دعم تكنولوجيا المعلومات", logout: "تسجيل الخروج",
+    tabOverview: "📊 نظرة عامة", tabRooms: "🏨 الغرف", tabGuests: "👥 الضيوف", tabFood: "🍽️ الطعام",
+    tabInventory: "📦 المخزون", tabRequests: "📋 الطلبات", tabSettings: "⚙️ الإعدادات",
+    totalRooms: "إجمالي الغرف", occupied: "مشغولة", open: "مفتوحة", inProgress: "قيد التنفيذ", emergency: "طارئ",
+    roomManagement: "🏨 إدارة الغرف", addNewRoom: "+ إضافة غرفة", roomType: "النوع", price: "السعر", status: "الحالة", guestName: "الضيف", actions: "الإجراءات",
+    guestManagement: "👥 إدارة الضيوف", addNewGuest: "+ إضافة ضيف", points: "النقاط",
+    foodMenuManagement: "🍽️ قائمة الطعام", addNewDish: "+ إضافة طبق",
+    inventoryManagement: "📦 المخزون", addNewItem: "+ إضافة عنصر", itemName: "العنصر", stock: "المخزون",
+    serviceRequests: "📋 طلبات الخدمة", hotelSettings: "⚙️ الإعدادات", hotelNameLabel: "اسم الفندق", saveName: "حفظ",
+    currencySymbolLabel: "رمز العملة", saveCurrency: "حفظ", wifiPasswordLabel: "كلمة مرور WiFi", savePassword: "حفظ",
+    requestTab: "طلب", foodTab: "طعام", inventoryTab: "المخزون", cabTab: "سيارة", historyTab: "السجل", infoTab: "المعلومات والمكافآت",
+    myRequests: "طلباتي", pending: "معلق", completed: "مكتمل", newRequest: "📝 طلب جديد",
+    selectDepartment: "اختر القسم", selectService: "اختر الخدمة", normal: "🟢 عادي", urgent: "⚠️ عاجل",
+    describeIssue: "صف مشكلتك...", submitRequest: "إرسال الطلب", foodMenu: "🍕 قائمة الطعام",
+    yourCart: "سلتك", placeOrder: "🛒 تقديم الطلب", itemsAvailable: "📦 العناصر المتوفرة",
+    inventoryTip: "💡 انقر على طلب المزيد - سيتم تسليم العناصر خلال 10 دقائق",
+    transportBooking: "🚗 حجز النقل", airportTransfer: "✈️ نقل المطار - $30",
+    localCab: "🚕 تاكسي محلي - $15/ساعة", bookNow: "📅 احجز الآن", myRequestsHistory: "📋 تاريخ طلباتي",
+    hotelInformation: "ℹ️ معلومات الفندق", wifi: "📶 WiFi:", localTime: "🌍 الوقت المحلي:",
+    restaurantTiming: "🍽️ المطعم:", gymTiming: "💪 الصالة الرياضية:", checkoutTime: "🕐 تسجيل الخروج:",
+    copy: "نسخ", myPoints: "⭐ نقاطي", rateNow: "قيم الآن", loyaltyBenefits: "🏆 100 نقطة = خصم $10 | 500 نقطة = ليلة مجانية",
+    specialOffers: "🎁 عرض اليوم: بوفيه الإفطار - خصم 20%!",
+    wakeUpCall: "⏰ إيقاظ", dnd: "🔕 لا تزعج", localGuide: "🗺️ دليل", emergencyContacts: "📞 طوارئ",
+    rateYourStay: "⭐ قيم إقامتك", overall: "عام", service: "الخدمة", cleanliness: "النظافة",
+    shareExperience: "شارك تجربتك...", submitReview: "إرسال التقييم",
+    save: "حفظ", cancel: "إلغاء", selectTheme: "اختر السمة", typeStandard: "قياسي", typeDeluxe: "ديلوكس", typeSuite: "جناح", statusVacant: "شاغر", statusOccupied: "مشغول"
+  }
+};
 
+// ==================== STORAGE (Only 5 preferences in localStorage) ====================
 let currentLanguage = 'en';
 let currentUser = null;
 let currencySymbol = '$';
@@ -378,76 +549,54 @@ let offlineMode = false;
 
 // Data arrays
 let rooms = [
-  { id: 1, number: 101, type: 'Standard', price: 99, status: 'Vacant' },
-  { id: 2, number: 102, type: 'Deluxe', price: 129, status: 'Occupied' },
-  { id: 3, number: 103, type: 'Suite', price: 199, status: 'Vacant' }
+  { id: 1, number: 101, type: 'Standard', price: 99, status: 'Vacant', guestName: '' },
+  { id: 2, number: 102, type: 'Deluxe', price: 129, status: 'Occupied', guestName: 'John Smith' },
+  { id: 3, number: 103, type: 'Suite', price: 199, status: 'Vacant', guestName: '' }
 ];
-let guests = [
-  { id: 1, name: 'John Smith', room: 102, points: 120 }
-];
-let foodMenu = [
-  { id: 1, name: 'Burger', price: 12 },
-  { id: 2, name: 'Pizza', price: 15 },
-  { id: 3, name: 'Pasta', price: 14 }
-];
-let inventory = [
-  { id: 1, name: 'Towels', stock: 150 },
-  { id: 2, name: 'Bed Sheets', stock: 80 },
-  { id: 3, name: 'Shampoo', stock: 200 }
-];
+let guests = [{ id: 1, name: 'John Smith', room: 102, points: 120 }];
+let foodMenu = [{ id: 1, name: 'Burger', price: 12 }, { id: 2, name: 'Pizza', price: 15 }, { id: 3, name: 'Pasta', price: 14 }];
+let inventory = [{ id: 1, name: 'Towels', stock: 150 }, { id: 2, name: 'Bed Sheets', stock: 80 }, { id: 3, name: 'Shampoo', stock: 200 }];
 let requests = [];
-let reviews = [];
+let cart = [];
 
 // UI Settings (ONLY 5 in localStorage)
-let uiSettings = {
-  darkMode: false,
-  fontSize: 0,
-  brightness: 1,
-  language: 'en',
-  theme: 'default'
-};
-
-// ==================== TRANSLATIONS ====================
-const translations = {
-  en: { welcome: "Welcome", logout: "Logout", save: "Save", cancel: "Cancel" },
-  hi: { welcome: "स्वागत है", logout: "लॉगआउट", save: "सहेजें", cancel: "रद्द करें" },
-  ar: { welcome: "مرحبًا", logout: "تسجيل خروج", save: "حفظ", cancel: "إلغاء" }
-};
-
-function t(key) { return translations[currentLanguage]?.[key] || key; }
+let uiSettings = { darkMode: false, fontSize: 0, brightness: 1, language: 'en', theme: 'default' };
 
 // ==================== LANGUAGE FUNCTIONS ====================
+function t(key) { return translations[currentLanguage]?.[key] || key; }
+
 function changeLanguage(lang) {
   currentLanguage = lang;
+  uiSettings.language = lang;
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   saveUISettings();
-  updateUIText();
+  updateAllTexts();
+  updateActiveLangButtons(lang);
   showToast(`Language changed to ${lang.toUpperCase()}`);
 }
 
-function updateUIText() {
+function updateActiveLangButtons(lang) {
+  document.querySelectorAll('.toolbar-btn').forEach(btn => btn.classList.remove('active'));
+  if (lang === 'en') document.getElementById('langBtnEn')?.classList.add('active');
+  if (lang === 'hi') document.getElementById('langBtnHi')?.classList.add('active');
+  if (lang === 'ar') document.getElementById('langBtnAr')?.classList.add('active');
+}
+
+function updateAllTexts() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    if (translations[currentLanguage]?.[key]) el.textContent = translations[currentLanguage][key];
+    if (t(key)) el.textContent = t(key);
   });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (t(key)) el.placeholder = t(key);
+  });
+  renderRooms(); renderGuests(); renderFood(); renderInventory(); renderRequests();
+  updateGuestUI();
 }
 
-// ==================== DARK MODE (FIXED) ====================
-function toggleDarkMode() {
-  uiSettings.darkMode = !uiSettings.darkMode;
-  if (uiSettings.darkMode) {
-    document.body.classList.add('dark');
-    document.getElementById('darkModeBtn').innerHTML = '☀️ Light';
-  } else {
-    document.body.classList.remove('dark');
-    document.getElementById('darkModeBtn').innerHTML = '🌙 Dark';
-  }
-  saveUISettings();
-  showToast(uiSettings.darkMode ? 'Dark mode enabled' : 'Light mode enabled');
-}
-
-// ==================== UI SETTINGS ====================
+// ==================== UI SETTINGS (ONLY 5 IN LOCALSTORAGE) ====================
 function loadUISettings() {
   const saved = localStorage.getItem('hotel_ui');
   if (saved) {
@@ -456,19 +605,13 @@ function loadUISettings() {
   applyUISettings();
 }
 
-function saveUISettings() {
-  localStorage.setItem('hotel_ui', JSON.stringify(uiSettings));
-}
+function saveUISettings() { localStorage.setItem('hotel_ui', JSON.stringify(uiSettings)); }
 
 function applyUISettings() {
   // Dark Mode
-  if (uiSettings.darkMode) {
-    document.body.classList.add('dark');
-    document.getElementById('darkModeBtn').innerHTML = '☀️ Light';
-  } else {
-    document.body.classList.remove('dark');
-    document.getElementById('darkModeBtn').innerHTML = '🌙 Dark';
-  }
+  if (uiSettings.darkMode) document.body.classList.add('dark');
+  else document.body.classList.remove('dark');
+  document.getElementById('darkModeBtn').innerHTML = uiSettings.darkMode ? '☀️ Light' : '🌙 Dark';
 
   // Font Size
   const sizes = ['0.875rem', '1rem', '1.125rem'];
@@ -479,15 +622,22 @@ function applyUISettings() {
   document.getElementById('brightnessPercent').innerText = Math.round(uiSettings.brightness * 100) + '%';
 
   // Language
-  document.documentElement.lang = uiSettings.language;
-  document.documentElement.dir = uiSettings.language === 'ar' ? 'rtl' : 'ltr';
   currentLanguage = uiSettings.language;
+  document.documentElement.lang = currentLanguage;
+  document.documentElement.dir = currentLanguage === 'ar' ? 'rtl' : 'ltr';
 
   // Theme
   document.body.classList.remove('theme-sunset', 'theme-forest', 'theme-ocean', 'theme-royal');
-  if (uiSettings.theme !== 'default') {
-    document.body.classList.add(`theme-${uiSettings.theme}`);
-  }
+  if (uiSettings.theme !== 'default') document.body.classList.add(`theme-${uiSettings.theme}`);
+
+  updateAllTexts();
+  updateActiveLangButtons(currentLanguage);
+}
+
+function toggleDarkMode() {
+  uiSettings.darkMode = !uiSettings.darkMode;
+  applyUISettings();
+  saveUISettings();
 }
 
 function adjustFontSize(action) {
@@ -504,14 +654,8 @@ function adjustBrightness(value) {
   saveUISettings();
 }
 
-function toggleHighContrast() {
-  document.body.classList.toggle('high-contrast');
-  showToast('High contrast ' + (document.body.classList.contains('high-contrast') ? 'enabled' : 'disabled'));
-}
-
-function toggleThemeMenu() {
-  document.getElementById('themeDropdown').classList.toggle('show');
-}
+function toggleHighContrast() { document.body.classList.toggle('high-contrast'); }
+function toggleThemeMenu() { document.getElementById('themeDropdown').classList.toggle('show'); }
 
 function setTheme(theme) {
   uiSettings.theme = theme;
@@ -521,193 +665,110 @@ function setTheme(theme) {
   showToast(`Theme changed to ${theme}`);
 }
 
-// ==================== OFFLINE MODE (FIXED) ====================
+// ==================== OFFLINE MODE ====================
 function toggleOfflineMode() {
   offlineMode = !offlineMode;
   const indicator = document.getElementById('offlineIndicator');
   const btn = document.getElementById('offlineModeBtn');
-
   if (offlineMode) {
     indicator.classList.add('show');
     btn.innerHTML = '🟢 Online';
-    showToast('Offline mode activated - using local data');
+    showToast('Offline mode activated');
   } else {
     indicator.classList.remove('show');
     btn.innerHTML = '📴 Offline';
-    showToast('Online mode restored - syncing with server');
+    showToast('Online mode restored');
   }
 }
 
-// ==================== NOTIFICATION & HAPTIC ====================
 function requestNotification() {
-  if ('Notification' in window) {
-    Notification.requestPermission().then(perm => {
-      if (perm === 'granted') {
-        new Notification('Crown Plaza Hotel', { body: 'Notifications enabled!' });
-        showToast('Notifications enabled');
-      }
-    });
-  } else {
-    showToast('Notifications not supported');
-  }
+  if ('Notification' in window) Notification.requestPermission().then(p => { if (p === 'granted') showToast('Notifications enabled'); });
 }
+function testHaptic() { if (navigator.vibrate) { navigator.vibrate(100); showToast('Haptic test'); } }
 
-function testHaptic() {
-  if (navigator.vibrate) {
-    navigator.vibrate(100);
-    showToast('Haptic feedback test');
-  } else {
-    showToast('Haptic not supported');
-  }
-}
-
-// ==================== AUTH FUNCTIONS (FIXED) ====================
+// ==================== AUTH FUNCTIONS ====================
 function switchLoginType(type) {
   const guestForm = document.getElementById('guestLoginForm');
   const adminForm = document.getElementById('adminLoginForm');
   const guestBtn = document.getElementById('guestTabBtn');
   const adminBtn = document.getElementById('adminTabBtn');
-
   if (type === 'guest') {
-    guestForm.classList.remove('hidden');
-    adminForm.classList.add('hidden');
-    guestBtn.className = 'flex-1 py-2 rounded-lg font-semibold bg-purple-100 text-purple-700';
-    adminBtn.className = 'flex-1 py-2 rounded-lg font-semibold bg-gray-100 text-gray-700';
+    guestForm.classList.remove('hidden'); adminForm.classList.add('hidden');
+    guestBtn.classList.add('bg-purple-100', 'text-purple-700'); guestBtn.classList.remove('bg-gray-100', 'text-gray-700');
+    adminBtn.classList.remove('bg-purple-100', 'text-purple-700'); adminBtn.classList.add('bg-gray-100', 'text-gray-700');
   } else {
-    guestForm.classList.add('hidden');
-    adminForm.classList.remove('hidden');
-    adminBtn.className = 'flex-1 py-2 rounded-lg font-semibold bg-purple-100 text-purple-700';
-    guestBtn.className = 'flex-1 py-2 rounded-lg font-semibold bg-gray-100 text-gray-700';
+    guestForm.classList.add('hidden'); adminForm.classList.remove('hidden');
+    adminBtn.classList.add('bg-purple-100', 'text-purple-700'); adminBtn.classList.remove('bg-gray-100', 'text-gray-700');
+    guestBtn.classList.remove('bg-purple-100', 'text-purple-700'); guestBtn.classList.add('bg-gray-100', 'text-gray-700');
   }
 }
 
-// Guest Login - WORKING
+// Guest Login
 document.getElementById('guestLoginForm')?.addEventListener('submit', (e) => {
   e.preventDefault();
   const name = document.getElementById('guestName').value.trim();
   const room = document.getElementById('guestRoom').value.trim();
-
   if (name && room) {
-    currentUser = { type: 'guest', name: name, room: room, points: 0 };
+    currentUser = { type: 'guest', name, room, points: 0 };
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('guestDashboard').classList.remove('hidden');
-    document.getElementById('guestInfo').innerText = `${name} - Room ${room}`;
+    document.getElementById('guestInfo').innerHTML = `👤 ${name} | Room ${room}`;
     document.getElementById('guestWifiDisplay').innerText = wifiPassword;
     updateGuestUI();
     renderGuestFoodMenu();
     renderGuestInventory();
     showToast(`Welcome ${name}!`);
-  } else {
-    showToast('Please enter name and room number');
-  }
+    updateGuestStats();
+  } else showToast('Please enter name and room number');
 });
 
-// Admin Login - WORKING
+// Admin Login
 document.getElementById('adminLoginForm')?.addEventListener('submit', (e) => {
   e.preventDefault();
   const email = document.getElementById('adminEmail').value.trim();
   const password = document.getElementById('adminPassword').value;
-
-  // Valid credentials check
   if (email === 'admin@crownplaza.com' && password === 'admin123') {
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('rolePage').classList.remove('hidden');
     showToast('Login successful! Select role');
-  } else {
-    showToast('Invalid credentials! Use admin@crownplaza.com / admin123');
-  }
+  } else showToast('Invalid credentials! Use admin@crownplaza.com / admin123');
 });
 
-function backToLogin() {
-  document.getElementById('rolePage').classList.add('hidden');
-  document.getElementById('loginPage').classList.remove('hidden');
-}
-
+function backToLogin() { document.getElementById('rolePage').classList.add('hidden'); document.getElementById('loginPage').classList.remove('hidden'); }
 function loginAsRole(role) {
-  currentUser = { type: 'admin', role: role };
+  currentUser = { type: 'admin', role };
   document.getElementById('rolePage').classList.add('hidden');
   document.getElementById('adminDashboard').classList.remove('hidden');
-
-  const roleNames = {
-    super_admin: 'Super Admin', front_desk: 'Front Desk', housekeeping: 'Housekeeping',
-    maintenance: 'Maintenance', restaurant: 'Restaurant', laundry: 'Laundry',
-    security: 'Security', it_support: 'IT Support'
-  };
-
+  const roleNames = { super_admin: 'Super Admin', front_desk: 'Front Desk', housekeeping: 'Housekeeping', maintenance: 'Maintenance', restaurant: 'Restaurant', laundry: 'Laundry', security: 'Security', it_support: 'IT Support' };
   document.getElementById('roleDisplay').innerText = roleNames[role] || role;
   updateAdminStats();
-  renderRooms();
-  renderGuests();
-  renderFood();
-  renderInventory();
-  renderRequests();
+  renderRooms(); renderGuests(); renderFood(); renderInventory(); renderRequests();
   showToast(`Logged in as ${roleNames[role]}`);
 }
-
-function logoutAdmin() {
-  currentUser = null;
-  document.getElementById('adminDashboard').classList.add('hidden');
-  document.getElementById('loginPage').classList.remove('hidden');
-  showToast('Logged out');
-}
-
-function logoutGuest() {
-  currentUser = null;
-  document.getElementById('guestDashboard').classList.add('hidden');
-  document.getElementById('loginPage').classList.remove('hidden');
-  showToast('Logged out');
-}
+function logoutAdmin() { currentUser = null; document.getElementById('adminDashboard').classList.add('hidden'); document.getElementById('loginPage').classList.remove('hidden'); showToast('Logged out'); }
+function logoutGuest() { currentUser = null; document.getElementById('guestDashboard').classList.add('hidden'); document.getElementById('loginPage').classList.remove('hidden'); showToast('Logged out'); }
 
 // ==================== RENDER FUNCTIONS ====================
 function renderRooms() {
-  const tbody = document.getElementById('roomsList');
-  if (!tbody) return;
-  tbody.innerHTML = rooms.map(r => `
-    <tr class="border-b">
-      <td class="p-2">${r.number}</td><td>${r.type}</td><td>${currencySymbol}${r.price}</td>
-      <td><span class="status-badge status-${r.status.toLowerCase()}">${r.status}</span></td>
-      <td>${r.guestName || '-'}</td>
-      <td><button onclick="deleteRoom(${r.id})" class="text-red-600">🗑️</button></td>
-    </tr>
-  `).join('');
+  const tbody = document.getElementById('roomsList'); if (!tbody) return;
+  tbody.innerHTML = rooms.map(r => `<tr class="border-b dark:border-gray-700"><td class="p-2">${r.number}</td><td>${r.type}</td><td>${currencySymbol}${r.price}</td><td><span class="status-badge status-${r.status.toLowerCase()}">${r.status}</span></td><td>${r.guestName || '-'}</td><td><button onclick="deleteRoom(${r.id})" class="text-red-600">🗑️</button></td></tr>`).join('');
 }
-
 function renderGuests() {
-  const tbody = document.getElementById('guestsList');
-  if (!tbody) return;
-  tbody.innerHTML = guests.map(g => `
-    <tr class="border-b"><td class="p-2">${g.name}</td><td>${g.room}</td><td>⭐ ${g.points}</td>
-    <td><button onclick="deleteGuest(${g.id})" class="text-red-600">🗑️</button></td></tr>
-  `).join('');
+  const tbody = document.getElementById('guestsList'); if (!tbody) return;
+  tbody.innerHTML = guests.map(g => `<tr class="border-b dark:border-gray-700"><td class="p-2">${g.name}</td><td>${g.room}</td><td>⭐ ${g.points}</td><td><button onclick="deleteGuest(${g.id})" class="text-red-600">🗑️</button></td></tr>`).join('');
 }
-
 function renderFood() {
-  const container = document.getElementById('foodList');
-  if (!container) return;
-  container.innerHTML = foodMenu.map(f => `
-    <div class="request-card flex justify-between"><div><strong>${f.name}</strong> - ${currencySymbol}${f.price}</div>
-    <div><button onclick="deleteFood(${f.id})" class="text-red-600">🗑️</button></div></div>
-  `).join('');
+  const container = document.getElementById('foodList'); if (!container) return;
+  container.innerHTML = foodMenu.map(f => `<div class="request-card flex justify-between"><div><strong>${f.name}</strong> - ${currencySymbol}${f.price}</div><div><button onclick="deleteFood(${f.id})" class="text-red-600">🗑️</button></div></div>`).join('');
 }
-
 function renderInventory() {
-  const tbody = document.getElementById('inventoryList');
-  if (!tbody) return;
-  tbody.innerHTML = inventory.map(i => `
-    <tr class="border-b"><td class="p-2">${i.name}</td><td>${i.stock}</td>
-    <td><button onclick="deleteInventoryItem(${i.id})" class="text-red-600">🗑️</button></td></tr>
-  `).join('');
+  const tbody = document.getElementById('inventoryList'); if (!tbody) return;
+  tbody.innerHTML = inventory.map(i => `<tr class="border-b dark:border-gray-700"><td class="p-2">${i.name}</td><td>${i.stock}</td><td><button onclick="deleteInventoryItem(${i.id})" class="text-red-600">🗑️</button></td></tr>`).join('');
 }
-
 function renderRequests() {
-  const container = document.getElementById('requestsList');
-  if (!container) return;
-  container.innerHTML = requests.map(r => `
-    <div class="request-card"><div class="flex justify-between"><div><strong>${r.guestName}</strong> - Room ${r.roomNumber}<br><small>${r.department}</small><p>${r.description}</p></div>
-    <div><button onclick="completeRequest(${r.id})" class="text-green-600">✅</button><button onclick="deleteRequest(${r.id})" class="text-red-600 ml-2">🗑️</button></div></div></div>
-  `).join('');
+  const container = document.getElementById('requestsList'); if (!container) return;
+  container.innerHTML = requests.map(r => `<div class="request-card"><div class="flex justify-between"><div><strong>${r.guestName}</strong> - Room ${r.roomNumber}<br><small>${r.department}</small><p>${r.description}</p></div><div><button onclick="completeRequest(${r.id})" class="text-green-600">✅</button><button onclick="deleteRequest(${r.id})" class="text-red-600 ml-2">🗑️</button></div></div></div>`).join('');
 }
-
 function updateAdminStats() {
   document.getElementById('statTotalRooms').innerText = rooms.length;
   document.getElementById('statOccupied').innerText = rooms.filter(r => r.status === 'Occupied').length;
@@ -716,139 +777,59 @@ function updateAdminStats() {
   document.getElementById('statEmergency').innerText = requests.filter(r => r.priority === 'emergency').length;
 }
 
-// ==================== GUEST UI ====================
-function updateGuestUI() {
+// ==================== GUEST UI FUNCTIONS ====================
+function updateGuestStats() {
   if (!currentUser) return;
   const myRequests = requests.filter(r => r.guestName === currentUser.name);
   document.getElementById('guestTotalRequests').innerText = myRequests.length;
   document.getElementById('guestPending').innerText = myRequests.filter(r => r.status !== 'completed').length;
   document.getElementById('guestCompleted').innerText = myRequests.filter(r => r.status === 'completed').length;
   document.getElementById('guestPointsDisplay').innerText = currentUser.points || 0;
+}
+
+function updateGuestUI() {
+  if (!currentUser) return;
+  updateGuestStats();
   renderGuestHistory();
 }
 
 function renderGuestHistory() {
-  const container = document.getElementById('guestHistoryList');
-  if (!container) return;
+  const container = document.getElementById('guestHistoryList'); if (!container) return;
   const myRequests = requests.filter(r => r.guestName === currentUser?.name);
-  container.innerHTML = myRequests.map(r => `
-    <div class="request-card"><div><strong>${r.department}</strong><br><small>${r.description}</small></div><div><span class="status-badge status-${r.status}">${r.status}</span></div></div>
-  `).join('');
+  container.innerHTML = myRequests.map(r => `<div class="request-card"><div class="flex justify-between"><div><strong>${r.department}</strong><br><small>${r.description}</small></div><div><span class="status-badge status-${r.status}">${r.status}</span></div></div></div>`).join('');
 }
-
 function renderGuestFoodMenu() {
-  const container = document.getElementById('guestFoodMenu');
-  if (!container) return;
-  container.innerHTML = foodMenu.map(f => `
-    <button onclick="addToCart('${f.name}', ${f.price})" class="p-2 bg-gray-100 rounded-lg text-left hover:bg-gray-200">
-      <div class="font-semibold">${f.name}</div><div class="text-sm">${currencySymbol}${f.price}</div>
-    </button>
-  `).join('');
+  const container = document.getElementById('guestFoodMenu'); if (!container) return;
+  container.innerHTML = foodMenu.map(f => `<button onclick="addToCart('${f.name}', ${f.price})" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-left hover:bg-gray-200 transition"><div class="font-semibold">${f.name}</div><div class="text-sm">${currencySymbol}${f.price}</div></button>`).join('');
 }
-
 function renderGuestInventory() {
-  const container = document.getElementById('guestInventoryList');
-  if (!container) return;
-  container.innerHTML = inventory.map(i => `
-    <div class="inventory-card"><div class="text-2xl">📦</div><div class="font-semibold">${i.name}</div><div class="text-sm">Available: ${i.stock}</div>
-    <button onclick="requestInventoryItem('${i.name}')" class="mt-2 bg-purple-600 text-white px-2 py-1 rounded text-xs">Request More</button></div>
-  `).join('');
+  const container = document.getElementById('guestInventoryList'); if (!container) return;
+  container.innerHTML = inventory.map(i => `<div class="inventory-card"><div class="text-2xl">📦</div><div class="font-semibold">${i.name}</div><div class="text-sm">Available: ${i.stock}</div><button onclick="requestInventoryItem('${i.name}')" class="mt-2 bg-purple-600 text-white px-2 py-1 rounded text-xs">Request More</button></div>`).join('');
 }
-
 function showGuestTab(tab) {
   const tabs = ['request', 'food', 'inventory', 'cab', 'history', 'info'];
-  tabs.forEach(t => {
-    const el = document.getElementById(`guest${t.charAt(0).toUpperCase() + t.slice(1)}Tab`);
-    if (el) el.classList.add('hidden');
-  });
-  document.getElementById(`guest${tab.charAt(0).toUpperCase() + t.slice(1)}Tab`).classList.remove('hidden');
+  tabs.forEach(t => { const el = document.getElementById(`guest${t.charAt(0).toUpperCase() + t.slice(1)}Tab`); if (el) el.classList.add('hidden'); });
+  document.getElementById(`guest${tab.charAt(0).toUpperCase() + tab.slice(1)}Tab`).classList.remove('hidden');
+  document.querySelectorAll('.guest-tab').forEach(btn => btn.classList.remove('active'));
+  const activeBtn = document.querySelector(`.guest-tab[data-tab="${tab}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
 }
 
 // ==================== GUEST ACTIONS ====================
-let cart = [];
-
-function addToCart(name, price) {
-  cart.push({ name, price });
-  updateCartDisplay();
-  showToast(`${name} added to cart`);
-}
-
-function updateCartDisplay() {
-  const container = document.getElementById('guestCart');
-  if (!container) return;
-  const total = cart.reduce((s, i) => s + i.price, 0);
-  container.innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.name}</span><span>${currencySymbol}${i.price}</span></div>`).join('');
-  if (cart.length === 0) container.innerHTML = '<div class="text-gray-500 text-center">Cart is empty</div>';
-}
-
-function placeOrder() {
-  if (cart.length === 0) { showToast('Cart is empty!'); return; }
-  const order = {
-    id: Date.now(),
-    guestName: currentUser.name,
-    roomNumber: currentUser.room,
-    department: 'Restaurant',
-    description: `Food Order: ${cart.map(i => i.name).join(', ')}`,
-    status: 'open',
-    createdAt: new Date().toISOString()
-  };
-  requests.unshift(order);
-  cart = [];
-  updateCartDisplay();
-  renderRequests();
-  updateGuestUI();
-  showToast('Order placed successfully!');
-}
-
-function requestInventoryItem(itemName) {
-  const req = {
-    id: Date.now(),
-    guestName: currentUser.name,
-    roomNumber: currentUser.room,
-    department: 'Housekeeping',
-    description: `Request for extra ${itemName}`,
-    status: 'open',
-    createdAt: new Date().toISOString()
-  };
-  requests.unshift(req);
-  renderRequests();
-  updateGuestUI();
-  showToast(`Request for ${itemName} submitted!`);
-}
+function addToCart(name, price) { cart.push({ name, price }); updateCartDisplay(); showToast(`${name} added to cart`); }
+function updateCartDisplay() { const container = document.getElementById('guestCart'); if (!container) return; const total = cart.reduce((s, i) => s + i.price, 0); document.getElementById('cartTotal').innerHTML = `${currencySymbol}${total}`; container.innerHTML = cart.length ? cart.map(i => `<div class="flex justify-between"><span>${i.name}</span><span>${currencySymbol}${i.price}</span></div>`).join('') : '<div class="text-gray-500 text-center">Cart is empty</div>'; }
+function placeOrder() { if (cart.length === 0) { showToast('Cart is empty!'); return; } const order = { id: Date.now(), guestName: currentUser.name, roomNumber: currentUser.room, department: 'Restaurant', description: `Food Order: ${cart.map(i => i.name).join(', ')}`, status: 'open', createdAt: new Date().toISOString() }; requests.unshift(order); cart = []; updateCartDisplay(); renderRequests(); updateGuestUI(); showToast('Order placed!'); }
+function requestInventoryItem(itemName) { const req = { id: Date.now(), guestName: currentUser.name, roomNumber: currentUser.room, department: 'Housekeeping', description: `Request for extra ${itemName}`, status: 'open', createdAt: new Date().toISOString() }; requests.unshift(req); renderRequests(); updateGuestUI(); showToast(`Request for ${itemName} submitted!`); }
 
 document.getElementById('guestRequestForm')?.addEventListener('submit', (e) => {
   e.preventDefault();
-  const req = {
-    id: Date.now(),
-    guestName: currentUser.name,
-    roomNumber: currentUser.room,
-    department: document.getElementById('guestDept').value,
-    description: document.getElementById('guestDesc').value,
-    priority: document.getElementById('guestPriority').value,
-    status: 'open',
-    createdAt: new Date().toISOString()
-  };
-  requests.unshift(req);
-  renderRequests();
-  updateGuestUI();
-  e.target.reset();
-  showToast('Request submitted!');
+  const req = { id: Date.now(), guestName: currentUser.name, roomNumber: currentUser.room, department: document.getElementById('guestDept').value, description: document.getElementById('guestDesc').value, priority: document.getElementById('guestPriority').value, status: 'open', createdAt: new Date().toISOString() };
+  requests.unshift(req); renderRequests(); updateGuestUI(); e.target.reset(); showToast('Request submitted!');
 });
-
 document.getElementById('cabForm')?.addEventListener('submit', (e) => {
   e.preventDefault();
-  const req = {
-    id: Date.now(),
-    guestName: currentUser.name,
-    roomNumber: currentUser.room,
-    department: 'Transport',
-    description: `${document.getElementById('cabType').value} at ${document.getElementById('cabTime').value || 'ASAP'}`,
-    status: 'open',
-    createdAt: new Date().toISOString()
-  };
-  requests.unshift(req);
-  renderRequests();
-  showToast('Cab booked successfully!');
+  const req = { id: Date.now(), guestName: currentUser.name, roomNumber: currentUser.room, department: 'Transport', description: `${document.getElementById('cabType').value} at ${document.getElementById('cabTime').value || 'ASAP'}`, status: 'open', createdAt: new Date().toISOString() };
+  requests.unshift(req); renderRequests(); showToast('Cab booked!');
 });
 
 // ==================== ADMIN CRUD ====================
@@ -859,180 +840,60 @@ function openInventoryModal() { document.getElementById('inventoryModal').classL
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 document.getElementById('roomForm')?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  rooms.push({ id: Date.now(), number: document.getElementById('roomNumber').value, type: document.getElementById('roomType').value, price: document.getElementById('roomPrice').value, status: document.getElementById('roomStatus').value });
-  closeModal('roomModal'); renderRooms(); updateAdminStats(); showToast('Room added!');
+  e.preventDefault(); rooms.push({ id: Date.now(), number: document.getElementById('roomNumber').value, type: document.getElementById('roomType').value, price: document.getElementById('roomPrice').value, status: document.getElementById('roomStatus').value, guestName: '' }); closeModal('roomModal'); renderRooms(); updateAdminStats(); showToast('Room added!');
 });
-
 document.getElementById('guestForm')?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  guests.push({ id: Date.now(), name: document.getElementById('guestNameField').value, room: document.getElementById('guestRoomField').value, points: 0 });
-  closeModal('guestModal'); renderGuests(); showToast('Guest added!');
+  e.preventDefault(); guests.push({ id: Date.now(), name: document.getElementById('guestNameField').value, room: document.getElementById('guestRoomField').value, points: 0 }); closeModal('guestModal'); renderGuests(); showToast('Guest added!');
 });
-
 document.getElementById('foodForm')?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  foodMenu.push({ id: Date.now(), name: document.getElementById('foodName').value, price: document.getElementById('foodPrice').value });
-  closeModal('foodModal'); renderFood(); renderGuestFoodMenu(); showToast('Dish added!');
+  e.preventDefault(); foodMenu.push({ id: Date.now(), name: document.getElementById('foodName').value, price: document.getElementById('foodPrice').value }); closeModal('foodModal'); renderFood(); renderGuestFoodMenu(); showToast('Dish added!');
 });
-
 document.getElementById('inventoryForm')?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  inventory.push({ id: Date.now(), name: document.getElementById('invName').value, stock: document.getElementById('invQty').value });
-  closeModal('inventoryModal'); renderInventory(); renderGuestInventory(); showToast('Item added!');
+  e.preventDefault(); inventory.push({ id: Date.now(), name: document.getElementById('invName').value, stock: document.getElementById('invQty').value }); closeModal('inventoryModal'); renderInventory(); renderGuestInventory(); showToast('Item added!');
 });
 
 function deleteRoom(id) { rooms = rooms.filter(r => r.id !== id); renderRooms(); updateAdminStats(); showToast('Room deleted'); }
 function deleteGuest(id) { guests = guests.filter(g => g.id !== id); renderGuests(); showToast('Guest deleted'); }
 function deleteFood(id) { foodMenu = foodMenu.filter(f => f.id !== id); renderFood(); renderGuestFoodMenu(); showToast('Dish deleted'); }
 function deleteInventoryItem(id) { inventory = inventory.filter(i => i.id !== id); renderInventory(); renderGuestInventory(); showToast('Item deleted'); }
-function completeRequest(id) { const req = requests.find(r => r.id === id); if (req) req.status = 'completed'; renderRequests(); updateGuestUI(); showToast('Request completed'); }
+function completeRequest(id) { const req = requests.find(r => r.id === id); if (req) { req.status = 'completed'; req.completedAt = new Date().toISOString(); renderRequests(); updateGuestUI(); showToast('Request completed'); } }
 function deleteRequest(id) { requests = requests.filter(r => r.id !== id); renderRequests(); updateGuestUI(); showToast('Request deleted'); }
 
 // ==================== SETTINGS ====================
-function saveHotelName() {
-  hotelName = document.getElementById('hotelNameSetting').value;
-  document.getElementById('hotelNameDisplay').innerText = hotelName;
-  document.getElementById('adminHotelName').innerText = hotelName;
-  document.getElementById('guestHotelName').innerText = hotelName;
-  showToast('Hotel name saved!');
-}
-
-function saveCurrency() {
-  currencySymbol = document.getElementById('currencySetting').value;
-  renderRooms(); renderFood(); showToast('Currency saved!');
-}
-
-function saveWifi() {
-  wifiPassword = document.getElementById('wifiSetting').value;
-  document.getElementById('guestWifiDisplay').innerText = wifiPassword;
-  showToast('WiFi password saved!');
-}
+function saveHotelName() { hotelName = document.getElementById('hotelNameSetting').value; document.getElementById('hotelNameDisplay').innerText = hotelName; document.getElementById('adminHotelName').innerText = hotelName; document.getElementById('guestHotelName').innerText = hotelName; showToast('Hotel name saved!'); }
+function saveCurrency() { currencySymbol = document.getElementById('currencySetting').value; renderRooms(); renderFood(); showToast('Currency saved!'); }
+function saveWifi() { wifiPassword = document.getElementById('wifiSetting').value; document.getElementById('guestWifiDisplay').innerText = wifiPassword; showToast('WiFi password saved!'); }
 
 // ==================== RATING ====================
-function showRatingModal() {
-  document.getElementById('ratingModal').classList.add('active');
-  initStars();
-}
-
-function initStars() {
-  ['overall', 'service', 'clean'].forEach(t => {
-    const container = document.getElementById(t + 'Stars');
-    if (!container) return;
-    container.innerHTML = '';
-    for (let i = 1; i <= 5; i++) {
-      const star = document.createElement('span');
-      star.textContent = '☆';
-      star.style.cursor = 'pointer';
-      star.onclick = () => setStarRating(t, i);
-      container.appendChild(star);
-    }
-  });
-}
-
-function setStarRating(type, value) {
-  const container = document.getElementById(type + 'Stars');
-  const stars = container.children;
-  for (let i = 0; i < stars.length; i++) {
-    stars[i].textContent = i < value ? '★' : '☆';
-    stars[i].style.color = i < value ? '#fbbf24' : '#9ca3af';
-  }
-}
-
-function submitRating() {
-  const overall = document.querySelectorAll('#overallStars span').length;
-  const review = {
-    id: Date.now(),
-    guest: currentUser?.name,
-    rating: overall,
-    comment: document.getElementById('ratingComment').value,
-    date: new Date().toISOString()
-  };
-  reviews.push(review);
-  closeModal('ratingModal');
-  showToast('Thank you for your review!');
-}
+function showRatingModal() { document.getElementById('ratingModal').classList.add('active'); initStars(); }
+function initStars() { ['overall', 'service', 'clean'].forEach(t => { const c = document.getElementById(t + 'Stars'); if (!c) return; c.innerHTML = ''; for (let i = 1; i <= 5; i++) { const s = document.createElement('span'); s.textContent = '☆'; s.style.cursor = 'pointer'; s.onclick = () => setStar(t, i); c.appendChild(s); } }); }
+function setStar(type, val) { const stars = document.getElementById(type + 'Stars').children; for (let i = 0; i < stars.length; i++) stars[i].textContent = i < val ? '★' : '☆'; }
+function submitRating() { closeModal('ratingModal'); showToast('Thank you for your review!'); }
 
 // ==================== UTILITIES ====================
-function showToast(msg) {
-  const container = document.getElementById('toastContainer');
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.innerText = msg;
-  container.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
-}
-
-function copyWifi() {
-  navigator.clipboard.writeText(wifiPassword);
-  showToast('WiFi password copied!');
-}
-
-function setWakeUpCall() {
-  const time = prompt('Enter wake-up time (HH:MM):', '07:00');
-  if (time) showToast(`Wake-up call set for ${time}`);
-}
-
-function toggleDND() {
-  const btn = document.getElementById('dndBtn');
-  const isOn = btn.textContent.includes('ON');
-  btn.textContent = isOn ? '🔕 DND: OFF' : '🔕 DND: ON';
-  showToast(isOn ? 'DND disabled' : 'DND enabled');
-}
-
-function updateDateTime() {
-  const now = new Date();
-  document.querySelectorAll('#liveClock, #adminClock, #guestClock, #guestLocalTime').forEach(el => {
-    if (el) el.innerText = now.toLocaleTimeString();
-  });
-}
-setInterval(updateDateTime, 1000);
-updateDateTime();
+function showToast(msg) { const container = document.getElementById('toastContainer'); const toast = document.createElement('div'); toast.className = 'toast'; toast.innerText = msg; container.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+function copyWifi() { navigator.clipboard.writeText(wifiPassword); showToast('WiFi password copied!'); }
+function setWakeUpCall() { const time = prompt('Enter wake-up time (HH:MM):', '07:00'); if (time) showToast(`Wake-up call set for ${time}`); }
+function toggleDND() { const btn = document.getElementById('dndBtn'); const isOn = btn.textContent.includes('ON'); btn.textContent = isOn ? '🔕 DND: OFF' : '🔕 DND: ON'; showToast(isOn ? 'DND disabled' : 'DND enabled'); }
+function updateDateTime() { const now = new Date(); const timeStr = now.toLocaleTimeString(); document.querySelectorAll('#liveClock, #adminClock, #guestClock, #guestLocalTime').forEach(el => { if (el) el.innerText = timeStr; }); }
+setInterval(updateDateTime, 1000); updateDateTime();
 
 function showAdminTab(tab) {
   const tabs = ['overview', 'rooms', 'guests', 'food', 'inventory', 'requests', 'settings'];
-  tabs.forEach(t => {
-    const el = document.getElementById(t + 'Tab');
-    if (el) el.classList.add('hidden');
-  });
+  tabs.forEach(t => { const el = document.getElementById(t + 'Tab'); if (el) el.classList.add('hidden'); });
   document.getElementById(tab + 'Tab').classList.remove('hidden');
-
-  document.querySelectorAll('.admin-tab').forEach(btn => {
-    btn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600');
-    btn.classList.add('text-gray-600');
-  });
-  event?.target?.classList.add('text-purple-600', 'border-b-2', 'border-purple-600');
+  document.querySelectorAll('.admin-tab').forEach(btn => { btn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600'); btn.classList.add('text-gray-600'); });
+  if (event?.target) { event.target.classList.add('text-purple-600', 'border-b-2', 'border-purple-600'); }
 }
 
 // ==================== INITIALIZATION ====================
 function init() {
   loadUISettings();
-  renderRooms();
-  renderGuests();
-  renderFood();
-  renderInventory();
-  renderRequests();
-  updateAdminStats();
   updateDateTime();
-
-  // Set initial guest department options
-  const deptSelect = document.getElementById('guestDept');
-  if (deptSelect) {
-    deptSelect.addEventListener('change', (e) => {
-      const serviceSelect = document.getElementById('guestService');
-      const services = {
-        'Housekeeping': ['Room Cleaning', 'Extra Towels', 'Deep Cleaning', 'Bed Sheets'],
-        'Maintenance': ['AC Repair', 'Plumbing', 'Electrical', 'TV Issue'],
-        'Restaurant': ['Room Service', 'Table Booking', 'Special Diet'],
-        'Laundry': ['Wash & Fold', 'Dry Cleaning', 'Ironing'],
-        'IT': ['WiFi Issue', 'TV Problem', 'Device Setup']
-      };
-      const selectedServices = services[e.target.value] || services['Housekeeping'];
-      if (serviceSelect) serviceSelect.innerHTML = selectedServices.map(s => `<option value="${s}">${s}</option>`).join('');
-    });
-  }
+  renderRooms(); renderGuests(); renderFood(); renderInventory(); renderRequests(); updateAdminStats();
+  updateAllTexts();
+  updateActiveLangButtons(currentLanguage);
 }
-
 init();
 </script>
 </body>
