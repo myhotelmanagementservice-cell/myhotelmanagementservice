@@ -1600,6 +1600,10 @@ document.addEventListener('DOMContentLoaded', async function() {
   await loadVoices();
 
   // 2. Load UI settings from localStorage (5 keys only)
+
+  // 8. Load all data from MongoDB
+
+  await loadAllDataFromServer();
   loadUISettings();
 
   // 3. Load session for page persistence
@@ -2115,3 +2119,32 @@ window.syncHotelNameToGuest = syncHotelNameToGuest;
 window.saveHotelName = saveHotelName;
 window.syncWifiToGuest = syncWifiToGuest;
 window.saveWifiPassword = saveWifiPassword;
+
+async function loadAllDataFromServer() {
+    try {
+        console.log('🔄 Loading data from MongoDB...');
+        
+        // Fetch rooms
+        const roomsRes = await fetch('/api/rooms');
+        if (roomsRes.ok) rooms = await roomsRes.json();
+        
+        // Fetch guests
+        const guestsRes = await fetch('/api/guests');
+        if (guestsRes.ok) guests = await guestsRes.json();
+        
+        // Fetch inventory
+        const inventoryRes = await fetch('/api/inventory');
+        if (inventoryRes.ok) inventory = await inventoryRes.json();
+        
+        // Fetch requests
+        const requestsRes = await fetch('/api/requests');
+        if (requestsRes.ok) requests = await requestsRes.json();
+        
+        // Re-render all
+        renderAll();
+        console.log('✅ All data loaded from MongoDB');
+        showToast('Data loaded from server');
+    } catch(e) {
+        console.error('Error loading data:', e);
+    }
+}
