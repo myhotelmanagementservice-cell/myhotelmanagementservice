@@ -121,7 +121,7 @@
     .dark .modal-content { background: #1f2937; color: white; }
 
     /* Toast */
-    .notification-toast { position: fixed; top: 16px; right: 16px; z-index: 3000; max-width: 320px; }
+    .notification-toast { position: absolute; top: 10px; right: 10px; z-index: 3000; max-width: 280px; }
     .toast { background: white; padding: 12px 16px; border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); margin-bottom: 8px; animation: slideIn 0.3s ease-out; border-left: 4px solid var(--theme-primary); }
     .dark .toast { background: #374151; color: white; }
     @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -244,7 +244,7 @@
 
 <!-- ==================== LOGIN PAGE ==================== -->
 <div id="loginSelectionPage" class="min-h-screen gradient-bg flex items-center justify-center p-0 md:p-4">
-  <div class="glass-card rounded-t-none md:rounded-3xl shadow-2xl w-full md:max-w-md p-6 md:p-8 animate-fade-in relative">
+  <div class="glass-card rounded-t-none md:rounded-3xl shadow-2xl w-full md:max-w-md p-6 md:p-8 animate-fade-in relative mt-8">
     <div id="onlineIndicator" class="online-indicator online" style="position:absolute; top:12px; left:12px; font-size:11px;">🟢 Online</div>
     <div class="text-center mb-6 mt-4 md:mt-0">
       <div class="icon text-5xl md:text-6xl mb-3 animate-bounce">👑</div>
