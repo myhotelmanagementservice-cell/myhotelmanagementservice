@@ -1,10 +1,18 @@
 {
   "name": "inaya-hotel",
   "version": "1.0.0",
+  "description": "Multi-Tenant Hotel Management SaaS with Real-Time Sync",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
-    "build": "echo 'Build completed'"
+    "dev": "nodemon server/server.js",
+    "build": "echo 'Build completed'",
+    "test": "echo 'No tests specified'",
+    "postinstall": "echo '✅ Dependencies installed'"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -12,6 +20,21 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-session": "^1.19.0",
-    "mongodb": "^5.9.0"
-  }
+    "mongodb": "^5.9.0",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "hotel",
+    "management",
+    "saas",
+    "multi-tenant",
+    "mongodb",
+    "socket.io",
+    "real-time"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 }
