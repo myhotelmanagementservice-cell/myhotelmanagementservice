@@ -153,6 +153,7 @@ select.inp{cursor:pointer}
 .login-logo{font-size:40px;text-align:center;margin-bottom:4px;animation:float 3s ease-in-out infinite}
 .login-h{font-size:20px;font-weight:700;color:var(--fg);text-align:center;margin-bottom:4px}
 .login-sub{font-size:12px;color:var(--p2);text-align:center;margin-bottom:16px}
+    <div id="liveClock" class="live-clock" class="text-xs text-gray-500 dark:text-gray-400 mt-3" style="text-align:center;margin-top:8px;font-size:11px"></div>
 .login-tabs{display:flex;gap:8px;margin-bottom:16px}
 .login-tab{flex:1;padding:8px;border-radius:10px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--card2);color:var(--fg);border:1.5px solid var(--border);transition:all .15s}
 .login-tab.active{background:var(--p1);color:#fff;border-color:var(--p1)}
@@ -304,6 +305,7 @@ select.inp{cursor:pointer}
     <div class="login-logo">👑</div>
     <div class="login-h" id="loginHotelName">Crown Plaza Hotel</div>
     <div class="login-sub" data-i18n="welcomeSubtitle">Complete Management System</div>
+    <div id="liveClock" class="live-clock" class="text-xs text-gray-500 dark:text-gray-400 mt-3" style="text-align:center;margin-top:8px;font-size:11px"></div>
     <div class="conn-status" style="justify-content:center">
       <div class="conn-dot connecting" id="loginConnDot"></div>
       <span id="loginConnTxt" data-i18n="connecting">Connecting to server…</span>
@@ -381,8 +383,8 @@ select.inp{cursor:pointer}
 // ================================================================
 // CONFIGURATION
 // ================================================================
-const API = window.API_BASE || 'http://localhost:3000/api';
-const SOCKET_URL = window.SOCKET_URL || 'http://localhost:3000';
+const API = window.API_BASE || '/api/api';
+const SOCKET_URL = window.SOCKET_URL || '/api';
 
 // ================================================================
 // MULTI-TENANT: Extract hotel ID

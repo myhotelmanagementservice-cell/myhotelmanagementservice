@@ -1578,7 +1578,7 @@ function setupNetworkHandlers() {
   window.addEventListener('offline', () => {
     updateOnlineIndicator(false);
     showToast('📴 You are offline', 'warning');
-    state.syncStatus = 'offline';
+    state.syncStatus = "idle";
   });
 
   // Initial check
