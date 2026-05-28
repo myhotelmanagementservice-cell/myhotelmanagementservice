@@ -877,9 +877,47 @@ renderAll();
 }
 
 function save(collection, data, event='data_upd'){
-saveLS();
-if(isOnline && socket?.connected) socket.emit(event,{hotelId:HID, collection, data});
-if(isOnline) apiCall('POST',`/${collection}`,{data, hotelId:HID});
+  // Add to respective array
+  if(collection === 'rooms'){
+    const idx = rooms.findIndex(r => r._id === data._id);
+    if(idx > -1) rooms[idx] = data;
+    else rooms.push(data);
+  }
+  else if(collection === 'guests'){
+    const idx = guests.findIndex(g => g._id === data._id);
+    if(idx > -1) guests[idx] = data;
+    else guests.push(data);
+  }
+  else if(collection === 'food'){
+    const idx = food.findIndex(f => f._id === data._id);
+    if(idx > -1) food[idx] = data;
+    else food.push(data);
+  }
+  else if(collection === 'inventory'){
+    const idx = inventory.findIndex(i => i._id === data._id);
+    if(idx > -1) inventory[idx] = data;
+    else inventory.push(data);
+  }
+  else if(collection === 'requests'){
+    const idx = requests.findIndex(r => r._id === data._id);
+    if(idx > -1) requests[idx] = data;
+    else requests.unshift(data);
+  }
+  else if(collection === 'blacklist'){
+    const idx = blacklist.findIndex(b => b._id === data._id);
+    if(idx > -1) blacklist[idx] = data;
+    else blacklist.push(data);
+  }
+  else if(collection === 'maintenance'){
+    const idx = maintenance.findIndex(m => m._id === data._id);
+    if(idx > -1) maintenance[idx] = data;
+    else maintenance.push(data);
+  }
+  
+  saveLS();
+  if(isOnline && socket?.connected) socket.emit(event,{hotelId:HID, collection, data});
+  if(isOnline) apiCall('POST',`/${collection}`,{data, hotelId:HID});
+  renderAll();
 }
 
 // ================================================================
@@ -904,6 +942,15 @@ if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
 updateServiceDropdown();
 updateLoginClock();
 // Re-render guest panes when language changes
+  // ✅ FIXED: Rebuild admin tabs to translate headings
+
+  if(document.getElementById("adminDash") && !document.getElementById("adminDash").classList.contains("hidden")){
+
+    buildAdminTabs();
+
+    showAdminTab("overview");
+
+  }
 if(document.getElementById('guestDash') && !document.getElementById('guestDash').classList.contains('hidden')){
 buildGuestPanes();
 showGuestTab('reqTab');
@@ -1113,6 +1160,7 @@ if(blacklist.find(b=>b.name.toLowerCase()===name.toLowerCase())){showToast('❌ 
 currentUser={type:'guest',name,room,points:0};
 localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
 showPage('guestDash');
+  buildGuestPanes();
 document.getElementById('gInfo').textContent=`👤 ${name} | #${room}`;
 updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();
 showGuestTab('reqTab');
@@ -1177,6 +1225,7 @@ document.getElementById('aRole').textContent=t(rName);
 renderAll();updateAdminStats();showAdminTab('overview');
 }else if(currentUser.type==='guest'){
 showPage('guestDash');
+  buildGuestPanes();
 document.getElementById('gInfo').textContent=`👤 ${currentUser.name} | #${currentUser.room}`;
 updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();
 showGuestTab('reqTab');
@@ -2294,7 +2343,9 @@ inventory.push(item);save('inventory',item,'inventory_upd');closeModal('inventor
 function addToBlacklist(e){
 e.preventDefault();
 const entry={_id:'bl_'+Date.now(),name:document.getElementById('mBName').value,room:document.getElementById('mBRoom').value,reason:document.getElementById('mBReason').value,date:new Date().toISOString(),hotelId:HID};
-blacklist.push(entry);save('blacklist',blacklist);closeModal('blacklistModal');renderBlacklist();showToast('Guest blocked','error');addLog('Blacklist',entry.name);
+blacklist.push(entry);
+  const guestIndex = guests.findIndex(g => g.name.toLowerCase() === entry.name.toLowerCase());
+  if(guestIndex > -1) guests[guestIndex].status = "blocked";save('blacklist',blacklist);closeModal('blacklistModal');renderBlacklist();showToast('Guest blocked','error');addLog('Blacklist',entry.name);
 }
 function addMaint(e){
 e.preventDefault();
