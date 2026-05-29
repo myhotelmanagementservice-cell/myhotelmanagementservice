@@ -68,8 +68,8 @@ transform:translateZ(0)!important;will-change:auto!important;contain:layout styl
 body{margin:0;padding:0;margin:0;padding:0;padding-bottom:calc(70px + env(safe-area-inset-bottom))}
 }
 .tb-btn{
-  flex: 1 1 auto;
-  text-align: center;
+flex: 1 1 auto;
+text-align: center;
 padding:10px 14px;border-radius:8px;border:none;
 background:rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:600;
 cursor:pointer;white-space:nowrap;min-width:32px;transition:background .15s,transform .1s;
@@ -243,8 +243,8 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .form-2{grid-template-columns:1fr}
 .page-wrap{padding:8px}
 .tb-btn{padding:4px 6px;font-size:9px;min-width:26px}
-  flex: 1 1 auto;
-  text-align: center;
+flex: 1 1 auto;
+text-align: center;
 #toolbar{gap:3px;padding:12px 8px!important}
 body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 }
@@ -421,7 +421,7 @@ const API = window.API_BASE || 'http://localhost:3000/api';
 const SOCKET_URL = window.SOCKET_URL || 'http://localhost:3000';
 const urlParams = new URLSearchParams(location.search);
 let HID = urlParams.get('hotel') || localStorage.getItem('hotel_hid') || 'default';
-if (urlParams.get('hotel')) localStorage.setItem('hotel_hid', HID);
+localStorage.setItem('hotel_hid', HID); // ISSUE 1 FIX: Ensure HID persists
 document.getElementById('tenantLabel').textContent = `Hotel ID: ${HID}`;
 const T = {
 en:{
@@ -492,8 +492,8 @@ markPresent:'✓ Present',markAbsent:'✗ Absent',applyLeave:'Apply Leave',
 approve:'Approve',reject:'Reject',leaveReason:'Leave Reason',
 tasksCompleted:'Tasks',performance:'Performance',online:'Online',offline:'Offline',
 onLeave:'On Leave',onDuty:'On Duty',
-// ISSUE 9: Booking translations
-bookRoom:'📅 Book Room',selectRoom:'Select Room',checkIn:'Check-in',checkOut:'Check-out',numGuests:'Number of Guests',totalPrice:'Total Price',nights:'night(s)',bookingConfirmed:'Booking confirmed! Booking ID:',myBookings:'My Bookings',bookingStatus:'Status',pending:'Pending',confirmed:'Confirmed',checkedIn:'Checked-in',checkedOut:'Checked-out',cancelled:'Cancelled'
+// ISSUE 2 FIX: Complete Booking Translations (EN)
+bookRoom:'📅 Book Room',selectRoom:'Select Room',checkIn:'Check-in',checkOut:'Check-out',numGuests:'Number of Guests',totalPrice:'Total Price',nights:'night(s)',bookingConfirmed:'Booking confirmed! Booking ID:',myBookings:'My Bookings',bookingStatus:'Status','checked-in':'Checked-in','checked-out':'Checked-out',cancelled:'Cancelled',total:'Total'
 },
 hi:{
 hotelName:'क्राउन प्लाज़ा होटल',welcomeSubtitle:'संपूर्ण प्रबंधन प्रणाली',connecting:'सर्वर से जुड़ रहे हैं…',
@@ -563,8 +563,8 @@ markPresent:'✓ उपस्थित',markAbsent:'✗ अनुपस्थि
 approve:'स्वीकार',reject:'अस्वीकार',leaveReason:'छुट्टी का कारण',
 tasksCompleted:'कार्य',performance:'प्रदर्शन',online:'ऑनलाइन',offline:'ऑफलाइन',
 onLeave:'छुट्टी पर',onDuty:'ड्यूटी पर',
-// ISSUE 9: Booking translations - HI
-bookRoom:'📅 कमरा बुक करें',selectRoom:'कमरा चुनें',checkIn:'चेक-इन',checkOut:'चेक-आउट',numGuests:'अतिथियों की संख्या',totalPrice:'कुल कीमत',nights:'रात(ें)',bookingConfirmed:'बुकिंग कन्फर्म! बुकिंग आईडी:',myBookings:'मेरी बुकिंग',bookingStatus:'स्थिति',pending:'लंबित',confirmed:'कन्फर्म',checkedIn:'चेक-इन',checkedOut:'चेक-आउट',cancelled:'रद्द'
+// ISSUE 2 FIX: Complete Booking Translations (HI)
+bookRoom:'📅 कमरा बुक करें',selectRoom:'कमरा चुनें',checkIn:'चेक-इन',checkOut:'चेक-आउट',numGuests:'अतिथियों की संख्या',totalPrice:'कुल कीमत',nights:'रात(ें)',bookingConfirmed:'बुकिंग कन्फर्म! बुकिंग आईडी:',myBookings:'मेरी बुकिंग',bookingStatus:'स्थिति','checked-in':'चेक-इन','checked-out':'चेक-आउट',cancelled:'रद्द',total:'कुल'
 },
 ar:{
 hotelName:'فندق كراون بلازا',welcomeSubtitle:'نظام الإدارة الكامل',connecting:'جارٍ الاتصال…',
@@ -634,8 +634,8 @@ markPresent:'✓ حاضر',markAbsent:'✗ غائب',applyLeave:'طلب إجاز
 approve:'موافقة',reject:'رفض',leaveReason:'سبب الإجازة',
 tasksCompleted:'المهام',performance:'الأداء',online:'متصل',offline:'غير متصل',
 onLeave:'في إجازة',onDuty:'في الخدمة',
-// ISSUE 9: Booking translations - AR
-bookRoom:'📅 حجز غرفة',selectRoom:'اختر الغرفة',checkIn:'تسجيل الوصول',checkOut:'تسجيل المغادرة',numGuests:'عدد الضيوف',totalPrice:'السعر الإجمالي',nights:'ليلة(ليالي)',bookingConfirmed:'تم تأكيد الحجز! معرف الحجز:',myBookings:'حجوزاتي',bookingStatus:'الحالة',pending:'معلق',confirmed:'مؤكد',checkedIn:'تم تسجيل الوصول',checkedOut:'تم تسجيل المغادرة',cancelled:'ملغي'
+// ISSUE 2 FIX: Complete Booking Translations (AR)
+bookRoom:'📅 حجز غرفة',selectRoom:'اختر الغرفة',checkIn:'تسجيل الوصول',checkOut:'تسجيل المغادرة',numGuests:'عدد الضيوف',totalPrice:'السعر الإجمالي',nights:'ليلة(ليالي)',bookingConfirmed:'تم تأكيد الحجز! معرف الحجز:',myBookings:'حجوزاتي',bookingStatus:'الحالة','checked-in':'تم تسجيل الوصول','checked-out':'تم تسجيل المغادرة',cancelled:'ملغي',total:'الإجمالي'
 }};
 function t(k){return T[lang]?.[k] || T.en[k] || k}
 let lang='en', dark=false, fontSize=0, brightness=1, theme='default', highContrast=false;
@@ -891,9 +891,6 @@ if(isOnline && socket?.connected) socket.emit(event,{hotelId:HID, collection, da
 if(isOnline) apiCall('POST',`/${collection}`,{data, hotelId:HID});
 }
 function setLang(l){
-  // Force rebuild guest and admin tabs on language change
-  if(document.getElementById("guestNav")) buildGuestPanes();
-  if(document.getElementById("adminTabsBar")) buildAdminTabs();
 lang=l;
 document.documentElement.lang=l;
 document.documentElement.dir=l==='ar'?'rtl':'ltr';
@@ -1159,47 +1156,27 @@ currentUser=null;cart=[];
 showPage('loginPage');
 showToast('Logged out','success');
 }
-// ISSUE 1 FIX: Check session on page load - fetch from MongoDB first
+// ISSUE 1 FIX: Stable session restoration on refresh
 async function checkSession(){
 const s=localStorage.getItem(`h_${HID}_session`);
 if(!s) return;
-try{
-// ISSUE 1 FIX: Try to fetch session from MongoDB API first
-if(isOnline){
-const sessionData=await apiCall('GET','/session');
-if(sessionData && sessionData.user){
-currentUser=sessionData.user;
-}
-}
-// Fallback to localStorage if API fails
-if(!currentUser) currentUser=JSON.parse(s);
-if(currentUser && currentUser.type==='admin'){
-buildAdminTabs();showPage('adminDash');
+try{ currentUser = JSON.parse(s); }catch(e){return;}
+if(!currentUser) return;
+if(currentUser.type==='admin'){
+buildAdminTabs();
+showPage('adminDash');
 const rName=ROLES.find(r=>r.key===currentUser.role)?.label||'Admin';
 document.getElementById('aRole').textContent=t(rName);
 renderAll();updateAdminStats();showAdminTab('overview');
-}else if(currentUser && currentUser.type==='guest'){
+}else if(currentUser.type==='guest'){
 showPage('guestDash');
 document.getElementById('gInfo').textContent=`👤 ${currentUser.name} | #${currentUser.room}`;
 updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
 showGuestTab('reqTab');
 }
-}catch(e){
-// Fallback to localStorage on error
-try{
-currentUser=JSON.parse(s);
-if(currentUser && currentUser.type==='admin'){
-buildAdminTabs();showPage('adminDash');
-const rName=ROLES.find(r=>r.key===currentUser.role)?.label||'Admin';
-document.getElementById('aRole').textContent=t(rName);
-renderAll();updateAdminStats();showAdminTab('overview');
-}else if(currentUser && currentUser.type==='guest'){
-showPage('guestDash');
-document.getElementById('gInfo').textContent=`👤 ${currentUser.name} | #${currentUser.room}`;
-updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
-showGuestTab('reqTab');
-}
-}catch(e2){localStorage.removeItem(`h_${HID}_session`)}
+// Background sync if online
+if(isOnline && socket?.connected){
+socket.emit('guest_join', {hotelId:HID, name: currentUser.name, room: currentUser.room});
 }
 }
 function showPage(id){
@@ -1471,12 +1448,12 @@ case 'bookings': return `
 </div>
 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
 <select class="inp" id="bookingFilterStatus" style="width:auto" onchange="renderAdminBookings()">
-        <!-- Options will be generated by JS -->
-<option value="pending"><span data-i18n="bookingPending">Pending</span></option>
-<option value="confirmed"><span data-i18n="bookingConfirmed">Confirmed</span></option>
-<option value="checked-in"><span data-i18n="bookingCheckedIn">Checked-in</span></option>
-<option value="checked-out"><span data-i18n="bookingCheckedOut">Checked-out</span></option>
-<option value="cancelled"><span data-i18n="bookingCancelled">Cancelled</span></option>
+<option value="all" data-i18n="filterAll">All Status</option>
+<option value="pending" data-i18n="pending">Pending</option>
+<option value="confirmed" data-i18n="confirmed">Confirmed</option>
+<option value="checked-in" data-i18n="checked-in">Checked-in</option>
+<option value="checked-out" data-i18n="checked-out">Checked-out</option>
+<option value="cancelled" data-i18n="cancelled">Cancelled</option>
 </select>
 <input type="date" class="inp" id="bookingFilterFrom" style="width:auto" onchange="renderAdminBookings()">
 <input type="date" class="inp" id="bookingFilterTo" style="width:auto" onchange="renderAdminBookings()">
@@ -2395,11 +2372,11 @@ el.innerHTML=list.map(b=>`
 </div>
 <div class="booking-actions">
 <select class="inp" style="font-size:10px;padding:4px 8px" onchange="updateBookingStatus('${b._id}',this.value)">
-<option value="pending" ${b.status==='pending'?'selected':''}>Pending</option>
-<option value="confirmed" ${b.status==='confirmed'?'selected':''}>Confirmed</option>
-<option value="checked-in" ${b.status==='checked-in'?'selected':''}>Checked-in</option>
-<option value="checked-out" ${b.status==='checked-out'?'selected':''}>Checked-out</option>
-<option value="cancelled" ${b.status==='cancelled'?'selected':''}>Cancelled</option>
+<option value="pending" ${b.status==='pending'?'selected':''}>${t('pending')}</option>
+<option value="confirmed" ${b.status==='confirmed'?'selected':''}>${t('confirmed')}</option>
+<option value="checked-in" ${b.status==='checked-in'?'selected':''}>${t('checked-in')}</option>
+<option value="checked-out" ${b.status==='checked-out'?'selected':''}>${t('checked-out')}</option>
+<option value="cancelled" ${b.status==='cancelled'?'selected':''}>${t('cancelled')}</option>
 </select>
 <button class="booking-btn edit" onclick="editBooking('${b._id}')">✏️</button>
 <button class="booking-btn cancel" onclick="deleteBooking('${b._id}')">🗑️</button>
@@ -2706,152 +2683,14 @@ setLang(lang);
 loadLS();
 tickClock();
 initSocket();
-checkSession();
+checkSession(); // ISSUE 1 FIX: Stable session check
 renderAll();
 const onlineBtn=document.getElementById('onlineBtn');
 if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
 setInterval(saveLS, 15000);
+window.addEventListener('beforeunload', saveLS); // ISSUE 1 FIX: Extra stability
 }
 init();
 </script>
 </body>
 </html>
-<script>
-// Function to populate booking status filter with translations
-function renderBookingStatusFilter() {
-    const statuses = [
-        { value: 'all', key: 'filterAll', label: 'All Status' },
-        { value: 'pending', key: 'bookingPending', label: 'Pending' },
-        { value: 'confirmed', key: 'bookingConfirmed', label: 'Confirmed' },
-        { value: 'checked-in', key: 'bookingCheckedIn', label: 'Checked-in' },
-        { value: 'checked-out', key: 'bookingCheckedOut', label: 'Checked-out' },
-        { value: 'cancelled', key: 'bookingCancelled', label: 'Cancelled' }
-    ];
-    const filterSelect = document.getElementById('bookingStatusFilter');
-    if (filterSelect) {
-        filterSelect.innerHTML = statuses.map(s => `<option value="${s.value}" data-i18n="${s.key}">${t(s.key)}</option>`).join('');
-    }
-}
-// Call after language change
-if (typeof setLang === 'function') {
-    const originalSetLang = setLang;
-    setLang = function(l) {
-        originalSetLang(l);
-        setTimeout(renderBookingStatusFilter, 50);
-    };
-}
-</script>
-<script>
-function populateBookingStatusFilter() {
-    const filterSelect = document.getElementById('bookingStatusFilter');
-    if (!filterSelect) return;
-    const statuses = [
-        { value: 'all', key: 'filterAll', label: 'All Status' },
-        { value: 'pending', key: 'bookingPending', label: 'Pending' },
-        { value: 'confirmed', key: 'bookingConfirmed', label: 'Confirmed' },
-        { value: 'checked-in', key: 'bookingCheckedIn', label: 'Checked-in' },
-        { value: 'checked-out', key: 'bookingCheckedOut', label: 'Checked-out' },
-        { value: 'cancelled', key: 'bookingCancelled', label: 'Cancelled' }
-    ];
-    filterSelect.innerHTML = statuses.map(s => `<option value="${s.value}" data-i18n="${s.key}">${t(s.key)}</option>`).join('');
-}
-// Call after language change
-if (typeof setLang === 'function') {
-    const originalSetLang = setLang;
-    setLang = function(l) {
-        originalSetLang(l);
-        setTimeout(populateBookingStatusFilter, 50);
-    };
-}
-// Also call on page load
-document.addEventListener('DOMContentLoaded', populateBookingStatusFilter);
-</script>
-<script>
-function updateBookingFilterOptions() {
-    const filterSelect = document.getElementById('bookingStatusFilter');
-    if (!filterSelect) return;
-    const options = filterSelect.options;
-    for (let i = 0; i < options.length; i++) {
-        const opt = options[i];
-        const key = opt.getAttribute('data-i18n');
-        if (key) {
-            const translation = t(key);
-            if (translation) opt.textContent = translation;
-        }
-    }
-}
-// Override setLang to also call this after language change
-if (typeof setLang === 'function') {
-    const originalSetLang = setLang;
-    setLang = function(l) {
-        originalSetLang(l);
-        setTimeout(() => {
-            updateBookingFilterOptions();
-        }, 100);
-    };
-}
-// Also call on page load after admin tabs are built
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(updateBookingFilterOptions, 500);
-});
-</script>
-<script>
-// Ensure the booking filter select always uses current language
-function rebuildBookingFilter() {
-    const filterContainer = document.querySelector('#adminDash .card .tbl-wrap');
-    if (!filterContainer) return;
-    
-    let filterSelect = document.getElementById('bookingStatusFilter');
-    if (!filterSelect) return;
-    
-    // Define statuses with translation keys
-    const statuses = [
-        { value: 'all', key: 'filterAll', defaultLabel: 'All Status' },
-        { value: 'pending', key: 'bookingPending', defaultLabel: 'Pending' },
-        { value: 'confirmed', key: 'bookingConfirmed', defaultLabel: 'Confirmed' },
-        { value: 'checked-in', key: 'bookingCheckedIn', defaultLabel: 'Checked-in' },
-        { value: 'checked-out', key: 'bookingCheckedOut', defaultLabel: 'Checked-out' },
-        { value: 'cancelled', key: 'bookingCancelled', defaultLabel: 'Cancelled' }
-    ];
-    
-    // Preserve current selected value
-    const currentValue = filterSelect.value;
-    
-    // Generate new options using current language
-    filterSelect.innerHTML = statuses.map(s => {
-        const translatedText = t(s.key) || s.defaultLabel;
-        return `<option value="${s.value}" data-i18n="${s.key}">${translatedText}</option>`;
-    }).join('');
-    
-    // Restore selected value if it still exists, else default to 'all'
-    filterSelect.value = statuses.some(s => s.value === currentValue) ? currentValue : 'all';
-    
-    // Re-attach event listener (if needed)
-    filterSelect.onchange = function() { filterBookings(); };
-}
-
-// Override setLang to also rebuild the filter after language change
-if (typeof setLang === 'function') {
-    const originalSetLang = setLang;
-    setLang = function(l) {
-        originalSetLang(l);
-        setTimeout(() => {
-            if (document.getElementById('adminDash') && !document.getElementById('adminDash').classList.contains('hidden')) {
-                rebuildBookingFilter();
-            }
-        }, 150);
-    };
-}
-
-// Also run when admin tab is shown (in case it's loaded later)
-document.addEventListener('DOMContentLoaded', function() {
-    // Watch for admin dashboard becoming visible
-    const observer = new MutationObserver(() => {
-        if (document.getElementById('adminDash') && !document.getElementById('adminDash').classList.contains('hidden')) {
-            rebuildBookingFilter();
-            observer.disconnect(); // run once
-        }
-    });
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-});
-</script>
