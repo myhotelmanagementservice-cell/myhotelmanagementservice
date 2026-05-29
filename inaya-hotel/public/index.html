@@ -49,16 +49,16 @@ body.theme-forest{--p1:#10b981;--p2:#34d399;--p3:#059669;--header:linear-gradien
 body.theme-ocean{--p1:#06b6d4;--p2:#3b82f6;--p3:#0e7490;--header:linear-gradient(135deg,#06b6d4,#3b82f6);--toolbar-bg:rgba(6,182,212,.97)}
 body.theme-royal{--p1:#ec4899;--p2:#8b5cf6;--p3:#be185d;--header:linear-gradient(135deg,#ec4899,#8b5cf6);--toolbar-bg:rgba(236,72,153,.97)}
 body.high-contrast{filter:contrast(1.4) saturate(1.3)}
-
 /* ISSUE 1 & 2 FIX: Updated toolbar styles */
 #toolbar{
 position:fixed!important;bottom:0!important;left:0!important;right:0!important;
-width:100vw!important;background:var(--toolbar-bg)!important;
+width:95vw!important;background:var(--toolbar-bg)!important;
 backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
 border-top:none!important;padding:18px 14px!important;
 display:flex!important;flex-wrap:wrap;justify-content:center;align-items:center;
 gap:4px;z-index:99999!important;box-shadow:0 -4px 24px rgba(0,0,0,.18)!important;
 transform:translateZ(0)!important;will-change:auto!important;contain:layout style;
+left:2.5vw!important;
 }
 @supports(padding-bottom:env(safe-area-inset-bottom)){
 #toolbar{padding-bottom:calc(18px + env(safe-area-inset-bottom))!important}
@@ -74,7 +74,6 @@ font-family:inherit;
 .tb-btn.active{background:rgba(255,255,255,.45);box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .tb-slider{width:60px;height:5px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.35);border-radius:2px;cursor:pointer}
 .tb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#fff;border-radius:50%}
-
 #themeDD{
 position:fixed;bottom:96px;right:12px;background:var(--card);
 border:1px solid var(--border);padding:10px;border-radius:12px;
@@ -83,7 +82,6 @@ box-shadow:0 8px 32px rgba(0,0,0,.2);z-index:100000;display:none;min-width:160px
 #themeDD.show{display:block}
 .th-dot{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;display:inline-block;margin:2px;transition:transform .15s,border-color .15s}
 .th-dot:hover,.th-dot.active{transform:scale(1.1);border-color:var(--p1)}
-
 /* ISSUE 4 FIX: Online/Offline badge inside login page */
 #netBadge{
 position:fixed;top:10px;right:10px;z-index:50000;
@@ -94,7 +92,6 @@ pointer-events:none;display:none;transition:all .2s;
 #netBadge.offline{display:block;background:#ef4444;color:#fff;box-shadow:0 2px 8px rgba(239,68,68,.3)}
 #netBadge.reconnecting{display:block;background:#f59e0b;color:#fff;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
-
 #sockStatus{
 position:fixed;bottom:106px;left:8px;z-index:10000;
 background:var(--card);border:1px solid var(--border);
@@ -106,7 +103,6 @@ display:flex;align-items:center;gap:4px;box-shadow:var(--shadow);
 .sock-dot.connecting{background:#f59e0b;animation:blink .8s infinite}
 .sock-dot.error{background:#ef4444}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
 .card-sm{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;box-shadow:var(--shadow)}
 .btn-primary{background:var(--header);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-weight:600;cursor:pointer;font-size:14px;font-family:inherit;transition:opacity .15s,transform .1s}
@@ -127,14 +123,12 @@ select.inp{cursor:pointer}
 .badge-in_progress{background:var(--badge-pend);color:var(--badge-pend-c)}
 .req-card{background:var(--card);border-radius:10px;padding:12px;margin-bottom:8px;border-left:4px solid var(--p1);box-shadow:var(--shadow)}
 .req-card.emergency{border-left-color:#ef4444;background:rgba(239,68,68,.05)}
-
 .header{background:var(--header);color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:1000;box-shadow:0 2px 12px rgba(0,0,0,.15)}
 .header h1{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .clock-badge{background:rgba(255,255,255,.2);padding:3px 8px;border-radius:20px;font-size:10px;font-family:'DM Mono',monospace;white-space:nowrap}
 .logout-btn{background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;transition:background .15s}
 .logout-btn:hover{background:rgba(255,255,255,.35)}
-
 .tabs-bar{background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;position:sticky;top:52px;z-index:900;scrollbar-width:none}
 .tabs-bar::-webkit-scrollbar{display:none}
 .tabs-bar-inner{display:inline-flex;padding:0 8px;gap:0;min-width:100%}
@@ -142,7 +136,6 @@ select.inp{cursor:pointer}
 .tab-btn.active{color:var(--p1);border-bottom-color:var(--p1);opacity:1;font-weight:700}
 .tab-btn:hover{opacity:1}
 .tab-pane{display:none}.tab-pane.active{display:block;animation:fadeUp .2s ease}
-
 /* ISSUE 1 FIX: Updated login page styles - NO WIDTH GAP */
 #loginPage{
 min-height:100dvh;width:100vw;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -168,7 +161,6 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .login-card #loginNetBadge.online{background:#10b981;color:#fff}
 .login-card #loginNetBadge.offline{background:#ef4444;color:#fff}
 .login-card #loginNetBadge.reconnecting{background:#f59e0b;color:#fff;animation:pulse 1.5s infinite}
-
 .login-logo{font-size:48px;text-align:center;margin-bottom:8px;animation:float 3s ease-in-out infinite}
 .login-h{font-size:24px;font-weight:700;color:var(--fg);text-align:center;margin-bottom:6px}
 .login-sub{font-size:14px;color:var(--p2);text-align:center;margin-bottom:20px}
@@ -181,7 +173,6 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .conn-dot.connecting{background:#f59e0b;animation:blink .8s infinite}
 .conn-dot.error{background:#ef4444}
 .login-clock{font-size:11px;color:var(--fg);opacity:.7;text-align:center;margin-top:10px;font-family:'DM Mono',monospace}
-
 .guest-nav{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px}
 .gnav-btn{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s;font-size:12px;font-weight:600;color:var(--fg);font-family:inherit}
 .gnav-btn:hover,.gnav-btn.active{background:var(--p1);color:#fff;border-color:var(--p1)}
@@ -190,7 +181,6 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;box-shadow:var(--shadow)}
 .stat-val{font-size:24px;font-weight:700;color:var(--p1)}
 .stat-lbl{font-size:12px;color:var(--fg);opacity:.6;margin-top:2px}
-
 .tbl-wrap{overflow-x:auto;border-radius:8px}
 .tbl{width:100%;border-collapse:collapse;font-size:11px}
 .tbl th{background:var(--card2);padding:8px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--p1);border-bottom:1px solid var(--border)}
@@ -200,7 +190,6 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .tbl-action{background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:4px;transition:background .1s}
 .tbl-action:hover{background:var(--border)}
 [dir="rtl"] .tbl th,[dir="rtl"] .tbl td{text-align:right}
-
 .food-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
 .food-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;transition:all .15s;text-align:center}
 .food-card:hover{border-color:var(--p1);transform:translateY(-2px);box-shadow:0 4px 16px rgba(108,99,255,.15)}
@@ -211,30 +200,25 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .inv-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px;text-align:center;cursor:pointer;transition:all .15s}
 .inv-card:hover{border-color:var(--p1)}
-
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:20000;align-items:center;justify-content:center;padding:12px}
 .modal-overlay.open{display:flex;animation:fadeIn .2s}
 .modal-box{background:var(--card);border-radius:16px;padding:20px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)}
 .modal-h{font-size:16px;font-weight:700;margin-bottom:14px;color:var(--fg)}
 .form-row{margin-bottom:10px}
 .form-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-
 #toasts{position:fixed;top:14px;right:14px;z-index:40000;max-width:calc(100% - 28px);pointer-events:none}
 .toast{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--p1);padding:10px 16px;border-radius:10px;margin-bottom:6px;font-size:12px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.15);animation:slideIn .25s ease;color:var(--fg)}
 .toast.success{border-left-color:#10b981}
 .toast.error{border-left-color:#ef4444}
 .toast.warning{border-left-color:#f59e0b}
 .toast.socket{border-left-color:#8b5cf6}
-
 .role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 @media(min-width:480px){.role-grid{grid-template-columns:repeat(4,1fr)}}
 .role-card{background:var(--card2);border:1.5px solid var(--border);border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:all .15s;font-family:inherit}
 .role-card:hover{border-color:var(--p1);background:var(--p1);color:#fff;transform:translateY(-2px)}
 .role-icon{font-size:28px;margin-bottom:6px}
 .role-name{font-size:12px;font-weight:600}
-
 .stars span{font-size:22px;cursor:pointer;transition:color .1s}
-
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideIn{from{transform:translateX(120px);opacity:0}to{transform:translateX(0);opacity:1}}
@@ -242,14 +226,12 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes spin{to{transform:rotate(360deg)}}
-
 .hidden{display:none!important}
 .divider{border:none;border-top:1px solid var(--border);margin:12px 0}
 .low-stock{color:#ef4444;font-weight:700}
 .page-wrap{max-width:1200px;margin:0 auto;padding:12px}
 .sync-spin{animation:spin 1s linear infinite;display:inline-block}
 .conn-bar{background:var(--p1);height:2px;position:fixed;top:0;left:0;z-index:99998;transition:width .3s}
-
 @media(max-width:480px){
 .login-card{padding:24px}
 .guest-nav{grid-template-columns:repeat(3,1fr)}
@@ -263,7 +245,6 @@ body{padding-bottom:70px}
 [dir="rtl"] .req-card.emergency{border-right-color:#ef4444}
 [lang="ar"]{font-family:'Noto Naskh Arabic','DM Sans',sans-serif}
 [lang="hi"]{font-family:'Noto Sans Devanagari','DM Sans',sans-serif}
-
 .weather-card{background:linear-gradient(135deg,#60a5fa,#3b82f6);color:#fff;border-radius:12px;padding:12px;text-align:center}
 .weather-icon{font-size:32px;margin-bottom:4px}
 .weather-temp{font-size:24px;font-weight:700}
@@ -282,7 +263,6 @@ body{padding-bottom:70px}
 .reply-input{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--input-bg);color:var(--fg);font-size:11px}
 .admin-reply{background:var(--card2);border-radius:8px;padding:8px;margin-top:6px;border:1px dashed var(--p1)}
 .admin-reply-input{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--input-bg);color:var(--fg);font-size:11px;min-height:40px;resize:vertical}
-
 /* ISSUE 7 FIX: Staff Management Styles */
 .staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
 .staff-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
@@ -416,7 +396,6 @@ const urlParams = new URLSearchParams(location.search);
 let HID = urlParams.get('hotel') || localStorage.getItem('hotel_hid') || 'default';
 if (urlParams.get('hotel')) localStorage.setItem('hotel_hid', HID);
 document.getElementById('tenantLabel').textContent = `Hotel ID: ${HID}`;
-
 const T = {
 en:{
 hotelName:'Crown Plaza Hotel',welcomeSubtitle:'Complete Management System',connecting:'Connecting to server…',
@@ -628,9 +607,7 @@ approve:'موافقة',reject:'رفض',leaveReason:'سبب الإجازة',
 tasksCompleted:'المهام',performance:'الأداء',online:'متصل',offline:'غير متصل',
 onLeave:'في إجازة',onDuty:'في الخدمة'
 }};
-
 function t(k){return T[lang]?.[k] || T.en[k] || k}
-
 let lang='en', dark=false, fontSize=0, brightness=1, theme='default', highContrast=false;
 let currentUser=null, HotelCfg={name:'Crown Plaza Hotel',currency:'$',wifi:'CrownPlaza@2024',airportPrice:30,localPrice:15};
 let rooms=[], guests=[], food=[], inventory=[], requests=[], blacklist=[], maintenance=[], reviews=[], loyalty=[], staff=[], logs=[];
@@ -640,7 +617,6 @@ let isOnline=true;
 let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let notificationPermission = 'default';
 let voicesLoaded = false;
-
 const SERVICES = {
 'Housekeeping':[
 {key:'Room Cleaning',en:'Room Cleaning',hi:'कमरा सफाई',ar:'تنظيف الغرفة'},
@@ -692,7 +668,6 @@ const SERVICES = {
 {key:'Shuttle Service',en:'Shuttle Service',hi:'शटल सर्विस',ar:'خدمة النقل'}
 ]
 };
-
 const ROLES = [
 {key:'super_admin',icon:'👑',label:'roleSuperAdmin'},
 {key:'front_desk',icon:'🛎️',label:'roleFrontDesk'},
@@ -703,7 +678,6 @@ const ROLES = [
 {key:'security',icon:'🛡️',label:'roleSecurity'},
 {key:'it_support',icon:'💻',label:'roleIT'}
 ];
-
 let socket=null;
 function initSocket(){
 try{
@@ -772,7 +746,6 @@ setSockStatus('error');
 updateNetBadge('offline');
 }
 }
-
 function setSockStatus(s){
 const dot=document.getElementById('sockDot'), txt=document.getElementById('sockTxt');
 const loginDot=document.getElementById('loginConnDot'), loginTxt=document.getElementById('loginConnTxt');
@@ -784,7 +757,6 @@ if(loginTxt) loginTxt.textContent=m.text;
 const sockEl=document.getElementById('sockStatus');
 if(sockEl) sockEl.style.display=s==='connected'?'none':'flex';
 }
-
 function updateNetBadge(status){
 const badge=document.getElementById('netBadge');
 const loginBadge=document.getElementById('loginNetBadge');
@@ -794,7 +766,6 @@ const text=status==='online'?t('online'):status==='offline'?t('offline'):t('reco
 if(badge){badge.className='';badge.classList.add(className);badge.textContent=text}
 if(loginBadge){loginBadge.className='';loginBadge.classList.add(className);loginBadge.textContent=text}
 }
-
 function toggleOnlineMode(){
 isOnline=!isOnline;
 const btn=document.getElementById('onlineBtn');
@@ -810,7 +781,6 @@ if(socket && socket.connected) socket.disconnect();
 showToast('📴 Offline mode - using localStorage','warning');
 }
 }
-
 async function apiCall(method, path, body=null){
 if(!isOnline) return null;
 const opts={method, headers:{'Content-Type':'application/json','x-hotel-id':HID}};
@@ -824,7 +794,6 @@ console.warn('API error (using localStorage fallback):',e.message);
 return null;
 }
 }
-
 async function syncBack(){
 if(!isOnline) return;
 const [r,g,f,inv,req,bl,maint,rev,st,lg] = await Promise.all([
@@ -840,7 +809,6 @@ if(cfg) {Object.assign(HotelCfg,cfg); applyCfg();}
 renderAll();
 if(!rooms.length) loadLS();
 }
-
 function saveLS(){
 localStorage.setItem(`h_${HID}_rooms`,JSON.stringify(rooms));
 localStorage.setItem(`h_${HID}_guests`,JSON.stringify(guests));
@@ -856,7 +824,6 @@ localStorage.setItem(`h_${HID}_cfg`,JSON.stringify(HotelCfg));
 // ISSUE 3 FIX: Save session to localStorage
 if(currentUser) localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
 }
-
 function loadLS(){
 const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
 rooms=get(`h_${HID}_rooms`,[{_id:'r1',number:101,type:'Standard',price:99,status:'Vacant',guestName:''},{_id:'r2',number:102,type:'Deluxe',price:129,status:'Occupied',guestName:'John Smith'},{_id:'r3',number:103,type:'Suite',price:199,status:'Vacant',guestName:''}]);
@@ -877,13 +844,11 @@ const cfg=get(`h_${HID}_cfg`,{});
 if(Object.keys(cfg).length) Object.assign(HotelCfg,cfg);
 renderAll();
 }
-
 function save(collection, data, event='data_upd'){
 saveLS();
 if(isOnline && socket?.connected) socket.emit(event,{hotelId:HID, collection, data});
 if(isOnline) apiCall('POST',`/${collection}`,{data, hotelId:HID});
 }
-
 function setLang(l){
 lang=l;
 document.documentElement.lang=l;
@@ -909,7 +874,6 @@ if (!document.getElementById('adminDash').classList.contains('hidden')) {
 buildAdminTabs();
 }
 }
-
 function applyI18n(){
 document.querySelectorAll('[data-i18n]').forEach(el=>{
 const v=t(el.getAttribute('data-i18n'));
@@ -917,14 +881,12 @@ if(v) el.textContent=v;
 });
 ['loginHotelName','aHotelName','gHotelName'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=HotelCfg.name});
 }
-
 function toggleDark(){
 dark=!dark;
 document.body.classList.toggle('dark',dark);
-document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
+document.getElementById('darkBtn').textContent=dark?'☀️':'';
 localStorage.setItem('hotel_dark',dark?'1':'0');
 }
-
 // ISSUE 2 FIX: Font size buttons working properly
 function adjustFont(d){
 const baseSize=16;
@@ -939,7 +901,6 @@ document.body.style.fontSize=newSize+'px';
 localStorage.setItem('hotel_font',fontSize);
 showToast(`Font: ${document.body.style.fontSize}`,'success');
 }
-
 // ISSUE 2 FIX: Brightness slider working properly
 function setBrightness(v){
 brightness=parseFloat(v);
@@ -948,14 +909,12 @@ localStorage.setItem('hotel_bright',v);
 const slider=document.getElementById('brightSlider');
 if(slider) slider.value=v;
 }
-
 function toggleContrast(){
 highContrast=!highContrast;
 document.body.classList.toggle('high-contrast',highContrast);
 showToast(highContrast?'🔆 High contrast ON':'🔆 High contrast OFF');
 localStorage.setItem('hotel_contrast',highContrast?'1':'0');
 }
-
 function setTheme(th){
 theme=th;
 document.body.className=document.body.className.replace(/theme-\S+/g,'').trim();
@@ -968,9 +927,7 @@ localStorage.setItem('hotel_theme',th);
 if(dark) document.body.classList.add('dark');
 document.getElementById('themeDD').classList.remove('show');
 }
-
 function toggleThemeDD(){document.getElementById('themeDD').classList.toggle('show')}
-
 function reqNotif(){
 if(!('Notification' in window)){
 showToast(t('notifNotSupported'),'error');
@@ -997,7 +954,6 @@ showToast(t('notifPending'),'warning');
 }
 });
 }
-
 function haptic(){
 if(navigator.vibrate){
 navigator.vibrate([50,50,50]);
@@ -1006,7 +962,6 @@ showToast('📳 '+t('haptic'),'success');
 showToast('📳 Haptic not supported','warning');
 }
 }
-
 function speak(){
 if(!('speechSynthesis' in window)){showToast('🔊 Voice not supported','error');return}
 const text={
@@ -1026,11 +981,9 @@ window.speechSynthesis.cancel();
 window.speechSynthesis.speak(utterance);
 showToast('🔊 Speaking...','success');
 }
-
 if('speechSynthesis' in window){
 window.speechSynthesis.onvoiceschanged=()=>{voicesLoaded=true;};
 }
-
 function loadUIPrefs(){
 lang=localStorage.getItem('hotel_lang')||'en';
 dark=localStorage.getItem('hotel_dark')==='1';
@@ -1050,7 +1003,6 @@ document.body.style.fontSize=(baseSize+(fontSize*2))+'px';
 }
 setTheme(theme);
 }
-
 function applyCfg(){
 ['loginHotelName','aHotelName','gHotelName'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=HotelCfg.name});
 const wEl=document.getElementById('gWifiDisplay');if(wEl)wEl.textContent=HotelCfg.wifi;
@@ -1069,7 +1021,6 @@ cabSelect.innerHTML=`
 `;
 }
 }
-
 function updateLoginClock(){
 const now=new Date();
 const locale=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
@@ -1082,7 +1033,6 @@ const timeStr=now.toLocaleString(locale,options);
 const loginClock=document.getElementById('loginClock');
 if(loginClock) loginClock.textContent=timeStr;
 }
-
 function tickClock(){
 const now=new Date();
 const locale=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
@@ -1096,9 +1046,7 @@ const timeStr=now.toLocaleString(locale,options);
 const gLT=document.getElementById('gLocalTime');if(gLT)gLT.textContent=now.toLocaleTimeString(locale,{timeZone:userTimezone});
 updateLoginClock();
 }
-
 setInterval(tickClock,1000);
-
 function showToast(msg,type=''){
 const c=document.getElementById('toasts');
 const d=document.createElement('div');
@@ -1106,14 +1054,12 @@ d.className=`toast${type?' '+type:''}`;
 d.textContent=msg;c.appendChild(d);
 setTimeout(()=>{d.style.opacity='0';d.style.transform='translateX(80px)';d.style.transition='.3s';setTimeout(()=>d.remove(),300)},3000);
 }
-
 function switchLogin(type){
 document.getElementById('guestLoginForm').classList.toggle('hidden',type!=='guest');
 document.getElementById('adminLoginForm').classList.toggle('hidden',type!=='admin');
 document.getElementById('guestTabBtn').classList.toggle('active',type==='guest');
 document.getElementById('adminTabBtn').classList.toggle('active',type==='admin');
 }
-
 async function guestLogin(e){
 e.preventDefault();
 const name=document.getElementById('guestNameIn').value.trim();
@@ -1129,7 +1075,6 @@ showGuestTab('reqTab');
 showToast(`Welcome, ${name}! 🌟`,'success');
 if(isOnline && socket?.connected) socket.emit('guest_join',{hotelId:HID,name,room});
 }
-
 async function adminLogin(e){
 e.preventDefault();
 const email=document.getElementById('adminEmailIn').value.trim();
@@ -1144,14 +1089,12 @@ showToast('Login successful','success');
 showToast('❌ Invalid credentials. Please check and try again.','error');
 }
 }
-
 function buildRolePage(){
 const g=document.getElementById('roleGrid');
 g.innerHTML=ROLES.map(r=>`<button class="role-card" onclick="loginAsRole('${r.key}')">
 <div class="role-icon">${r.icon}</div><div class="role-name">${t(r.label)}</div>
 </button>`).join('');
 }
-
 function loginAsRole(role){
 currentUser.role=role;
 localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
@@ -1163,16 +1106,13 @@ renderAll();updateAdminStats();
 showAdminTab('overview');
 showToast(`Logged in as ${t(rName)}`,'success');
 }
-
 function backToLogin(){showPage('loginPage')}
-
 function logout(){
 localStorage.removeItem(`h_${HID}_session`);
 currentUser=null;cart=[];
 showPage('loginPage');
 showToast('Logged out','success');
 }
-
 // ISSUE 3 FIX: Check session on page load and restore
 function checkSession(){
 const s=localStorage.getItem(`h_${HID}_session`);
@@ -1192,7 +1132,6 @@ showGuestTab('reqTab');
 }
 }catch(e){localStorage.removeItem(`h_${HID}_session`)}
 }
-
 function showPage(id){
 ['loginPage','rolePage','adminDash','guestDash'].forEach(p=>{
 const el=document.getElementById(p);if(!el)return;
@@ -1205,7 +1144,6 @@ el.style.display = 'none';
 }
 });
 }
-
 const ADMIN_TABS=[
 {id:'overview',label:'tabOverview'},
 {id:'rooms',label:'tabRooms'},
@@ -1223,14 +1161,12 @@ const ADMIN_TABS=[
 {id:'staff',label:'tabStaff'},
 {id:'logs',label:'tabLogs'}
 ];
-
 function buildAdminTabs(){
 const bar=document.getElementById('adminTabsBar');
 const content=document.getElementById('adminTabsContent');
 bar.innerHTML=ADMIN_TABS.map(tb=>`<button class="tab-btn" data-tab="${tb.id}" onclick="showAdminTab('${tb.id}')">${t(tb.label)}</button>`).join('');
 content.innerHTML=ADMIN_TABS.map(tb=>`<div class="tab-pane" id="atab-${tb.id}">${buildTabContent(tb.id)}</div>`).join('');
 }
-
 function buildTabContent(id){
 switch(id){
 case 'overview': return `
@@ -1460,7 +1396,6 @@ case 'logs': return `
 default: return '';
 }
 }
-
 function showAdminTab(id){
 document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
 document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.id===`atab-${id}`));
@@ -1468,7 +1403,6 @@ if(id==='overview') setTimeout(initCharts,200);
 if(id==='requests') updateAdminServices();
 if(id==='staff') renderStaff();
 }
-
 function renderAll(){
 applyI18n();
 renderRooms();renderGuests();renderFood();renderInventory();
@@ -1477,7 +1411,6 @@ renderLoyalty();renderStaff();renderLogs();
 updateAdminStats();updateGuestStats();
 renderGuestFood();renderGuestInv();renderGuestHistory();
 }
-
 function renderRooms(){
 const tbody=document.getElementById('roomsTbody');if(!tbody)return;
 tbody.innerHTML=rooms.map(r=>`
@@ -1493,7 +1426,6 @@ tbody.innerHTML=rooms.map(r=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--p2);padding:12px">No rooms</td></tr>';
 }
-
 function renderGuests(){
 const tbody=document.getElementById('guestsTbody');if(!tbody)return;
 tbody.innerHTML=guests.map(g=>`
@@ -1508,7 +1440,6 @@ tbody.innerHTML=guests.map(g=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:12px">No guests</td></tr>';
 }
-
 function renderFood(){
 const el=document.getElementById('foodAdminList');if(!el)return;
 el.innerHTML=food.map(f=>`
@@ -1519,11 +1450,11 @@ el.innerHTML=food.map(f=>`
 <div style="font-weight:700;color:var(--p1)">${HotelCfg.currency}${f.price}</div>
 </div>
 <div style="display:flex;gap:4px">
-<button class="tbl-action" onclick="delFood('${f._id}')">🗑️</button>
+<button class="tbl-action" onclick="editFood('${f._id}')" title="Edit">✏️</button>
+<button class="tbl-action" onclick="delFood('${f._id}')" title="Delete">🗑️</button>
 </div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No dishes</p>';
 }
-
 function renderInventory(){
 const tbody=document.getElementById('invTbody');if(!tbody)return;
 tbody.innerHTML=inventory.map(i=>`
@@ -1538,169 +1469,44 @@ tbody.innerHTML=inventory.map(i=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px">No items</td></tr>';
 }
-
-function renderRequests(filter='all'){
-const el=document.getElementById('reqsList');if(!el)return;
-let list=requests;
-if(filter==='open') list=requests.filter(r=>r.status==='open');
-if(filter==='completed') list=requests.filter(r=>r.status==='completed');
-if(filter==='emergency') list=requests.filter(r=>r.priority==='emergency');
-el.innerHTML=list.map(r=>`
-<div class="req-card ${r.priority==='emergency'?'emergency':''}">
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-<div>
-<strong>${r.guestName}</strong> — Room ${r.roomNumber}
-<div style="font-size:11px;opacity:.7;margin-top:2px">${r.department} • ${r.description}</div>
-<div style="display:flex;gap:6px;margin-top:4px">
-<span class="badge badge-${r.status}">${r.status}</span>
-<span style="font-size:10px;color:${r.priority==='emergency'?'#ef4444':r.priority==='urgent'?'#f59e0b':'#9ca3af'}">${r.priority||'normal'}</span>
-</div>
-</div>
-<div style="display:flex;flex-direction:column;gap:4px;min-width:140px">
-<select style="font-size:10px;border:1px solid var(--border);border-radius:6px;padding:3px;background:var(--input-bg);color:var(--fg)" onchange="updReqStatus('${r._id}',this.value)">
-<option value="open" ${r.status==='open'?'selected':''}>Open</option>
-<option value="in_progress" ${r.status==='in_progress'?'selected':''}>In Progress</option>
-<option value="completed" ${r.status==='completed'?'selected':''}>Done</option>
-</select>
-<div class="admin-reply">
-<textarea class="admin-reply-input" id="adminReply-${r._id}" placeholder="${t('reply')}...">${r.adminReply||''}</textarea>
-<button class="btn-primary" style="margin-top:4px;padding:4px 8px;font-size:10px" onclick="sendAdminReply('${r._id}')">${t('reply')}</button>
-</div>
-<button class="tbl-action" onclick="delReq('${r._id}')" style="margin-top:4px">🗑️</button>
-</div>
-</div>
-</div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No requests</p>';
-}
-
-function updateAdminServices(){
-const dept=document.getElementById('adminDept')?.value;
-const sel=document.getElementById('adminService');if(!sel)return;
-sel.innerHTML=`<option value="">${t('selectService')}</option>`;
-if(dept&&SERVICES[dept]){
-SERVICES[dept].forEach(svc=>{
-const o=document.createElement('option');
-o.value=svc.key;
-o.textContent=svc[lang]||svc.en;
-sel.appendChild(o);
-});
+// ISSUE 4 FIX: Edit Food function
+function editFood(id){
+const f=food.find(x=>x._id===id);
+if(!f)return;
+const newName=prompt('Edit Name:',f.name);
+const newPrice=prompt('Edit Price:',f.price);
+const newCategory=prompt('Edit Category:',f.category);
+const newEmoji=prompt('Edit Emoji:',f.emoji||'🍽️');
+if(newName&&newPrice){
+f.name=newName;
+f.price=parseFloat(newPrice);
+f.category=newCategory||f.category;
+f.emoji=newEmoji||'🍽️';
+save('food',food);
+renderFood();
+renderGuestFood();
+showToast('Food updated','success');
 }
 }
-
-function submitAdminReq(e){
-e.preventDefault();
-const dept=document.getElementById('adminDept')?.value;
-const svc=document.getElementById('adminService')?.value;
-const desc=document.getElementById('adminDesc')?.value||'';
-if(!dept||!svc){showToast('Select department & service','error');return}
-const req={_id:'req_'+Date.now(),guestName:'Admin',roomNumber:'N/A',department:dept,description:`${svc}: ${desc}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID};
-requests.unshift(req);
-save('requests',req,'req_new');
-renderRequests();updateAdminStats();
-e.target.reset();updateAdminServices();
-showToast('✅ Admin request submitted!','success');
-addLog('Admin Request',`${dept} - ${svc}`);
-}
-
-function sendAdminReply(reqId){
-const input=document.getElementById(`adminReply-${reqId}`);
-if(!input) return;
-const reply=input.value.trim();
-if(!reply){showToast('Enter a reply','error');return}
-const req=requests.find(r=>r._id===reqId);
-if(req){
-req.adminReply=reply;
-req.adminReplyTime=new Date().toISOString();
-save('requests',req,'req_upd');
-renderRequests();
-showToast(t('replySent'),'success');
-addLog('Admin Reply',`To ${req.guestName}: ${reply}`);
+// ISSUE 4 FIX: Edit Room function
+function editRoom(id){
+const r=rooms.find(x=>x._id===id);
+if(!r)return;
+const newNumber=prompt('Edit Room Number:',r.number);
+const newType=prompt('Edit Type:',r.type);
+const newPrice=prompt('Edit Price:',r.price);
+const newStatus=prompt('Edit Status:',r.status);
+if(newNumber&&newType&&newPrice){
+r.number=newNumber;
+r.type=newType;
+r.price=parseFloat(newPrice);
+r.status=newStatus||r.status;
+save('rooms',r,'room_upd');
+renderRooms();
+updateAdminStats();
+showToast('Room updated','success');
 }
 }
-
-function sendReply(reqId){
-const input=document.getElementById(`reply-${reqId}`);
-if(!input) return;
-const reply=input.value.trim();
-if(!reply){showToast('Enter a reply','error');return}
-const req=requests.find(r=>r._id===reqId);
-if(req){
-req.reply=reply;
-req.replyTime=new Date().toISOString();
-save('requests',req,'req_upd');
-renderRequests();
-showToast(t('replySent'),'success');
-addLog('Reply Sent',`To ${req.guestName}: ${reply}`);
-}
-}
-
-function renderBlacklist(){
-const tbody=document.getElementById('blTbody');if(!tbody)return;
-tbody.innerHTML=blacklist.map((b,i)=>`
-<tr>
-<td style="color:#ef4444;font-weight:600">${b.name}</td>
-<td>${b.room||'—'}</td>
-<td style="font-size:11px">${b.reason}</td>
-<td style="font-size:10px">${new Date(b.date||Date.now()).toLocaleDateString()}</td>
-<td><button class="tbl-action" style="color:#10b981" onclick="unblockGuest(${i})">${t('unblock')}</button></td>
-</tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:12px;opacity:.5">No blocked guests</td></tr>';
-}
-
-function renderMaintenance(){
-const tbody=document.getElementById('maintTbody');if(!tbody)return;
-tbody.innerHTML=maintenance.map((m,i)=>`
-<tr>
-<td><strong>${m.task}</strong></td>
-<td>${m.room||'—'}</td>
-<td style="font-size:10px">${m.scheduled?new Date(m.scheduled).toLocaleString():'—'}</td>
-<td>${m.assigned||'—'}</td>
-<td><span class="badge badge-${m.status||'pending'}">${m.status||'pending'}</span></td>
-<td>
-<button class="tbl-action" style="color:#10b981" onclick="updMaint(${i},'completed')">✅</button>
-<button class="tbl-action" onclick="delMaint(${i})">🗑️</button>
-</td>
-</tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:12px;opacity:.5">No tasks</td></tr>';
-}
-
-function renderReviews(){
-const el=document.getElementById('reviewsList');if(!el)return;
-if(reviews.length){
-const avg=(reviews.reduce((s,r)=>s+(r.overall||0),0)/reviews.length).toFixed(1);
-const rec=Math.round(reviews.filter(r=>r.recommend!==false).length/reviews.length*100);
-const aEl=document.getElementById('avgR'),tEl=document.getElementById('totR'),rEl=document.getElementById('recR');
-if(aEl)aEl.textContent=avg;if(tEl)tEl.textContent=reviews.length;if(rEl)rEl.textContent=rec+'%';
-}
-el.innerHTML=reviews.slice(0,10).map(r=>`
-<div class="req-card">
-<div style="display:flex;justify-content:space-between">
-<div>
-<strong>${r.guest}</strong> — Room ${r.room}
-<div style="color:#f59e0b">${'★'.repeat(r.overall||0)}${'☆'.repeat(5-(r.overall||0))}</div>
-<p style="font-size:11px;margin-top:3px">${r.comment||'No comment'}</p>
-<small style="opacity:.5;font-size:10px">Service: ${r.service||'—'}★ | Clean: ${r.cleanliness||'—'}★</small>
-</div>
-<button class="btn-ghost" style="font-size:10px;padding:3px 8px;align-self:flex-start" onclick="replyRev('${r.guest}')">💬</button>
-</div>
-</div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No reviews yet</p>';
-}
-
-function renderLoyalty(){
-const tbody=document.getElementById('loyaltyTbody');if(!tbody)return;
-const tot=guests.reduce((s,g)=>s+(g.points||0),0);
-const actEl=document.getElementById('actMem'),totEl=document.getElementById('totPts');
-if(actEl)actEl.textContent=guests.filter(g=>g.status==='active').length;
-if(totEl)totEl.textContent=tot;
-tbody.innerHTML=guests.filter(g=>(g.points||0)>0).map((g,i)=>`
-<tr>
-<td><strong>${g.name}</strong></td>
-<td>${g.room}</td>
-<td>⭐ <strong>${g.points}</strong></td>
-<td>
-<button class="tbl-action" style="color:#10b981" onclick="addPts('${g._id}',10)">➕10</button>
-<button class="tbl-action" style="color:var(--p1)" onclick="redeemPts('${g._id}',50)">🎁</button>
-</td>
-</tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px;opacity:.5">No members</td></tr>';
-}
-
 // ISSUE 7 FIX: Complete Staff Management Render Function
 function renderStaff(){
 const el=document.getElementById('staffGrid');if(!el)return;
@@ -1747,7 +1553,6 @@ ${s.leaveRequest?`
 </div>
 `).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No staff</p>';
 }
-
 function renderLogs(){
 const tbody=document.getElementById('logsTbody');if(!tbody)return;
 tbody.innerHTML=logs.slice(0,50).map(l=>`
@@ -1758,14 +1563,12 @@ tbody.innerHTML=logs.slice(0,50).map(l=>`
 <td style="font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.details||'—'}</td>
 </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px;opacity:.5">No logs</td></tr>';
 }
-
 function addLog(action,details){
 const entry={timestamp:new Date().toISOString(),user:currentUser?.name||currentUser?.email||'System',action,details};
 logs.unshift(entry);
 save('logs',logs);
 renderLogs();
 }
-
 function updateAdminStats(){
 const el=id=>document.getElementById(id);
 if(el('stTot'))el('stTot').textContent=rooms.length;
@@ -1774,7 +1577,6 @@ if(el('stOpen'))el('stOpen').textContent=requests.filter(r=>r.status==='open').l
 if(el('stProg'))el('stProg').textContent=requests.filter(r=>r.status==='in_progress').length;
 if(el('stEmerg'))el('stEmerg').textContent=requests.filter(r=>r.priority==='emergency').length;
 }
-
 function initCharts(){
 const dCtx=document.getElementById('deptChart');
 const oCtx=document.getElementById('occChart');
@@ -1794,7 +1596,6 @@ const total=rooms.length||1;
 occChart=new Chart(oCtx,{type:'bar',data:{labels:['W1','W2','W3','W4'],datasets:[{label:'%',data:[68,75,82,Math.round(occupied/total*100)],backgroundColor:'#6c63ff',borderRadius:6}]},options:{...opts,scales:{y:{beginAtZero:true,max:100,ticks:{color:'var(--fg)'},grid:{color:'var(--border)'}},x:{ticks:{color:'var(--fg)'},grid:{display:false}}}}});
 }
 }
-
 const GUEST_TABS=[
 {id:'reqTab',icon:'📝',label:'reqTab'},
 {id:'foodTab',icon:'🍕',label:'foodTab'},
@@ -1803,7 +1604,6 @@ const GUEST_TABS=[
 {id:'histTab',icon:'📋',label:'histTab'},
 {id:'infoTab',icon:'ℹ️',label:'infoTab'}
 ];
-
 function buildGuestPanes(){
 const nav=document.getElementById('guestNav');
 const panes=document.getElementById('guestPanes');
@@ -1924,7 +1724,6 @@ panes.innerHTML=`
 </div>
 </div>`;
 }
-
 function showGuestTab(id){
 GUEST_TABS.forEach(tb=>{
 const p=document.getElementById(`gp-${tb.id}`);
@@ -1936,7 +1735,6 @@ if(id==='foodTab') renderGuestFood();
 if(id==='invTab') renderGuestInv();
 if(id==='histTab') renderGuestHistory();
 }
-
 function updateServices(){
 const dept=document.getElementById('gDept')?.value;
 const sel=document.getElementById('gService');if(!sel)return;
@@ -1950,7 +1748,6 @@ sel.appendChild(o);
 });
 }
 }
-
 // ISSUE 5 FIX: Show toast notification on guest request submit
 function submitGuestReq(e){
 e.preventDefault();
@@ -1969,7 +1766,6 @@ showToast('✅ Request submitted!','success');
 addLog('New Request',`${currentUser.name} - ${dept}`);
 if(prio==='emergency') showToast('🚨 Emergency alert sent to staff!','error');
 }
-
 function renderGuestFood(){
 const el=document.getElementById('gFoodGrid');if(!el)return;
 el.innerHTML=food.map(f=>`
@@ -1980,7 +1776,6 @@ el.innerHTML=food.map(f=>`
 <div class="food-price">${HotelCfg.currency}${f.price}</div>
 </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No items available</p>';
 }
-
 function renderGuestInv(){
 const el=document.getElementById('gInvGrid');if(!el)return;
 el.innerHTML=inventory.map(i=>`
@@ -1991,7 +1786,6 @@ el.innerHTML=inventory.map(i=>`
 <button class="btn-primary" style="margin-top:6px;padding:4px 8px;font-size:10px" onclick="reqInvItem('${i.name}')" data-i18n="requestMore">Request</button>
 </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
 }
-
 function renderGuestHistory(){
 const el=document.getElementById('gHistList');if(!el||!currentUser)return;
 const myReqs=requests.filter(r=>r.guestName===currentUser.name&&r.roomNumber==currentUser.room);
@@ -2007,7 +1801,6 @@ el.innerHTML=myReqs.map(r=>`
 </div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No requests yet</p>';
 }
-
 function updateGuestStats(){
 if(!currentUser)return;
 const myReqs=requests.filter(r=>r.guestName===currentUser.name);
@@ -2021,7 +1814,6 @@ const pEl=el('gPts'),pdEl=el('gPtsDisplay');
 if(pEl)pEl.textContent=`⭐ ${pts} pts`;
 if(pdEl)pdEl.textContent=pts;
 }
-
 function addToCart(id,name,price){
 cart.push({id,name,price});
 const cartEl=document.getElementById('cartItems');
@@ -2033,7 +1825,6 @@ cartEl.innerHTML=cart.map(i=>`<div style="display:flex;justify-content:space-bet
 }
 showToast(`${name} added to cart 🛒`,'success');
 }
-
 function placeOrder(){
 if(!cart.length){showToast('Cart is empty','error');return}
 const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUser.room,department:'Restaurant',description:`Food: ${cart.map(i=>i.name).join(', ')}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID};
@@ -2045,14 +1836,12 @@ renderRequests();updateGuestStats();renderGuestHistory();
 // ISSUE 5 FIX: Show notification on order
 showToast('🍽️ Order placed! Arriving soon.','success');
 }
-
 function reqInvItem(name){
 const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUser.room,department:'Housekeeping',description:`Item Request: ${name}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID};
 requests.unshift(req);save('requests',req,'req_new');
 renderRequests();updateGuestStats();
 showToast(`📦 ${name} requested — 10 min delivery`,'success');
 }
-
 // ISSUE 6 FIX: Show price on cab booking and notification
 function bookCab(e){
 e.preventDefault();
@@ -2066,52 +1855,30 @@ e.target.reset();
 // ISSUE 5 & 6 FIX: Show notification with price
 showToast(`🚗 ${type==='airport'?'Airport':'Local'} cab booked! ${HotelCfg.currency}${price}`,'success');
 }
-
 function copyWifi(){navigator.clipboard.writeText(HotelCfg.wifi).then(()=>showToast('📶 WiFi copied!','success'))}
-
 function updReqStatus(id,status){
 const req=requests.find(r=>r._id===id);
 if(req){req.status=status;req.updatedAt=new Date().toISOString();save('requests',req,'req_upd');renderRequests();updateGuestStats();renderGuestHistory();showToast('Status updated','success');}
 }
-
 function delReq(id){if(confirm('Delete?')){requests=requests.filter(r=>r._id!==id);save('requests',requests);renderRequests();updateAdminStats()}}
-
 function exportReqs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(requests),'Requests');XLSX.writeFile(wb,`requests-${Date.now()}.xlsx`);showToast('Exported!','success')}
-
 function delRoom(id){if(confirm('Delete?')){rooms=rooms.filter(r=>r._id!==id);save('rooms',rooms);renderRooms();updateAdminStats()}}
-
-function editRoom(id){const r=rooms.find(x=>x._id===id);if(!r)return;alert('Edit: '+r.number+' (connect backend for full edit)');}
-
-function toggleBlock(id){const g=guests.find(x=>x._id===id);if(g){g.status=g.status==='blocked'?'active':'blocked';save('guests',guests);renderGuests();showToast(`${g.name} ${g.status}`,'success')}}
-
 function delGuest(id){if(confirm('Delete?')){guests=guests.filter(g=>g._id!==id);save('guests',guests);renderGuests()}}
-
 function delFood(id){if(confirm('Delete?')){food=food.filter(f=>f._id!==id);save('food',food);renderFood();renderGuestFood()}}
-
 function adjStock(id,delta){const i=inventory.find(x=>x._id===id);if(i){i.stock=Math.max(0,i.stock+delta);save('inventory',i,'inventory_upd');renderInventory();renderGuestInv();if(i.stock<=i.min)showToast('⚠️ Low stock: '+i.name,'warning')}}
-
 function delInv(id){if(confirm('Delete?')){inventory=inventory.filter(i=>i._id!==id);save('inventory',inventory);renderInventory();renderGuestInv()}}
-
 function unblockGuest(idx){if(confirm('Unblock?')){const e=blacklist[idx];blacklist.splice(idx,1);save('blacklist',blacklist);renderBlacklist();showToast(e.name+' unblocked','success')}}
-
 function updMaint(i,s){maintenance[i].status=s;save('maintenance',maintenance);renderMaintenance();showToast('Updated','success')}
-
 function delMaint(i){if(confirm('Delete?')){maintenance.splice(i,1);save('maintenance',maintenance);renderMaintenance()}}
-
 function addPts(id,pts){const g=guests.find(x=>x._id===id);if(g){g.points=(g.points||0)+pts;save('guests',guests);renderLoyalty();showToast(`+${pts} pts`,'success')}}
-
 function redeemPts(id,pts){const g=guests.find(x=>x._id===id);if(g&&(g.points||0)>=pts){g.points-=pts;save('guests',guests);renderLoyalty();showToast(`${pts} pts redeemed`,'success')}else showToast('Not enough points','error')}
-
 function rateStaff(i){staff[i].rating=parseFloat(Math.min(5,staff[i].rating+0.1).toFixed(1));staff[i].tasks=(staff[i].tasks||0)+1;save('staff',staff);renderStaff();showToast('Rating updated','success')}
-
 // ISSUE 7 FIX: Delete staff with confirmation
 function delStaff(i){if(confirm('Remove staff?')){staff.splice(i,1);save('staff',staff);renderStaff();showToast('Staff removed','success')}}
-
 // ISSUE 7 FIX: Add staff modal and function
 function openStaffModal(){
 openModal('staffModal');
 }
-
 function addStaff(){
 const name=document.getElementById('mSName')?.value;
 const role=document.getElementById('mSRole')?.value;
@@ -2126,7 +1893,6 @@ renderStaff();
 showToast('Staff added','success');
 addLog('Add Staff',name);
 }
-
 // ISSUE 7 FIX: Update staff status
 function updateStaffStatus(i,status){
 staff[i].status=status;
@@ -2134,7 +1900,6 @@ save('staff',staff);
 renderStaff();
 showToast(`${staff[i].name} status updated`,'success');
 }
-
 // ISSUE 7 FIX: Mark attendance
 function markAttendance(i,val){
 staff[i].attendance=val;
@@ -2142,7 +1907,6 @@ save('staff',staff);
 renderStaff();
 showToast(`Attendance: ${val}`,'success');
 }
-
 // ISSUE 7 FIX: Edit staff
 function editStaff(i){
 const s=staff[i];
@@ -2156,7 +1920,6 @@ renderStaff();
 showToast('Staff updated','success');
 }
 }
-
 // ISSUE 7 FIX: Leave request functions
 function applyLeave(i){
 const reason=prompt(t('leaveReason')+':');
@@ -2168,7 +1931,6 @@ renderStaff();
 showToast('Leave request submitted','success');
 }
 }
-
 function approveLeave(i){
 if(staff[i].leaveRequest){
 staff[i].leaveRequest.status='approved';
@@ -2178,7 +1940,6 @@ renderStaff();
 showToast('Leave approved','success');
 }
 }
-
 function rejectLeave(i){
 if(staff[i].leaveRequest){
 staff[i].leaveRequest=null;
@@ -2187,9 +1948,7 @@ renderStaff();
 showToast('Leave rejected','success');
 }
 }
-
 function replyRev(g){const r=prompt(`Reply to ${g}:`);if(r)showToast('Reply sent','success')}
-
 function genReport(){
 const t=document.getElementById('rptType')?.value;
 const out=document.getElementById('rptOut');if(!out)return;
@@ -2200,13 +1959,9 @@ else if(t==='requests'){const bd={};requests.forEach(r=>{bd[r.department]=(bd[r.
 else{html=`<p>👥 Total: <b>${guests.length}</b></p><p>✅ Active: <b>${guests.filter(g=>g.status==='active').length}</b></p><p>🚫 Blocked: <b>${guests.filter(g=>g.status==='blocked').length}</b></p>`}
 out.innerHTML=html;
 }
-
 function exportReport(){const t=document.getElementById('rptType')?.value||'report';const d=t==='occupancy'?rooms:t==='guests'?guests:requests;const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d),t);XLSX.writeFile(wb,`${t}-${Date.now()}.xlsx`);showToast('Exported!','success')}
-
 function exportLogs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(logs),'Logs');XLSX.writeFile(wb,`logs-${Date.now()}.xlsx`);showToast('Logs exported','success')}
-
 function clearLogs(){if(confirm('Clear all logs?')){logs=[];save('logs',logs);renderLogs();showToast('Logs cleared','success')}}
-
 // ISSUE 8 FIX: Save settings and update everywhere
 function saveCfg(field){
 if(field==='name') HotelCfg.name=document.getElementById('cfgName')?.value||HotelCfg.name;
@@ -2223,7 +1978,6 @@ applyCfg();
 showToast('⚙️ Settings saved & synced','success');
 addLog('Config Update',field);
 }
-
 function genAllQR(){
 const grid=document.getElementById('qrGrid');if(!grid)return;
 grid.innerHTML='';
@@ -2236,7 +1990,6 @@ try{new QRCode(document.getElementById(`qr_${room.number}`),{text:`${location.or
 });
 showToast('QR codes generated!','success');
 }
-
 function buildModals(){
 const container=document.getElementById('modals');
 container.innerHTML=`
@@ -2405,46 +2158,38 @@ container.innerHTML=`
 </div>
 </div>`;
 }
-
 function openModal(id){document.getElementById(id)?.classList.add('open')}
 function closeModal(id){document.getElementById(id)?.classList.remove('open')}
-
 function addRoom(e){
 e.preventDefault();
 const room={_id:'r_'+Date.now(),number:document.getElementById('mRoomNum').value,type:document.getElementById('mRoomType').value,price:parseFloat(document.getElementById('mRoomPrice').value),status:document.getElementById('mRoomStatus').value,guestName:'',hotelId:HID};
 rooms.push(room);save('rooms',room,'room_upd');closeModal('roomModal');renderRooms();updateAdminStats();showToast('Room added','success');addLog('Add Room','#'+room.number);
 }
-
 function addGuest(e){
 e.preventDefault();
 const guest={_id:'g_'+Date.now(),name:document.getElementById('mGName').value,room:document.getElementById('mGRoom').value,points:parseInt(document.getElementById('mGPts').value)||0,status:document.getElementById('mGStatus').value,checkin:document.getElementById('mGCheckin').value,hotelId:HID};
 guests.push(guest);save('guests',guests);closeModal('guestModal');renderGuests();renderLoyalty();showToast('Guest added','success');
 }
-
 function addDish(e){
 e.preventDefault();
 const dish={_id:'f_'+Date.now(),name:document.getElementById('mFName').value,price:parseFloat(document.getElementById('mFPrice').value),category:document.getElementById('mFCat').value,emoji:document.getElementById('mFEmoji').value||'🍽️',hotelId:HID};
 food.push(dish);save('food',food);closeModal('foodModal');renderFood();renderGuestFood();showToast('Dish added','success');
 }
-
 function addInvItem(e){
 e.preventDefault();
 const item={_id:'i_'+Date.now(),name:document.getElementById('mIName').value,category:document.getElementById('mICat').value,stock:parseInt(document.getElementById('mIQty').value),unit:document.getElementById('mIUnit').value||'pcs',min:parseInt(document.getElementById('mIMin').value)||10,hotelId:HID};
 inventory.push(item);save('inventory',item,'inventory_upd');closeModal('inventoryModal');renderInventory();renderGuestInv();showToast('Item added','success');
 }
-
 function addToBlacklist(e){
 e.preventDefault();
 const entry={_id:'bl_'+Date.now(),name:document.getElementById('mBName').value,room:document.getElementById('mBRoom').value,reason:document.getElementById('mBReason').value,date:new Date().toISOString(),hotelId:HID};
 blacklist.push(entry);save('blacklist',blacklist);closeModal('blacklistModal');renderBlacklist();showToast('Guest blocked','error');addLog('Blacklist',entry.name);
 }
-
 function addMaint(e){
 e.preventDefault();
 const task={_id:'m_'+Date.now(),task:document.getElementById('mMTask').value,room:document.getElementById('mMRoom').value,scheduled:document.getElementById('mMDate').value,assigned:document.getElementById('mMAssigned').value,priority:document.getElementById('mMPrio').value,status:'pending',hotelId:HID};
 maintenance.push(task);save('maintenance',maintenance);closeModal('maintModal');renderMaintenance();showToast('Task scheduled','success');
 }
-
 function openRatingModal(){
 openModal('ratingModal');
 ['Overall','Service','Clean'].forEach(type=>{
@@ -2452,59 +2197,49 @@ const el=document.getElementById('star'+type);if(!el)return;
 el.innerHTML=[1,2,3,4,5].map(i=>`<span onclick="setStar('${type.toLowerCase()}',${i})" style="font-size:24px;cursor:pointer;transition:transform .1s">☆</span>`).join('');
 });
 }
-
 function setStar(type,val){
 const map={overall:'Overall',service:'Service',clean:'Clean'};
 const el=document.getElementById('star'+map[type]);if(!el)return;
 [...el.children].forEach((s,i)=>{s.textContent=i<val?'★':'☆';s.style.color=i<val?'#f59e0b':'var(--fg)'});
 ratingData[type]=val;
 }
-
 function submitRating(){
 if(!ratingData.overall){showToast('Please select a rating','error');return}
 const rev={_id:'rev_'+Date.now(),guest:currentUser.name,room:currentUser.room,overall:ratingData.overall,service:ratingData.service||0,cleanliness:ratingData.clean||0,recommend:ratingData.overall>=3,comment:document.getElementById('ratingComment')?.value||'',date:new Date().toISOString(),hotelId:HID};
 reviews.unshift(rev);save('reviews',rev,'review_new');closeModal('ratingModal');renderReviews();showToast('⭐ Thank you for rating!','success');ratingData={overall:0,service:0,clean:0};
 }
-
 function infoModal(title,body){
 document.getElementById('infoModalTitle').textContent=title;
 document.getElementById('infoModalBody').innerHTML=body;
 openModal('infoModal');
 }
-
 function showConcierge(){
 infoModal('🤖 Concierge',`
 <details style="background:var(--card2);border-radius:8px;padding:8px;margin-bottom:6px"><summary style="cursor:pointer;font-weight:600">WiFi password?</summary><p style="margin-top:4px;font-family:'DM Mono',monospace">${HotelCfg.wifi}</p></details>
 <details style="background:var(--card2);border-radius:8px;padding:8px;margin-bottom:6px"><summary style="cursor:pointer;font-weight:600">Checkout time?</summary><p style="margin-top:4px">11:00 AM</p></details>
 <details style="background:var(--card2);border-radius:8px;padding:8px"><summary style="cursor:pointer;font-weight:600">How to raise a request?</summary><p style="margin-top:4px">Go to the Request tab and select your department.</p></details>`);
 }
-
 document.addEventListener('click',e=>{
 if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
 if(!e.target.closest('#themeDD')&&!e.target.closest('[onclick*="toggleThemeDD"]')) document.getElementById('themeDD')?.classList.remove('show');
 });
-
 document.addEventListener('keydown',e=>{
 if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
 });
-
 window.addEventListener('online',()=>{
 if(!isOnline) return;
 updateNetBadge('online');
 if(socket) socket.connect();
 showToast('🌐 Back online','success');
 });
-
 window.addEventListener('offline',()=>{
 updateNetBadge('offline');
 showToast('📴 Offline mode','warning');
 });
-
 function quickCheckin(){showToast('🚀 Quick Check-in opened','success');openModal('guestModal')}
 function quickCheckout(){showToast('🚪 Quick Checkout opened','success')}
 function newAdminRequest(){showAdminTab('requests');showToast('📝 New Request form opened','success')}
 function viewAdminReports(){showAdminTab('reports');showToast('📈 Reports opened','success')}
-
 function init(){
 loadUIPrefs();
 buildModals();
@@ -2520,7 +2255,6 @@ const onlineBtn=document.getElementById('onlineBtn');
 if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
 setInterval(saveLS, 15000);
 }
-
 init();
 </script>
 </body>
