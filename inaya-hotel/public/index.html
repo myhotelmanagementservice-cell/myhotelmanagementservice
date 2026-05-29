@@ -52,13 +52,16 @@ body.high-contrast{filter:contrast(1.4) saturate(1.3)}
 /* ISSUE 1 & 2 FIX: Updated toolbar styles */
 #toolbar{
 position:fixed!important;bottom:0!important;left:0!important;right:0!important;
-width:95vw!important;background:var(--toolbar-bg)!important;
+width:100vw!important;background:var(--toolbar-bg)!important;
 backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
 border-top:none!important;padding:18px 14px!important;
 display:flex!important;flex-wrap:wrap;justify-content:center;align-items:center;
 gap:4px;z-index:99999!important;box-shadow:0 -4px 24px rgba(0,0,0,.18)!important;
 transform:translateZ(0)!important;will-change:auto!important;contain:layout style;
-left:2.5vw!important;
+}
+/* ISSUE 5 FIX: Mobile toolbar - 95% width, centered */
+@media(max-width:640px){
+#toolbar{width:95%!important;left:2.5%!important;right:2.5%!important;margin:0 auto!important}
 }
 @supports(padding-bottom:env(safe-area-inset-bottom)){
 #toolbar{padding-bottom:calc(18px + env(safe-area-inset-bottom))!important}
@@ -283,6 +286,25 @@ body{padding-bottom:70px}
 .staff-btn.delete{background:#ef4444;color:#fff}
 .leave-section{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)}
 .leave-row{display:flex;justify-content:space-between;align-items:center;font-size:10px;margin:4px 0}
+/* ISSUE 9: Booking Styles */
+.booking-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.booking-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
+.booking-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.booking-room{font-weight:700;font-size:14px}
+.booking-dates{font-size:11px;opacity:.7;margin-top:2px}
+.booking-status{padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700}
+.booking-status.pending{background:#fef3c7;color:#92400e}
+.booking-status.confirmed{background:#dbeafe;color:#1e40af}
+.booking-status.checked-in{background:#d1fae5;color:#065f46}
+.booking-status.checked-out{background:#e5e7eb;color:#374151}
+.booking-status.cancelled{background:#fee2e2;color:#991b1b}
+.booking-meta{display:flex;gap:8px;font-size:10px;opacity:.7;margin:6px 0}
+.booking-actions{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap}
+.booking-btn{padding:3px 8px;border-radius:6px;font-size:10px;border:none;cursor:pointer;font-family:inherit}
+.booking-btn.confirm{background:#10b981;color:#fff}
+.booking-btn.cancel{background:#ef4444;color:#fff}
+.booking-btn.edit{background:var(--p1);color:#fff}
+.booking-price{font-weight:700;color:var(--p1);font-size:13px}
 </style>
 </head>
 <body>
@@ -294,10 +316,11 @@ body{padding-bottom:70px}
 <button class="tb-btn" onclick="setLang('hi')" id="lb-hi">🇮 हि</button>
 <button class="tb-btn" onclick="setLang('ar')" id="lb-ar">🇸🇦 ع</button>
 <button class="tb-btn" onclick="toggleOnlineMode()" id="onlineBtn" title="Toggle Online/Offline">🟢 Online</button>
-<button class="tb-btn" onclick="toggleContrast()" title="Contrast">🔆</button>
-<button class="tb-btn" onclick="adjustFont(-1)" title="A-">A-</button>
-<button class="tb-btn" onclick="adjustFont(0)" title="Reset">A</button>
-<button class="tb-btn" onclick="adjustFont(1)" title="A+">A+</button>
+<!-- ISSUE 4 FIX: Brightness toggle button -->
+<button class="tb-btn" onclick="toggleContrast()" title="Toggle High Contrast">🔆</button>
+<button class="tb-btn" onclick="adjustFont(-1)" title="Decrease Font">A-</button>
+<button class="tb-btn" onclick="adjustFont(0)" title="Reset Font">A</button>
+<button class="tb-btn" onclick="adjustFont(1)" title="Increase Font">A+</button>
 <button class="tb-btn" onclick="toggleDark()" id="darkBtn">🌙</button>
 <button class="tb-btn" onclick="toggleThemeDD()" title="Theme">🎨</button>
 <span style="display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.15);padding:3px 7px;border-radius:8px">
@@ -409,11 +432,11 @@ tabOverview:'📊 Overview',tabRooms:'🏨 Rooms',tabGuests:'👥 Guests',tabFoo
 tabInventory:'📦 Inventory',tabRequests:'📋 Requests',tabSettings:'⚙️ Settings',
 tabBlacklist:'🚫 Blacklist',tabReports:'📈 Reports',tabReviews:'⭐ Reviews',
 tabQR:'📷 QR Codes',tabMaintenance:'🔧 Maint.',tabLoyalty:'🏆 Loyalty',
-tabStaff:'👔 Staff',tabLogs:'📝 Logs',
+tabStaff:'👔 Staff',tabLogs:'📝 Logs',tabBookings:'📅 Bookings',
 myRequests:'Requests',pending:'Pending',completed:'Done',
 addRoom:'+ Add Room',addGuest:'+ Add Guest',addDish:'+ Add Dish',addItem:'+ Add Item',
 addTask:'+ Add Task',blockGuest:'+ Block Guest',
-save:'Save',cancel:'Cancel',confirm:'Confirm',delete:'Delete',
+save:'Save',cancel:'Cancel',confirm:'Confirm',delete:'Delete',edit:'Edit',
 selectTheme:'Theme',selectDepartment:'Select Department',selectService:'Select Service',
 normal:'🟢 Normal',urgent:'⚠️ Urgent',emergency_:'🚨 Emergency',
 describeIssue:'Describe your issue…',submitRequest:'Submit Request',
@@ -433,7 +456,7 @@ typeStd:'Standard',typeDlx:'Deluxe',typeSte:'Suite',typePres:'Presidential',
 vacant:'Vacant',occupied:'Occupied',cleaning:'Cleaning',maintenance:'Maintenance',
 deptHK:'🧹 Housekeeping',deptMaint:'🔧 Maintenance',deptRest:'🍽️ Restaurant',
 deptLaundry:'🧺 Laundry',deptIT:'💻 IT Support',deptSec:'🛡️ Security',deptTransport:'🚗 Transport',
-reqTab:'Request',foodTab:'Food',invTab:'Inventory',cabTab:'Cab',histTab:'History',infoTab:'Info',
+reqTab:'Request',foodTab:'Food',invTab:'Inventory',cabTab:'Cab',histTab:'History',infoTab:'Info',bookTab:'Book Room',
 foodMenu:'🍕 Food Menu',invItems:'📦 Items',transport:'🚗 Transport',myHistory:'📋 My History',hotelInfo:'ℹ️ Hotel Info',
 exportXLS:'📥 Export XLS',clearLogs:'🗑️ Clear',filterAll:'All',filterOpen:'Open',filterDone:'Done',filterEmerg:'🚨 Emergency',
 item:'Item',category:'Category',stock:'Stock',unit:'Unit',minAlert:'Min Alert',assigned:'Assigned',scheduled:'Scheduled',
@@ -459,13 +482,14 @@ reply:'💬 Reply',replySent:'Reply sent!',noReply:'No reply yet',
 contrast:'🔆 Contrast',fontSize:'🔤 Font',notifications:'🔔 Notify',haptic:'📳 Haptic',voice:'🔊 Voice',
 notifGranted:'Notifications enabled',notifDenied:'Notifications blocked',notifPending:'Permission pending',notifNotSupported:'Notifications not supported',
 adminLogin:'Administrator login',enterPassword:'Enter password',
-// ISSUE 7: Staff translations
 addStaff:'+ Add Staff',staffName:'Staff Name',staffRole:'Role',department:'Department',
 joinDate:'Join Date',shift:'Shift',morning:'Morning',evening:'Evening',night:'Night',
 markPresent:'✓ Present',markAbsent:'✗ Absent',applyLeave:'Apply Leave',
 approve:'Approve',reject:'Reject',leaveReason:'Leave Reason',
 tasksCompleted:'Tasks',performance:'Performance',online:'Online',offline:'Offline',
-onLeave:'On Leave',onDuty:'On Duty'
+onLeave:'On Leave',onDuty:'On Duty',
+// ISSUE 9: Booking translations
+bookRoom:'📅 Book Room',selectRoom:'Select Room',checkIn:'Check-in',checkOut:'Check-out',numGuests:'Number of Guests',totalPrice:'Total Price',nights:'night(s)',bookingConfirmed:'Booking confirmed! Booking ID:',myBookings:'My Bookings',bookingStatus:'Status',pending:'Pending',confirmed:'Confirmed',checkedIn:'Checked-in',checkedOut:'Checked-out',cancelled:'Cancelled'
 },
 hi:{
 hotelName:'क्राउन प्लाज़ा होटल',welcomeSubtitle:'संपूर्ण प्रबंधन प्रणाली',connecting:'सर्वर से जुड़ रहे हैं…',
@@ -479,11 +503,11 @@ tabOverview:'📊 अवलोकन',tabRooms:'🏨 कमरे',tabGuests:'�
 tabInventory:'📦 स्टॉक',tabRequests:'📋 अनुरोध',tabSettings:'⚙️ सेटिंग',
 tabBlacklist:'🚫 ब्लैकलिस्ट',tabReports:'📈 रिपोर्ट',tabReviews:'⭐ समीक्षाएं',
 tabQR:'📷 QR कोड',tabMaintenance:'🔧 रखरखाव',tabLoyalty:'🏆 लॉयल्टी',
-tabStaff:'👔 स्टाफ',tabLogs:'📝 लॉग',
+tabStaff:'👔 स्टाफ',tabLogs:'📝 लॉग',tabBookings:'📅 बुकिंग',
 myRequests:'अनुरोध',pending:'लंबित',completed:'पूर्ण',
 addRoom:'+ कमरा जोड़ें',addGuest:'+ अतिथि जोड़ें',addDish:'+ व्यंजन जोड़ें',addItem:'+ आइटम जोड़ें',
 addTask:'+ कार्य जोड़ें',blockGuest:'+ ब्लॉक करें',
-save:'सहेजें',cancel:'रद्द',confirm:'पुष्टि करें',delete:'हटाएं',
+save:'सहेजें',cancel:'रद्द',confirm:'पुष्टि करें',delete:'हटाएं',edit:'संपादित',
 selectTheme:'थीम',selectDepartment:'विभाग चुनें',selectService:'सेवा चुनें',
 normal:'🟢 सामान्य',urgent:'⚠️ तत्काल',emergency_:'🚨 आपातकाल',
 describeIssue:'समस्या बताएं…',submitRequest:'अनुरोध भेजें',
@@ -503,7 +527,7 @@ typeStd:'स्टैंडर्ड',typeDlx:'डिलक्स',typeSte:'स�
 vacant:'रिक्त',occupied:'भरा',cleaning:'सफाई',maintenance:'रखरखाव',
 deptHK:'🧹 हाउसकीपिंग',deptMaint:'🔧 रखरखाव',deptRest:'🍽️ रेस्टोरेंट',
 deptLaundry:'🧺 लॉन्ड्री',deptIT:'💻 आईटी',deptSec:'🛡️ सुरक्षा',deptTransport:'🚗 परिवहन',
-reqTab:'अनुरोध',foodTab:'भोजन',invTab:'स्टॉक',cabTab:'कैब',histTab:'इतिहास',infoTab:'जानकारी',
+reqTab:'अनुरोध',foodTab:'भोजन',invTab:'स्टॉक',cabTab:'कैब',histTab:'इतिहास',infoTab:'जानकारी',bookTab:'कमरा बुक',
 foodMenu:'🍕 भोजन मेनू',invItems:'📦 सामान',transport:'🚗 परिवहन',myHistory:'📋 इतिहास',hotelInfo:'ℹ️ होटल जानकारी',
 exportXLS:'📥 एक्सपोर्ट',clearLogs:'🗑️ साफ करें',filterAll:'सभी',filterOpen:'खुले',filterDone:'पूर्ण',filterEmerg:'🚨 आपातकाल',
 item:'आइटम',category:'श्रेणी',stock:'स्टॉक',unit:'इकाई',minAlert:'न्यूनतम',assigned:'नियुक्त',scheduled:'निर्धारित',
@@ -529,13 +553,14 @@ reply:'💬 जवाब',replySent:'जवाब भेज दिया!',noRep
 contrast:'🔆 कंट्रास्ट',fontSize:'🔤 फ़ॉन्ट',notifications:'🔔 सूचना',haptic:'📳 कंपन',voice:'🔊 आवाज़',
 notifGranted:'सूचनाएं सक्षम',notifDenied:'सूचनाएं अवरुद्ध',notifPending:'अनुमति लंबित',notifNotSupported:'सूचनाएं समर्थित नहीं',
 adminLogin:'व्यवस्थापक लॉगिन',enterPassword:'पासवर्ड डालें',
-// ISSUE 7: Staff translations - HI
 addStaff:'+ स्टाफ जोड़ें',staffName:'स्टाफ नाम',staffRole:'भूमिका',department:'विभाग',
 joinDate:'ज्वाइनिंग तिथि',shift:'शिफ्ट',morning:'सुबह',evening:'शाम',night:'रात',
 markPresent:'✓ उपस्थित',markAbsent:'✗ अनुपस्थित',applyLeave:'छुट्टी आवेदन',
 approve:'स्वीकार',reject:'अस्वीकार',leaveReason:'छुट्टी का कारण',
 tasksCompleted:'कार्य',performance:'प्रदर्शन',online:'ऑनलाइन',offline:'ऑफलाइन',
-onLeave:'छुट्टी पर',onDuty:'ड्यूटी पर'
+onLeave:'छुट्टी पर',onDuty:'ड्यूटी पर',
+// ISSUE 9: Booking translations - HI
+bookRoom:'📅 कमरा बुक करें',selectRoom:'कमरा चुनें',checkIn:'चेक-इन',checkOut:'चेक-आउट',numGuests:'अतिथियों की संख्या',totalPrice:'कुल कीमत',nights:'रात(ें)',bookingConfirmed:'बुकिंग कन्फर्म! बुकिंग आईडी:',myBookings:'मेरी बुकिंग',bookingStatus:'स्थिति',pending:'लंबित',confirmed:'कन्फर्म',checkedIn:'चेक-इन',checkedOut:'चेक-आउट',cancelled:'रद्द'
 },
 ar:{
 hotelName:'فندق كراون بلازا',welcomeSubtitle:'نظام الإدارة الكامل',connecting:'جارٍ الاتصال…',
@@ -549,11 +574,11 @@ tabOverview:'📊 نظرة عامة',tabRooms:'🏨 الغرف',tabGuests:'👥 
 tabInventory:'📦 المخزون',tabRequests:'📋 الطلبات',tabSettings:'⚙️ الإعدادات',
 tabBlacklist:'🚫 القائمة السوداء',tabReports:'📈 التقارير',tabReviews:'⭐ التقييمات',
 tabQR:'📷 رموز QR',tabMaintenance:'🔧 الصيانة',tabLoyalty:'🏆 الولاء',
-tabStaff:'👔 الموظفون',tabLogs:'📝 السجلات',
+tabStaff:'👔 الموظفون',tabLogs:'📝 السجلات',tabBookings:'📅 الحجوزات',
 myRequests:'الطلبات',pending:'معلقة',completed:'مكتمل',
 addRoom:'+ إضافة غرفة',addGuest:'+ إضافة ضيف',addDish:'+ إضافة طبق',addItem:'+ إضافة عنصر',
 addTask:'+ إضافة مهمة',blockGuest:'+ حظر',
-save:'حفظ',cancel:'إلغاء',confirm:'تأكيد',delete:'حذف',
+save:'حفظ',cancel:'إلغاء',confirm:'تأكيد',delete:'حذف',edit:'تعديل',
 selectTheme:'السمة',selectDepartment:'اختر القسم',selectService:'اختر الخدمة',
 normal:'🟢 عادي',urgent:'⚠️ عاجل',emergency_:'🚨 طارئ',
 describeIssue:'صف مشكلتك…',submitRequest:'إرسال الطلب',
@@ -573,7 +598,7 @@ typeStd:'قياسي',typeDlx:'ديلوكس',typeSte:'جناح',typePres:'رئا�
 vacant:'شاغر',occupied:'مشغول',cleaning:'تنظيف',maintenance:'صيانة',
 deptHK:'🧹 التدبير',deptMaint:'🔧 الصيانة',deptRest:'🍽️ المطعم',
 deptLaundry:'🧺 الغسيل',deptIT:'💻 تقنية المعلومات',deptSec:'🛡️ الأمن',deptTransport:'🚗 النقل',
-reqTab:'طلب',foodTab:'طعام',invTab:'المخزون',cabTab:'سيارة',histTab:'السجل',infoTab:'معلومات',
+reqTab:'طلب',foodTab:'طعام',invTab:'المخزون',cabTab:'سيارة',histTab:'السجل',infoTab:'معلومات',bookTab:'حجز غرفة',
 foodMenu:'🍕 قائمة الطعام',invItems:'📦 عناصر',transport:'🚗 النقل',myHistory:'📋 سجلاتي',hotelInfo:'ℹ️ معلومات الفندق',
 exportXLS:'📥 تصدير',clearLogs:'🗑️ مسح',filterAll:'الكل',filterOpen:'مفتوحة',filterDone:'مكتملة',filterEmerg:'🚨 طارئ',
 item:'العنصر',category:'الفئة',stock:'المخزون',unit:'الوحدة',minAlert:'الحد الأدنى',assigned:'المكلف',scheduled:'المجدول',
@@ -599,18 +624,19 @@ reply:'💬 رد',replySent:'تم إرسال الرد!',noReply:'لا يوجد �
 contrast:'🔆 تباين',fontSize:'🔤 خط',notifications:'🔔 إشعارات',haptic:'📳 اهتزاز',voice:'🔊 صوت',
 notifGranted:'تم تمكين الإشعارات',notifDenied:'تم حظر الإشعارات',notifPending:'الانتظار على الإذن',notifNotSupported:'الإشعارات غير مدعومة',
 adminLogin:'تسجيل دخول المسؤول',enterPassword:'أدخل كلمة المرور',
-// ISSUE 7: Staff translations - AR
 addStaff:'+ إضافة موظف',staffName:'اسم الموظف',staffRole:'الدور',department:'القسم',
 joinDate:'تاريخ الانضمام',shift:'الوردية',morning:'صباح',evening:'مساء',night:'ليل',
 markPresent:'✓ حاضر',markAbsent:'✗ غائب',applyLeave:'طلب إجازة',
 approve:'موافقة',reject:'رفض',leaveReason:'سبب الإجازة',
 tasksCompleted:'المهام',performance:'الأداء',online:'متصل',offline:'غير متصل',
-onLeave:'في إجازة',onDuty:'في الخدمة'
+onLeave:'في إجازة',onDuty:'في الخدمة',
+// ISSUE 9: Booking translations - AR
+bookRoom:'📅 حجز غرفة',selectRoom:'اختر الغرفة',checkIn:'تسجيل الوصول',checkOut:'تسجيل المغادرة',numGuests:'عدد الضيوف',totalPrice:'السعر الإجمالي',nights:'ليلة(ليالي)',bookingConfirmed:'تم تأكيد الحجز! معرف الحجز:',myBookings:'حجوزاتي',bookingStatus:'الحالة',pending:'معلق',confirmed:'مؤكد',checkedIn:'تم تسجيل الوصول',checkedOut:'تم تسجيل المغادرة',cancelled:'ملغي'
 }};
 function t(k){return T[lang]?.[k] || T.en[k] || k}
 let lang='en', dark=false, fontSize=0, brightness=1, theme='default', highContrast=false;
 let currentUser=null, HotelCfg={name:'Crown Plaza Hotel',currency:'$',wifi:'CrownPlaza@2024',airportPrice:30,localPrice:15};
-let rooms=[], guests=[], food=[], inventory=[], requests=[], blacklist=[], maintenance=[], reviews=[], loyalty=[], staff=[], logs=[];
+let rooms=[], guests=[], food=[], inventory=[], requests=[], blacklist=[], maintenance=[], reviews=[], loyalty=[], staff=[], logs=[], bookings=[];
 let cart=[], ratingData={overall:0,service:0,clean:0};
 let deptChart=null, occChart=null;
 let isOnline=true;
@@ -708,6 +734,7 @@ if(data.maintenance) maintenance=data.maintenance;
 if(data.reviews) reviews=data.reviews;
 if(data.staff) staff=data.staff;
 if(data.logs) logs=data.logs;
+if(data.bookings) bookings=data.bookings;
 renderAll();
 showToast('🔄 Data synced','socket');
 });
@@ -739,6 +766,16 @@ renderInventory(); renderGuestInv();
 socket.on('review_new',(rev)=>{
 if(!reviews.find(r=>r._id===rev._id)) reviews.unshift(rev);
 renderReviews();
+});
+socket.on('booking_new',(booking)=>{
+if(!bookings.find(b=>b._id===booking._id)) bookings.unshift(booking);
+renderGuestBookings(); renderAdminBookings();
+if(currentUser?.type==='admin') showToast(`📅 New booking: ${booking.guestName}`,'socket');
+});
+socket.on('booking_upd',(booking)=>{
+const idx = bookings.findIndex(b=>b._id===booking._id);
+if(idx>-1) bookings[idx]=booking; else bookings.unshift(booking);
+renderGuestBookings(); renderAdminBookings();
 });
 }catch(e){
 console.warn('Socket unavailable, offline mode');
@@ -796,14 +833,14 @@ return null;
 }
 async function syncBack(){
 if(!isOnline) return;
-const [r,g,f,inv,req,bl,maint,rev,st,lg] = await Promise.all([
+const [r,g,f,inv,req,bl,maint,rev,st,lg,bk] = await Promise.all([
 apiCall('GET','/rooms'),apiCall('GET','/guests'),apiCall('GET','/food'),
 apiCall('GET','/inventory'),apiCall('GET','/requests'),apiCall('GET','/blacklist'),
-apiCall('GET','/maintenance'),apiCall('GET','/reviews'),apiCall('GET','/staff'),apiCall('GET','/logs')
+apiCall('GET','/maintenance'),apiCall('GET','/reviews'),apiCall('GET','/staff'),apiCall('GET','/logs'),apiCall('GET','/bookings')
 ]);
 if(r) rooms=r;if(g) guests=g;if(f) food=f;if(inv) inventory=inv;
 if(req) requests=req;if(bl) blacklist=bl;if(maint) maintenance=maint;
-if(rev) reviews=rev;if(st) staff=st;if(lg) logs=lg;
+if(rev) reviews=rev;if(st) staff=st;if(lg) logs=lg;if(bk) bookings=bk;
 const cfg=await apiCall('GET','/config');
 if(cfg) {Object.assign(HotelCfg,cfg); applyCfg();}
 renderAll();
@@ -820,8 +857,8 @@ localStorage.setItem(`h_${HID}_maint`,JSON.stringify(maintenance));
 localStorage.setItem(`h_${HID}_rev`,JSON.stringify(reviews));
 localStorage.setItem(`h_${HID}_staff`,JSON.stringify(staff));
 localStorage.setItem(`h_${HID}_logs`,JSON.stringify(logs));
+localStorage.setItem(`h_${HID}_bookings`,JSON.stringify(bookings));
 localStorage.setItem(`h_${HID}_cfg`,JSON.stringify(HotelCfg));
-// ISSUE 3 FIX: Save session to localStorage
 if(currentUser) localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
 }
 function loadLS(){
@@ -834,12 +871,12 @@ requests=get(`h_${HID}_req`,[]);
 blacklist=get(`h_${HID}_bl`,[]);
 maintenance=get(`h_${HID}_maint`,[]);
 reviews=get(`h_${HID}_rev`,[]);
-// ISSUE 7 FIX: Initialize staff with default data
 staff=get(`h_${HID}_staff`,[
 {_id:'s1',name:'Rajesh Kumar',role:'Manager',department:'Admin',joinDate:'2024-01-01',status:'on-duty',shift:'morning',rating:4.8,tasks:12,attendance:'present',leaveRequest:null},
 {_id:'s2',name:'Priya Sharma',role:'Housekeeping',department:'Housekeeping',joinDate:'2024-02-15',status:'online',shift:'morning',rating:4.9,tasks:8,attendance:'present',leaveRequest:null}
 ]);
 logs=get(`h_${HID}_logs`,[]);
+bookings=get(`h_${HID}_bookings`,[]);
 const cfg=get(`h_${HID}_cfg`,{});
 if(Object.keys(cfg).length) Object.assign(HotelCfg,cfg);
 renderAll();
@@ -884,10 +921,10 @@ if(v) el.textContent=v;
 function toggleDark(){
 dark=!dark;
 document.body.classList.toggle('dark',dark);
-document.getElementById('darkBtn').textContent=dark?'☀️':'';
+document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
 localStorage.setItem('hotel_dark',dark?'1':'0');
 }
-// ISSUE 2 FIX: Font size buttons working properly
+// ISSUE 2 & 4 FIX: Font size buttons working properly
 function adjustFont(d){
 const baseSize=16;
 if(d===0){
@@ -901,7 +938,7 @@ document.body.style.fontSize=newSize+'px';
 localStorage.setItem('hotel_font',fontSize);
 showToast(`Font: ${document.body.style.fontSize}`,'success');
 }
-// ISSUE 2 FIX: Brightness slider working properly
+// ISSUE 4 FIX: Brightness slider working properly
 function setBrightness(v){
 brightness=parseFloat(v);
 document.body.style.filter=`brightness(${v})`;
@@ -1012,13 +1049,15 @@ const cfgWifiEl=document.getElementById('cfgWifi');if(cfgWifiEl)cfgWifiEl.value=
 const cfgAirportEl=document.getElementById('cfgAirport');if(cfgAirportEl)cfgAirportEl.value=HotelCfg.airportPrice;
 const cfgLocalEl=document.getElementById('cfgLocal');if(cfgLocalEl)cfgLocalEl.value=HotelCfg.localPrice;
 renderFood(); renderGuestFood();
-// ISSUE 8 FIX: Update guest cab prices when settings change
 if(document.getElementById('cabType')){
 const cabSelect=document.getElementById('cabType');
 cabSelect.innerHTML=`
 <option value="airport" data-i18n="airportTx">✈️ Airport Transfer - ${HotelCfg.currency}${HotelCfg.airportPrice}</option>
 <option value="local" data-i18n="localCab">🚕 Local Cab - ${HotelCfg.currency}${HotelCfg.localPrice}/hr</option>
 `;
+}
+if(document.getElementById('bookRoomSelect')){
+renderBookRoomRooms();
 }
 }
 function updateLoginClock(){
@@ -1070,7 +1109,7 @@ currentUser={type:'guest',name,room,points:0};
 localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
 showPage('guestDash');
 document.getElementById('gInfo').textContent=`👤 ${name} | #${room}`;
-updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();
+updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
 showGuestTab('reqTab');
 showToast(`Welcome, ${name}! 🌟`,'success');
 if(isOnline && socket?.connected) socket.emit('guest_join',{hotelId:HID,name,room});
@@ -1113,10 +1152,33 @@ currentUser=null;cart=[];
 showPage('loginPage');
 showToast('Logged out','success');
 }
-// ISSUE 3 FIX: Check session on page load and restore
-function checkSession(){
+// ISSUE 1 FIX: Check session on page load - fetch from MongoDB first
+async function checkSession(){
 const s=localStorage.getItem(`h_${HID}_session`);
-if(!s)return;
+if(!s) return;
+try{
+// ISSUE 1 FIX: Try to fetch session from MongoDB API first
+if(isOnline){
+const sessionData=await apiCall('GET','/session');
+if(sessionData && sessionData.user){
+currentUser=sessionData.user;
+}
+}
+// Fallback to localStorage if API fails
+if(!currentUser) currentUser=JSON.parse(s);
+if(currentUser && currentUser.type==='admin'){
+buildAdminTabs();showPage('adminDash');
+const rName=ROLES.find(r=>r.key===currentUser.role)?.label||'Admin';
+document.getElementById('aRole').textContent=t(rName);
+renderAll();updateAdminStats();showAdminTab('overview');
+}else if(currentUser && currentUser.type==='guest'){
+showPage('guestDash');
+document.getElementById('gInfo').textContent=`👤 ${currentUser.name} | #${currentUser.room}`;
+updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
+showGuestTab('reqTab');
+}
+}catch(e){
+// Fallback to localStorage on error
 try{
 currentUser=JSON.parse(s);
 if(currentUser && currentUser.type==='admin'){
@@ -1127,10 +1189,11 @@ renderAll();updateAdminStats();showAdminTab('overview');
 }else if(currentUser && currentUser.type==='guest'){
 showPage('guestDash');
 document.getElementById('gInfo').textContent=`👤 ${currentUser.name} | #${currentUser.room}`;
-updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();
+updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
 showGuestTab('reqTab');
 }
-}catch(e){localStorage.removeItem(`h_${HID}_session`)}
+}catch(e2){localStorage.removeItem(`h_${HID}_session`)}
+}
 }
 function showPage(id){
 ['loginPage','rolePage','adminDash','guestDash'].forEach(p=>{
@@ -1159,7 +1222,8 @@ const ADMIN_TABS=[
 {id:'maintenance',label:'tabMaintenance'},
 {id:'loyalty',label:'tabLoyalty'},
 {id:'staff',label:'tabStaff'},
-{id:'logs',label:'tabLogs'}
+{id:'logs',label:'tabLogs'},
+{id:'bookings',label:'tabBookings'}
 ];
 function buildAdminTabs(){
 const bar=document.getElementById('adminTabsBar');
@@ -1371,7 +1435,6 @@ case 'loyalty': return `
 <th data-i18n="guest">Guest</th><th data-i18n="room">Room</th><th data-i18n="points">Points</th><th data-i18n="actions">Actions</th>
 </tr></thead><tbody id="loyaltyTbody"></tbody></table></div>
 </div>`;
-// ISSUE 7 FIX: Complete Staff Management Tab
 case 'staff': return `
 <div class="card">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
@@ -1393,6 +1456,27 @@ case 'logs': return `
 <th>Time</th><th>User</th><th>Action</th><th>Details</th>
 </tr></thead><tbody id="logsTbody"></tbody></table></div>
 </div>`;
+// ISSUE 9: Admin Bookings Tab
+case 'bookings': return `
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+<h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabBookings">📅 Bookings</h3>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+<select class="inp" id="bookingFilterStatus" style="width:auto" onchange="renderAdminBookings()">
+<option value="all" data-i18n="filterAll">All Status</option>
+<option value="pending">Pending</option>
+<option value="confirmed">Confirmed</option>
+<option value="checked-in">Checked-in</option>
+<option value="checked-out">Checked-out</option>
+<option value="cancelled">Cancelled</option>
+</select>
+<input type="date" class="inp" id="bookingFilterFrom" style="width:auto" onchange="renderAdminBookings()">
+<input type="date" class="inp" id="bookingFilterTo" style="width:auto" onchange="renderAdminBookings()">
+<button class="btn-primary" style="background:#10b981" onclick="exportBookings()">📥 Export</button>
+</div>
+<div class="booking-grid" id="adminBookingGrid"></div>
+</div>`;
 default: return '';
 }
 }
@@ -1402,14 +1486,15 @@ document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.
 if(id==='overview') setTimeout(initCharts,200);
 if(id==='requests') updateAdminServices();
 if(id==='staff') renderStaff();
+if(id==='bookings') renderAdminBookings();
 }
 function renderAll(){
 applyI18n();
 renderRooms();renderGuests();renderFood();renderInventory();
 renderRequests();renderBlacklist();renderMaintenance();renderReviews();
-renderLoyalty();renderStaff();renderLogs();
+renderLoyalty();renderStaff();renderLogs();renderAdminBookings();
 updateAdminStats();updateGuestStats();
-renderGuestFood();renderGuestInv();renderGuestHistory();
+renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
 }
 function renderRooms(){
 const tbody=document.getElementById('roomsTbody');if(!tbody)return;
@@ -1421,8 +1506,9 @@ tbody.innerHTML=rooms.map(r=>`
 <td><span class="badge badge-${r.status?.toLowerCase()}">${r.status}</span></td>
 <td>${r.guestName||'—'}</td>
 <td>
-<button class="tbl-action" onclick="editRoom('${r._id}')" title="Edit">✏️</button>
-<button class="tbl-action" onclick="delRoom('${r._id}')" title="Delete">🗑️</button>
+<!-- ISSUE 3 FIX: Edit button for room -->
+<button class="tbl-action" onclick="editRoom('${r._id}')" title="${t('edit')}">✏️</button>
+<button class="tbl-action" onclick="delRoom('${r._id}')" title="${t('delete')}">🗑️</button>
 </td>
 </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--p2);padding:12px">No rooms</td></tr>';
 }
@@ -1450,8 +1536,9 @@ el.innerHTML=food.map(f=>`
 <div style="font-weight:700;color:var(--p1)">${HotelCfg.currency}${f.price}</div>
 </div>
 <div style="display:flex;gap:4px">
-<button class="tbl-action" onclick="editFood('${f._id}')" title="Edit">✏️</button>
-<button class="tbl-action" onclick="delFood('${f._id}')" title="Delete">🗑️</button>
+<!-- ISSUE 3 FIX: Edit button for food -->
+<button class="tbl-action" onclick="editFood('${f._id}')" title="${t('edit')}">✏️</button>
+<button class="tbl-action" onclick="delFood('${f._id}')" title="${t('delete')}">🗑️</button>
 </div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No dishes</p>';
 }
@@ -1469,45 +1556,159 @@ tbody.innerHTML=inventory.map(i=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px">No items</td></tr>';
 }
-// ISSUE 4 FIX: Edit Food function
-function editFood(id){
-const f=food.find(x=>x._id===id);
-if(!f)return;
-const newName=prompt('Edit Name:',f.name);
-const newPrice=prompt('Edit Price:',f.price);
-const newCategory=prompt('Edit Category:',f.category);
-const newEmoji=prompt('Edit Emoji:',f.emoji||'🍽️');
-if(newName&&newPrice){
-f.name=newName;
-f.price=parseFloat(newPrice);
-f.category=newCategory||f.category;
-f.emoji=newEmoji||'🍽️';
-save('food',food);
-renderFood();
-renderGuestFood();
-showToast('Food updated','success');
+function renderRequests(filter='all'){
+const el=document.getElementById('reqsList');if(!el)return;
+let list=requests;
+if(filter==='open') list=requests.filter(r=>r.status==='open');
+if(filter==='completed') list=requests.filter(r=>r.status==='completed');
+if(filter==='emergency') list=requests.filter(r=>r.priority==='emergency');
+el.innerHTML=list.map(r=>`
+<div class="req-card ${r.priority==='emergency'?'emergency':''}">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+<div>
+<strong>${r.guestName}</strong> — Room ${r.roomNumber}
+<div style="font-size:11px;opacity:.7;margin-top:2px">${r.department} • ${r.description}</div>
+<div style="display:flex;gap:6px;margin-top:4px">
+<span class="badge badge-${r.status}">${r.status}</span>
+<span style="font-size:10px;color:${r.priority==='emergency'?'#ef4444':r.priority==='urgent'?'#f59e0b':'#9ca3af'}">${r.priority||'normal'}</span>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:4px;min-width:140px">
+<select style="font-size:10px;border:1px solid var(--border);border-radius:6px;padding:3px;background:var(--input-bg);color:var(--fg)" onchange="updReqStatus('${r._id}',this.value)">
+<option value="open" ${r.status==='open'?'selected':''}>Open</option>
+<option value="in_progress" ${r.status==='in_progress'?'selected':''}>In Progress</option>
+<option value="completed" ${r.status==='completed'?'selected':''}>Done</option>
+</select>
+<div class="admin-reply">
+<textarea class="admin-reply-input" id="adminReply-${r._id}" placeholder="${t('reply')}...">${r.adminReply||''}</textarea>
+<button class="btn-primary" style="margin-top:4px;padding:4px 8px;font-size:10px" onclick="sendAdminReply('${r._id}')">${t('reply')}</button>
+</div>
+<button class="tbl-action" onclick="delReq('${r._id}')" style="margin-top:4px">🗑️</button>
+</div>
+</div>
+</div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No requests</p>';
+}
+function updateAdminServices(){
+const dept=document.getElementById('adminDept')?.value;
+const sel=document.getElementById('adminService');if(!sel)return;
+sel.innerHTML=`<option value="">${t('selectService')}</option>`;
+if(dept&&SERVICES[dept]){
+SERVICES[dept].forEach(svc=>{
+const o=document.createElement('option');
+o.value=svc.key;
+o.textContent=svc[lang]||svc.en;
+sel.appendChild(o);
+});
 }
 }
-// ISSUE 4 FIX: Edit Room function
-function editRoom(id){
-const r=rooms.find(x=>x._id===id);
-if(!r)return;
-const newNumber=prompt('Edit Room Number:',r.number);
-const newType=prompt('Edit Type:',r.type);
-const newPrice=prompt('Edit Price:',r.price);
-const newStatus=prompt('Edit Status:',r.status);
-if(newNumber&&newType&&newPrice){
-r.number=newNumber;
-r.type=newType;
-r.price=parseFloat(newPrice);
-r.status=newStatus||r.status;
-save('rooms',r,'room_upd');
-renderRooms();
-updateAdminStats();
-showToast('Room updated','success');
+function submitAdminReq(e){
+e.preventDefault();
+const dept=document.getElementById('adminDept')?.value;
+const svc=document.getElementById('adminService')?.value;
+const desc=document.getElementById('adminDesc')?.value||'';
+if(!dept||!svc){showToast('Select department & service','error');return}
+const req={_id:'req_'+Date.now(),guestName:'Admin',roomNumber:'N/A',department:dept,description:`${svc}: ${desc}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID};
+requests.unshift(req);
+save('requests',req,'req_new');
+renderRequests();updateAdminStats();
+e.target.reset();updateAdminServices();
+showToast('✅ Admin request submitted!','success');
+addLog('Admin Request',`${dept} - ${svc}`);
+}
+function sendAdminReply(reqId){
+const input=document.getElementById(`adminReply-${reqId}`);
+if(!input) return;
+const reply=input.value.trim();
+if(!reply){showToast('Enter a reply','error');return}
+const req=requests.find(r=>r._id===reqId);
+if(req){
+req.adminReply=reply;
+req.adminReplyTime=new Date().toISOString();
+save('requests',req,'req_upd');
+renderRequests();
+showToast(t('replySent'),'success');
+addLog('Admin Reply',`To ${req.guestName}: ${reply}`);
 }
 }
-// ISSUE 7 FIX: Complete Staff Management Render Function
+function sendReply(reqId){
+const input=document.getElementById(`reply-${reqId}`);
+if(!input) return;
+const reply=input.value.trim();
+if(!reply){showToast('Enter a reply','error');return}
+const req=requests.find(r=>r._id===reqId);
+if(req){
+req.reply=reply;
+req.replyTime=new Date().toISOString();
+save('requests',req,'req_upd');
+renderRequests();
+showToast(t('replySent'),'success');
+addLog('Reply Sent',`To ${req.guestName}: ${reply}`);
+}
+}
+function renderBlacklist(){
+const tbody=document.getElementById('blTbody');if(!tbody)return;
+tbody.innerHTML=blacklist.map((b,i)=>`
+<tr>
+<td style="color:#ef4444;font-weight:600">${b.name}</td>
+<td>${b.room||'—'}</td>
+<td style="font-size:11px">${b.reason}</td>
+<td style="font-size:10px">${new Date(b.date||Date.now()).toLocaleDateString()}</td>
+<td><button class="tbl-action" style="color:#10b981" onclick="unblockGuest(${i})">${t('unblock')}</button></td>
+</tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:12px;opacity:.5">No blocked guests</td></tr>';
+}
+function renderMaintenance(){
+const tbody=document.getElementById('maintTbody');if(!tbody)return;
+tbody.innerHTML=maintenance.map((m,i)=>`
+<tr>
+<td><strong>${m.task}</strong></td>
+<td>${m.room||'—'}</td>
+<td style="font-size:10px">${m.scheduled?new Date(m.scheduled).toLocaleString():'—'}</td>
+<td>${m.assigned||'—'}</td>
+<td><span class="badge badge-${m.status||'pending'}">${m.status||'pending'}</span></td>
+<td>
+<button class="tbl-action" style="color:#10b981" onclick="updMaint(${i},'completed')">✅</button>
+<button class="tbl-action" onclick="delMaint(${i})">🗑️</button>
+</td>
+</tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:12px;opacity:.5">No tasks</td></tr>';
+}
+function renderReviews(){
+const el=document.getElementById('reviewsList');if(!el)return;
+if(reviews.length){
+const avg=(reviews.reduce((s,r)=>s+(r.overall||0),0)/reviews.length).toFixed(1);
+const rec=Math.round(reviews.filter(r=>r.recommend!==false).length/reviews.length*100);
+const aEl=document.getElementById('avgR'),tEl=document.getElementById('totR'),rEl=document.getElementById('recR');
+if(aEl)aEl.textContent=avg;if(tEl)tEl.textContent=reviews.length;if(rEl)rEl.textContent=rec+'%';
+}
+el.innerHTML=reviews.slice(0,10).map(r=>`
+<div class="req-card">
+<div style="display:flex;justify-content:space-between">
+<div>
+<strong>${r.guest}</strong> — Room ${r.room}
+<div style="color:#f59e0b">${'★'.repeat(r.overall||0)}${'☆'.repeat(5-(r.overall||0))}</div>
+<p style="font-size:11px;margin-top:3px">${r.comment||'No comment'}</p>
+<small style="opacity:.5;font-size:10px">Service: ${r.service||'—'}★ | Clean: ${r.cleanliness||'—'}★</small>
+</div>
+<button class="btn-ghost" style="font-size:10px;padding:3px 8px;align-self:flex-start" onclick="replyRev('${r.guest}')">💬</button>
+</div>
+</div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No reviews yet</p>';
+}
+function renderLoyalty(){
+const tbody=document.getElementById('loyaltyTbody');if(!tbody)return;
+const tot=guests.reduce((s,g)=>s+(g.points||0),0);
+const actEl=document.getElementById('actMem'),totEl=document.getElementById('totPts');
+if(actEl)actEl.textContent=guests.filter(g=>g.status==='active').length;
+if(totEl)totEl.textContent=tot;
+tbody.innerHTML=guests.filter(g=>(g.points||0)>0).map((g,i)=>`
+<tr>
+<td><strong>${g.name}</strong></td>
+<td>${g.room}</td>
+<td>⭐ <strong>${g.points}</strong></td>
+<td>
+<button class="tbl-action" style="color:#10b981" onclick="addPts('${g._id}',10)">➕10</button>
+<button class="tbl-action" style="color:var(--p1)" onclick="redeemPts('${g._id}',50)">🎁</button>
+</td>
+</tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px;opacity:.5">No members</td></tr>';
+}
 function renderStaff(){
 const el=document.getElementById('staffGrid');if(!el)return;
 el.innerHTML=staff.map((s,i)=>`
@@ -1596,13 +1797,15 @@ const total=rooms.length||1;
 occChart=new Chart(oCtx,{type:'bar',data:{labels:['W1','W2','W3','W4'],datasets:[{label:'%',data:[68,75,82,Math.round(occupied/total*100)],backgroundColor:'#6c63ff',borderRadius:6}]},options:{...opts,scales:{y:{beginAtZero:true,max:100,ticks:{color:'var(--fg)'},grid:{color:'var(--border)'}},x:{ticks:{color:'var(--fg)'},grid:{display:false}}}}});
 }
 }
+// ISSUE 9: Guest tabs - 7 tabs including Book Room
 const GUEST_TABS=[
 {id:'reqTab',icon:'📝',label:'reqTab'},
 {id:'foodTab',icon:'🍕',label:'foodTab'},
 {id:'invTab',icon:'📦',label:'invTab'},
 {id:'cabTab',icon:'🚗',label:'cabTab'},
 {id:'histTab',icon:'📋',label:'histTab'},
-{id:'infoTab',icon:'ℹ️',label:'infoTab'}
+{id:'infoTab',icon:'ℹ️',label:'infoTab'},
+{id:'bookTab',icon:'📅',label:'bookTab'}
 ];
 function buildGuestPanes(){
 const nav=document.getElementById('guestNav');
@@ -1669,7 +1872,7 @@ panes.innerHTML=`
 <div class="form-row">
 <label class="lbl">Type</label>
 <select class="inp" id="cabType">
-<!-- ISSUE 6 FIX: Show prices in cab options -->
+<!-- ISSUE 7 FIX: Show prices in cab options -->
 <option value="airport" data-i18n="airportTx">✈️ Airport Transfer - ${HotelCfg.currency}${HotelCfg.airportPrice}</option>
 <option value="local" data-i18n="localCab">🚕 Local Cab - ${HotelCfg.currency}${HotelCfg.localPrice}/hr</option>
 </select>
@@ -1722,6 +1925,37 @@ panes.innerHTML=`
 <button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('📞 Emergency','<p>🚓 Police: 100</p><p>🚑 Ambulance: 102</p><p>🔥 Fire: 101</p><p>🏨 Security: Ext. 0</p>')"><div style="font-size:22px">📞</div><div style="font-size:11px;font-weight:600">Emergency</div></button>
 <button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="showConcierge()"><div style="font-size:22px">🤖</div><div style="font-size:11px;font-weight:600">Concierge</div></button>
 </div>
+</div>
+<!-- ISSUE 9: Guest Book Room Tab -->
+<div class="card hidden" id="gp-bookTab">
+<h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="bookRoom">📅 Book Room</h3>
+<form onsubmit="bookRoom(event)">
+<div class="form-row">
+<label class="lbl" data-i18n="selectRoom">Select Room</label>
+<select class="inp" id="bookRoomSelect" required>
+<option value="">${t('selectRoom')}</option>
+</select>
+</div>
+<div class="form-2">
+<div class="form-row"><label class="lbl" data-i18n="checkIn">Check-in</label><input class="inp" id="bookCheckIn" type="date" required onchange="calcBookingPrice()"></div>
+<div class="form-row"><label class="lbl" data-i18n="checkOut">Check-out</label><input class="inp" id="bookCheckOut" type="date" required onchange="calcBookingPrice()"></div>
+</div>
+<div class="form-row">
+<label class="lbl" data-i18n="numGuests">Number of Guests</label>
+<select class="inp" id="bookNumGuests" onchange="calcBookingPrice()">
+${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}">${n}</option>`).join('')}
+</select>
+</div>
+<div class="form-row">
+<label class="lbl" data-i18n="totalPrice">Total Price</label>
+<div id="bookingTotalPrice" style="font-size:18px;font-weight:700;color:var(--p1);padding:8px;background:var(--card2);border-radius:8px">${HotelCfg.currency}0</div>
+</div>
+<button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="bookNow">📅 Book Now</button>
+</form>
+<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+<h4 style="font-size:13px;font-weight:600;margin-bottom:8px" data-i18n="myBookings">My Bookings</h4>
+<div id="guestBookingList"></div>
+</div>
 </div>`;
 }
 function showGuestTab(id){
@@ -1734,6 +1968,7 @@ if(b) b.classList.toggle('active',tb.id===id);
 if(id==='foodTab') renderGuestFood();
 if(id==='invTab') renderGuestInv();
 if(id==='histTab') renderGuestHistory();
+if(id==='bookTab') {renderGuestBookings();renderBookRoomRooms();}
 }
 function updateServices(){
 const dept=document.getElementById('gDept')?.value;
@@ -1748,7 +1983,7 @@ sel.appendChild(o);
 });
 }
 }
-// ISSUE 5 FIX: Show toast notification on guest request submit
+// ISSUE 5 & 6 FIX: Show toast notification on guest request submit
 function submitGuestReq(e){
 e.preventDefault();
 const dept=document.getElementById('gDept')?.value;
@@ -1761,7 +1996,7 @@ requests.unshift(req);
 save('requests',req,'req_new');
 renderRequests();updateGuestStats();renderGuestHistory();
 e.target.reset();updateServices();
-// ISSUE 5 FIX: Show notification
+// ISSUE 5 & 6 FIX: Show notification
 showToast('✅ Request submitted!','success');
 addLog('New Request',`${currentUser.name} - ${dept}`);
 if(prio==='emergency') showToast('🚨 Emergency alert sent to staff!','error');
@@ -1833,7 +2068,7 @@ cart=[];
 const cEl=document.getElementById('cartItems'),tEl=document.getElementById('cartTotal');
 if(cEl)cEl.innerHTML='';if(tEl)tEl.textContent=`${HotelCfg.currency}0`;
 renderRequests();updateGuestStats();renderGuestHistory();
-// ISSUE 5 FIX: Show notification on order
+// ISSUE 5 & 6 FIX: Show notification on order
 showToast('🍽️ Order placed! Arriving soon.','success');
 }
 function reqInvItem(name){
@@ -1842,7 +2077,7 @@ requests.unshift(req);save('requests',req,'req_new');
 renderRequests();updateGuestStats();
 showToast(`📦 ${name} requested — 10 min delivery`,'success');
 }
-// ISSUE 6 FIX: Show price on cab booking and notification
+// ISSUE 6 & 7 FIX: Show price on cab booking and notification
 function bookCab(e){
 e.preventDefault();
 const type=document.getElementById('cabType')?.value;
@@ -1863,8 +2098,79 @@ if(req){req.status=status;req.updatedAt=new Date().toISOString();save('requests'
 function delReq(id){if(confirm('Delete?')){requests=requests.filter(r=>r._id!==id);save('requests',requests);renderRequests();updateAdminStats()}}
 function exportReqs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(requests),'Requests');XLSX.writeFile(wb,`requests-${Date.now()}.xlsx`);showToast('Exported!','success')}
 function delRoom(id){if(confirm('Delete?')){rooms=rooms.filter(r=>r._id!==id);save('rooms',rooms);renderRooms();updateAdminStats()}}
+// ISSUE 3 FIX: Edit room function
+function editRoom(id){
+const r=rooms.find(x=>x._id===id);if(!r)return;
+openModal('roomModal');
+document.getElementById('mRoomNum').value=r.number;
+document.getElementById('mRoomType').value=r.type;
+document.getElementById('mRoomPrice').value=r.price;
+document.getElementById('mRoomStatus').value=r.status;
+document.getElementById('roomModal').dataset.editId=id;
+}
+function addRoom(e){
+e.preventDefault();
+const editId=document.getElementById('roomModal')?.dataset?.editId;
+const roomData={number:document.getElementById('mRoomNum').value,type:document.getElementById('mRoomType').value,price:parseFloat(document.getElementById('mRoomPrice').value),status:document.getElementById('mRoomStatus').value,guestName:'',hotelId:HID};
+if(editId){
+// Update existing room
+const idx=rooms.findIndex(r=>r._id===editId);
+if(idx>-1){
+rooms[idx]={...rooms[idx],...roomData};
+save('rooms',rooms[idx],'room_upd');
+showToast('Room updated','success');
+addLog('Edit Room','#'+rooms[idx].number);
+}else{
+showToast('Room not found','error');
+}
+}else{
+// Add new room
+const room={_id:'r_'+Date.now(),...roomData};
+rooms.push(room);save('rooms',room,'room_upd');
+showToast('Room added','success');
+addLog('Add Room','#'+room.number);
+}
+closeModal('roomModal');
+if(document.getElementById('roomModal').dataset) delete document.getElementById('roomModal').dataset.editId;
+renderRooms();updateAdminStats();
+}
+function editGuest(id){const g=guests.find(x=>x._id===id);if(!g)return;alert('Edit: '+g.name+' (connect backend for full edit)');}
+function toggleBlock(id){const g=guests.find(x=>x._id===id);if(g){g.status=g.status==='blocked'?'active':'blocked';save('guests',guests);renderGuests();showToast(`${g.name} ${g.status}`,'success')}}
 function delGuest(id){if(confirm('Delete?')){guests=guests.filter(g=>g._id!==id);save('guests',guests);renderGuests()}}
-function delFood(id){if(confirm('Delete?')){food=food.filter(f=>f._id!==id);save('food',food);renderFood();renderGuestFood()}}
+// ISSUE 3 FIX: Edit food function
+function editFood(id){
+const f=food.find(x=>x._id===id);if(!f)return;
+openModal('foodModal');
+document.getElementById('mFName').value=f.name;
+document.getElementById('mFPrice').value=f.price;
+document.getElementById('mFEmoji').value=f.emoji||'';
+document.getElementById('mFCat').value=f.category;
+document.getElementById('foodModal').dataset.editId=id;
+}
+function addDish(e){
+e.preventDefault();
+const editId=document.getElementById('foodModal')?.dataset?.editId;
+const dishData={name:document.getElementById('mFName').value,price:parseFloat(document.getElementById('mFPrice').value),category:document.getElementById('mFCat').value,emoji:document.getElementById('mFEmoji').value||'🍽️',hotelId:HID};
+if(editId){
+// Update existing dish
+const idx=food.findIndex(f=>f._id===editId);
+if(idx>-1){
+food[idx]={...food[idx],...dishData};
+save('food',food[idx]);
+showToast('Dish updated','success');
+}else{
+showToast('Dish not found','error');
+}
+}else{
+// Add new dish
+const dish={_id:'f_'+Date.now(),...dishData};
+food.push(dish);save('food',dish);
+showToast('Dish added','success');
+}
+closeModal('foodModal');
+if(document.getElementById('foodModal').dataset) delete document.getElementById('foodModal').dataset.editId;
+renderFood();renderGuestFood();
+}
 function adjStock(id,delta){const i=inventory.find(x=>x._id===id);if(i){i.stock=Math.max(0,i.stock+delta);save('inventory',i,'inventory_upd');renderInventory();renderGuestInv();if(i.stock<=i.min)showToast('⚠️ Low stock: '+i.name,'warning')}}
 function delInv(id){if(confirm('Delete?')){inventory=inventory.filter(i=>i._id!==id);save('inventory',inventory);renderInventory();renderGuestInv()}}
 function unblockGuest(idx){if(confirm('Unblock?')){const e=blacklist[idx];blacklist.splice(idx,1);save('blacklist',blacklist);renderBlacklist();showToast(e.name+' unblocked','success')}}
@@ -1873,41 +2179,37 @@ function delMaint(i){if(confirm('Delete?')){maintenance.splice(i,1);save('mainte
 function addPts(id,pts){const g=guests.find(x=>x._id===id);if(g){g.points=(g.points||0)+pts;save('guests',guests);renderLoyalty();showToast(`+${pts} pts`,'success')}}
 function redeemPts(id,pts){const g=guests.find(x=>x._id===id);if(g&&(g.points||0)>=pts){g.points-=pts;save('guests',guests);renderLoyalty();showToast(`${pts} pts redeemed`,'success')}else showToast('Not enough points','error')}
 function rateStaff(i){staff[i].rating=parseFloat(Math.min(5,staff[i].rating+0.1).toFixed(1));staff[i].tasks=(staff[i].tasks||0)+1;save('staff',staff);renderStaff();showToast('Rating updated','success')}
-// ISSUE 7 FIX: Delete staff with confirmation
 function delStaff(i){if(confirm('Remove staff?')){staff.splice(i,1);save('staff',staff);renderStaff();showToast('Staff removed','success')}}
-// ISSUE 7 FIX: Add staff modal and function
-function openStaffModal(){
-openModal('staffModal');
-}
-function addStaff(){
+function openStaffModal(){openModal('staffModal');}
+function addStaff(e){
+e.preventDefault();
 const name=document.getElementById('mSName')?.value;
 const role=document.getElementById('mSRole')?.value;
 const dept=document.getElementById('mSDept')?.value;
 const joinDate=document.getElementById('mSJoin')?.value;
 if(!name||!role){showToast('Fill required fields','error');return}
-const s={_id:'s_'+Date.now(),name,role,department:dept||'General',joinDate:joinDate||new Date().toISOString().split('T')[0],status:'online',shift:'morning',rating:5.0,tasks:0,attendance:'present',leaveRequest:null};
+// ISSUE 2 FIX: Save single staff object to MongoDB
+const s={_id:'s_'+Date.now(),name,role,department:dept||'General',joinDate:joinDate||new Date().toISOString().split('T')[0],status:'online',shift:'morning',rating:5.0,tasks:0,attendance:'present',leaveRequest:null,hotelId:HID};
 staff.push(s);
-save('staff',staff);
+// Save single object for staff (not array)
+save('staff',s,'staff_new');
 closeModal('staffModal');
 renderStaff();
 showToast('Staff added','success');
 addLog('Add Staff',name);
 }
-// ISSUE 7 FIX: Update staff status
 function updateStaffStatus(i,status){
 staff[i].status=status;
-save('staff',staff);
+save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast(`${staff[i].name} status updated`,'success');
 }
-// ISSUE 7 FIX: Mark attendance
 function markAttendance(i,val){
 staff[i].attendance=val;
-save('staff',staff);
+save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast(`Attendance: ${val}`,'success');
 }
-// ISSUE 7 FIX: Edit staff
 function editStaff(i){
 const s=staff[i];
 const newName=prompt('Edit Name:',s.name);
@@ -1915,18 +2217,17 @@ const newRole=prompt('Edit Role:',s.role);
 if(newName&&newRole){
 staff[i].name=newName;
 staff[i].role=newRole;
-save('staff',staff);
+save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast('Staff updated','success');
 }
 }
-// ISSUE 7 FIX: Leave request functions
 function applyLeave(i){
 const reason=prompt(t('leaveReason')+':');
 const date=prompt('Date (YYYY-MM-DD):',new Date().toISOString().split('T')[0]);
 if(reason&&date){
 staff[i].leaveRequest={reason,date,status:'pending'};
-save('staff',staff);
+save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast('Leave request submitted','success');
 }
@@ -1935,7 +2236,7 @@ function approveLeave(i){
 if(staff[i].leaveRequest){
 staff[i].leaveRequest.status='approved';
 staff[i].status='on-leave';
-save('staff',staff);
+save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast('Leave approved','success');
 }
@@ -1943,7 +2244,7 @@ showToast('Leave approved','success');
 function rejectLeave(i){
 if(staff[i].leaveRequest){
 staff[i].leaveRequest=null;
-save('staff',staff);
+save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast('Leave rejected','success');
 }
@@ -1972,7 +2273,7 @@ HotelCfg.airportPrice=parseInt(document.getElementById('cfgAirport')?.value)||30
 HotelCfg.localPrice=parseInt(document.getElementById('cfgLocal')?.value)||15;
 }
 saveLS();
-// ISSUE 8 FIX: Sync to server if online
+// ISSUE 8 FIX: Sync to MongoDB if online
 if(isOnline){apiCall('PUT','/config',HotelCfg);if(socket?.connected) socket.emit('cfg_upd',{hotelId:HID,...HotelCfg})}
 applyCfg();
 showToast('⚙️ Settings saved & synced','success');
@@ -1989,6 +2290,166 @@ grid.appendChild(div);
 try{new QRCode(document.getElementById(`qr_${room.number}`),{text:`${location.origin}?hotel=${HID}&room=${room.number}`,width:80,height:80,correctLevel:QRCode.CorrectLevel.H})}catch(e){}
 });
 showToast('QR codes generated!','success');
+}
+// ISSUE 9: Booking Functions
+function renderBookRoomRooms(){
+const select=document.getElementById('bookRoomSelect');if(!select)return;
+select.innerHTML='<option value="">'+t('selectRoom')+'</option>';
+rooms.filter(r=>r.status==='Vacant').forEach(r=>{
+const opt=document.createElement('option');
+opt.value=r._id;
+opt.textContent=`#${r.number} - ${r.type} - ${HotelCfg.currency}${r.price}/night`;
+opt.dataset.price=r.price;
+select.appendChild(opt);
+});
+}
+function calcBookingPrice(){
+const select=document.getElementById('bookRoomSelect');
+const checkIn=document.getElementById('bookCheckIn')?.value;
+const checkOut=document.getElementById('bookCheckOut')?.value;
+const totalEl=document.getElementById('bookingTotalPrice');
+if(!select||!checkIn||!checkOut||!totalEl){return;}
+const selected=select.options[select.selectedIndex];
+const pricePerNight=parseFloat(selected.dataset?.price)||0;
+const inDate=new Date(checkIn);
+const outDate=new Date(checkOut);
+const nights=Math.ceil((outDate-inDate)/(1000*60*60*24));
+if(nights>0){
+const total=pricePerNight*nights;
+totalEl.textContent=`${HotelCfg.currency}${total} (${nights} ${t('nights')})`;
+}else{
+totalEl.textContent=`${HotelCfg.currency}0`;
+}
+}
+function bookRoom(e){
+e.preventDefault();
+const roomId=document.getElementById('bookRoomSelect')?.value;
+const checkIn=document.getElementById('bookCheckIn')?.value;
+const checkOut=document.getElementById('bookCheckOut')?.value;
+const numGuests=parseInt(document.getElementById('bookNumGuests')?.value)||1;
+if(!roomId||!checkIn||!checkOut){showToast('Fill all fields','error');return}
+const room=rooms.find(r=>r._id===roomId);
+if(!room){showToast('Room not found','error');return}
+const inDate=new Date(checkIn);
+const outDate=new Date(checkOut);
+const nights=Math.ceil((outDate-inDate)/(1000*60*60*24));
+if(nights<=0){showToast('Invalid dates','error');return}
+const totalPrice=room.price*nights;
+const booking={_id:'bk_'+Date.now(),hotelId:HID,guestName:currentUser.name,roomNumber:room.number,roomType:room.type,checkIn,checkOut,guests:numGuests,totalPrice,status:'pending',createdAt:new Date().toISOString()};
+bookings.unshift(booking);
+save('bookings',booking,'booking_new');
+renderGuestBookings();renderAdminBookings();
+e.target.reset();
+document.getElementById('bookingTotalPrice').textContent=`${HotelCfg.currency}0`;
+// ISSUE 6 FIX: Show toast notification on booking
+showToast(`${t('bookingConfirmed')} ${booking._id}`,'success');
+addLog('New Booking',`${currentUser.name} - Room ${room.number}`);
+}
+function renderGuestBookings(){
+const el=document.getElementById('guestBookingList');if(!el||!currentUser)return;
+const myBookings=bookings.filter(b=>b.guestName===currentUser.name);
+el.innerHTML=myBookings.map(b=>`
+<div class="booking-card">
+<div class="booking-header">
+<div>
+<div class="booking-room">Room #${b.roomNumber} - ${b.roomType}</div>
+<div class="booking-dates">${b.checkIn} → ${b.checkOut}</div>
+</div>
+<span class="booking-status ${b.status}">${t(b.status)}</span>
+</div>
+<div class="booking-meta">
+<span>👥 ${b.guests} guest(s)</span>
+<span class="booking-price">${HotelCfg.currency}${b.totalPrice}</span>
+</div>
+<div style="font-size:10px;opacity:.5">ID: ${b._id}</div>
+</div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No bookings yet</p>';
+}
+function renderAdminBookings(){
+const el=document.getElementById('adminBookingGrid');if(!el)return;
+const statusFilter=document.getElementById('bookingFilterStatus')?.value||'all';
+const fromFilter=document.getElementById('bookingFilterFrom')?.value;
+const toFilter=document.getElementById('bookingFilterTo')?.value;
+let list=bookings;
+if(statusFilter!=='all') list=list.filter(b=>b.status===statusFilter);
+if(fromFilter) list=list.filter(b=>new Date(b.checkIn)>=new Date(fromFilter));
+if(toFilter) list=list.filter(b=>new Date(b.checkIn)<=new Date(toFilter));
+el.innerHTML=list.map(b=>`
+<div class="booking-card">
+<div class="booking-header">
+<div>
+<div class="booking-room">${b.guestName} - Room #${b.roomNumber}</div>
+<div class="booking-dates">${b.checkIn} → ${b.checkOut}</div>
+</div>
+<span class="booking-status ${b.status}">${t(b.status)}</span>
+</div>
+<div class="booking-meta">
+<span>👥 ${b.guests} guest(s)</span>
+<span class="booking-price">${HotelCfg.currency}${b.totalPrice}</span>
+</div>
+<div class="booking-actions">
+<select class="inp" style="font-size:10px;padding:4px 8px" onchange="updateBookingStatus('${b._id}',this.value)">
+<option value="pending" ${b.status==='pending'?'selected':''}>Pending</option>
+<option value="confirmed" ${b.status==='confirmed'?'selected':''}>Confirmed</option>
+<option value="checked-in" ${b.status==='checked-in'?'selected':''}>Checked-in</option>
+<option value="checked-out" ${b.status==='checked-out'?'selected':''}>Checked-out</option>
+<option value="cancelled" ${b.status==='cancelled'?'selected':''}>Cancelled</option>
+</select>
+<button class="booking-btn edit" onclick="editBooking('${b._id}')">✏️</button>
+<button class="booking-btn cancel" onclick="deleteBooking('${b._id}')">🗑️</button>
+</div>
+<div style="font-size:10px;opacity:.5;margin-top:4px">ID: ${b._id}</div>
+</div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No bookings</p>';
+}
+function updateBookingStatus(id,status){
+const b=bookings.find(x=>x._id===id);
+if(b){
+b.status=status;
+b.updatedAt=new Date().toISOString();
+save('bookings',b,'booking_upd');
+renderAdminBookings();renderGuestBookings();
+showToast('Booking status updated','success');
+addLog('Update Booking',`${b.guestName} - ${status}`);
+}
+}
+function editBooking(id){
+const b=bookings.find(x=>x._id===id);if(!b)return;
+const newGuests=prompt('Edit number of guests:',b.guests);
+const newCheckIn=prompt('Edit check-in (YYYY-MM-DD):',b.checkIn);
+const newCheckOut=prompt('Edit check-out (YYYY-MM-DD):',b.checkOut);
+if(newGuests&&newCheckIn&&newCheckOut){
+b.guests=parseInt(newGuests)||b.guests;
+b.checkIn=newCheckIn;
+b.checkOut=newCheckOut;
+const inDate=new Date(newCheckIn);
+const outDate=new Date(newCheckOut);
+const nights=Math.ceil((outDate-inDate)/(1000*60*60*24));
+const room=rooms.find(r=>r.number==b.roomNumber);
+if(room&&nights>0) b.totalPrice=room.price*nights;
+b.updatedAt=new Date().toISOString();
+save('bookings',b,'booking_upd');
+renderAdminBookings();renderGuestBookings();
+showToast('Booking updated','success');
+addLog('Edit Booking',`${b.guestName}`);
+}
+}
+function deleteBooking(id){
+if(confirm('Delete this booking?')){
+const idx=bookings.findIndex(b=>b._id===id);
+if(idx>-1){
+const b=bookings[idx];
+bookings.splice(idx,1);
+save('bookings',bookings);
+renderAdminBookings();renderGuestBookings();
+showToast('Booking deleted','success');
+addLog('Delete Booking',`${b.guestName}`);
+}
+}
+}
+function exportBookings(){
+const wb=XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bookings),'Bookings');
+XLSX.writeFile(wb,`bookings-${Date.now()}.xlsx`);
+showToast('Bookings exported!','success');
 }
 function buildModals(){
 const container=document.getElementById('modals');
@@ -2103,7 +2564,6 @@ container.innerHTML=`
 </form>
 </div>
 </div>
-<!-- ISSUE 7 FIX: Staff Modal -->
 <div class="modal-overlay" id="staffModal">
 <div class="modal-box">
 <div class="modal-h" data-i18n="addStaff">Add Staff</div>
@@ -2160,20 +2620,10 @@ container.innerHTML=`
 }
 function openModal(id){document.getElementById(id)?.classList.add('open')}
 function closeModal(id){document.getElementById(id)?.classList.remove('open')}
-function addRoom(e){
-e.preventDefault();
-const room={_id:'r_'+Date.now(),number:document.getElementById('mRoomNum').value,type:document.getElementById('mRoomType').value,price:parseFloat(document.getElementById('mRoomPrice').value),status:document.getElementById('mRoomStatus').value,guestName:'',hotelId:HID};
-rooms.push(room);save('rooms',room,'room_upd');closeModal('roomModal');renderRooms();updateAdminStats();showToast('Room added','success');addLog('Add Room','#'+room.number);
-}
 function addGuest(e){
 e.preventDefault();
 const guest={_id:'g_'+Date.now(),name:document.getElementById('mGName').value,room:document.getElementById('mGRoom').value,points:parseInt(document.getElementById('mGPts').value)||0,status:document.getElementById('mGStatus').value,checkin:document.getElementById('mGCheckin').value,hotelId:HID};
 guests.push(guest);save('guests',guests);closeModal('guestModal');renderGuests();renderLoyalty();showToast('Guest added','success');
-}
-function addDish(e){
-e.preventDefault();
-const dish={_id:'f_'+Date.now(),name:document.getElementById('mFName').value,price:parseFloat(document.getElementById('mFPrice').value),category:document.getElementById('mFCat').value,emoji:document.getElementById('mFEmoji').value||'🍽️',hotelId:HID};
-food.push(dish);save('food',food);closeModal('foodModal');renderFood();renderGuestFood();showToast('Dish added','success');
 }
 function addInvItem(e){
 e.preventDefault();
