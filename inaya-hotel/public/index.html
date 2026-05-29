@@ -53,7 +53,7 @@ body.high-contrast{filter:contrast(1.4) saturate(1.3)}
 position:fixed!important;bottom:0!important;left:0!important;right:0!important;
 width:100vw!important;background:var(--toolbar-bg)!important;
 backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-border-top:1px solid rgba(255,255,255,.15);padding:8px 6px;
+border-top:1px solid rgba(255,255,255,.15);padding:16px 12px;
 display:flex!important;flex-wrap:wrap;justify-content:center;align-items:center;
 gap:4px;z-index:99999!important;box-shadow:0 -4px 24px rgba(0,0,0,.18)!important;
 transform:translateZ(0)!important;will-change:auto!important;contain:layout style;
@@ -134,7 +134,7 @@ select.inp{cursor:pointer}
 .tab-btn:hover{opacity:1}
 .tab-pane{display:none}.tab-pane.active{display:block;animation:fadeUp .2s ease}
 #loginPage{min-height:100dvh;width:100vw;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--header);padding:0;margin:0}
-.login-card{width:90%;max-width:480px;background:var(--card);border-radius:20px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.2);margin:16px auto}
+.login-card{width:90%;max-width:600px;background:var(--card);border-radius:20px;padding:32px;box-shadow:0 8px 40px rgba(0,0,0,.2);margin:16px auto}
 .login-logo{font-size:40px;text-align:center;margin-bottom:4px;animation:float 3s ease-in-out infinite}
 .login-h{font-size:20px;font-weight:700;color:var(--fg);text-align:center;margin-bottom:4px}
 .login-sub{font-size:12px;color:var(--p2);text-align:center;margin-bottom:16px}
@@ -176,7 +176,7 @@ select.inp{cursor:pointer}
 .inv-card:hover{border-color:var(--p1)}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:20000;align-items:center;justify-content:center;padding:12px}
 .modal-overlay.open{display:flex;animation:fadeIn .2s}
-.modal-box{background:var(--card);border-radius:16px;padding:20px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)}
+.modal-box{background:var(--card);border-radius:16px;padding:20px;width:100%;max-width:600px;max-height:90dvh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)}
 .modal-h{font-size:16px;font-weight:700;margin-bottom:14px;color:var(--fg)}
 .form-row{margin-bottom:10px}
 .form-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -206,7 +206,7 @@ select.inp{cursor:pointer}
 .page-wrap{max-width:1200px;margin:0 auto;padding:12px}
 .sync-spin{animation:spin 1s linear infinite;display:inline-block}
 .conn-bar{background:var(--p1);height:2px;position:fixed;top:0;left:0;z-index:99998;transition:width .3s}
-@media(max-width:480px){
+@media(max-width:600px){
 .login-card{padding:18px}
 .guest-nav{grid-template-columns:repeat(3,1fr)}
 .form-2{grid-template-columns:1fr}
@@ -1186,7 +1186,7 @@ case 'requests': return `
 <div id="reqsList"></div>
 </div>`;
 case 'settings': return `
-<div class="card" style="max-width:480px">
+<div class="card" style="max-width:600px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:14px" data-i18n="tabSettings">⚙️ Settings</h3>
 <div class="form-row"><label class="lbl" data-i18n="hotelNameLbl">Hotel Name</label>
 <div style="display:flex;gap:6px"><input class="inp" id="cfgName" value="${HotelCfg.name}"><button class="btn-primary" onclick="saveCfg('name')" data-i18n="save">Save</button></div></div>
