@@ -50,7 +50,7 @@ body.theme-ocean{--p1:#06b6d4;--p2:#3b82f6;--p3:#0e7490;--header:linear-gradient
 body.theme-royal{--p1:#ec4899;--p2:#8b5cf6;--p3:#be185d;--header:linear-gradient(135deg,#ec4899,#8b5cf6);--toolbar-bg:rgba(236,72,153,.97)}
 body.high-contrast{filter:contrast(1.4) saturate(1.3)}
 /* ISSUE 1 & 2 FIX: Updated toolbar styles */
-#toolbar{
+#toolbar{width:100%!important;left:0!important;right:0!important;margin:0!important;
 position:fixed!important;bottom:0!important;left:0!important;right:0!important;
 width:100vw!important;background:var(--toolbar-bg)!important;
 backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
@@ -61,7 +61,7 @@ transform:translateZ(0)!important;will-change:auto!important;contain:layout styl
 }
 /* ISSUE 5 FIX: Mobile toolbar - 95% width, centered */
 @media(max-width:640px){
-#toolbar{width:95%!important;left:2.5%!important;right:2.5%!important;margin:0 auto!important}
+#toolbar{width:100%!important;left:0!important;right:0!important;margin:0!important}
 }
 @supports(padding-bottom:env(safe-area-inset-bottom)){
 #toolbar{padding-bottom:calc(18px + env(safe-area-inset-bottom))!important}
