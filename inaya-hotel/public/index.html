@@ -16,7 +16,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html{height:100%}
-body{
+body{margin:0;padding:0;margin:0;padding:0;
 font-family:'DM Sans','Noto Sans Devanagari','Noto Naskh Arabic',system-ui,sans-serif;
 background:var(--bg);color:var(--fg);
 min-height:100dvh;width:100vw;overflow-x:hidden;
@@ -65,11 +65,13 @@ transform:translateZ(0)!important;will-change:auto!important;contain:layout styl
 }
 @supports(padding-bottom:env(safe-area-inset-bottom)){
 #toolbar{padding-bottom:calc(18px + env(safe-area-inset-bottom))!important}
-body{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+body{margin:0;padding:0;margin:0;padding:0;padding-bottom:calc(70px + env(safe-area-inset-bottom))}
 }
 .tb-btn{
-padding:6px 10px;border-radius:8px;border:none;
-background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:600;
+  flex: 1 1 auto;
+  text-align: center;
+padding:10px 14px;border-radius:8px;border:none;
+background:rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:600;
 cursor:pointer;white-space:nowrap;min-width:32px;transition:background .15s,transform .1s;
 font-family:inherit;
 }
@@ -110,13 +112,13 @@ display:flex;align-items:center;gap:4px;box-shadow:var(--shadow);
 .card-sm{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;box-shadow:var(--shadow)}
 .btn-primary{background:var(--header);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-weight:600;cursor:pointer;font-size:14px;font-family:inherit;transition:opacity .15s,transform .1s}
 .btn-primary:hover{opacity:.88;transform:translateY(-1px)}
-.btn-ghost{background:transparent;color:var(--p1);border:1.5px solid var(--p1);border-radius:8px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-ghost{background:transparent;color:var(--p1);border:1.5px solid var(--p1);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:inherit;transition:background .15s}
 .btn-ghost:hover{background:var(--p1);color:#fff}
 .inp{width:100%;padding:12px 14px;border:1.5px solid var(--input-border);border-radius:10px;background:var(--input-bg);color:var(--fg);font-size:14px;font-family:inherit;outline:none;transition:border-color .15s}
 .inp::placeholder{color:#9ca3af;opacity:1}
 .inp:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(108,99,255,.12)}
 select.inp{cursor:pointer}
-.lbl{font-size:11px;font-weight:600;color:var(--p1);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.5px}
+.lbl{font-size:13px;font-weight:600;color:var(--p1);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.5px}
 .badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:3px}
 .badge-open{background:var(--badge-open);color:var(--badge-open-c)}
 .badge-completed{background:var(--badge-done);color:var(--badge-done-c)}
@@ -126,11 +128,11 @@ select.inp{cursor:pointer}
 .badge-in_progress{background:var(--badge-pend);color:var(--badge-pend-c)}
 .req-card{background:var(--card);border-radius:10px;padding:12px;margin-bottom:8px;border-left:4px solid var(--p1);box-shadow:var(--shadow)}
 .req-card.emergency{border-left-color:#ef4444;background:rgba(239,68,68,.05)}
-.header{background:var(--header);color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:1000;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.header{background:var(--header);color:#fff;padding:12px 14px;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:4px;position:sticky;top:0;z-index:1000;box-shadow:0 2px 12px rgba(0,0,0,.15)}
 .header h1{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.header-right{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .clock-badge{background:rgba(255,255,255,.2);padding:3px 8px;border-radius:20px;font-size:10px;font-family:'DM Mono',monospace;white-space:nowrap}
-.logout-btn{background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;transition:background .15s}
+.logout-btn{background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;transition:background .15s}
 .logout-btn:hover{background:rgba(255,255,255,.35)}
 .tabs-bar{background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;position:sticky;top:52px;z-index:900;scrollbar-width:none}
 .tabs-bar::-webkit-scrollbar{display:none}
@@ -170,17 +172,17 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .login-tabs{display:flex;gap:10px;margin-bottom:20px}
 .login-tab{flex:1;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--card2);color:var(--fg);border:1.5px solid var(--border);transition:all .15s}
 .login-tab.active{background:var(--p1);color:#fff;border-color:var(--p1)}
-.conn-status{display:flex;align-items:center;gap:6px;font-size:11px;padding:6px 12px;border-radius:20px;background:var(--card2);margin-bottom:14px;justify-content:center}
+.conn-status{display:flex;align-items:center;gap:6px;font-size:13px;padding:6px 12px;border-radius:20px;background:var(--card2);margin-bottom:14px;justify-content:center}
 .conn-dot{width:8px;height:8px;border-radius:50%;background:#9ca3af}
 .conn-dot.connected{background:#10b981;animation:pulse 2s infinite}
 .conn-dot.connecting{background:#f59e0b;animation:blink .8s infinite}
 .conn-dot.error{background:#ef4444}
-.login-clock{font-size:11px;color:var(--fg);opacity:.7;text-align:center;margin-top:10px;font-family:'DM Mono',monospace}
+.login-clock{font-size:13px;color:var(--fg);opacity:.7;text-align:center;margin-top:10px;font-family:'DM Mono',monospace}
 .guest-nav{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px}
 .gnav-btn{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s;font-size:12px;font-weight:600;color:var(--fg);font-family:inherit}
 .gnav-btn:hover,.gnav-btn.active{background:var(--p1);color:#fff;border-color:var(--p1)}
 .gnav-icon{font-size:18px;display:block;margin-bottom:2px}
-.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:12px}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;box-shadow:var(--shadow)}
 .stat-val{font-size:24px;font-weight:700;color:var(--p1)}
 .stat-lbl{font-size:12px;color:var(--fg);opacity:.6;margin-top:2px}
@@ -241,8 +243,10 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .form-2{grid-template-columns:1fr}
 .page-wrap{padding:8px}
 .tb-btn{padding:4px 6px;font-size:9px;min-width:26px}
+  flex: 1 1 auto;
+  text-align: center;
 #toolbar{gap:3px;padding:12px 8px!important}
-body{padding-bottom:70px}
+body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 }
 [dir="rtl"] .req-card{border-left:none;border-right:4px solid var(--p1)}
 [dir="rtl"] .req-card.emergency{border-right-color:#ef4444}
@@ -251,13 +255,13 @@ body{padding-bottom:70px}
 .weather-card{background:linear-gradient(135deg,#60a5fa,#3b82f6);color:#fff;border-radius:12px;padding:12px;text-align:center}
 .weather-icon{font-size:32px;margin-bottom:4px}
 .weather-temp{font-size:24px;font-weight:700}
-.weather-desc{font-size:11px;opacity:.9}
+.weather-desc{font-size:13px;opacity:.9}
 .quick-action{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;cursor:pointer;transition:all .15s}
 .quick-action:hover{border-color:var(--p1);transform:translateY(-2px)}
 .quick-icon{font-size:20px;margin-bottom:4px}
 .quick-label{font-size:10px;font-weight:600}
 .currency-card{background:var(--card2);border-radius:10px;padding:10px}
-.currency-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px}
+.currency-row{display:flex;justify-content:center;padding:4px 0;font-size:11px}
 .analytics-mini{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
 .analytics-item{background:var(--card2);border-radius:8px;padding:8px;text-align:center}
 .analytics-val{font-size:16px;font-weight:700;color:var(--p1)}
@@ -265,19 +269,19 @@ body{padding-bottom:70px}
 .reply-box{background:var(--card2);border-radius:8px;padding:8px;margin-top:6px}
 .reply-input{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--input-bg);color:var(--fg);font-size:11px}
 .admin-reply{background:var(--card2);border-radius:8px;padding:8px;margin-top:6px;border:1px dashed var(--p1)}
-.admin-reply-input{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--input-bg);color:var(--fg);font-size:11px;min-height:40px;resize:vertical}
+.admin-reply-input{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--input-bg);color:var(--fg);font-size:13px;min-height:40px;resize:vertical}
 /* ISSUE 7 FIX: Staff Management Styles */
 .staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
 .staff-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
-.staff-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.staff-header{display:flex;justify-content:center;align-items:flex-start;margin-bottom:10px}
 .staff-name{font-weight:700;font-size:14px}
-.staff-role{font-size:11px;opacity:.7;margin-top:2px}
+.staff-role{font-size:13px;opacity:.7;margin-top:2px}
 .staff-status{padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700}
 .staff-status.online{background:#d1fae5;color:#065f46}
 .staff-status.offline{background:#e5e7eb;color:#374151}
 .staff-status.on-leave{background:#fef3c7;color:#92400e}
 .staff-status.on-duty{background:#dbeafe;color:#1e40af}
-.staff-meta{display:flex;gap:8px;font-size:10px;opacity:.7;margin:6px 0}
+.staff-meta{display:flex;gap:4px;font-size:10px;opacity:.7;margin:6px 0}
 .staff-actions{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap}
 .staff-btn{padding:3px 8px;border-radius:6px;font-size:10px;border:none;cursor:pointer;font-family:inherit}
 .staff-btn.present{background:#10b981;color:#fff}
@@ -285,20 +289,20 @@ body{padding-bottom:70px}
 .staff-btn.edit{background:var(--p1);color:#fff}
 .staff-btn.delete{background:#ef4444;color:#fff}
 .leave-section{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)}
-.leave-row{display:flex;justify-content:space-between;align-items:center;font-size:10px;margin:4px 0}
+.leave-row{display:flex;justify-content:center;align-items:center;font-size:10px;margin:4px 0}
 /* ISSUE 9: Booking Styles */
 .booking-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
 .booking-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
-.booking-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.booking-header{display:flex;justify-content:center;align-items:flex-start;margin-bottom:10px}
 .booking-room{font-weight:700;font-size:14px}
-.booking-dates{font-size:11px;opacity:.7;margin-top:2px}
+.booking-dates{font-size:13px;opacity:.7;margin-top:2px}
 .booking-status{padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700}
 .booking-status.pending{background:#fef3c7;color:#92400e}
 .booking-status.confirmed{background:#dbeafe;color:#1e40af}
 .booking-status.checked-in{background:#d1fae5;color:#065f46}
 .booking-status.checked-out{background:#e5e7eb;color:#374151}
 .booking-status.cancelled{background:#fee2e2;color:#991b1b}
-.booking-meta{display:flex;gap:8px;font-size:10px;opacity:.7;margin:6px 0}
+.booking-meta{display:flex;gap:4px;font-size:10px;opacity:.7;margin:6px 0}
 .booking-actions{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap}
 .booking-btn{padding:3px 8px;border-radius:6px;font-size:10px;border:none;cursor:pointer;font-family:inherit}
 .booking-btn.confirm{background:#10b981;color:#fff}
@@ -373,7 +377,7 @@ body{padding-bottom:70px}
 </div>
 <div id="rolePage" class="hidden" style="min-height:100dvh;background:var(--header);display:flex;align-items:center;justify-content:center;padding:12px">
 <div class="card" style="width:100%;max-width:520px">
-<button onclick="backToLogin()" style="font-size:11px;color:var(--p1);background:none;border:none;cursor:pointer;margin-bottom:10px" data-i18n="back">← Back</button>
+<button onclick="backToLogin()" style="font-size:13px;color:var(--p1);background:none;border:none;cursor:pointer;margin-bottom:10px" data-i18n="back">← Back</button>
 <h2 style="font-size:18px;font-weight:700;text-align:center;margin-bottom:14px;color:var(--fg)" data-i18n="selectRole">👑 Select Your Role</h2>
 <div class="role-grid" id="roleGrid"></div>
 </div>
@@ -1234,7 +1238,7 @@ content.innerHTML=ADMIN_TABS.map(tb=>`<div class="tab-pane" id="atab-${tb.id}">$
 function buildTabContent(id){
 switch(id){
 case 'overview': return `
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:4px;margin-bottom:12px">
 <div class="stat-card"><div class="stat-val" id="stTot">0</div><div class="stat-lbl" data-i18n="roomNum">Rooms</div></div>
 <div class="stat-card"><div class="stat-val" id="stOcc" style="color:#10b981">0</div><div class="stat-lbl" data-i18n="occupied">Occupied</div></div>
 <div class="stat-card"><div class="stat-val" id="stOpen" style="color:#f59e0b">0</div><div class="stat-lbl" data-i18n="filterOpen">Open</div></div>
@@ -1259,7 +1263,7 @@ case 'overview': return `
 <div class="currency-row"><span>AED</span><span>${HotelCfg.currency}3.67</span></div>
 </div>
 </div>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px">
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:10px">
 <div class="quick-action" onclick="quickCheckin()">
 <div class="quick-icon">🚀</div>
 <div class="quick-label" data-i18n="quickCheckin">Quick Check-in</div>
@@ -1279,7 +1283,7 @@ case 'overview': return `
 </div>`;
 case 'rooms': return `
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+<div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabRooms">🏨 Rooms</h3>
 <button class="btn-primary" onclick="openModal('roomModal')" data-i18n="addRoom">+ Add Room</button>
 </div>
@@ -1289,7 +1293,7 @@ case 'rooms': return `
 </div>`;
 case 'guests': return `
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+<div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabGuests">👥 Guests</h3>
 <button class="btn-primary" onclick="openModal('guestModal')" data-i18n="addGuest">+ Add Guest</button>
 </div>
@@ -1299,7 +1303,7 @@ case 'guests': return `
 </div>`;
 case 'food': return `
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+<div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabFood">🍽️ Food Menu</h3>
 <button class="btn-primary" onclick="openModal('foodModal')" data-i18n="addDish">+ Add Dish</button>
 </div>
@@ -1307,7 +1311,7 @@ case 'food': return `
 </div>`;
 case 'inventory': return `
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+<div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabInventory">📦 Inventory</h3>
 <button class="btn-primary" onclick="openModal('inventoryModal')" data-i18n="addItem">+ Add Item</button>
 </div>
@@ -1317,7 +1321,7 @@ case 'inventory': return `
 </div>`;
 case 'requests': return `
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+<div style="display:flex;justify-content:center;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabRequests">📋 Requests</h3>
 <button class="btn-primary" style="background:#10b981" onclick="exportReqs()">📥 Export</button>
 </div>
@@ -1364,13 +1368,13 @@ case 'settings': return `
 <div style="display:flex;gap:6px"><input class="inp" id="cfgAirport" type="number" value="${HotelCfg.airportPrice}" style="width:100px"><button class="btn-primary" onclick="saveCfg('transport')" data-i18n="save">Save</button></div></div>
 <div class="form-row"><label class="lbl" data-i18n="localPrice">Local Cab $/hr</label>
 <div style="display:flex;gap:6px"><input class="inp" id="cfgLocal" type="number" value="${HotelCfg.localPrice}" style="width:100px"><button class="btn-primary" onclick="saveCfg('transport')" data-i18n="save">Save</button></div></div>
-<div style="background:var(--card2);border-radius:8px;padding:10px;font-size:11px;color:var(--fg);opacity:.7;margin-top:10px">
+<div style="background:var(--card2);border-radius:8px;padding:10px;font-size:13px;color:var(--fg);opacity:.7;margin-top:10px">
 🏢 Hotel ID: <strong>${HID}</strong> | Settings sync live to all devices via Socket.IO & MongoDB
 </div>
 </div>`;
 case 'blacklist': return `
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+<div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)">🚫 Blacklist</h3>
 <button class="btn-primary" style="background:#ef4444" onclick="openModal('blacklistModal')" data-i18n="blockGuest">+ Block Guest</button>
 </div>
@@ -1381,7 +1385,7 @@ case 'blacklist': return `
 case 'reports': return `
 <div class="card">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px" data-i18n="tabReports">📈 Reports</h3>
-<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center">
+<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;align-items:center">
 <select class="inp" id="rptType" style="width:auto">
 <option value="occupancy">🏨 Occupancy</option>
 <option value="revenue">💰 Revenue</option>
@@ -1398,7 +1402,7 @@ case 'reports': return `
 case 'reviews': return `
 <div class="card">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px" data-i18n="tabReviews">⭐ Reviews</h3>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:12px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;margin-bottom:12px">
 <div class="stat-card"><div class="stat-val" id="avgR" style="color:#f59e0b">—</div><div class="stat-lbl">Avg Rating</div></div>
 <div class="stat-card"><div class="stat-val" id="totR">0</div><div class="stat-lbl">Total</div></div>
 <div class="stat-card"><div class="stat-val" id="recR" style="color:#10b981">—%</div><div class="stat-lbl">Recommend</div></div>
@@ -1407,7 +1411,7 @@ case 'reviews': return `
 </div>`;
 case 'qrcodes': return `
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+<div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabQR">📷 QR Codes</h3>
 <button class="btn-primary" onclick="genAllQR()" data-i18n="genAll">Generate All</button>
 </div>
@@ -1415,7 +1419,7 @@ case 'qrcodes': return `
 </div>`;
 case 'maintenance': return `
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+<div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabMaintenance">🔧 Maintenance</h3>
 <button class="btn-primary" onclick="openModal('maintModal')" data-i18n="addTask">+ Add Task</button>
 </div>
@@ -1426,7 +1430,7 @@ case 'maintenance': return `
 case 'loyalty': return `
 <div class="card">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px" data-i18n="tabLoyalty">🏆 Loyalty Points</h3>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:12px">
 <div class="stat-card"><div class="stat-val" id="totPts">0</div><div class="stat-lbl">Issued</div></div>
 <div class="stat-card"><div class="stat-val" id="redPts" style="color:#10b981">0</div><div class="stat-lbl">Redeemed</div></div>
 <div class="stat-card"><div class="stat-val" id="actMem">0</div><div class="stat-lbl">Members</div></div>
@@ -1437,7 +1441,7 @@ case 'loyalty': return `
 </div>`;
 case 'staff': return `
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+<div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabStaff">👔 Staff</h3>
 <button class="btn-primary" onclick="openModal('staffModal')" data-i18n="addStaff">+ Add Staff</button>
 </div>
@@ -1445,7 +1449,7 @@ case 'staff': return `
 </div>`;
 case 'logs': return `
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+<div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabLogs">📝 Activity Logs</h3>
 <div style="display:flex;gap:6px">
 <button class="btn-primary" style="background:#10b981" onclick="exportLogs()" data-i18n="exportXLS">Export</button>
@@ -1459,7 +1463,7 @@ case 'logs': return `
 // ISSUE 9: Admin Bookings Tab
 case 'bookings': return `
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+<div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabBookings">📅 Bookings</h3>
 </div>
 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
@@ -1529,10 +1533,10 @@ tbody.innerHTML=guests.map(g=>`
 function renderFood(){
 const el=document.getElementById('foodAdminList');if(!el)return;
 el.innerHTML=food.map(f=>`
-<div class="req-card" style="display:flex;justify-content:space-between;align-items:center">
+<div class="req-card" style="display:flex;justify-content:center;align-items:center">
 <div>
 <strong>${f.emoji||'🍽️'} ${f.name}</strong>
-<div style="font-size:11px;opacity:.6">${f.category}</div>
+<div style="font-size:13px;opacity:.6">${f.category}</div>
 <div style="font-weight:700;color:var(--p1)">${HotelCfg.currency}${f.price}</div>
 </div>
 <div style="display:flex;gap:4px">
@@ -1564,10 +1568,10 @@ if(filter==='completed') list=requests.filter(r=>r.status==='completed');
 if(filter==='emergency') list=requests.filter(r=>r.priority==='emergency');
 el.innerHTML=list.map(r=>`
 <div class="req-card ${r.priority==='emergency'?'emergency':''}">
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+<div style="display:flex;justify-content:center;align-items:flex-start;gap:8px">
 <div>
 <strong>${r.guestName}</strong> — Room ${r.roomNumber}
-<div style="font-size:11px;opacity:.7;margin-top:2px">${r.department} • ${r.description}</div>
+<div style="font-size:13px;opacity:.7;margin-top:2px">${r.department} • ${r.description}</div>
 <div style="display:flex;gap:6px;margin-top:4px">
 <span class="badge badge-${r.status}">${r.status}</span>
 <span style="font-size:10px;color:${r.priority==='emergency'?'#ef4444':r.priority==='urgent'?'#f59e0b':'#9ca3af'}">${r.priority||'normal'}</span>
@@ -1685,7 +1689,7 @@ el.innerHTML=reviews.slice(0,10).map(r=>`
 <div>
 <strong>${r.guest}</strong> — Room ${r.room}
 <div style="color:#f59e0b">${'★'.repeat(r.overall||0)}${'☆'.repeat(5-(r.overall||0))}</div>
-<p style="font-size:11px;margin-top:3px">${r.comment||'No comment'}</p>
+<p style="font-size:13px;margin-top:3px">${r.comment||'No comment'}</p>
 <small style="opacity:.5;font-size:10px">Service: ${r.service||'—'}★ | Clean: ${r.cleanliness||'—'}★</small>
 </div>
 <button class="btn-ghost" style="font-size:10px;padding:3px 8px;align-self:flex-start" onclick="replyRev('${r.guest}')">💬</button>
@@ -1743,7 +1747,7 @@ ${s.attendance==='present'?t('markAbsent'):t('markPresent')}
 </div>
 ${s.leaveRequest?`
 <div class="leave-section">
-<div style="font-weight:600;font-size:11px;margin-bottom:4px">${t('applyLeave')}</div>
+<div style="font-weight:600;font-size:13px;margin-bottom:4px">${t('applyLeave')}</div>
 <div class="leave-row"><span>${t('leaveReason')}:</span><span>${s.leaveRequest.reason}</span></div>
 <div class="leave-row"><span>${t('date')}:</span><span>${s.leaveRequest.date}</span></div>
 <div style="display:flex;gap:4px;margin-top:6px">
@@ -1853,7 +1857,7 @@ panes.innerHTML=`
 <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="foodMenu">🍕 Food Menu</h3>
 <div class="food-grid" id="gFoodGrid"></div>
 <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<div style="display:flex;justify-content:center;align-items:center;margin-bottom:8px">
 <span style="font-weight:600;font-size:13px" data-i18n="yourCart">Cart</span>
 <span id="cartTotal" style="font-weight:700;color:var(--p1)">${HotelCfg.currency}0</span>
 </div>
@@ -1864,7 +1868,7 @@ panes.innerHTML=`
 <div class="card hidden" id="gp-invTab">
 <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="invItems">📦 Available Items</h3>
 <div class="inv-grid" id="gInvGrid"></div>
-<p style="text-align:center;font-size:11px;opacity:.5;margin-top:10px">💡 Items delivered within 10 minutes</p>
+<p style="text-align:center;font-size:13px;opacity:.5;margin-top:10px">💡 Items delivered within 10 minutes</p>
 </div>
 <div class="card hidden" id="gp-cabTab">
 <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="transport">🚗 Transport</h3>
@@ -1888,17 +1892,17 @@ panes.innerHTML=`
 <div class="card hidden" id="gp-infoTab">
 <h3 style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--fg)" data-i18n="hotelInfo">ℹ️ Hotel Info</h3>
 <div class="card-sm" style="margin-bottom:8px">
-<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;align-items:center">
+<div style="display:flex;justify-content:center;padding:4px 0;font-size:12px;align-items:center">
 <span data-i18n="wifi">📶 WiFi</span>
 <div style="display:flex;align-items:center;gap:6px">
 <code id="gWifiDisplay" style="background:var(--card2);padding:2px 6px;border-radius:4px;font-size:11px">${HotelCfg.wifi}</code>
 <button class="btn-ghost" style="padding:2px 6px;font-size:10px" onclick="copyWifi()" data-i18n="copy">Copy</button>
 </div>
 </div>
-<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span data-i18n="localTime">🌍 Local Time</span><span id="gLocalTime" style="font-family:'DM Mono',monospace;font-size:11px"></span></div>
-<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>🍽️ Restaurant</span><span>7AM–10PM</span></div>
-<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>💪 Gym</span><span>6AM–10PM</span></div>
-<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span data-i18n="checkoutTime">🕐 Checkout</span><span>11:00 AM</span></div>
+<div style="display:flex;justify-content:center;padding:4px 0;font-size:12px"><span data-i18n="localTime">🌍 Local Time</span><span id="gLocalTime" style="font-family:'DM Mono',monospace;font-size:11px"></span></div>
+<div style="display:flex;justify-content:center;padding:4px 0;font-size:12px"><span>🍽️ Restaurant</span><span>7AM–10PM</span></div>
+<div style="display:flex;justify-content:center;padding:4px 0;font-size:12px"><span>💪 Gym</span><span>6AM–10PM</span></div>
+<div style="display:flex;justify-content:center;padding:4px 0;font-size:12px"><span data-i18n="checkoutTime">🕐 Checkout</span><span>11:00 AM</span></div>
 </div>
 <div class="weather-card" style="margin-bottom:8px">
 <div class="weather-icon">🌤️</div>
@@ -1913,17 +1917,17 @@ panes.innerHTML=`
 <div class="currency-row"><span>1 ${HotelCfg.currency}</span><span>= د.إ3.67</span></div>
 </div>
 <div class="card-sm" style="background:var(--card2);margin-bottom:8px">
-<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+<div style="display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px">
 <div><div style="font-weight:700;font-size:13px" data-i18n="myPoints">⭐ My Points</div><div id="gPtsDisplay" style="font-size:24px;font-weight:700;color:#f59e0b">0</div></div>
 <button class="btn-primary" onclick="openRatingModal()" data-i18n="rateNow">Rate Now ⭐</button>
 </div>
-<p style="font-size:11px;opacity:.6;margin-top:6px" data-i18n="loyaltyBenefits">100 pts = $10 off | 500 pts = Free Night</p>
+<p style="font-size:13px;opacity:.6;margin-top:6px" data-i18n="loyaltyBenefits">100 pts = $10 off | 500 pts = Free Night</p>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🚑 First Aid','<p>🩸 Bleeding: Apply pressure</p><p>🔥 Burn: Cool water</p><p>💔 Cardiac: Call 102</p>')"><div style="font-size:22px">🚑</div><div style="font-size:11px;font-weight:600">First Aid</div></button>
-<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🗺️ Evacuation','<p>🚪 Exit stairs at corridor ends</p><p>🅿️ Assembly: Main Parking</p><p style=color:#ef4444>⚠️ No elevators in emergency</p>')"><div style="font-size:22px">🗺️</div><div style="font-size:11px;font-weight:600">Evacuation</div></button>
-<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('📞 Emergency','<p>🚓 Police: 100</p><p>🚑 Ambulance: 102</p><p>🔥 Fire: 101</p><p>🏨 Security: Ext. 0</p>')"><div style="font-size:22px">📞</div><div style="font-size:11px;font-weight:600">Emergency</div></button>
-<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="showConcierge()"><div style="font-size:22px">🤖</div><div style="font-size:11px;font-weight:600">Concierge</div></button>
+<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🚑 First Aid','<p>🩸 Bleeding: Apply pressure</p><p>🔥 Burn: Cool water</p><p>💔 Cardiac: Call 102</p>')"><div style="font-size:22px">🚑</div><div style="font-size:13px;font-weight:600">First Aid</div></button>
+<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🗺️ Evacuation','<p>🚪 Exit stairs at corridor ends</p><p>🅿️ Assembly: Main Parking</p><p style=color:#ef4444>⚠️ No elevators in emergency</p>')"><div style="font-size:22px">🗺️</div><div style="font-size:13px;font-weight:600">Evacuation</div></button>
+<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('📞 Emergency','<p>🚓 Police: 100</p><p>🚑 Ambulance: 102</p><p>🔥 Fire: 101</p><p>🏨 Security: Ext. 0</p>')"><div style="font-size:22px">📞</div><div style="font-size:13px;font-weight:600">Emergency</div></button>
+<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="showConcierge()"><div style="font-size:22px">🤖</div><div style="font-size:13px;font-weight:600">Concierge</div></button>
 </div>
 </div>
 <!-- ISSUE 9: Guest Book Room Tab -->
@@ -2026,10 +2030,10 @@ const el=document.getElementById('gHistList');if(!el||!currentUser)return;
 const myReqs=requests.filter(r=>r.guestName===currentUser.name&&r.roomNumber==currentUser.room);
 el.innerHTML=myReqs.map(r=>`
 <div class="req-card">
-<div style="display:flex;justify-content:space-between;align-items:flex-start">
+<div style="display:flex;justify-content:center;align-items:flex-start">
 <div>
 <strong style="font-size:12px">${r.department}</strong>
-<div style="font-size:11px;opacity:.6;margin-top:2px">${r.description}</div>
+<div style="font-size:13px;opacity:.6;margin-top:2px">${r.description}</div>
 <div style="font-size:10px;opacity:.4;margin-top:2px">${new Date(r.createdAt||Date.now()).toLocaleString()}</div>
 </div>
 <span class="badge badge-${r.status}">${r.status}</span>
@@ -2056,7 +2060,7 @@ const totEl=document.getElementById('cartTotal');
 if(cartEl){
 const tot=cart.reduce((s,i)=>s+i.price,0);
 if(totEl)totEl.textContent=`${HotelCfg.currency}${tot}`;
-cartEl.innerHTML=cart.map(i=>`<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${i.name}</span><span>${HotelCfg.currency}${i.price}</span></div>`).join('');
+cartEl.innerHTML=cart.map(i=>`<div style="display:flex;justify-content:center;padding:2px 0"><span>${i.name}</span><span>${HotelCfg.currency}${i.price}</span></div>`).join('');
 }
 showToast(`${name} added to cart 🛒`,'success');
 }
@@ -2466,7 +2470,7 @@ container.innerHTML=`
 </div>
 <div class="form-row"><label class="lbl" data-i18n="status">Status</label>
 <select class="inp" id="mRoomStatus"><option>Vacant</option><option>Occupied</option><option>Cleaning</option><option>Maintenance</option></select></div>
-<div style="display:flex;gap:8px;margin-top:14px">
+<div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('roomModal')" data-i18n="cancel">Cancel</button>
 </div>
@@ -2485,7 +2489,7 @@ container.innerHTML=`
 <div class="form-row"><label class="lbl">Check-in</label><input class="inp" id="mGCheckin" type="date"></div>
 <div class="form-row"><label class="lbl" data-i18n="status">Status</label>
 <select class="inp" id="mGStatus"><option value="active">✅ Active</option><option value="checked_out">🚪 Checked Out</option><option value="blocked">🚫 Blocked</option></select></div>
-<div style="display:flex;gap:8px;margin-top:14px">
+<div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('guestModal')" data-i18n="cancel">Cancel</button>
 </div>
@@ -2503,7 +2507,7 @@ container.innerHTML=`
 </div>
 <div class="form-row"><label class="lbl" data-i18n="category">Category</label>
 <select class="inp" id="mFCat"><option>Main Course</option><option>Appetizer</option><option>Dessert</option><option>Beverage</option></select></div>
-<div style="display:flex;gap:8px;margin-top:14px">
+<div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('foodModal')" data-i18n="cancel">Cancel</button>
 </div>
@@ -2524,7 +2528,7 @@ container.innerHTML=`
 <select class="inp" id="mICat"><option>Amenities</option><option>Linen</option><option>Food</option><option>Maintenance</option><option>Other</option></select></div>
 <div class="form-row"><label class="lbl" data-i18n="minAlert">Min Alert</label><input class="inp" id="mIMin" type="number" value="10"></div>
 </div>
-<div style="display:flex;gap:8px;margin-top:14px">
+<div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('inventoryModal')" data-i18n="cancel">Cancel</button>
 </div>
@@ -2538,7 +2542,7 @@ container.innerHTML=`
 <div class="form-row"><label class="lbl" data-i18n="nameLbl">Name</label><input class="inp" id="mBName" required></div>
 <div class="form-row"><label class="lbl" data-i18n="room">Room</label><input class="inp" id="mBRoom"></div>
 <div class="form-row"><label class="lbl" data-i18n="reason">Reason</label><textarea class="inp" id="mBReason" rows="2" required></textarea></div>
-<div style="display:flex;gap:8px;margin-top:14px">
+<div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1;background:#ef4444" type="submit">🚫 Block</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('blacklistModal')" data-i18n="cancel">Cancel</button>
 </div>
@@ -2557,7 +2561,7 @@ container.innerHTML=`
 <div class="form-row"><label class="lbl" data-i18n="priority">Priority</label>
 <select class="inp" id="mMPrio"><option value="low">🟢 Low</option><option value="medium" selected>🟡 Medium</option><option value="high">🔴 High</option></select></div>
 </div>
-<div style="display:flex;gap:8px;margin-top:14px">
+<div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('maintModal')" data-i18n="cancel">Cancel</button>
 </div>
@@ -2593,7 +2597,7 @@ container.innerHTML=`
 <option value="on-leave" data-i18n="onLeave">On Leave</option>
 </select></div>
 </div>
-<div style="display:flex;gap:8px;margin-top:14px">
+<div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('staffModal')" data-i18n="cancel">Cancel</button>
 </div>
