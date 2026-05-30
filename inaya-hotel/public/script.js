@@ -2134,23 +2134,23 @@ window.saveWifiPassword = saveWifiPassword;
 async function loadAllDataFromServer() {
     try {
         console.log('🔄 Loading data from MongoDB...');
-        
+
         // Fetch rooms
         const roomsRes = await fetch('/api/rooms');
         if (roomsRes.ok) rooms = await roomsRes.json();
-        
+
         // Fetch guests
         const guestsRes = await fetch('/api/guests');
         if (guestsRes.ok) guests = await guestsRes.json();
-        
+
         // Fetch inventory
         const inventoryRes = await fetch('/api/inventory');
         if (inventoryRes.ok) inventory = await inventoryRes.json();
-        
+
         // Fetch requests
         const requestsRes = await fetch('/api/requests');
         if (requestsRes.ok) requests = await requestsRes.json();
-        
+
         // Re-render all
         renderAll();
         console.log('✅ All data loaded from MongoDB');
