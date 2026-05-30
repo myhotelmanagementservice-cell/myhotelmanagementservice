@@ -39,7 +39,8 @@ const CONFIG = {
   STORAGE: {
     UI: 'hotel_ui_prefs',      // darkMode, fontSize, brightness, language, theme
     SESSION: 'hotel_session',  // Page state for refresh stability
-    USER: 'hotel_user'         // Non-sensitive user info
+    USER: 'hotel_user',        // Non-sensitive user info
+    DATA: 'hotel_data_cache'   // Critical data cache for instant restore
   },
 
   // ✅ App Info
@@ -603,6 +604,63 @@ function clearUser() {
   state.user = null;
 }
 
+// ✅ ISSUE 1 FIX: Save critical data to localStorage for instant restore on refresh
+function saveSessionData() {
+  try {
+    const cache = {
+      rooms: state.rooms,
+      guests: state.guests,
+      foodMenu: state.foodMenu,
+      inventory: state.inventory,
+      requests: state.requests,
+      reviews: state.reviews,
+      maintenance: state.maintenance,
+      blacklist: state.blacklist,
+      loyalty: state.loyalty,
+      staff: state.staff,
+      logs: state.logs,
+      hotel: state.hotel,
+      user: state.user,
+      session: state.session,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(CONFIG.STORAGE.DATA, JSON.stringify(cache));
+  } catch (e) {
+    console.error('Failed to save session data:', e);
+  }
+}
+
+// ✅ ISSUE 1 FIX: Load critical data from localStorage for instant restore
+function loadSessionData() {
+  try {
+    const cached = localStorage.getItem(CONFIG.STORAGE.DATA);
+    if (cached) {
+      const data = JSON.parse(cached);
+      // Only restore if cache is recent (within 24 hours)
+      if (Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
+        if (data.rooms) state.rooms = data.rooms;
+        if (data.guests) state.guests = data.guests;
+        if (data.foodMenu) state.foodMenu = data.foodMenu;
+        if (data.inventory) state.inventory = data.inventory;
+        if (data.requests) state.requests = data.requests;
+        if (data.reviews) state.reviews = data.reviews;
+        if (data.maintenance) state.maintenance = data.maintenance;
+        if (data.blacklist) state.blacklist = data.blacklist;
+        if (data.loyalty) state.loyalty = data.loyalty;
+        if (data.staff) state.staff = data.staff;
+        if (data.logs) state.logs = data.logs;
+        if (data.hotel) state.hotel = { ...state.hotel, ...data.hotel };
+        if (data.user) state.user = data.user;
+        if (data.session) state.session = data.session;
+        return true;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load session data:', e);
+  }
+  return false;
+}
+
 async function handleGuestLogin(name, room) {
   try {
     // Try API first, fallback to local
@@ -612,6 +670,7 @@ async function handleGuestLogin(name, room) {
       const user = { type: 'guest', name, room, loginTime: new Date().toISOString() };
       saveUser(user);
       saveSession('guest', 'guestDashboard');
+      saveSessionData(); // ✅ ISSUE 1 FIX: Save data immediately
       showGuestDashboard(name, room);
       showToast(`Welcome, ${name}!`);
       addLog('Guest', 'Login', `Room ${room}`);
@@ -623,6 +682,7 @@ async function handleGuestLogin(name, room) {
     const user = { type: 'guest', name, room, loginTime: new Date().toISOString() };
     saveUser(user);
     saveSession('guest', 'guestDashboard');
+    saveSessionData(); // ✅ ISSUE 1 FIX: Save data immediately
     showGuestDashboard(name, room);
     showToast(`Welcome, ${name}! (Offline Mode)`);
     addLog('Guest', 'Login (Offline)', `Room ${room}`);
@@ -644,6 +704,7 @@ async function handleAdminLogin(email, password) {
         loginTime: new Date().toISOString() 
       };
       saveUser(user);
+      saveSessionData(); // ✅ ISSUE 1 FIX: Save data immediately
       showRoleSelection();
       showToast('Login successful!');
       addLog('Admin', 'Login successful', email);
@@ -687,6 +748,7 @@ async function loginAsRole(role) {
     state.user.role = role;
     state.user.roleName = roles[role];
     saveUser(state.user);
+    saveSessionData(); // ✅ ISSUE 1 FIX: Save data immediately
   }
 
   saveSession('admin', 'adminDashboard');
@@ -748,6 +810,7 @@ async function logout() {
   addLog(state.user?.type || 'User', 'Logout', state.user?.name || state.user?.email);
   clearUser();
   clearSession();
+  localStorage.removeItem(CONFIG.STORAGE.DATA); // ✅ ISSUE 1 FIX: Clear data cache on logout
 
   // Hide all dashboards, show login
   hidePage('guestDashboard');
@@ -810,6 +873,9 @@ async function loadAllAdminData() {
     if (settings.success) {
       state.hotel = { ...state.hotel, ...settings.data };
     }
+
+    // ✅ ISSUE 1 FIX: Save to localStorage cache immediately after API load
+    saveSessionData();
 
     // Re-render all lists
     renderAllLists();
@@ -1281,6 +1347,9 @@ async function saveRoom(roomData, editIndex = -1) {
       }
     }
 
+    // ✅ ISSUE 1 FIX: Save to localStorage cache immediately after any data change
+    saveSessionData();
+
     renderRoomsList();
     updateAdminStats();
     showToast('Room saved!');
@@ -1299,6 +1368,8 @@ async function deleteRoom(id) {
     const response = await API.rooms.delete(id);
     if (response.success) {
       state.rooms = state.rooms.filter(r => (r._id || r.id) !== id);
+      // ✅ ISSUE 1 FIX: Save to localStorage cache immediately after any data change
+      saveSessionData();
       renderRoomsList();
       updateAdminStats();
       showToast('Room deleted');
@@ -1337,6 +1408,9 @@ async function saveGuest(guestData, editIndex = -1) {
       }
     }
 
+    // ✅ ISSUE 1 FIX: Save to localStorage cache immediately after any data change
+    saveSessionData();
+
     renderGuestsList();
     renderLoyaltyList();
     showToast('Guest saved!');
@@ -1359,6 +1433,8 @@ async function toggleGuestBlock(id) {
     if (response.success) {
       guest.status = newStatus;
       guest.updatedAt = new Date().toISOString();
+      // ✅ ISSUE 1 FIX: Save to localStorage cache immediately after any data change
+      saveSessionData();
       renderGuestsList();
       renderLoyaltyList();
       showToast(`${guest.name} ${newStatus === 'blocked' ? 'blocked' : 'unblocked'}`);
@@ -1388,6 +1464,8 @@ async function submitRequest(requestData, isGuest = false) {
     if (response.success) {
       request.id = response.data?._id || Date.now();
       state.requests.unshift(request);
+      // ✅ ISSUE 1 FIX: Save to localStorage cache immediately after any data change
+      saveSessionData();
 
       renderAdminRequests();
       if (isGuest) {
@@ -1417,6 +1495,8 @@ async function updateRequestStatus(id, status) {
         req.status = status;
         req.updatedAt = new Date().toISOString();
       }
+      // ✅ ISSUE 1 FIX: Save to localStorage cache immediately after any data change
+      saveSessionData();
       renderAdminRequests();
       updateAdminStats();
       if (state.user?.type === 'guest') {
@@ -1611,14 +1691,13 @@ document.addEventListener('DOMContentLoaded', async function() {
   await loadVoices();
 
   // 2. Load UI settings from localStorage (5 keys only)
-
-  // 8. Load all data from MongoDB
-
-  await loadAllDataFromServer();
   loadUISettings();
 
   // 3. Load session for page persistence
   loadSession();
+
+  // ✅ ISSUE 1 FIX: Try to load cached data FIRST for instant restore
+  const cacheLoaded = loadSessionData();
 
   // 4. Setup network handlers
   setupNetworkHandlers();
@@ -1636,7 +1715,12 @@ document.addEventListener('DOMContentLoaded', async function() {
   updateLanguageUI();
 
   // 8. Check session persistence (stay on page after refresh)
-  checkSessionPersistence();
+  // ✅ ISSUE 1 FIX: If cache was loaded, render immediately before API sync
+  if (cacheLoaded && state.session && state.user) {
+    checkSessionPersistence(true); // true = use cached data
+  } else {
+    checkSessionPersistence(false);
+  }
 
   // 9. Setup event listeners
   setupEventListeners();
@@ -1644,10 +1728,27 @@ document.addEventListener('DOMContentLoaded', async function() {
   // 10. Initial sync indicator
   showSyncIndicator(false);
 
+  // ✅ ISSUE 1 FIX: Add beforeunload handler to save state on refresh
+  window.addEventListener('beforeunload', function() {
+    saveSessionData();
+  });
+
+  // 11. Background sync: Load fresh data from server after initial render
+  if (navigator.onLine) {
+    setTimeout(() => {
+      if (state.user?.type === 'admin') {
+        loadAllAdminData();
+      } else if (state.user?.type === 'guest' && state.user?.room) {
+        loadGuestData(state.user.room);
+      }
+    }, 500);
+  }
+
   console.log(`✅ ${CONFIG.APP_NAME} v${CONFIG.VERSION} initialized`);
 });
 
-function checkSessionPersistence() {
+// ✅ ISSUE 1 FIX: Enhanced session persistence with cache support
+function checkSessionPersistence(useCache = false) {
   if (!state.session || !state.user) return;
 
   const { page, dashboard } = state.session;
@@ -1664,7 +1765,14 @@ function checkSessionPersistence() {
 
     showGuestTab('newRequest');
     updateGuestStats();
-    addLog('Guest', `${state.user.name} resumed session`, `Room ${state.user.room}`);
+
+    // ✅ ISSUE 1 FIX: If using cache, render immediately
+    if (useCache) {
+      renderAllLists();
+      addLog('Guest', `${state.user.name} resumed session (cached)`, `Room ${state.user.room}`);
+    } else {
+      addLog('Guest', `${state.user.name} resumed session`, `Room ${state.user.room}`);
+    }
 
   } else if (page === 'admin' && dashboard === 'adminDashboard' && state.user?.type === 'admin') {
     hidePage('loginSelectionPage');
@@ -1678,10 +1786,14 @@ function checkSessionPersistence() {
 
     showAdminTab('overview');
     updateAdminStats();
-    addLog('Admin', `${state.user.email} resumed session`, state.user.role);
 
-    // Load data
-    loadAllAdminData();
+    // ✅ ISSUE 1 FIX: If using cache, render immediately
+    if (useCache) {
+      renderAllLists();
+      addLog('Admin', `${state.user.email} resumed session (cached)`, state.user.role);
+    } else {
+      addLog('Admin', `${state.user.email} resumed session`, state.user.role);
+    }
   }
 }
 
@@ -1953,6 +2065,9 @@ async function saveHotelName() {
     console.error('Failed to save hotel name:', error);
   }
 
+  // ✅ ISSUE 1 FIX: Save to localStorage cache immediately after any data change
+  saveSessionData();
+
   // Update all pages immediately
   syncHotelNameToLogin();
   syncHotelNameToAdmin();
@@ -1978,6 +2093,9 @@ async function saveWifiPassword() {
   } catch (error) {
     console.error('Failed to save WiFi password:', error);
   }
+
+  // ✅ ISSUE 1 FIX: Save to localStorage cache immediately after any data change
+  saveSessionData();
 
   // Update guest dashboard immediately
   syncWifiToGuest();
@@ -2130,6 +2248,9 @@ window.syncHotelNameToGuest = syncHotelNameToGuest;
 window.saveHotelName = saveHotelName;
 window.syncWifiToGuest = syncWifiToGuest;
 window.saveWifiPassword = saveWifiPassword;
+// ✅ ISSUE 1 FIX: Export new functions for session persistence
+window.saveSessionData = saveSessionData;
+window.loadSessionData = loadSessionData;
 
 async function loadAllDataFromServer() {
     try {
@@ -2150,6 +2271,9 @@ async function loadAllDataFromServer() {
         // Fetch requests
         const requestsRes = await fetch('/api/requests');
         if (requestsRes.ok) requests = await requestsRes.json();
+
+        // ✅ ISSUE 1 FIX: Save to localStorage cache after server load
+        saveSessionData();
 
         // Re-render all
         renderAll();
