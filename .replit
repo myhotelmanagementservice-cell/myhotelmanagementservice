@@ -1,11 +1,12 @@
 language = "nodejs"
-run = "cd inaya-hotel && npm start"
+run = "npm start"
+modules = ["nodejs-20"]
 
 [nix]
 channel = "stable-23_11"
 
 [deployment]
-run = ["sh", "-c", "cd inaya-hotel && npm start"]
+run = ["npm", "start"]
 
 [[ports]]
 localPort = 3000
