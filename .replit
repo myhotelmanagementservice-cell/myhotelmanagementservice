@@ -1,6 +1,5 @@
 language = "nodejs"
 run = "cd inaya-hotel && npm start"
-modules = ["nodejs-20"]
 
 [nix]
 channel = "stable-23_11"

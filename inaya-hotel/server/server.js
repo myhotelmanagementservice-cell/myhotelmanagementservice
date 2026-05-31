@@ -1,5 +1,5 @@
+require("dotenv").config({ path: __dirname + "/.env" });
 // server.js - Complete Multi-Tenant Hotel SaaS Backend (UPDATED)
-require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
@@ -1875,3 +1875,5 @@ process.on('SIGTERM', async () => {
   await new Promise(resolve => server.close(resolve));
   process.exit(0);
 });
+
+
