@@ -406,14 +406,12 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 </div>
 <div id="modals"></div>
 <script>
-const API_BASE = window.API_BASE || 'http://localhost:3000/api';
+const API = window.API_BASE || 'http://localhost:3000/api';
 const SOCKET_URL = window.SOCKET_URL || 'http://localhost:3000';
 const urlParams = new URLSearchParams(location.search);
 let HID = urlParams.get('hotel') || localStorage.getItem('hotel_hid') || 'default';
 if (urlParams.get('hotel')) localStorage.setItem('hotel_hid', HID);
 document.getElementById('tenantLabel').textContent = `Hotel ID: ${HID}`;
-
-// Translation object
 const T = {
 en:{
 hotelName:'Crown Plaza Hotel',welcomeSubtitle:'Complete Management System',connecting:'Connecting to server…',
@@ -439,12 +437,12 @@ yourCart:'Your Cart',placeOrder:'🛒 Place Order',
 requestMore:'Request More',bookNow:'📅 Book Now',
 wifi:'📶 WiFi',localTime:'🌍 Local Time',checkoutTime:'🕐 Checkout',
 copy:'Copy',myPoints:'⭐ My Points',rateNow:'Rate Now',
-loyaltyBenefits:'100 pts = $10 off | 500 pts = Free Night',
+loyaltyBenefits:'100 pts = ﷼10 off | 500 pts = Free Night',
 wakeUp:'⏰ Wake-up',dnd:'🔕 DND',localGuide:'🗺️ Guide',emergency:'📞 Emergency',
 rateStay:'⭐ Rate Your Stay',overall:'Overall',service:'Service',cleanliness:'Cleanliness',
 shareExp:'Share your experience…',submitReview:'Submit Review',
 hotelNameLbl:'Hotel Name',currencyLbl:'Currency Symbol',wifiLbl:'WiFi Password',
-airportPrice:'Airport Transfer Price',localPrice:'Local Cab $/hr',
+airportPrice:'Airport Transfer Price',localPrice:'Local Cab ﷼/hr',
 reportType:'Report Type',generate:'🔄 Generate',exportBtn:'📥 Export',
 roomNum:'Room #',roomType:'Type',price:'Price',status:'Status',guest:'Guest',actions:'Actions',
 typeStd:'Standard',typeDlx:'Deluxe',typeSte:'Suite',typePres:'Presidential',
@@ -471,7 +469,7 @@ svcLostKey:'Lost Key',svcSuspicious:'Suspicious Activity',svcSafeDeposit:'Safe D
 svcAirport:'Airport Transfer',svcLocalCab:'Local Cab',svcCarRental:'Car Rental',svcBikeRental:'Bike Rental',svcShuttle:'Shuttle Service',
 weather:'🌤️ Weather',currency:'💱 Currency',quickActions:'⚡ Quick Actions',analytics:'📊 Quick Stats',
 temp:'Temperature',humidity:'Humidity',wind:'Wind',
-usd:'USD',eur:'EUR',gbp:'GBP',inr:'INR',aed:'AED',
+sar:'SAR',eur:'EUR',gbp:'GBP',inr:'INR',aed:'AED',
 quickCheckin:'🚀 Quick Check-in',quickCheckout:'🚪 Quick Checkout',newRequest:'📝 New Request',viewReports:'📈 View Reports',
 reply:'💬 Reply',replySent:'Reply sent!',noReply:'No reply yet',
 contrast:'🔆 Contrast',fontSize:'🔤 Font',notifications:'🔔 Notify',haptic:'📳 Haptic',voice:'🔊 Voice',
@@ -509,12 +507,12 @@ yourCart:'आपका कार्ट',placeOrder:'🛒 ऑर्डर कर�
 requestMore:'और चाहिए',bookNow:'📅 बुक करें',
 wifi:'📶 वाईफाई',localTime:'🌍 स्थानीय समय',checkoutTime:'🕐 चेकआउट',
 copy:'कॉपी',myPoints:'⭐ मेरे अंक',rateNow:'रेट करें',
-loyaltyBenefits:'100 अंक = ₹10 छूट | 500 अंक = मुफ्त रात',
+loyaltyBenefits:'100 अंक = ﷼10 छूट | 500 अंक = मुफ्त रात',
 wakeUp:'⏰ वेकअप',dnd:'🔕 डीएनडी',localGuide:'🗺️ गाइड',emergency:'📞 आपातकाल',
 rateStay:'⭐ प्रवास रेट करें',overall:'समग्र',service:'सेवा',cleanliness:'स्वच्छता',
 shareExp:'अनुभव साझा करें…',submitReview:'समीक्षा दें',
 hotelNameLbl:'होटल का नाम',currencyLbl:'मुद्रा प्रतीक',wifiLbl:'वाईफाई पासवर्ड',
-airportPrice:'एयरपोर्ट कीमत',localPrice:'लोकल कैब ₹/घंटा',
+airportPrice:'एयरपोर्ट कीमत',localPrice:'लोकल कैब ﷼/घंटा',
 reportType:'रिपोर्ट प्रकार',generate:'🔄 बनाएं',exportBtn:'📥 निर्यात',
 roomNum:'कमरा #',roomType:'प्रकार',price:'कीमत',status:'स्थिति',guest:'अतिथि',actions:'कार्य',
 typeStd:'स्टैंडर्ड',typeDlx:'डिलक्स',typeSte:'सूट',typePres:'प्रेसिडेंशियल',
@@ -541,7 +539,7 @@ svcLostKey:'खोई चाबी',svcSuspicious:'संदिग्ध गत�
 svcAirport:'एयरपोर्ट ट्रांसफर',svcLocalCab:'लोकल कैब',svcCarRental:'कार किराया',svcBikeRental:'बाइक किराया',svcShuttle:'शटल सर्विस',
 weather:'🌤️ मौसम',currency:'💱 मुद्रा',quickActions:'⚡ त्वरित कार्य',analytics:'📊 त्वरित आँकड़े',
 temp:'तापमान',humidity:'आर्द्रता',wind:'हवा',
-usd:'अमेरिकी डॉलर',eur:'यूरो',gbp:'ब्रिटिश पाउंड',inr:'भारतीय रुपया',aed:'यूएई दिरहम',
+sar:'सऊदी रियाल',eur:'यूरो',gbp:'ब्रिटिश पाउंड',inr:'भारतीय रुपया',aed:'यूएई दिरहम',
 quickCheckin:'🚀 त्वरित चेक-इन',quickCheckout:'🚪 त्वरित चेक-आउट',newRequest:'📝 नया अनुरोध',viewReports:'📈 रिपोर्ट देखें',
 reply:'💬 जवाब',replySent:'जवाब भेज दिया!',noReply:'अभी तक कोई जवाब नहीं',
 contrast:'🔆 कंट्रास्ट',fontSize:'🔤 फ़ॉन्ट',notifications:'🔔 सूचना',haptic:'📳 कंपन',voice:'🔊 आवाज़',
@@ -579,12 +577,12 @@ yourCart:'سلتك',placeOrder:'🛒 تقديم الطلب',
 requestMore:'طلب المزيد',bookNow:'📅 احجز الآن',
 wifi:'📶 WiFi',localTime:'🌍 الوقت المحلي',checkoutTime:'🕐 المغادرة',
 copy:'نسخ',myPoints:'⭐ نقاطي',rateNow:'قيّم الآن',
-loyaltyBenefits:'100 نقطة = خصم $10 | 500 نقطة = ليلة مجانية',
+loyaltyBenefits:'100 نقطة = خصم ﷼10 | 500 نقطة = ليلة مجانية',
 wakeUp:'⏰ إيقاظ',dnd:'🔕 لا إزعاج',localGuide:'🗺️ دليل',emergency:'📞 طوارئ',
 rateStay:'⭐ قيّم إقامتك',overall:'عام',service:'الخدمة',cleanliness:'النظافة',
 shareExp:'شارك تجربتك…',submitReview:'إرسال التقييم',
 hotelNameLbl:'اسم الفندق',currencyLbl:'رمز العملة',wifiLbl:'كلمة مرور WiFi',
-airportPrice:'سعر المطار',localPrice:'تاكسي $/ساعة',
+airportPrice:'سعر المطار',localPrice:'تاكسي ﷼/ساعة',
 reportType:'نوع التقرير',generate:'🔄 توليد',exportBtn:'📥 تصدير',
 roomNum:'غرفة #',roomType:'النوع',price:'السعر',status:'الحالة',guest:'الضيف',actions:'الإجراءات',
 typeStd:'قياسي',typeDlx:'ديلوكس',typeSte:'جناح',typePres:'رئاسي',
@@ -611,7 +609,7 @@ svcLostKey:'مفتاح مفقود',svcSuspicious:'نشاط مشبوه',svcSafeDe
 svcAirport:'نقل المطار',svcLocalCab:'تاكسي محلي',svcCarRental:'تأجير سيارة',svcBikeRental:'تأجير دراجة',svcShuttle:'خدمة النقل',
 weather:'🌤️ الطقس',currency:'💱 العملة',quickActions:'⚡ إجراءات سريعة',analytics:'📊 إحصائيات سريعة',
 temp:'درجة الحرارة',humidity:'الرطوبة',wind:'الرياح',
-usd:'دولار أمريكي',eur:'يورو',gbp:'جنيه إسترليني',inr:'روبية هندية',aed:'درهم إماراتي',
+sar:'ريال سعودي',eur:'يورو',gbp:'جنيه إسترليني',inr:'روبية هندية',aed:'درهم إماراتي',
 quickCheckin:'🚀 تسجيل وصول سريع',quickCheckout:'🚪 تسجيل مغادرة سريع',newRequest:'📝 طلب جديد',viewReports:'📈 عرض التقارير',
 reply:'💬 رد',replySent:'تم إرسال الرد!',noReply:'لا يوجد رد حتى الآن',
 contrast:'🔆 تباين',fontSize:'🔤 خط',notifications:'🔔 إشعارات',haptic:'📳 اهتزاز',voice:'🔊 صوت',
@@ -625,12 +623,10 @@ tasksCompleted:'المهام',performance:'الأداء',online:'متصل',offli
 onLeave:'في إجازة',onDuty:'في الخدمة',
 bookRoom:'📅 حجز غرفة',selectRoom:'اختر الغرفة',checkIn:'تسجيل الوصول',checkOut:'تسجيل المغادرة',numGuests:'عدد الضيوف',totalPrice:'السعر الإجمالي',nights:'ليلة(ليالي)',bookingConfirmed:'تم تأكيد الحجز! معرف الحجز:',myBookings:'حجوزاتي',bookingStatus:'الحالة',pending:'معلق',confirmed:'مؤكد',checkedIn:'تم تسجيل الوصول',checkedOut:'تم تسجيل المغادرة',cancelled:'ملغي',requestSubmitted:'تم إرسال الطلب',orderPlaced:'تم تقديم الطلب بنجاح',bookingConfirmedMsg:'تم تأكيد الحجز',itemAdded:'تمت إضافة العنصر بنجاح',changesSaved:'تم حفظ التغييرات',welcomeMsg:'مرحبا بكم في نظام إدارة الفنادق'
 }};
-
 function t(k){return T[lang]?.[k] || T.en[k] || k}
-
-// Global state
 let lang='en', dark=false, fontSize=0, brightness=1, theme='default', highContrast=false;
-let currentUser=null, HotelCfg={name:'Crown Plaza Hotel',currency:'$',wifi:'CrownPlaza@2024',airportPrice:30,localPrice:15};
+// ✅ CHANGE 4: Default currency set to SAR (Saudi Riyal)
+let currentUser=null, HotelCfg={name:'Crown Plaza Hotel',currency:'SAR',symbol:'﷼',wifi:'CrownPlaza@2024',airportPrice:115,localPrice:60};
 let rooms=[], guests=[], food=[], inventory=[], requests=[], blacklist=[], maintenance=[], reviews=[], loyalty=[], staff=[], logs=[], bookings=[];
 let cart=[], ratingData={overall:0,service:0,clean:0};
 let deptChart=null, occChart=null;
@@ -638,9 +634,6 @@ let isOnline=true;
 let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let notificationPermission = 'default';
 let voicesLoaded = false;
-let socket=null;
-
-// Services mapping
 const SERVICES = {
 'Housekeeping':[
 {key:'Room Cleaning',en:'Room Cleaning',hi:'कमरा सफाई',ar:'تنظيف الغرفة'},
@@ -692,7 +685,6 @@ const SERVICES = {
 {key:'Shuttle Service',en:'Shuttle Service',hi:'शटल सर्विस',ar:'خدمة النقل'}
 ]
 };
-
 const ROLES = [
 {key:'super_admin',icon:'👑',label:'roleSuperAdmin'},
 {key:'front_desk',icon:'🛎️',label:'roleFrontDesk'},
@@ -703,77 +695,7 @@ const ROLES = [
 {key:'security',icon:'🛡️',label:'roleSecurity'},
 {key:'it_support',icon:'💻',label:'roleIT'}
 ];
-
-// ✅ ISSUE 1 FIX: MongoDB API helper with localStorage fallback
-async function apiCall(method, path, body=null){
-if(!isOnline) return null;
-const opts={method, headers:{'Content-Type':'application/json','x-hotel-id':HID}};
-if(body) opts.body=JSON.stringify(body);
-try{
-const r=await fetch(API_BASE+path, opts);
-if(!r.ok) throw new Error(r.statusText);
-return r.json();
-}catch(e){
-console.warn('API error (using localStorage fallback):',e.message);
-return null;
-}
-}
-
-// ✅ ISSUE 1 FIX: Save to MongoDB first, then localStorage as backup
-function save(collection, data, event='data_upd'){
-// Always save to localStorage first for instant restore
-saveLS();
-// Then sync to MongoDB if online
-if(isOnline && socket?.connected){
-socket.emit(event,{hotelId:HID, collection, data});
-}
-if(isOnline){
-apiCall('POST',`/${collection}`,{data, hotelId:HID}).catch(()=>{
-console.log('MongoDB sync failed, using localStorage');
-});
-}
-}
-
-// ✅ ISSUE 1 FIX: Load from localStorage for instant restore
-function loadLS(){
-const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
-rooms=get(`h_${HID}_rooms`,[{_id:'r1',number:101,type:'Standard',price:99,status:'Vacant',guestName:''},{_id:'r2',number:102,type:'Deluxe',price:129,status:'Occupied',guestName:'John Smith'},{_id:'r3',number:103,type:'Suite',price:199,status:'Vacant',guestName:''}]);
-guests=get(`h_${HID}_guests`,[{_id:'g1',name:'John Smith',room:102,points:120,status:'active',checkin:'2024-01-15'}]);
-food=get(`h_${HID}_food`,[{_id:'f1',name:'Burger',price:12,category:'Main Course',emoji:'🍔'},{_id:'f2',name:'Pizza',price:15,category:'Main Course',emoji:'🍕'},{_id:'f3',name:'Pasta',price:14,category:'Main Course',emoji:'🍝'}]);
-inventory=get(`h_${HID}_inv`,[{_id:'i1',name:'Towels',category:'Amenities',stock:150,unit:'pcs',min:50},{_id:'i2',name:'Bed Sheets',category:'Linen',stock:80,unit:'sets',min:30}]);
-requests=get(`h_${HID}_req`,[]);
-blacklist=get(`h_${HID}_bl`,[]);
-maintenance=get(`h_${HID}_maint`,[]);
-reviews=get(`h_${HID}_rev`,[]);
-staff=get(`h_${HID}_staff`,[
-{_id:'s1',name:'Rajesh Kumar',role:'Manager',department:'Admin',joinDate:'2024-01-01',status:'on-duty',shift:'morning',rating:4.8,tasks:12,attendance:'present',leaveRequest:null},
-{_id:'s2',name:'Priya Sharma',role:'Housekeeping',department:'Housekeeping',joinDate:'2024-02-15',status:'online',shift:'morning',rating:4.9,tasks:8,attendance:'present',leaveRequest:null}
-]);
-logs=get(`h_${HID}_logs`,[]);
-bookings=get(`h_${HID}_bookings`,[]);
-const cfg=get(`h_${HID}_cfg`,{});
-if(Object.keys(cfg).length) Object.assign(HotelCfg,cfg);
-renderAll();
-}
-
-// ✅ ISSUE 1 FIX: Save all data to localStorage for instant restore on refresh
-function saveLS(){
-localStorage.setItem(`h_${HID}_rooms`,JSON.stringify(rooms));
-localStorage.setItem(`h_${HID}_guests`,JSON.stringify(guests));
-localStorage.setItem(`h_${HID}_food`,JSON.stringify(food));
-localStorage.setItem(`h_${HID}_inv`,JSON.stringify(inventory));
-localStorage.setItem(`h_${HID}_req`,JSON.stringify(requests));
-localStorage.setItem(`h_${HID}_bl`,JSON.stringify(blacklist));
-localStorage.setItem(`h_${HID}_maint`,JSON.stringify(maintenance));
-localStorage.setItem(`h_${HID}_rev`,JSON.stringify(reviews));
-localStorage.setItem(`h_${HID}_staff`,JSON.stringify(staff));
-localStorage.setItem(`h_${HID}_logs`,JSON.stringify(logs));
-localStorage.setItem(`h_${HID}_bookings`,JSON.stringify(bookings));
-localStorage.setItem(`h_${HID}_cfg`,JSON.stringify(HotelCfg));
-if(currentUser) localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
-}
-
-// ✅ ISSUE 1 FIX: Sync data from MongoDB to all connected clients via Socket.IO
+let socket=null;
 function initSocket(){
 try{
 socket = io(SOCKET_URL, {
@@ -786,13 +708,12 @@ socket.on('connect',()=>{
 setSockStatus('connected');
 updateNetBadge('online');
 socket.emit('join_hotel', HID);
-showToast('🔗 Connected to MongoDB','socket');
+showToast('🔗 Connected','socket');
 syncBack();
 });
 socket.on('disconnect',()=>{setSockStatus('disconnected');updateNetBadge('offline')});
 socket.on('connect_error',()=>{setSockStatus('error');updateNetBadge('offline')});
 socket.on('reconnecting',()=>{setSockStatus('connecting');updateNetBadge('reconnecting')});
-// ✅ ISSUE 1 FIX: Real-time sync from MongoDB to all devices
 socket.on('sync_all', (data)=>{
 if(data.rooms) rooms=data.rooms;
 if(data.guests) guests=data.guests;
@@ -806,12 +727,12 @@ if(data.staff) staff=data.staff;
 if(data.logs) logs=data.logs;
 if(data.bookings) bookings=data.bookings;
 renderAll();
-showToast('🔄 Data synced from MongoDB','socket');
+showToast('🔄 Data synced','socket');
 });
 socket.on('cfg_upd',(cfg)=>{
 Object.assign(HotelCfg, cfg);
 applyCfg();
-showToast('⚙️ Config updated from MongoDB','socket');
+showToast('⚙️ Config updated','socket');
 });
 socket.on('req_new',(req)=>{
 if(!requests.find(r=>r._id===req._id)) requests.unshift(req);
@@ -853,24 +774,6 @@ setSockStatus('error');
 updateNetBadge('offline');
 }
 }
-
-// ✅ ISSUE 1 FIX: Background sync from MongoDB (fallback if socket fails)
-async function syncBack(){
-if(!isOnline) return;
-const [r,g,f,inv,req,bl,maint,rev,st,lg,bk] = await Promise.all([
-apiCall('GET','/rooms'),apiCall('GET','/guests'),apiCall('GET','/food'),
-apiCall('GET','/inventory'),apiCall('GET','/requests'),apiCall('GET','/blacklist'),
-apiCall('GET','/maintenance'),apiCall('GET','/reviews'),apiCall('GET','/staff'),apiCall('GET','/logs'),apiCall('GET','/bookings')
-]);
-if(r) rooms=r;if(g) guests=g;if(f) food=f;if(inv) inventory=inv;
-if(req) requests=req;if(bl) blacklist=bl;if(maint) maintenance=maint;
-if(rev) reviews=rev;if(st) staff=st;if(lg) logs=lg;if(bk) bookings=bk;
-const cfg=await apiCall('GET','/config');
-if(cfg) {Object.assign(HotelCfg,cfg); applyCfg();}
-renderAll();
-if(!rooms.length) loadLS();
-}
-
 function setSockStatus(s){
 const dot=document.getElementById('sockDot'), txt=document.getElementById('sockTxt');
 const loginDot=document.getElementById('loginConnDot'), loginTxt=document.getElementById('loginConnTxt');
@@ -882,7 +785,6 @@ if(loginTxt) loginTxt.textContent=m.text;
 const sockEl=document.getElementById('sockStatus');
 if(sockEl) sockEl.style.display=s==='connected'?'none':'flex';
 }
-
 function updateNetBadge(status){
 const badge=document.getElementById('netBadge');
 const loginBadge=document.getElementById('loginNetBadge');
@@ -892,7 +794,6 @@ const text=status==='online'?t('online'):status==='offline'?t('offline'):t('reco
 if(badge){badge.className='';badge.classList.add(className);badge.textContent=text}
 if(loginBadge){loginBadge.className='';loginBadge.classList.add(className);loginBadge.textContent=text}
 }
-
 function toggleOnlineMode(){
 isOnline=!isOnline;
 const btn=document.getElementById('onlineBtn');
@@ -908,7 +809,158 @@ if(socket && socket.connected) socket.disconnect();
 showToast('📴 Offline mode - using localStorage','warning');
 }
 }
-
+async function apiCall(method, path, body=null){
+if(!isOnline) return null;
+const opts={method, headers:{'Content-Type':'application/json','x-hotel-id':HID}};
+if(body) opts.body=JSON.stringify(body);
+try{
+const r=await fetch(API+path, opts);
+if(!r.ok) throw new Error(r.statusText);
+return r.json();
+}catch(e){
+console.warn('API error (using localStorage fallback):',e.message);
+return null;
+}
+}
+async function syncBack(){
+if(!isOnline) return;
+const [r,g,f,inv,req,bl,maint,rev,st,lg,bk] = await Promise.all([
+apiCall('GET','/rooms'),apiCall('GET','/guests'),apiCall('GET','/food'),
+apiCall('GET','/inventory'),apiCall('GET','/requests'),apiCall('GET','/blacklist'),
+apiCall('GET','/maintenance'),apiCall('GET','/reviews'),apiCall('GET','/staff'),apiCall('GET','/logs'),apiCall('GET','/bookings')
+]);
+if(r) rooms=r;if(g) guests=g;if(f) food=f;if(inv) inventory=inv;
+if(req) requests=req;if(bl) blacklist=bl;if(maint) maintenance=maint;
+if(rev) reviews=rev;if(st) staff=st;if(lg) logs=lg;if(bk) bookings=bk;
+const cfg=await apiCall('GET','/config');
+if(cfg) {Object.assign(HotelCfg,cfg); applyCfg();}
+renderAll();
+if(!rooms.length) loadLS();
+}
+function saveLS(){
+localStorage.setItem(`h_${HID}_rooms`,JSON.stringify(rooms));
+localStorage.setItem(`h_${HID}_guests`,JSON.stringify(guests));
+localStorage.setItem(`h_${HID}_food`,JSON.stringify(food));
+localStorage.setItem(`h_${HID}_inv`,JSON.stringify(inventory));
+localStorage.setItem(`h_${HID}_req`,JSON.stringify(requests));
+localStorage.setItem(`h_${HID}_bl`,JSON.stringify(blacklist));
+localStorage.setItem(`h_${HID}_maint`,JSON.stringify(maintenance));
+localStorage.setItem(`h_${HID}_rev`,JSON.stringify(reviews));
+localStorage.setItem(`h_${HID}_staff`,JSON.stringify(staff));
+localStorage.setItem(`h_${HID}_logs`,JSON.stringify(logs));
+localStorage.setItem(`h_${HID}_bookings`,JSON.stringify(bookings));
+localStorage.setItem(`h_${HID}_cfg`,JSON.stringify(HotelCfg));
+if(currentUser) localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
+}
+// ✅ CHANGE 1,2,3: Generate 50 rooms, 25 inventory, 25 food items with SAR prices
+function generateDefaultRooms(){
+const types=['Standard','Deluxe','Suite'];
+const prices={Standard:371,Deluxe:484,Suite:746};
+const rooms=[];
+for(let i=101;i<=150;i++){
+const type=types[(i-101)%3];
+rooms.push({
+_id:`r_${i}`,
+number:i,
+type,
+price:prices[type],
+status:'Vacant',
+guestName:'',
+hotelId:HID,
+createdAt:new Date().toISOString(),
+updatedAt:new Date().toISOString()
+});
+}
+return rooms;
+}
+function generateDefaultInventory(){
+return [
+{_id:'inv_1',name:'Towels',category:'Amenities',stock:150,unit:'pcs',min:50,price:15,hotelId:HID},
+{_id:'inv_2',name:'Bed Sheets',category:'Linen',stock:80,unit:'sets',min:30,price:45,hotelId:HID},
+{_id:'inv_3',name:'Pillows',category:'Linen',stock:60,unit:'pcs',min:20,price:35,hotelId:HID},
+{_id:'inv_4',name:'Shampoo',category:'Amenities',stock:200,unit:'bottles',min:50,price:12,hotelId:HID},
+{_id:'inv_5',name:'Soap',category:'Amenities',stock:300,unit:'bars',min:100,price:8,hotelId:HID},
+{_id:'inv_6',name:'Slippers',category:'Amenities',stock:100,unit:'pairs',min:30,price:18,hotelId:HID},
+{_id:'inv_7',name:'Bathrobe',category:'Linen',stock:40,unit:'pcs',min:10,price:85,hotelId:HID},
+{_id:'inv_8',name:'Qibla Direction Card',category:'Religious',stock:50,unit:'cards',min:10,price:5,hotelId:HID},
+{_id:'inv_9',name:'Prayer Mat',category:'Religious',stock:50,unit:'pcs',min:10,price:55,hotelId:HID},
+{_id:'inv_10',name:'Miswak',category:'Religious',stock:100,unit:'sticks',min:20,price:3,hotelId:HID},
+{_id:'inv_11',name:'ZamZam Water',category:'Beverage',stock:200,unit:'bottles',min:50,price:8,hotelId:HID},
+{_id:'inv_12',name:'Dates Box',category:'Food',stock:150,unit:'boxes',min:30,price:25,hotelId:HID},
+{_id:'inv_13',name:'Arabic Coffee Set',category:'Amenities',stock:30,unit:'sets',min:5,price:120,hotelId:HID},
+{_id:'inv_14',name:'Oud Perfume',category:'Amenities',stock:40,unit:'bottles',min:10,price:95,hotelId:HID},
+{_id:'inv_15',name:'Bakhoor Incense',category:'Amenities',stock:50,unit:'boxes',min:10,price:45,hotelId:HID},
+{_id:'inv_16',name:'Thobe',category:'Clothing',stock:30,unit:'pcs',min:5,price:150,hotelId:HID},
+{_id:'inv_17',name:'Abaya',category:'Clothing',stock:30,unit:'pcs',min:5,price:180,hotelId:HID},
+{_id:'inv_18',name:'Kandura',category:'Clothing',stock:30,unit:'pcs',min:5,price:140,hotelId:HID},
+{_id:'inv_19',name:'Tissue Box',category:'Amenities',stock:200,unit:'boxes',min:50,price:6,hotelId:HID},
+{_id:'inv_20',name:'Dental Kit',category:'Amenities',stock:150,unit:'kits',min:30,price:10,hotelId:HID},
+{_id:'inv_21',name:'Sewing Kit',category:'Amenities',stock:100,unit:'kits',min:20,price:12,hotelId:HID},
+{_id:'inv_22',name:'Shoe Mitt',category:'Amenities',stock:80,unit:'pcs',min:20,price:8,hotelId:HID},
+{_id:'inv_23',name:'Laundry Bag',category:'Linen',stock:60,unit:'pcs',min:15,price:15,hotelId:HID},
+{_id:'inv_24',name:'Iron',category:'Equipment',stock:20,unit:'pcs',min:5,price:65,hotelId:HID},
+{_id:'inv_25',name:'Hair Dryer',category:'Equipment',stock:25,unit:'pcs',min:5,price:55,hotelId:HID}
+];
+}
+function generateDefaultFood(){
+return [
+{_id:'f_1',name:'Burger',price:45,category:'Main Course',emoji:'🍔',hotelId:HID},
+{_id:'f_2',name:'Pizza',price:56,category:'Main Course',emoji:'🍕',hotelId:HID},
+{_id:'f_3',name:'Pasta',price:53,category:'Main Course',emoji:'🍝',hotelId:HID},
+{_id:'f_4',name:'Kabsa',price:83,category:'Saudi Cuisine',emoji:'🍛',hotelId:HID},
+{_id:'f_5',name:'Shawarma',price:38,category:'Saudi Cuisine',emoji:'🌯',hotelId:HID},
+{_id:'f_6',name:'Mandi',price:75,category:'Saudi Cuisine',emoji:'🍲',hotelId:HID},
+{_id:'f_7',name:'Jareesh',price:45,category:'Saudi Cuisine',emoji:'🥣',hotelId:HID},
+{_id:'f_8',name:'Saleeg',price:56,category:'Saudi Cuisine',emoji:'🍚',hotelId:HID},
+{_id:'f_9',name:'Mathrooba',price:53,category:'Saudi Cuisine',emoji:'🥘',hotelId:HID},
+{_id:'f_10',name:'Mutabbaq',price:30,category:'Saudi Cuisine',emoji:'🥙',hotelId:HID},
+{_id:'f_11',name:'Kleija',price:23,category:'Dessert',emoji:'🍪',hotelId:HID},
+{_id:'f_12',name:'Luqaimat',price:26,category:'Dessert',emoji:'🍩',hotelId:HID},
+{_id:'f_13',name:'Maamoul',price:30,category:'Dessert',emoji:'🧁',hotelId:HID},
+{_id:'f_14',name:'Basbousa',price:34,category:'Dessert',emoji:'🍰',hotelId:HID},
+{_id:'f_15',name:'Umm Ali',price:38,category:'Dessert',emoji:'🍮',hotelId:HID},
+{_id:'f_16',name:'Arabic Coffee',price:19,category:'Beverage',emoji:'☕',hotelId:HID},
+{_id:'f_17',name:'Saudi Tea',price:15,category:'Beverage',emoji:'🍵',hotelId:HID},
+{_id:'f_18',name:'Jallab',price:23,category:'Beverage',emoji:'🥤',hotelId:HID},
+{_id:'f_19',name:'Tamarind Drink',price:19,category:'Beverage',emoji:'🧃',hotelId:HID},
+{_id:'f_20',name:'Lab Ban',price:15,category:'Beverage',emoji:'🥛',hotelId:HID},
+{_id:'f_21',name:'Camel Milk',price:30,category:'Beverage',emoji:'🐫',hotelId:HID},
+{_id:'f_22',name:'Dates',price:26,category:'Appetizer',emoji:'🌴',hotelId:HID},
+{_id:'f_23',name:'Hummus',price:23,category:'Appetizer',emoji:'🥙',hotelId:HID},
+{_id:'f_24',name:'Mutabbal',price:26,category:'Appetizer',emoji:'🫔',hotelId:HID},
+{_id:'f_25',name:'Sambousek',price:34,category:'Appetizer',emoji:'🥟',hotelId:HID}
+];
+}
+function loadLS(){
+const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
+// ✅ CHANGE 1: Load 50 rooms or generate defaults
+rooms=get(`h_${HID}_rooms`,generateDefaultRooms());
+guests=get(`h_${HID}_guests`,[{_id:'g1',name:'Ahmed Al-Saud',room:101,points:120,status:'active',checkin:'2024-01-15'}]);
+// ✅ CHANGE 3: Load 25 food items or generate defaults
+food=get(`h_${HID}_food`,generateDefaultFood());
+// ✅ CHANGE 2: Load 25 inventory items or generate defaults
+inventory=get(`h_${HID}_inv`,generateDefaultInventory());
+requests=get(`h_${HID}_req`,[]);
+blacklist=get(`h_${HID}_bl`,[]);
+maintenance=get(`h_${HID}_maint`,[]);
+reviews=get(`h_${HID}_rev`,[]);
+staff=get(`h_${HID}_staff`,[
+{_id:'s1',name:'Mohammed Al-Qahtani',role:'Manager',department:'Admin',joinDate:'2024-01-01',status:'on-duty',shift:'morning',rating:4.8,tasks:12,attendance:'present',leaveRequest:null},
+{_id:'s2',name:'Fatima Al-Zahrani',role:'Housekeeping',department:'Housekeeping',joinDate:'2024-02-15',status:'online',shift:'morning',rating:4.9,tasks:8,attendance:'present',leaveRequest:null}
+]);
+logs=get(`h_${HID}_logs`,[]);
+bookings=get(`h_${HID}_bookings`,[]);
+const cfg=get(`h_${HID}_cfg`,{});
+if(Object.keys(cfg).length) Object.assign(HotelCfg,cfg);
+// Ensure currency symbol is set
+if(!HotelCfg.symbol) HotelCfg.symbol='﷼';
+renderAll();
+}
+function save(collection, data, event='data_upd'){
+saveLS();
+if(isOnline && socket?.connected) socket.emit(event,{hotelId:HID, collection, data});
+if(isOnline) apiCall('POST',`/${collection}`,{data, hotelId:HID});
+}
 function setLang(l){
 lang=l;
 document.documentElement.lang=l;
@@ -934,7 +986,6 @@ if (!document.getElementById('adminDash').classList.contains('hidden')) {
 buildAdminTabs();
 }
 }
-
 function applyI18n(){
 document.querySelectorAll('[data-i18n]').forEach(el=>{
 const v=t(el.getAttribute('data-i18n'));
@@ -942,14 +993,12 @@ if(v) el.textContent=v;
 });
 ['loginHotelName','aHotelName','gHotelName'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=HotelCfg.name});
 }
-
 function toggleDark(){
 dark=!dark;
 document.body.classList.toggle('dark',dark);
 document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
 localStorage.setItem('hotel_dark',dark?'1':'0');
 }
-
 function adjustFont(d){
 const baseSize=16;
 if(d===0){
@@ -963,7 +1012,6 @@ document.body.style.fontSize=newSize+'px';
 localStorage.setItem('hotel_font',fontSize);
 showToast(`Font: ${document.body.style.fontSize}`,'success');
 }
-
 function setBrightness(v){
 brightness=parseFloat(v);
 document.body.style.filter=`brightness(${v})`;
@@ -971,14 +1019,12 @@ localStorage.setItem('hotel_bright',v);
 const slider=document.getElementById('brightSlider');
 if(slider) slider.value=v;
 }
-
 function toggleContrast(){
 highContrast=!highContrast;
 document.body.classList.toggle('high-contrast',highContrast);
 showToast(highContrast?'🔆 High contrast ON':'🔆 High contrast OFF');
 localStorage.setItem('hotel_contrast',highContrast?'1':'0');
 }
-
 function setTheme(th){
 theme=th;
 document.body.className=document.body.className.replace(/theme-\S+/g,'').trim();
@@ -991,9 +1037,7 @@ localStorage.setItem('hotel_theme',th);
 if(dark) document.body.classList.add('dark');
 document.getElementById('themeDD').classList.remove('show');
 }
-
 function toggleThemeDD(){document.getElementById('themeDD').classList.toggle('show')}
-
 function reqNotif(){
 if(!('Notification' in window)){
 showToast(t('notifNotSupported'),'error');
@@ -1020,7 +1064,6 @@ showToast(t('notifPending'),'warning');
 }
 });
 }
-
 function haptic(){
 if(navigator.vibrate){
 navigator.vibrate([50,50,50]);
@@ -1029,13 +1072,12 @@ showToast('📳 '+t('haptic'),'success');
 showToast('📳 Haptic not supported','warning');
 }
 }
-
 function speak(){
 if(!('speechSynthesis' in window)){showToast('🔊 Voice not supported','error');return}
 const text={
-en:'Welcome to Hotel Management System',
-hi:'होटल मैनेजमेंट सिस्टम में आपका स्वागत है',
-ar:'مرحبا بكم في نظام إدارة الفنادق'
+en:'Welcome to Crown Plaza Hotel. How can I help you today?',
+hi:'क्राउन प्लाज़ा होटल में आपका स्वागत है। आज मैं आपकी कैसे मदद कर सकता हूँ?',
+ar:'مرحبا بك في فندق كراون بلازا. كيف يمكنني مساعدتك اليوم؟'
 };
 const utterance=new SpeechSynthesisUtterance(text[lang]||text.en);
 utterance.lang=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
@@ -1049,63 +1091,9 @@ window.speechSynthesis.cancel();
 window.speechSynthesis.speak(utterance);
 showToast('🔊 Speaking...','success');
 }
-
-function speakWelcomeGuest(name){
-if(!('speechSynthesis' in window)) return;
-const text={
-en:`Welcome ${name}`,
-hi:`स्वागत है ${name}`,
-ar:`مرحبا ${name}`
-};
-const utterance=new SpeechSynthesisUtterance(text[lang]||text.en);
-utterance.lang=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
-utterance.rate=0.9;
-if(voicesLoaded){
-const voices=window.speechSynthesis.getVoices();
-const preferred=voices.find(v=>v.lang.startsWith(utterance.lang));
-if(preferred) utterance.voice=preferred;
-}
-window.speechSynthesis.cancel();
-window.speechSynthesis.speak(utterance);
-}
-
-function speakWelcomeAdmin(){
-if(!('speechSynthesis' in window)) return;
-const text={
-en:'Welcome Admin',
-hi:'स्वागत है व्यवस्थापक',
-ar:'مرحبا المسؤول'
-};
-const utterance=new SpeechSynthesisUtterance(text[lang]||text.en);
-utterance.lang=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
-utterance.rate=0.9;
-if(voicesLoaded){
-const voices=window.speechSynthesis.getVoices();
-const preferred=voices.find(v=>v.lang.startsWith(utterance.lang));
-if(preferred) utterance.voice=preferred;
-}
-window.speechSynthesis.cancel();
-window.speechSynthesis.speak(utterance);
-}
-
-function speakRequestSubmitted(){
-if(!('speechSynthesis' in window)) return;
-const text={
-en:'Request submitted',
-hi:'अनुरोध सबमिट किया गया',
-ar:'تم إرسال الطلب'
-};
-const utterance=new SpeechSynthesisUtterance(text[lang]||text.en);
-utterance.lang=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
-utterance.rate=0.9;
-window.speechSynthesis.cancel();
-window.speechSynthesis.speak(utterance);
-}
-
 if('speechSynthesis' in window){
 window.speechSynthesis.onvoiceschanged=()=>{voicesLoaded=true;};
 }
-
 function loadUIPrefs(){
 lang=localStorage.getItem('hotel_lang')||'en';
 dark=localStorage.getItem('hotel_dark')==='1';
@@ -1125,7 +1113,6 @@ document.body.style.fontSize=(baseSize+(fontSize*2))+'px';
 }
 setTheme(theme);
 }
-
 function applyCfg(){
 ['loginHotelName','aHotelName','gHotelName'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=HotelCfg.name});
 const wEl=document.getElementById('gWifiDisplay');if(wEl)wEl.textContent=HotelCfg.wifi;
@@ -1135,18 +1122,18 @@ const cfgWifiEl=document.getElementById('cfgWifi');if(cfgWifiEl)cfgWifiEl.value=
 const cfgAirportEl=document.getElementById('cfgAirport');if(cfgAirportEl)cfgAirportEl.value=HotelCfg.airportPrice;
 const cfgLocalEl=document.getElementById('cfgLocal');if(cfgLocalEl)cfgLocalEl.value=HotelCfg.localPrice;
 renderFood(); renderGuestFood();
+// ✅ CHANGE 5: Update cab options with SAR prices
 if(document.getElementById('cabType')){
 const cabSelect=document.getElementById('cabType');
 cabSelect.innerHTML=`
-<option value="airport" data-i18n="airportTx">✈️ Airport Transfer - ${HotelCfg.currency}${HotelCfg.airportPrice}</option>
-<option value="local" data-i18n="localCab">🚕 Local Cab - ${HotelCfg.currency}${HotelCfg.localPrice}/hr</option>
+<option value="airport" data-i18n="airportTx">✈️ Airport Transfer - ${HotelCfg.symbol}${HotelCfg.airportPrice}</option>
+<option value="local" data-i18n="localCab">🚕 Local Cab - ${HotelCfg.symbol}${HotelCfg.localPrice}/hr</option>
 `;
 }
 if(document.getElementById('bookRoomSelect')){
 renderBookRoomRooms();
 }
 }
-
 function updateLoginClock(){
 const now=new Date();
 const locale=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
@@ -1159,7 +1146,6 @@ const timeStr=now.toLocaleString(locale,options);
 const loginClock=document.getElementById('loginClock');
 if(loginClock) loginClock.textContent=timeStr;
 }
-
 function tickClock(){
 const now=new Date();
 const locale=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
@@ -1174,7 +1160,6 @@ const gLT=document.getElementById('gLocalTime');if(gLT)gLT.textContent=now.toLoc
 updateLoginClock();
 }
 setInterval(tickClock,1000);
-
 function showToast(msg,type=''){
 const c=document.getElementById('toasts');
 const d=document.createElement('div');
@@ -1182,15 +1167,12 @@ d.className=`toast${type?' '+type:''}`;
 d.textContent=msg;c.appendChild(d);
 setTimeout(()=>{d.style.opacity='0';d.style.transform='translateX(80px)';d.style.transition='.3s';setTimeout(()=>d.remove(),300)},3000);
 }
-
 function switchLogin(type){
 document.getElementById('guestLoginForm').classList.toggle('hidden',type!=='guest');
 document.getElementById('adminLoginForm').classList.toggle('hidden',type!=='admin');
 document.getElementById('guestTabBtn').classList.toggle('active',type==='guest');
 document.getElementById('adminTabBtn').classList.toggle('active',type==='admin');
 }
-
-// ✅ ISSUE 3 & 4 FIX: Guest login with voice + notification
 async function guestLogin(e){
 e.preventDefault();
 const name=document.getElementById('guestNameIn').value.trim();
@@ -1204,10 +1186,8 @@ document.getElementById('gInfo').textContent=`👤 ${name} | #${room}`;
 updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
 showGuestTab('reqTab');
 showToast(`Welcome, ${name}! 🌟`,'success');
-speakWelcomeGuest(name);
 if(isOnline && socket?.connected) socket.emit('guest_join',{hotelId:HID,name,room});
 }
-
 async function adminLogin(e){
 e.preventDefault();
 const email=document.getElementById('adminEmailIn').value.trim();
@@ -1217,20 +1197,17 @@ currentUser={type:'admin',email,role:'super_admin'};
 localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
 buildRolePage();
 showPage('rolePage');
-speakWelcomeAdmin();
 showToast('Login successful','success');
 }else{
 showToast('❌ Invalid credentials. Please check and try again.','error');
 }
 }
-
 function buildRolePage(){
 const g=document.getElementById('roleGrid');
 g.innerHTML=ROLES.map(r=>`<button class="role-card" onclick="loginAsRole('${r.key}')">
 <div class="role-icon">${r.icon}</div><div class="role-name">${t(r.label)}</div>
 </button>`).join('');
 }
-
 function loginAsRole(role){
 currentUser.role=role;
 localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
@@ -1242,19 +1219,16 @@ renderAll();updateAdminStats();
 showAdminTab('overview');
 showToast(`Logged in as ${t(rName)}`,'success');
 }
-
 function backToLogin(){showPage('loginPage')}
-
 function logout(){
 localStorage.removeItem(`h_${HID}_session`);
 currentUser=null;cart=[];
 showPage('loginPage');
 showToast('Logged out','success');
 }
-
-// ✅ ISSUE 1 FIX: Stable session restoration with MongoDB sync
+// ✅ CHANGE 6: Proper session restoration with data persistence
 async function checkSession(){
-// First load from localStorage for instant restore
+// First load data from localStorage for instant restore
 loadLS();
 const s=localStorage.getItem(`h_${HID}_session`);
 if(!s) return;
@@ -1283,12 +1257,11 @@ showGuestTab('reqTab');
 console.warn('Session restore error:',e);
 localStorage.removeItem(`h_${HID}_session`);
 }
-// Background sync with MongoDB if online
+// Background sync if online
 if(isOnline && socket?.connected){
 socket.emit('guest_join', {hotelId:HID, name: currentUser?.name, room: currentUser?.room});
 }
 }
-
 function showPage(id){
 ['loginPage','rolePage','adminDash','guestDash'].forEach(p=>{
 const el=document.getElementById(p);if(!el)return;
@@ -1301,7 +1274,6 @@ el.style.display = 'none';
 }
 });
 }
-
 const ADMIN_TABS=[
 {id:'overview',label:'tabOverview'},
 {id:'rooms',label:'tabRooms'},
@@ -1320,14 +1292,12 @@ const ADMIN_TABS=[
 {id:'logs',label:'tabLogs'},
 {id:'bookings',label:'tabBookings'}
 ];
-
 function buildAdminTabs(){
 const bar=document.getElementById('adminTabsBar');
 const content=document.getElementById('adminTabsContent');
 bar.innerHTML=ADMIN_TABS.map(tb=>`<button class="tab-btn" data-tab="${tb.id}" onclick="showAdminTab('${tb.id}')">${t(tb.label)}</button>`).join('');
 content.innerHTML=ADMIN_TABS.map(tb=>`<div class="tab-pane" id="atab-${tb.id}">${buildTabContent(tb.id)}</div>`).join('');
 }
-
 function buildTabContent(id){
 switch(id){
 case 'overview': return `
@@ -1350,10 +1320,10 @@ case 'overview': return `
 </div>
 <div class="currency-card">
 <div style="font-weight:600;margin-bottom:4px" data-i18n="currency">Currency</div>
-<div class="currency-row"><span>USD</span><span>${HotelCfg.currency}1.00</span></div>
-<div class="currency-row"><span>EUR</span><span>${HotelCfg.currency}0.92</span></div>
-<div class="currency-row"><span>INR</span><span>${HotelCfg.currency}83.50</span></div>
-<div class="currency-row"><span>AED</span><span>${HotelCfg.currency}3.67</span></div>
+<div class="currency-row"><span>SAR</span><span>${HotelCfg.symbol}1.00</span></div>
+<div class="currency-row"><span>USD</span><span>${HotelCfg.symbol}3.75</span></div>
+<div class="currency-row"><span>EUR</span><span>${HotelCfg.symbol}4.10</span></div>
+<div class="currency-row"><span>INR</span><span>${HotelCfg.symbol}0.045</span></div>
 </div>
 </div>
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:10px">
@@ -1457,9 +1427,9 @@ case 'settings': return `
 <div style="display:flex;gap:6px"><input class="inp" id="cfgCurrency" value="${HotelCfg.currency}" style="width:80px"><button class="btn-primary" onclick="saveCfg('currency')" data-i18n="save">Save</button></div></div>
 <div class="form-row"><label class="lbl" data-i18n="wifiLbl">WiFi Password</label>
 <div style="display:flex;gap:6px"><input class="inp" id="cfgWifi" value="${HotelCfg.wifi}"><button class="btn-primary" onclick="saveCfg('wifi')" data-i18n="save">Save</button></div></div>
-<div class="form-row"><label class="lbl" data-i18n="airportPrice">Airport Price</label>
+<div class="form-row"><label class="lbl" data-i18n="airportPrice">Airport Transfer Price</label>
 <div style="display:flex;gap:6px"><input class="inp" id="cfgAirport" type="number" value="${HotelCfg.airportPrice}" style="width:100px"><button class="btn-primary" onclick="saveCfg('transport')" data-i18n="save">Save</button></div></div>
-<div class="form-row"><label class="lbl" data-i18n="localPrice">Local Cab $/hr</label>
+<div class="form-row"><label class="lbl" data-i18n="localPrice">Local Cab ${HotelCfg.symbol}/hr</label>
 <div style="display:flex;gap:6px"><input class="inp" id="cfgLocal" type="number" value="${HotelCfg.localPrice}" style="width:100px"><button class="btn-primary" onclick="saveCfg('transport')" data-i18n="save">Save</button></div></div>
 <div style="background:var(--card2);border-radius:8px;padding:10px;font-size:13px;color:var(--fg);opacity:.7;margin-top:10px">
 🏢 Hotel ID: <strong>${HID}</strong> | Settings sync live to all devices via Socket.IO & MongoDB
@@ -1576,7 +1546,6 @@ case 'bookings': return `
 default: return '';
 }
 }
-
 function showAdminTab(id){
 document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
 document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.id===`atab-${id}`));
@@ -1585,7 +1554,6 @@ if(id==='requests') updateAdminServices();
 if(id==='staff') renderStaff();
 if(id==='bookings') renderAdminBookings();
 }
-
 function renderAll(){
 applyI18n();
 renderRooms();renderGuests();renderFood();renderInventory();
@@ -1594,14 +1562,13 @@ renderLoyalty();renderStaff();renderLogs();renderAdminBookings();
 updateAdminStats();updateGuestStats();
 renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
 }
-
 function renderRooms(){
 const tbody=document.getElementById('roomsTbody');if(!tbody)return;
 tbody.innerHTML=rooms.map(r=>`
 <tr>
 <td><strong>${r.number}</strong></td>
 <td>${r.type}</td>
-<td>${HotelCfg.currency}${r.price}</td>
+<td>${HotelCfg.symbol}${r.price}</td>
 <td><span class="badge badge-${r.status?.toLowerCase()}">${r.status}</span></td>
 <td>${r.guestName||'—'}</td>
 <td>
@@ -1610,7 +1577,6 @@ tbody.innerHTML=rooms.map(r=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--p2);padding:12px">No rooms</td></tr>';
 }
-
 function renderGuests(){
 const tbody=document.getElementById('guestsTbody');if(!tbody)return;
 tbody.innerHTML=guests.map(g=>`
@@ -1625,7 +1591,6 @@ tbody.innerHTML=guests.map(g=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:12px">No guests</td></tr>';
 }
-
 function renderFood(){
 const el=document.getElementById('foodAdminList');if(!el)return;
 el.innerHTML=food.map(f=>`
@@ -1633,7 +1598,7 @@ el.innerHTML=food.map(f=>`
 <div>
 <strong>${f.emoji||'🍽️'} ${f.name}</strong>
 <div style="font-size:13px;opacity:.6">${f.category}</div>
-<div style="font-weight:700;color:var(--p1)">${HotelCfg.currency}${f.price}</div>
+<div style="font-weight:700;color:var(--p1)">${HotelCfg.symbol}${f.price}</div>
 </div>
 <div style="display:flex;gap:4px">
 <button class="tbl-action" onclick="editFood('${f._id}')" title="${t('edit')}">✏️</button>
@@ -1641,7 +1606,6 @@ el.innerHTML=food.map(f=>`
 </div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No dishes</p>';
 }
-
 function renderInventory(){
 const tbody=document.getElementById('invTbody');if(!tbody)return;
 tbody.innerHTML=inventory.map(i=>`
@@ -1656,7 +1620,6 @@ tbody.innerHTML=inventory.map(i=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px">No items</td></tr>';
 }
-
 function renderRequests(filter='all'){
 const el=document.getElementById('reqsList');if(!el)return;
 let list=requests;
@@ -1689,7 +1652,6 @@ el.innerHTML=list.map(r=>`
 </div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No requests</p>';
 }
-
 function updateAdminServices(){
 const dept=document.getElementById('adminDept')?.value;
 const sel=document.getElementById('adminService');if(!sel)return;
@@ -1703,8 +1665,6 @@ sel.appendChild(o);
 });
 }
 }
-
-// ✅ ISSUE 4 FIX: Show notification on admin request submit
 function submitAdminReq(e){
 e.preventDefault();
 const dept=document.getElementById('adminDept')?.value;
@@ -1716,10 +1676,9 @@ requests.unshift(req);
 save('requests',req,'req_new');
 renderRequests();updateAdminStats();
 e.target.reset();updateAdminServices();
-showToast('✅ '+t('requestSubmitted'),'success');
+showToast('✅ Admin request submitted!','success');
 addLog('Admin Request',`${dept} - ${svc}`);
 }
-
 function sendAdminReply(reqId){
 const input=document.getElementById(`adminReply-${reqId}`);
 if(!input) return;
@@ -1735,7 +1694,6 @@ showToast(t('replySent'),'success');
 addLog('Admin Reply',`To ${req.guestName}: ${reply}`);
 }
 }
-
 function sendReply(reqId){
 const input=document.getElementById(`reply-${reqId}`);
 if(!input) return;
@@ -1751,7 +1709,6 @@ showToast(t('replySent'),'success');
 addLog('Reply Sent',`To ${req.guestName}: ${reply}`);
 }
 }
-
 function renderBlacklist(){
 const tbody=document.getElementById('blTbody');if(!tbody)return;
 tbody.innerHTML=blacklist.map((b,i)=>`
@@ -1763,7 +1720,6 @@ tbody.innerHTML=blacklist.map((b,i)=>`
 <td><button class="tbl-action" style="color:#10b981" onclick="unblockGuest(${i})">${t('unblock')}</button></td>
 </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:12px;opacity:.5">No blocked guests</td></tr>';
 }
-
 function renderMaintenance(){
 const tbody=document.getElementById('maintTbody');if(!tbody)return;
 tbody.innerHTML=maintenance.map((m,i)=>`
@@ -1779,7 +1735,6 @@ tbody.innerHTML=maintenance.map((m,i)=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:12px;opacity:.5">No tasks</td></tr>';
 }
-
 function renderReviews(){
 const el=document.getElementById('reviewsList');if(!el)return;
 if(reviews.length){
@@ -1801,7 +1756,6 @@ el.innerHTML=reviews.slice(0,10).map(r=>`
 </div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No reviews yet</p>';
 }
-
 function renderLoyalty(){
 const tbody=document.getElementById('loyaltyTbody');if(!tbody)return;
 const tot=guests.reduce((s,g)=>s+(g.points||0),0);
@@ -1819,7 +1773,6 @@ tbody.innerHTML=guests.filter(g=>(g.points||0)>0).map((g,i)=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px;opacity:.5">No members</td></tr>';
 }
-
 function renderStaff(){
 const el=document.getElementById('staffGrid');if(!el)return;
 el.innerHTML=staff.map((s,i)=>`
@@ -1865,7 +1818,6 @@ ${s.leaveRequest?`
 </div>
 `).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No staff</p>';
 }
-
 function renderLogs(){
 const tbody=document.getElementById('logsTbody');if(!tbody)return;
 tbody.innerHTML=logs.slice(0,50).map(l=>`
@@ -1876,14 +1828,12 @@ tbody.innerHTML=logs.slice(0,50).map(l=>`
 <td style="font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.details||'—'}</td>
 </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px;opacity:.5">No logs</td></tr>';
 }
-
 function addLog(action,details){
 const entry={timestamp:new Date().toISOString(),user:currentUser?.name||currentUser?.email||'System',action,details};
 logs.unshift(entry);
 save('logs',logs);
 renderLogs();
 }
-
 function updateAdminStats(){
 const el=id=>document.getElementById(id);
 if(el('stTot'))el('stTot').textContent=rooms.length;
@@ -1892,7 +1842,6 @@ if(el('stOpen'))el('stOpen').textContent=requests.filter(r=>r.status==='open').l
 if(el('stProg'))el('stProg').textContent=requests.filter(r=>r.status==='in_progress').length;
 if(el('stEmerg'))el('stEmerg').textContent=requests.filter(r=>r.priority==='emergency').length;
 }
-
 function initCharts(){
 const dCtx=document.getElementById('deptChart');
 const oCtx=document.getElementById('occChart');
@@ -1912,7 +1861,6 @@ const total=rooms.length||1;
 occChart=new Chart(oCtx,{type:'bar',data:{labels:['W1','W2','W3','W4'],datasets:[{label:'%',data:[68,75,82,Math.round(occupied/total*100)],backgroundColor:'#6c63ff',borderRadius:6}]},options:{...opts,scales:{y:{beginAtZero:true,max:100,ticks:{color:'var(--fg)'},grid:{color:'var(--border)'}},x:{ticks:{color:'var(--fg)'},grid:{display:false}}}}});
 }
 }
-
 const GUEST_TABS=[
 {id:'reqTab',icon:'📝',label:'reqTab'},
 {id:'foodTab',icon:'🍕',label:'foodTab'},
@@ -1922,7 +1870,6 @@ const GUEST_TABS=[
 {id:'infoTab',icon:'ℹ️',label:'infoTab'},
 {id:'bookTab',icon:'📅',label:'bookTab'}
 ];
-
 function buildGuestPanes(){
 const nav=document.getElementById('guestNav');
 const panes=document.getElementById('guestPanes');
@@ -1971,7 +1918,7 @@ panes.innerHTML=`
 <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">
 <div style="display:flex;justify-content:center;align-items:center;margin-bottom:8px">
 <span style="font-weight:600;font-size:13px" data-i18n="yourCart">Cart</span>
-<span id="cartTotal" style="font-weight:700;color:var(--p1)">${HotelCfg.currency}0</span>
+<span id="cartTotal" style="font-weight:700;color:var(--p1)">${HotelCfg.symbol}0</span>
 </div>
 <div id="cartItems" style="min-height:24px;font-size:12px;margin-bottom:8px"></div>
 <button class="btn-primary" style="width:100%" onclick="placeOrder()" data-i18n="placeOrder">🛒 Place Order</button>
@@ -1988,8 +1935,9 @@ panes.innerHTML=`
 <div class="form-row">
 <label class="lbl">Type</label>
 <select class="inp" id="cabType">
-<option value="airport" data-i18n="airportTx">✈️ Airport Transfer - ${HotelCfg.currency}${HotelCfg.airportPrice}</option>
-<option value="local" data-i18n="localCab">🚕 Local Cab - ${HotelCfg.currency}${HotelCfg.localPrice}/hr</option>
+<!-- ✅ CHANGE 5: Show prices in SAR -->
+<option value="airport" data-i18n="airportTx">✈️ Airport Transfer - ${HotelCfg.symbol}${HotelCfg.airportPrice}</option>
+<option value="local" data-i18n="localCab">🚕 Local Cab - ${HotelCfg.symbol}${HotelCfg.localPrice}/hr</option>
 </select>
 </div>
 <div class="form-row"><label class="lbl" data-i18n="scheduled">Date & Time</label><input class="inp" id="cabTime" type="datetime-local"></div>
@@ -2032,7 +1980,7 @@ panes.innerHTML=`
 <div><div style="font-weight:700;font-size:13px" data-i18n="myPoints">⭐ My Points</div><div id="gPtsDisplay" style="font-size:24px;font-weight:700;color:#f59e0b">0</div></div>
 <button class="btn-primary" onclick="openRatingModal()" data-i18n="rateNow">Rate Now ⭐</button>
 </div>
-<p style="font-size:13px;opacity:.6;margin-top:6px" data-i18n="loyaltyBenefits">100 pts = $10 off | 500 pts = Free Night</p>
+<p style="font-size:13px;opacity:.6;margin-top:6px" data-i18n="loyaltyBenefits">100 pts = ${HotelCfg.symbol}10 off | 500 pts = Free Night</p>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
 <button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🚑 First Aid','<p>🩸 Bleeding: Apply pressure</p><p>🔥 Burn: Cool water</p><p>💔 Cardiac: Call 102</p>')"><div style="font-size:22px">🚑</div><div style="font-size:13px;font-weight:600">First Aid</div></button>
@@ -2062,7 +2010,7 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}">${n}</option>`).join('')}
 </div>
 <div class="form-row">
 <label class="lbl" data-i18n="totalPrice">Total Price</label>
-<div id="bookingTotalPrice" style="font-size:18px;font-weight:700;color:var(--p1);padding:8px;background:var(--card2);border-radius:8px">${HotelCfg.currency}0</div>
+<div id="bookingTotalPrice" style="font-size:18px;font-weight:700;color:var(--p1);padding:8px;background:var(--card2);border-radius:8px">${HotelCfg.symbol}0</div>
 </div>
 <button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="bookNow">📅 Book Now</button>
 </form>
@@ -2072,7 +2020,6 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}">${n}</option>`).join('')}
 </div>
 </div>`;
 }
-
 function showGuestTab(id){
 GUEST_TABS.forEach(tb=>{
 const p=document.getElementById(`gp-${tb.id}`);
@@ -2085,7 +2032,6 @@ if(id==='invTab') renderGuestInv();
 if(id==='histTab') renderGuestHistory();
 if(id==='bookTab') {renderGuestBookings();renderBookRoomRooms();}
 }
-
 function updateServices(){
 const dept=document.getElementById('gDept')?.value;
 const sel=document.getElementById('gService');if(!sel)return;
@@ -2099,8 +2045,6 @@ sel.appendChild(o);
 });
 }
 }
-
-// ✅ ISSUE 3 & 4 FIX: Show notification + speak on guest request submit
 function submitGuestReq(e){
 e.preventDefault();
 const dept=document.getElementById('gDept')?.value;
@@ -2113,12 +2057,10 @@ requests.unshift(req);
 save('requests',req,'req_new');
 renderRequests();updateGuestStats();renderGuestHistory();
 e.target.reset();updateServices();
-showToast('✅ '+t('requestSubmitted'),'success');
-speakRequestSubmitted();
+showToast('✅ Request submitted!','success');
 addLog('New Request',`${currentUser.name} - ${dept}`);
 if(prio==='emergency') showToast('🚨 Emergency alert sent to staff!','error');
 }
-
 function renderGuestFood(){
 const el=document.getElementById('gFoodGrid');if(!el)return;
 el.innerHTML=food.map(f=>`
@@ -2126,10 +2068,9 @@ el.innerHTML=food.map(f=>`
 <div class="food-emoji">${f.emoji||'🍽️'}</div>
 <div class="food-name">${f.name}</div>
 <div class="food-cat">${f.category}</div>
-<div class="food-price">${HotelCfg.currency}${f.price}</div>
+<div class="food-price">${HotelCfg.symbol}${f.price}</div>
 </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No items available</p>';
 }
-
 function renderGuestInv(){
 const el=document.getElementById('gInvGrid');if(!el)return;
 el.innerHTML=inventory.map(i=>`
@@ -2140,7 +2081,6 @@ el.innerHTML=inventory.map(i=>`
 <button class="btn-primary" style="margin-top:6px;padding:4px 8px;font-size:10px" onclick="reqInvItem('${i.name}')" data-i18n="requestMore">Request</button>
 </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
 }
-
 function renderGuestHistory(){
 const el=document.getElementById('gHistList');if(!el||!currentUser)return;
 const myReqs=requests.filter(r=>r.guestName===currentUser.name&&r.roomNumber==currentUser.room);
@@ -2156,7 +2096,6 @@ el.innerHTML=myReqs.map(r=>`
 </div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No requests yet</p>';
 }
-
 function updateGuestStats(){
 if(!currentUser)return;
 const myReqs=requests.filter(r=>r.guestName===currentUser.name);
@@ -2170,66 +2109,52 @@ const pEl=el('gPts'),pdEl=el('gPtsDisplay');
 if(pEl)pEl.textContent=`⭐ ${pts} pts`;
 if(pdEl)pdEl.textContent=pts;
 }
-
 function addToCart(id,name,price){
 cart.push({id,name,price});
 const cartEl=document.getElementById('cartItems');
 const totEl=document.getElementById('cartTotal');
 if(cartEl){
 const tot=cart.reduce((s,i)=>s+i.price,0);
-if(totEl)totEl.textContent=`${HotelCfg.currency}${tot}`;
-cartEl.innerHTML=cart.map(i=>`<div style="display:flex;justify-content:center;padding:2px 0"><span>${i.name}</span><span>${HotelCfg.currency}${i.price}</span></div>`).join('');
+if(totEl)totEl.textContent=`${HotelCfg.symbol}${tot}`;
+cartEl.innerHTML=cart.map(i=>`<div style="display:flex;justify-content:center;padding:2px 0"><span>${i.name}</span><span>${HotelCfg.symbol}${i.price}</span></div>`).join('');
 }
 showToast(`${name} added to cart 🛒`,'success');
 }
-
-// ✅ ISSUE 4 FIX: Show notification on order place
 function placeOrder(){
 if(!cart.length){showToast('Cart is empty','error');return}
 const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUser.room,department:'Restaurant',description:`Food: ${cart.map(i=>i.name).join(', ')}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID};
 requests.unshift(req);save('requests',req,'req_new');
 cart=[];
 const cEl=document.getElementById('cartItems'),tEl=document.getElementById('cartTotal');
-if(cEl)cEl.innerHTML='';if(tEl)tEl.textContent=`${HotelCfg.currency}0`;
+if(cEl)cEl.innerHTML='';if(tEl)tEl.textContent=`${HotelCfg.symbol}0`;
 renderRequests();updateGuestStats();renderGuestHistory();
-showToast('🍽️ '+t('orderPlaced'),'success');
-speakRequestSubmitted();
+showToast('🍽️ Order placed! Arriving soon.','success');
 }
-
 function reqInvItem(name){
 const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUser.room,department:'Housekeeping',description:`Item Request: ${name}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID};
 requests.unshift(req);save('requests',req,'req_new');
 renderRequests();updateGuestStats();
 showToast(`📦 ${name} requested — 10 min delivery`,'success');
 }
-
-// ✅ ISSUE 4 FIX: Show notification on cab booking
 function bookCab(e){
 e.preventDefault();
 const type=document.getElementById('cabType')?.value;
 const time=document.getElementById('cabTime')?.value;
 const price=type==='airport'?HotelCfg.airportPrice:HotelCfg.localPrice;
-const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUser.room,department:'Transport',description:`${type==='airport'?'Airport Transfer':'Local Cab'} at ${time||'ASAP'} — ${HotelCfg.currency}${price}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID};
+const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUser.room,department:'Transport',description:`${type==='airport'?'Airport Transfer':'Local Cab'} at ${time||'ASAP'} — ${HotelCfg.symbol}${price}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID};
 requests.unshift(req);save('requests',req,'req_new');
 renderRequests();updateGuestStats();
 e.target.reset();
-showToast('🚗 '+t('bookingConfirmedMsg')+'!','success');
-speakRequestSubmitted();
+showToast(`🚗 ${type==='airport'?'Airport':'Local'} cab booked! ${HotelCfg.symbol}${price}`,'success');
 }
-
 function copyWifi(){navigator.clipboard.writeText(HotelCfg.wifi).then(()=>showToast('📶 WiFi copied!','success'))}
-
 function updReqStatus(id,status){
 const req=requests.find(r=>r._id===id);
 if(req){req.status=status;req.updatedAt=new Date().toISOString();save('requests',req,'req_upd');renderRequests();updateGuestStats();renderGuestHistory();showToast('Status updated','success');}
 }
-
 function delReq(id){if(confirm('Delete?')){requests=requests.filter(r=>r._id!==id);save('requests',requests);renderRequests();updateAdminStats()}}
-
 function exportReqs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(requests),'Requests');XLSX.writeFile(wb,`requests-${Date.now()}.xlsx`);showToast('Exported!','success')}
-
 function delRoom(id){if(confirm('Delete?')){rooms=rooms.filter(r=>r._id!==id);save('rooms',rooms);renderRooms();updateAdminStats()}}
-
 function editRoom(id){
 const r=rooms.find(x=>x._id===id);if(!r)return;
 openModal('roomModal');
@@ -2239,8 +2164,6 @@ document.getElementById('mRoomPrice').value=r.price;
 document.getElementById('mRoomStatus').value=r.status;
 document.getElementById('roomModal').dataset.editId=id;
 }
-
-// ✅ ISSUE 4 FIX: Show notification on room add/edit
 function addRoom(e){
 e.preventDefault();
 const editId=document.getElementById('roomModal')?.dataset?.editId;
@@ -2250,7 +2173,7 @@ const idx=rooms.findIndex(r=>r._id===editId);
 if(idx>-1){
 rooms[idx]={...rooms[idx],...roomData};
 save('rooms',rooms[idx],'room_upd');
-showToast('✅ '+t('changesSaved'),'success');
+showToast('Room updated','success');
 addLog('Edit Room','#'+rooms[idx].number);
 }else{
 showToast('Room not found','error');
@@ -2258,20 +2181,16 @@ showToast('Room not found','error');
 }else{
 const room={_id:'r_'+Date.now(),...roomData};
 rooms.push(room);save('rooms',room,'room_upd');
-showToast('✅ '+t('itemAdded'),'success');
+showToast('Room added','success');
 addLog('Add Room','#'+room.number);
 }
 closeModal('roomModal');
 if(document.getElementById('roomModal').dataset) delete document.getElementById('roomModal').dataset.editId;
 renderRooms();updateAdminStats();
 }
-
 function editGuest(id){const g=guests.find(x=>x._id===id);if(!g)return;alert('Edit: '+g.name+' (connect backend for full edit)');}
-
 function toggleBlock(id){const g=guests.find(x=>x._id===id);if(g){g.status=g.status==='blocked'?'active':'blocked';save('guests',guests);renderGuests();showToast(`${g.name} ${g.status}`,'success')}}
-
 function delGuest(id){if(confirm('Delete?')){guests=guests.filter(g=>g._id!==id);save('guests',guests);renderGuests()}}
-
 function editFood(id){
 const f=food.find(x=>x._id===id);if(!f)return;
 openModal('foodModal');
@@ -2281,8 +2200,6 @@ document.getElementById('mFEmoji').value=f.emoji||'';
 document.getElementById('mFCat').value=f.category;
 document.getElementById('foodModal').dataset.editId=id;
 }
-
-// ✅ ISSUE 4 FIX: Show notification on food add/edit
 function addDish(e){
 e.preventDefault();
 const editId=document.getElementById('foodModal')?.dataset?.editId;
@@ -2292,41 +2209,29 @@ const idx=food.findIndex(f=>f._id===editId);
 if(idx>-1){
 food[idx]={...food[idx],...dishData};
 save('food',food[idx]);
-showToast('✅ '+t('changesSaved'),'success');
+showToast('Dish updated','success');
 }else{
 showToast('Dish not found','error');
 }
 }else{
 const dish={_id:'f_'+Date.now(),...dishData};
 food.push(dish);save('food',dish);
-showToast('✅ '+t('itemAdded'),'success');
+showToast('Dish added','success');
 }
 closeModal('foodModal');
 if(document.getElementById('foodModal').dataset) delete document.getElementById('foodModal').dataset.editId;
 renderFood();renderGuestFood();
 }
-
 function adjStock(id,delta){const i=inventory.find(x=>x._id===id);if(i){i.stock=Math.max(0,i.stock+delta);save('inventory',i,'inventory_upd');renderInventory();renderGuestInv();if(i.stock<=i.min)showToast('⚠️ Low stock: '+i.name,'warning')}}
-
 function delInv(id){if(confirm('Delete?')){inventory=inventory.filter(i=>i._id!==id);save('inventory',inventory);renderInventory();renderGuestInv()}}
-
 function unblockGuest(idx){if(confirm('Unblock?')){const e=blacklist[idx];blacklist.splice(idx,1);save('blacklist',blacklist);renderBlacklist();showToast(e.name+' unblocked','success')}}
-
 function updMaint(i,s){maintenance[i].status=s;save('maintenance',maintenance);renderMaintenance();showToast('Updated','success')}
-
 function delMaint(i){if(confirm('Delete?')){maintenance.splice(i,1);save('maintenance',maintenance);renderMaintenance()}}
-
 function addPts(id,pts){const g=guests.find(x=>x._id===id);if(g){g.points=(g.points||0)+pts;save('guests',guests);renderLoyalty();showToast(`+${pts} pts`,'success')}}
-
 function redeemPts(id,pts){const g=guests.find(x=>x._id===id);if(g&&(g.points||0)>=pts){g.points-=pts;save('guests',guests);renderLoyalty();showToast(`${pts} pts redeemed`,'success')}else showToast('Not enough points','error')}
-
 function rateStaff(i){staff[i].rating=parseFloat(Math.min(5,staff[i].rating+0.1).toFixed(1));staff[i].tasks=(staff[i].tasks||0)+1;save('staff',staff);renderStaff();showToast('Rating updated','success')}
-
 function delStaff(i){if(confirm('Remove staff?')){staff.splice(i,1);save('staff',staff);renderStaff();showToast('Staff removed','success')}}
-
 function openStaffModal(){openModal('staffModal');}
-
-// ✅ ISSUE 4 FIX: Show notification on staff add
 function addStaff(e){
 e.preventDefault();
 const name=document.getElementById('mSName')?.value;
@@ -2339,24 +2244,21 @@ staff.push(s);
 save('staff',s,'staff_new');
 closeModal('staffModal');
 renderStaff();
-showToast('✅ '+t('itemAdded'),'success');
+showToast('Staff added','success');
 addLog('Add Staff',name);
 }
-
 function updateStaffStatus(i,status){
 staff[i].status=status;
 save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast(`${staff[i].name} status updated`,'success');
 }
-
 function markAttendance(i,val){
 staff[i].attendance=val;
 save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast(`Attendance: ${val}`,'success');
 }
-
 function editStaff(i){
 const s=staff[i];
 const newName=prompt('Edit Name:',s.name);
@@ -2369,7 +2271,6 @@ renderStaff();
 showToast('Staff updated','success');
 }
 }
-
 function applyLeave(i){
 const reason=prompt(t('leaveReason')+':');
 const date=prompt('Date (YYYY-MM-DD):',new Date().toISOString().split('T')[0]);
@@ -2380,7 +2281,6 @@ renderStaff();
 showToast('Leave request submitted','success');
 }
 }
-
 function approveLeave(i){
 if(staff[i].leaveRequest){
 staff[i].leaveRequest.status='approved';
@@ -2390,7 +2290,6 @@ renderStaff();
 showToast('Leave approved','success');
 }
 }
-
 function rejectLeave(i){
 if(staff[i].leaveRequest){
 staff[i].leaveRequest=null;
@@ -2399,42 +2298,34 @@ renderStaff();
 showToast('Leave rejected','success');
 }
 }
-
 function replyRev(g){const r=prompt(`Reply to ${g}:`);if(r)showToast('Reply sent','success')}
-
 function genReport(){
 const t=document.getElementById('rptType')?.value;
 const out=document.getElementById('rptOut');if(!out)return;
 let html='';
 if(t==='occupancy'){const occ=rooms.filter(r=>r.status==='Occupied').length,tot=rooms.length||1;html=`<p>🏨 Total: <b>${tot}</b></p><p>🟢 Occupied: <b>${occ}</b> (${Math.round(occ/tot*100)}%)</p><p>🔴 Vacant: <b>${tot-occ}</b></p>`}
-else if(t==='revenue'){const fr=requests.filter(r=>r.department==='Restaurant').length*15;html=`<p>🍽️ Food Revenue: <b>${HotelCfg.currency}${fr}</b></p><p>💰 Rooms: <b>${HotelCfg.currency}${rooms.filter(r=>r.status==='Occupied').length*100}</b></p>`}
+else if(t==='revenue'){const fr=requests.filter(r=>r.department==='Restaurant').length*15;html=`<p>🍽️ Food Revenue: <b>${HotelCfg.symbol}${fr}</b></p><p>💰 Rooms: <b>${HotelCfg.symbol}${rooms.filter(r=>r.status==='Occupied').length*100}</b></p>`}
 else if(t==='requests'){const bd={};requests.forEach(r=>{bd[r.department]=(bd[r.department]||0)+1});html=Object.entries(bd).map(([d,c])=>`<p>📋 ${d}: <b>${c}</b></p>`).join('')||'<p>No data</p>'}
 else{html=`<p>👥 Total: <b>${guests.length}</b></p><p>✅ Active: <b>${guests.filter(g=>g.status==='active').length}</b></p><p>🚫 Blocked: <b>${guests.filter(g=>g.status==='blocked').length}</b></p>`}
 out.innerHTML=html;
 }
-
 function exportReport(){const t=document.getElementById('rptType')?.value||'report';const d=t==='occupancy'?rooms:t==='guests'?guests:requests;const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d),t);XLSX.writeFile(wb,`${t}-${Date.now()}.xlsx`);showToast('Exported!','success')}
-
 function exportLogs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(logs),'Logs');XLSX.writeFile(wb,`logs-${Date.now()}.xlsx`);showToast('Logs exported','success')}
-
 function clearLogs(){if(confirm('Clear all logs?')){logs=[];save('logs',logs);renderLogs();showToast('Logs cleared','success')}}
-
-// ✅ ISSUE 4 FIX: Show notification on settings save
 function saveCfg(field){
 if(field==='name') HotelCfg.name=document.getElementById('cfgName')?.value||HotelCfg.name;
 else if(field==='currency') HotelCfg.currency=document.getElementById('cfgCurrency')?.value||HotelCfg.currency;
 else if(field==='wifi') HotelCfg.wifi=document.getElementById('cfgWifi')?.value||HotelCfg.wifi;
 else if(field==='transport'){
-HotelCfg.airportPrice=parseInt(document.getElementById('cfgAirport')?.value)||30;
-HotelCfg.localPrice=parseInt(document.getElementById('cfgLocal')?.value)||15;
+HotelCfg.airportPrice=parseInt(document.getElementById('cfgAirport')?.value)||115;
+HotelCfg.localPrice=parseInt(document.getElementById('cfgLocal')?.value)||60;
 }
 saveLS();
 if(isOnline){apiCall('PUT','/config',HotelCfg);if(socket?.connected) socket.emit('cfg_upd',{hotelId:HID,...HotelCfg})}
 applyCfg();
-showToast('⚙️ '+t('changesSaved'),'success');
+showToast('⚙️ Settings saved & synced','success');
 addLog('Config Update',field);
 }
-
 function genAllQR(){
 const grid=document.getElementById('qrGrid');if(!grid)return;
 grid.innerHTML='';
@@ -2447,19 +2338,17 @@ try{new QRCode(document.getElementById(`qr_${room.number}`),{text:`${location.or
 });
 showToast('QR codes generated!','success');
 }
-
 function renderBookRoomRooms(){
 const select=document.getElementById('bookRoomSelect');if(!select)return;
 select.innerHTML='<option value="">'+t('selectRoom')+'</option>';
 rooms.filter(r=>r.status==='Vacant').forEach(r=>{
 const opt=document.createElement('option');
 opt.value=r._id;
-opt.textContent=`#${r.number} - ${r.type} - ${HotelCfg.currency}${r.price}/night`;
+opt.textContent=`#${r.number} - ${r.type} - ${HotelCfg.symbol}${r.price}/night`;
 opt.dataset.price=r.price;
 select.appendChild(opt);
 });
 }
-
 function calcBookingPrice(){
 const select=document.getElementById('bookRoomSelect');
 const checkIn=document.getElementById('bookCheckIn')?.value;
@@ -2473,13 +2362,11 @@ const outDate=new Date(checkOut);
 const nights=Math.ceil((outDate-inDate)/(1000*60*60*24));
 if(nights>0){
 const total=pricePerNight*nights;
-totalEl.textContent=`${HotelCfg.currency}${total} (${nights} ${t('nights')})`;
+totalEl.textContent=`${HotelCfg.symbol}${total} (${nights} ${t('nights')})`;
 }else{
-totalEl.textContent=`${HotelCfg.currency}0`;
+totalEl.textContent=`${HotelCfg.symbol}0`;
 }
 }
-
-// ✅ ISSUE 4 FIX: Show notification on booking
 function bookRoom(e){
 e.preventDefault();
 const roomId=document.getElementById('bookRoomSelect')?.value;
@@ -2499,12 +2386,10 @@ bookings.unshift(booking);
 save('bookings',booking,'booking_new');
 renderGuestBookings();renderAdminBookings();
 e.target.reset();
-document.getElementById('bookingTotalPrice').textContent=`${HotelCfg.currency}0`;
-showToast('📅 '+t('bookingConfirmedMsg')+'!','success');
-speakRequestSubmitted();
+document.getElementById('bookingTotalPrice').textContent=`${HotelCfg.symbol}0`;
+showToast(`${t('bookingConfirmed')} ${booking._id}`,'success');
 addLog('New Booking',`${currentUser.name} - Room ${room.number}`);
 }
-
 function renderGuestBookings(){
 const el=document.getElementById('guestBookingList');if(!el||!currentUser)return;
 const myBookings=bookings.filter(b=>b.guestName===currentUser.name);
@@ -2519,13 +2404,11 @@ el.innerHTML=myBookings.map(b=>`
 </div>
 <div class="booking-meta">
 <span>👥 ${b.guests} guest(s)</span>
-<span class="booking-price">${HotelCfg.currency}${b.totalPrice}</span>
+<span class="booking-price">${HotelCfg.symbol}${b.totalPrice}</span>
 </div>
 <div style="font-size:10px;opacity:.5">ID: ${b._id}</div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No bookings yet</p>';
 }
-
-// ✅ ISSUE 2 FIX: Admin bookings dropdown uses translated status
 function renderAdminBookings(){
 const el=document.getElementById('adminBookingGrid');if(!el)return;
 const statusFilter=document.getElementById('bookingFilterStatus')?.value||'all';
@@ -2546,7 +2429,7 @@ el.innerHTML=list.map(b=>`
 </div>
 <div class="booking-meta">
 <span>👥 ${b.guests} guest(s)</span>
-<span class="booking-price">${HotelCfg.currency}${b.totalPrice}</span>
+<span class="booking-price">${HotelCfg.symbol}${b.totalPrice}</span>
 </div>
 <div class="booking-actions">
 <select class="inp" style="font-size:10px;padding:4px 8px" onchange="updateBookingStatus('${b._id}',this.value)">
@@ -2562,7 +2445,6 @@ el.innerHTML=list.map(b=>`
 <div style="font-size:10px;opacity:.5;margin-top:4px">ID: ${b._id}</div>
 </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No bookings</p>';
 }
-
 function updateBookingStatus(id,status){
 const b=bookings.find(x=>x._id===id);
 if(b){
@@ -2574,7 +2456,6 @@ showToast('Booking status updated','success');
 addLog('Update Booking',`${b.guestName} - ${status}`);
 }
 }
-
 function editBooking(id){
 const b=bookings.find(x=>x._id===id);if(!b)return;
 const newGuests=prompt('Edit number of guests:',b.guests);
@@ -2596,7 +2477,6 @@ showToast('Booking updated','success');
 addLog('Edit Booking',`${b.guestName}`);
 }
 }
-
 function deleteBooking(id){
 if(confirm('Delete this booking?')){
 const idx=bookings.findIndex(b=>b._id===id);
@@ -2610,14 +2490,12 @@ addLog('Delete Booking',`${b.guestName}`);
 }
 }
 }
-
 function exportBookings(){
 const wb=XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bookings),'Bookings');
 XLSX.writeFile(wb,`bookings-${Date.now()}.xlsx`);
 showToast('Bookings exported!','success');
 }
-
 function buildModals(){
 const container=document.getElementById('modals');
 container.innerHTML=`
@@ -2785,36 +2663,28 @@ container.innerHTML=`
 </div>
 </div>`;
 }
-
 function openModal(id){document.getElementById(id)?.classList.add('open')}
 function closeModal(id){document.getElementById(id)?.classList.remove('open')}
-
 function addGuest(e){
 e.preventDefault();
 const guest={_id:'g_'+Date.now(),name:document.getElementById('mGName').value,room:document.getElementById('mGRoom').value,points:parseInt(document.getElementById('mGPts').value)||0,status:document.getElementById('mGStatus').value,checkin:document.getElementById('mGCheckin').value,hotelId:HID};
-guests.push(guest);save('guests',guests);closeModal('guestModal');renderGuests();renderLoyalty();
-showToast('✅ '+t('itemAdded'),'success');
+guests.push(guest);save('guests',guests);closeModal('guestModal');renderGuests();renderLoyalty();showToast('Guest added','success');
 }
-
 function addInvItem(e){
 e.preventDefault();
-const item={_id:'i_'+Date.now(),name:document.getElementById('mIName').value,category:document.getElementById('mICat').value,stock:parseInt(document.getElementById('mIQty').value),unit:document.getElementById('mIUnit').value||'pcs',min:parseInt(document.getElementById('mIMin').value)||10,hotelId:HID};
-inventory.push(item);save('inventory',item,'inventory_upd');closeModal('inventoryModal');renderInventory();renderGuestInv();
-showToast('✅ '+t('itemAdded'),'success');
+const item={_id:'i_'+Date.now(),name:document.getElementById('mIName').value,category:document.getElementById('mICat').value,stock:parseInt(document.getElementById('mIQty').value),unit:document.getElementById('mIUnit').value||'pcs',min:parseInt(document.getElementById('mIMin').value)||10,price:25,hotelId:HID};
+inventory.push(item);save('inventory',item,'inventory_upd');closeModal('inventoryModal');renderInventory();renderGuestInv();showToast('Item added','success');
 }
-
 function addToBlacklist(e){
 e.preventDefault();
 const entry={_id:'bl_'+Date.now(),name:document.getElementById('mBName').value,room:document.getElementById('mBRoom').value,reason:document.getElementById('mBReason').value,date:new Date().toISOString(),hotelId:HID};
 blacklist.push(entry);save('blacklist',blacklist);closeModal('blacklistModal');renderBlacklist();showToast('Guest blocked','error');addLog('Blacklist',entry.name);
 }
-
 function addMaint(e){
 e.preventDefault();
 const task={_id:'m_'+Date.now(),task:document.getElementById('mMTask').value,room:document.getElementById('mMRoom').value,scheduled:document.getElementById('mMDate').value,assigned:document.getElementById('mMAssigned').value,priority:document.getElementById('mMPrio').value,status:'pending',hotelId:HID};
 maintenance.push(task);save('maintenance',maintenance);closeModal('maintModal');renderMaintenance();showToast('Task scheduled','success');
 }
-
 function openRatingModal(){
 openModal('ratingModal');
 ['Overall','Service','Clean'].forEach(type=>{
@@ -2822,78 +2692,70 @@ const el=document.getElementById('star'+type);if(!el)return;
 el.innerHTML=[1,2,3,4,5].map(i=>`<span onclick="setStar('${type.toLowerCase()}',${i})" style="font-size:24px;cursor:pointer;transition:transform .1s">☆</span>`).join('');
 });
 }
-
 function setStar(type,val){
 const map={overall:'Overall',service:'Service',clean:'Clean'};
 const el=document.getElementById('star'+map[type]);if(!el)return;
 [...el.children].forEach((s,i)=>{s.textContent=i<val?'★':'☆';s.style.color=i<val?'#f59e0b':'var(--fg)'});
 ratingData[type]=val;
 }
-
 function submitRating(){
 if(!ratingData.overall){showToast('Please select a rating','error');return}
 const rev={_id:'rev_'+Date.now(),guest:currentUser.name,room:currentUser.room,overall:ratingData.overall,service:ratingData.service||0,cleanliness:ratingData.clean||0,recommend:ratingData.overall>=3,comment:document.getElementById('ratingComment')?.value||'',date:new Date().toISOString(),hotelId:HID};
 reviews.unshift(rev);save('reviews',rev,'review_new');closeModal('ratingModal');renderReviews();showToast('⭐ Thank you for rating!','success');ratingData={overall:0,service:0,clean:0};
 }
-
 function infoModal(title,body){
 document.getElementById('infoModalTitle').textContent=title;
 document.getElementById('infoModalBody').innerHTML=body;
 openModal('infoModal');
 }
-
 function showConcierge(){
 infoModal('🤖 Concierge',`
 <details style="background:var(--card2);border-radius:8px;padding:8px;margin-bottom:6px"><summary style="cursor:pointer;font-weight:600">WiFi password?</summary><p style="margin-top:4px;font-family:'DM Mono',monospace">${HotelCfg.wifi}</p></details>
 <details style="background:var(--card2);border-radius:8px;padding:8px;margin-bottom:6px"><summary style="cursor:pointer;font-weight:600">Checkout time?</summary><p style="margin-top:4px">11:00 AM</p></details>
 <details style="background:var(--card2);border-radius:8px;padding:8px"><summary style="cursor:pointer;font-weight:600">How to raise a request?</summary><p style="margin-top:4px">Go to the Request tab and select your department.</p></details>`);
 }
-
 document.addEventListener('click',e=>{
 if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
 if(!e.target.closest('#themeDD')&&!e.target.closest('[onclick*="toggleThemeDD"]')) document.getElementById('themeDD')?.classList.remove('show');
 });
-
 document.addEventListener('keydown',e=>{
 if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
 });
-
 window.addEventListener('online',()=>{
 if(!isOnline) return;
 updateNetBadge('online');
 if(socket) socket.connect();
 showToast('🌐 Back online','success');
 });
-
 window.addEventListener('offline',()=>{
 updateNetBadge('offline');
 showToast('📴 Offline mode','warning');
 });
-
 function quickCheckin(){showToast('🚀 Quick Check-in opened','success');openModal('guestModal')}
 function quickCheckout(){showToast('🚪 Quick Checkout opened','success')}
 function newAdminRequest(){showAdminTab('requests');showToast('📝 New Request form opened','success')}
 function viewAdminReports(){showAdminTab('reports');showToast('📈 Reports opened','success')}
-
-// ✅ ISSUE 1 FIX: Initialize with localStorage first, then sync with MongoDB
+// ✅ CHANGE 6: Initialize with proper data loading order for stability
 function init(){
 loadUIPrefs();
 buildModals();
 buildGuestPanes();
 buildRolePage();
 setLang(lang);
-loadLS(); // Load from localStorage first for instant restore
+// ✅ CHANGE 6: Load data FIRST before checking session
+loadLS();
 tickClock();
-initSocket(); // Connect to Socket.IO for real-time MongoDB sync
-checkSession(); // Restore session from localStorage
+initSocket();
+// ✅ CHANGE 6: Check session AFTER data is loaded
+checkSession();
 renderAll();
 const onlineBtn=document.getElementById('onlineBtn');
 if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
-setInterval(saveLS, 15000); // Auto-save to localStorage every 15 seconds
-// ✅ ISSUE 1 FIX: Save state before page unload/refresh
+// Auto-save to localStorage every 15 seconds
+setInterval(saveLS, 15000);
+// ✅ CHANGE 6: Save state before page unload to prevent data loss
 window.addEventListener('beforeunload', saveLS);
 }
-
 init();
 </script>
 </body>
