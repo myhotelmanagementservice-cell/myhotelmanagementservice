@@ -1,7 +1,0 @@
-{
-  "name": "@workspace/crown-plaza",
-  "version": "1.0.0",
-  "scripts": {
-    "dev": "node ../../inaya-hotel/server/server.js"
-  }
-}

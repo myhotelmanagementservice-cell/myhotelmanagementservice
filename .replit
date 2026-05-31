@@ -1,9 +1,12 @@
-run = "node server/server.js"
 language = "nodejs"
+run = "cd inaya-hotel && npm start"
 modules = ["nodejs-20"]
 
+[nix]
+channel = "stable-23_11"
+
 [deployment]
-run = ["node", "server/server.js"]
+run = ["sh", "-c", "cd inaya-hotel && npm start"]
 
 [[ports]]
 localPort = 3000
@@ -11,14 +14,7 @@ externalPort = 3000
 
 [[ports]]
 localPort = 5000
-externalPort = 5000
-
-[[ports]]
-localPort = 8080
 externalPort = 80
 
 [agent]
 expertMode = true
-
-[nix]
-packages = ["nano"]
