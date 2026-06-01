@@ -1,42 +1,42 @@
 {
-  "name": "inaya-hotel",
+  "name": "crown-plaza-hotel-os",
   "version": "1.0.0",
-  "description": "Multi-Tenant Hotel Management SaaS with Real-Time Sync",
+  "description": "Multi-Tenant Hotel Management System with Real-Time Sync, MongoDB, and Socket.IO",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
     "dev": "nodemon server/server.js",
-    "build": "echo 'Build completed'",
-    "test": "echo 'No tests specified'",
-    "postinstall": "echo '✅ Dependencies installed'"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=8.0.0"
-  },
+  "keywords": [
+    "hotel-management",
+    "multi-tenant",
+    "saas",
+    "socket.io",
+    "mongodb",
+    "express",
+    "real-time",
+    "hotel-os"
+  ],
+  "license": "MIT",
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "express-session": "^1.19.0",
+    "mongodb": "^6.3.0",
+    "socket.io": "^4.7.4",
+    "@socket.io/redis-adapter": "^8.2.1",
+    "redis": "^4.6.12",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
-    "mongodb": "^5.9.0",
-    "socket.io": "^4.7.5"
+    "express-session": "^1.17.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
   },
-  "keywords": [
-    "hotel",
-    "management",
-    "saas",
-    "multi-tenant",
-    "mongodb",
-    "socket.io",
-    "real-time",
-    "jwt"
-  ],
-  "author": "Your Name",
-  "license": "MIT"
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

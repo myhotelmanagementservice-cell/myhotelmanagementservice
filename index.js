@@ -1,212 +1,237 @@
-// index.js - Main Entry Point for Replit (Enhanced)
+// server/index.js - Main Backend Server (Express + Socket.IO + Redis)
 require('dotenv').config();
-const { spawn } = require('child_process');
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const { createAdapter } = require('@socket.io/redis-adapter');
+const { createClient } = require('redis');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
-const fs = require('fs');
 
-// ==================== CONFIGURATION ====================
-const CONFIG = {
-  serverPath: path.join(__dirname, 'server/server.js'),
-  maxRestarts: 3,
-  restartDelay: 2000,
-  healthCheckInterval: 30000,
-  envFile: path.join(__dirname, '.env')
-};
+// Import modules
+const connectDB = require('./db/connect');
+const authMiddleware = require('./middleware/auth');
+const multitenantMiddleware = require('./middleware/multitenant');
+const socketHandler = require('./socket/handler');
+const authRoutes = require('./routes/auth');
+const hotelRoutes = require('./routes/hotel');
+const requestRoutes = require('./routes/request');
+const bookingRoutes = require('./routes/booking');
+const staffRoutes = require('./routes/staff');
+const configRoutes = require('./routes/config');
 
-let serverProcess = null;
-let restartCount = 0;
-let isShuttingDown = false;
+// ==================== CONFIG ====================
+const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/hotelSaaS';
+const FRONTEND_URL = process.env.FRONTEND_URL || '*';
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-prod';
 
-// ==================== LOGGING ====================
-const log = {
-  info: (msg) => console.log(`[INFO] ${new Date().toISOString()} - ${msg}`),
-  error: (msg, err) => console.error(`[ERROR] ${new Date().toISOString()} - ${msg}`, err || ''),
-  warn: (msg) => console.warn(`[WARN] ${new Date().toISOString()} - ${msg}`),
-  success: (msg) => console.log(`[✓] ${new Date().toISOString()} - ${msg}`)
-};
+// ==================== APP SETUP ====================
+const app = express();
+const server = http.createServer(app);
 
-// ==================== ENVIRONMENT VALIDATION ====================
-function validateEnv() {
-  const required = ['MONGODB_URI', 'JWT_SECRET', 'SESSION_SECRET'];
-  const missing = required.filter(key => !process.env[key]);
+// Security middleware
+app.use(helmet());
+app.use(cors({
+  origin: FRONTEND_URL === '*' ? true : FRONTEND_URL.split(','),
+  credentials: true
+}));
 
-  if (missing.length > 0) {
-    log.warn(`Missing environment variables: ${missing.join(', ')}`);
-    log.info('Using default values for development');
-  }
+// Rate limiting (prevent abuse)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests, please try again later'
+});
+app.use('/api/', limiter);
 
-  // Set defaults for development
-  if (!process.env.PORT) process.env.PORT = '3000';
-  if (!process.env.NODE_ENV) process.env.NODE_ENV = 'development';
-  if (!process.env.FRONTEND_URL) process.env.FRONTEND_URL = '*';
+// Body parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  log.success('Environment validated');
+// Static files (for Replit hosting)
+if (NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client')));
 }
 
-// ==================== HEALTH CHECK ====================
-async function checkHealth() {
-  if (isShuttingDown) return;
+// Health check endpoint (for process manager)
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    socket: io?.engine?.clientsCount || 0,
+    uptime: process.uptime()
+  });
+});
 
+// API Routes (with multitenant middleware)
+app.use('/api/auth', authRoutes);
+app.use('/api/hotels', authMiddleware, multitenantMiddleware, hotelRoutes);
+app.use('/api/requests', authMiddleware, multitenantMiddleware, requestRoutes);
+app.use('/api/bookings', authMiddleware, multitenantMiddleware, bookingRoutes);
+app.use('/api/staff', authMiddleware, multitenantMiddleware, staffRoutes);
+app.use('/api/config', authMiddleware, multitenantMiddleware, configRoutes);
+
+// Catch-all for SPA routing (if serving frontend)
+if (NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/index.html'));
+  });
+}
+
+// ==================== SOCKET.IO + REDIS SETUP ====================
+let io;
+let pubClient, subClient;
+
+async function initSocketIO() {
   try {
-    const port = process.env.PORT || 3000;
-    const response = await fetch(`http://localhost:${port}/api/health`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+    // Redis clients for adapter (required for scaling)
+    pubClient = createClient({ url: REDIS_URL });
+    subClient = pubClient.duplicate();
+
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+    console.log('✅ Redis connected for Socket.IO adapter');
+
+    // Socket.IO with Redis adapter for horizontal scaling
+    io = new Server(server, {
+      cors: {
+        origin: FRONTEND_URL === '*' ? true : FRONTEND_URL.split(','),
+        methods: ['GET', 'POST'],
+        credentials: true
+      },
+      adapter: createAdapter(pubClient, subClient),
+      transports: ['websocket', 'polling'],
+      pingTimeout: 60000,
+      pingInterval: 25000
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      if (data.status === 'OK') {
-        log.info(`Health check passed - MongoDB: ${data.mongodb}, Clients: ${data.socket}`);
-        restartCount = 0; // Reset restart counter on successful health check
-        return true;
+    // Socket.IO middleware for auth
+    io.use((socket, next) => {
+      const hotelId = socket.handshake.auth?.hotelId;
+      const token = socket.handshake.auth?.token;
+
+      if (!hotelId) {
+        return next(new Error('Missing hotelId'));
       }
-    }
-    log.warn('Health check failed - server not responding correctly');
-    return false;
+
+      // Optional: Verify JWT token here if needed
+      socket.hotelId = hotelId;
+      socket.clientId = socket.handshake.auth?.clientId || socket.id;
+      next();
+    });
+
+    // Register socket event handlers
+    socketHandler(io);
+
+    console.log('✅ Socket.IO initialized with Redis adapter');
   } catch (error) {
-    log.warn(`Health check error: ${error.message}`);
-    return false;
+    console.error('❌ Socket.IO initialization failed:', error.message);
+    console.warn('⚠️ Falling back to in-memory adapter (no scaling)');
+
+    // Fallback: in-memory adapter (works but doesn't scale)
+    io = new Server(server, {
+      cors: {
+        origin: FRONTEND_URL === '*' ? true : FRONTEND_URL.split(','),
+        credentials: true
+      },
+      transports: ['websocket', 'polling']
+    });
+    socketHandler(io);
+  }
+}
+
+// ==================== DATABASE CONNECTION ====================
+async function initDatabase() {
+  try {
+    await connectDB(MONGODB_URI);
+    console.log('✅ MongoDB connected');
+  } catch (error) {
+    console.error('❌ MongoDB connection failed:', error.message);
+    process.exit(1);
   }
 }
 
 // ==================== START SERVER ====================
-function startServer() {
-  if (isShuttingDown) return;
+async function startServer() {
+  try {
+    // Init database first
+    await initDatabase();
 
-  log.info(`Starting server: ${CONFIG.serverPath}`);
-  log.info(`Environment: ${process.env.NODE_ENV}, Port: ${process.env.PORT}`);
+    // Init Socket.IO with Redis
+    await initSocketIO();
 
-  serverProcess = spawn('node', [CONFIG.serverPath], {
-    stdio: 'inherit',
-    env: { ...process.env, NODE_ENV: process.env.NODE_ENV || 'development' },
-    cwd: __dirname
-  });
+    // Start HTTP server
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🌍 Environment: ${NODE_ENV}`);
+      console.log(`🔗 Frontend URL: ${FRONTEND_URL}`);
+      console.log(`📡 Socket.IO: ${io?.adapter?.constructor?.name || 'in-memory'}`);
+    });
 
-  serverProcess.on('spawn', () => {
-    log.success(`Server spawned with PID: ${serverProcess.pid}`);
-    restartCount = 0;
-  });
+    // Graceful shutdown
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
 
-  serverProcess.on('error', (err) => {
-    log.error('Failed to spawn server process', err);
-    handleRestart();
-  });
-
-  serverProcess.on('close', (code, signal) => {
-    log.info(`Server process closed - Code: ${code}, Signal: ${signal}`);
-
-    if (isShuttingDown) {
-      log.info('Graceful shutdown complete');
-      return;
-    }
-
-    if (code !== 0 && code !== null) {
-      log.warn(`Server exited with code ${code}`);
-    }
-
-    handleRestart();
-  });
-
-  // Forward signals to child process
-  process.on('SIGUSR1', () => serverProcess.kill('SIGUSR1'));
-  process.on('SIGUSR2', () => serverProcess.kill('SIGUSR2'));
-}
-
-// ==================== RESTART LOGIC ====================
-function handleRestart() {
-  if (isShuttingDown) return;
-
-  restartCount++;
-
-  if (restartCount <= CONFIG.maxRestarts) {
-    log.warn(`Attempting restart ${restartCount}/${CONFIG.maxRestarts} in ${CONFIG.restartDelay}ms...`);
-    setTimeout(() => {
-      if (!isShuttingDown) {
-        startServer();
-      }
-    }, CONFIG.restartDelay);
-  } else {
-    log.error(`Max restarts (${CONFIG.maxRestarts}) reached. Giving up.`);
+  } catch (error) {
+    console.error('❌ Server startup failed:', error);
     process.exit(1);
   }
 }
 
 // ==================== GRACEFUL SHUTDOWN ====================
 async function gracefulShutdown(signal) {
-  if (isShuttingDown) return;
+  console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
 
-  isShuttingDown = true;
-  log.info(`Received ${signal}. Starting graceful shutdown...`);
+  // Stop accepting new connections
+  server.close(async () => {
+    console.log('🔌 HTTP server closed');
 
-  // Stop health checks
-  if (global.healthCheckInterval) {
-    clearInterval(global.healthCheckInterval);
-  }
+    // Disconnect Redis
+    if (pubClient) await pubClient.quit();
+    if (subClient) await subClient.quit();
+    console.log('🔌 Redis clients disconnected');
 
-  // Kill server process gracefully
-  if (serverProcess && !serverProcess.killed) {
-    log.info('Sending SIGTERM to server process...');
-    serverProcess.kill('SIGTERM');
+    // Disconnect MongoDB
+    await mongoose.disconnect();
+    console.log('🔌 MongoDB disconnected');
 
-    // Force kill after timeout
-    setTimeout(() => {
-      if (serverProcess && !serverProcess.killed) {
-        log.warn('Force killing server process...');
-        serverProcess.kill('SIGKILL');
-      }
-    }, 10000);
-  }
+    // Disconnect all sockets
+    if (io) {
+      io.close();
+      console.log('🔌 Socket.IO closed');
+    }
 
-  // Close any open resources
-  log.info('Cleanup complete. Exiting.');
-  process.exit(0);
-}
+    console.log('✅ Graceful shutdown complete');
+    process.exit(0);
+  });
 
-// ==================== INITIALIZATION ====================
-function init() {
-  log.info('🚀 Inaya Hotel Management System - Replit Entry Point');
-  log.info(`📁 Working directory: ${__dirname}`);
-  log.info(`📦 Node version: ${process.version}`);
-
-  // Validate environment
-  validateEnv();
-
-  // Check if server.js exists
-  if (!fs.existsSync(CONFIG.serverPath)) {
-    log.error(`Server file not found: ${CONFIG.serverPath}`);
+  // Force exit after 10 seconds
+  setTimeout(() => {
+    console.error('⚠️ Forced exit after timeout');
     process.exit(1);
-  }
-
-  // Start the server
-  startServer();
-
-  // Start health check interval (only in production)
-  if (process.env.NODE_ENV === 'production') {
-    global.healthCheckInterval = setInterval(checkHealth, CONFIG.healthCheckInterval);
-    log.info(`Health checks enabled every ${CONFIG.healthCheckInterval/1000}s`);
-  }
-
-  // Setup signal handlers
-  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.on('SIGHUP', () => {
-    log.info('Received SIGHUP - restarting server...');
-    if (serverProcess) serverProcess.kill('SIGHUP');
-  });
-
-  // Handle uncaught exceptions
-  process.on('uncaughtException', (err) => {
-    log.error('Uncaught Exception', err);
-    gracefulShutdown('uncaughtException');
-  });
-
-  process.on('unhandledRejection', (reason, promise) => {
-    log.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  });
-
-  log.success('✅ Initialization complete. Server starting...');
+  }, 10000);
 }
+
+// ==================== ERROR HANDLING ====================
+process.on('uncaughtException', (error) => {
+  console.error('💥 Uncaught Exception:', error);
+  gracefulShutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// ==================== EXPORT FOR TESTING ====================
+module.exports = { app, server, io };
 
 // ==================== START ====================
-init();
+if (require.main === module) {
+  startServer();
+}
