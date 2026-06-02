@@ -9,6 +9,10 @@ let reviews = [];
 let staff = [];
 let logs = [];
 
+// ✅ FIX: Dynamic API/SOCKET URLs for multi-device sync (replace hardcoded localhost)
+const API_BASE = window.API_BASE || window.location.origin + '/api';
+const SOCKET_URL = window.SOCKET_URL || window.location.origin;
+
 /**
  * Crown Plaza Hotel - Ultimate Management System
  * Client-side JavaScript with MongoDB Backend Integration
@@ -26,8 +30,8 @@ let logs = [];
 // 1. CONFIGURATION & API ENDPOINTS
 // ==========================================
 const CONFIG = {
-  // ✅ MongoDB Backend API Base URL (Replace with your deployed backend)
-  API_BASE: 'https://your-backend-api.com/api',
+  // ✅ MongoDB Backend API Base URL - Uses dynamic fallback via API_BASE constant above
+  API_BASE: API_BASE,
 
   // ✅ Fallback: Use localStorage if API unavailable (demo/offline mode)
   USE_LOCAL_FALLBACK: true,
@@ -1094,8 +1098,6 @@ function renderAdminRequests(filter = 'all') {
               ${req.priority.toUpperCase()}
             </span>
           </div>
-          <p class="text-sm mt-1">${req.description}</p>
-          <small class="text-gray-400">${new Date(req.createdAt).toLocaleString()}</small>
         </div>
         <div class="flex flex-col gap-1">
           <select onchange="updateRequestStatus('${req._id || req.id}', this.value)" 

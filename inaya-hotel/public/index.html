@@ -409,9 +409,9 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 </div>
 <div id="modals"></div>
 <script>
-// ✅ FIX: Dynamic API/SOCKET URLs based on current origin
+// ✅ FIX: Dynamic API/SOCKET URLs based on current origin (Multi-device sync)
 const API_BASE = window.API_BASE || (window.location.origin + '/api');
-const SOCKET_URL = window.location.origin; // ✅ Dynamic socket URL
+const SOCKET_URL = window.location.origin; // ✅ Dynamic socket URL for multi-device
 const urlParams = new URLSearchParams(location.search);
 let HID = urlParams.get('hotel') || localStorage.getItem('hotel_hid') || 'default';
 if (urlParams.get('hotel')) localStorage.setItem('hotel_hid', HID);
@@ -630,7 +630,7 @@ bookRoom:'📅 حجز غرفة',selectRoom:'اختر الغرفة',checkIn:'تس
 function t(k){return T[lang]?.[k] || T.en[k] || k}
 // Global state
 let lang='en', dark=false, fontSize=0, brightness=1, theme='default', highContrast=false;
-// ✅ Currency System Setup - Now supports custom currencies
+// ✅ Currency System Setup - Now supports custom currencies with multi-device sync
 const CURRENCIES = {
 INR: { symbol: '₹', rate: 83.50, flag: '🇮🇳', custom: false },
 SAR: { symbol: '﷼', rate: 3.75, flag: '🇸🇦', custom: false },
@@ -994,9 +994,24 @@ showToast('🔄 Data synced from Server','socket');
 socket.on('cfg_upd',(cfg)=>{
 if(cfg.syncToken && processedEvents.has(cfg.syncToken)) return;
 if(cfg.syncToken) processedEvents.add(cfg.syncToken);
+// ✅ FIX: Properly merge currency rates from server
+if(cfg.currencies) {
+Object.assign(CURRENCIES, cfg.currencies);
+}
 Object.assign(HotelCfg, cfg);
 applyCfg();
 showToast('⚙️ Config updated from Server','socket');
+});
+socket.on('currency_upd',(payload)=>{
+if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
+if(payload.syncToken) processedEvents.add(payload.syncToken);
+if(payload.clientId === clientId) return;
+// ✅ FIX: Update currency rates from other devices
+if(payload.currencies) {
+Object.assign(CURRENCIES, payload.currencies);
+applyCfg();
+showToast('💱 Currency rates updated from Server','socket');
+}
 });
 socket.on('req_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -2522,7 +2537,7 @@ out.innerHTML=html;
 function exportReport(){const t=document.getElementById('rptType')?.value||'report';const d=t==='occupancy'?rooms:t==='guests'?guests:requests;const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d),t);XLSX.writeFile(wb,`${t}-${Date.now()}.xlsx`);showToast('Exported!','success')}
 function exportLogs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(logs),'Logs');XLSX.writeFile(wb,`logs-${Date.now()}.xlsx`);showToast('Logs exported','success')}
 function clearLogs(){if(confirm('Clear all logs?')){logs=[];save('logs',logs);renderLogs();showToast('Logs cleared','success')}}
-// ✅ FIX: Currency Edit Modal Functions
+// ✅ FIX: Currency Edit Modal Functions - NOW WITH MULTI-DEVICE SYNC
 function openAddCurrencyModal(){
 openModal('infoModal');
 document.getElementById('infoModalTitle').textContent = '➕ Add New Currency';
@@ -2549,6 +2564,10 @@ if(!code||!symbol||isNaN(rate)){showToast('Fill all fields','error');return}
 if(CURRENCIES[code]){showToast('Currency already exists','error');return}
 CURRENCIES[code]={symbol,rate,flag,custom:true};
 saveLS();
+// ✅ MULTI-DEVICE FIX: Broadcast currency change to all devices
+if(isOnline && socket?.connected){
+socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
+}
 closeModal('infoModal');
 applyCfg();
 showToast(`✅ ${code} added!`,'success');
@@ -2560,6 +2579,10 @@ if(confirm(`Delete ${code}?`)){
 delete CURRENCIES[code];
 if(HotelCfg.currency===code) HotelCfg.currency='USD';
 saveLS();
+// ✅ MULTI-DEVICE FIX: Broadcast currency change to all devices
+if(isOnline && socket?.connected){
+socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
+}
 applyCfg();
 showToast(`${code} deleted`,'success');
 addLog('Delete Currency',code);
@@ -2591,6 +2614,10 @@ CURRENCIES[code].rate = parseFloat(input.value);
 }
 });
 saveLS();
+// ✅ MULTI-DEVICE FIX: Broadcast currency rate changes to all devices
+if(isOnline && socket?.connected){
+socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
+}
 closeModal('infoModal');
 applyCfg();
 showToast('💱 Exchange rates updated','success');
