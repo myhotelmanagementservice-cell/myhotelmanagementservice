@@ -822,7 +822,7 @@ const symbol = CURRENCIES[HotelCfg.currency]?.symbol || '﷼';
 const formattedNum = Number(converted.toFixed(2));
 return `${symbol}${formattedNum}`;
 }
-// ✅ MULTI-DEVICE FIX: API Calls to MongoDB with retry + hotelId header
+// ✅ MULTI-DEVICE FIX: API Calls to MongoDB with retry + hotelId header + HTML error detection
 async function apiCall(method, path, body=null, retries=3){
 if(!isOnline) return null;
 const opts={method, headers:{'Content-Type':'application/json','x-hotel-id':HID,'x-client-id':clientId}};
@@ -830,11 +830,20 @@ if(body) opts.body=JSON.stringify(body);
 for(let i=0; i<retries; i++){
 try{
 const r=await fetch(API_BASE+path, opts);
+// ✅ FIX: Check if response is HTML (error page) instead of JSON
+const contentType = r.headers.get('content-type');
+if(contentType && !contentType.includes('application/json')){
+const text = await r.text();
+if(text.startsWith('<!DOCTYPE') || text.startsWith('<html')){
+console.warn(`⚠️ API returned HTML instead of JSON for ${path}. Falling back to localStorage.`);
+return null; // Trigger localStorage fallback
+}
+}
 if(!r.ok) throw new Error(r.statusText);
-return r.json();
+return await r.json();
 }catch(e){
 if(i===retries-1){
-console.warn('API error (using localStorage fallback):',e.message);
+console.warn(`API error for ${path} (using localStorage fallback):`,e.message);
 return null;
 }
 await new Promise(res=>setTimeout(res, 1000*(i+1)));
@@ -1522,8 +1531,8 @@ case 'overview': return `
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
 <div class="weather-card">
 <div class="weather-icon">🌤️</div>
-<div class="weather-temp">28°C</div>
-<div class="weather-desc" data-i18n="weather">Weather</div>
+<div class="weather-temp" id="weatherTemp">28°C</div>
+<div class="weather-desc" data-i18n="weather" id="weatherDesc">Weather</div>
 </div>
 <div class="currency-card">
 <div style="font-weight:600;margin-bottom:4px" data-i18n="currency">Currency</div>
@@ -1820,10 +1829,9 @@ tbody.innerHTML=inventory.map(i=>`
 <td>
 <button class="tbl-action" onclick="adjStock('${i._id}',10)">➕</button>
 <button class="tbl-action" onclick="adjStock('${i._id}',-10)">➖</button>
-<button class="tbl-action" onclick="editInventory('${i._id}')" title="${t('edit')}">✏️</button>
-<button class="tbl-action" onclick="delInv('${i._id}')" title="${t('delete')}">🗑️</button>
+<button class="tbl-action" onclick="delInv('${i._id}')">🗑️</button>
 </td>
-</tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:12px">No items</td></tr>';
+</tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px">No items</td></tr>';
 }
 function renderRequests(filter='all'){
 const el=document.getElementById('reqsList');if(!el)return;
@@ -2168,9 +2176,9 @@ panes.innerHTML=`
 <div style="display:flex;justify-content:center;padding:4px 0;font-size:12px"><span data-i18n="checkoutTime">🕐 Checkout</span><span>11:00 AM</span></div>
 </div>
 <div class="weather-card" style="margin-bottom:8px">
-<div class="weather-icon">🌤️</div>
-<div class="weather-temp">28°C</div>
-<div class="weather-desc" data-i18n="weather">Weather in ${userTimezone.split('/')[1]||'Your City'}</div>
+<div class="weather-icon" id="weatherIcon">🌤️</div>
+<div class="weather-temp" id="gWeatherTemp">28°C</div>
+<div class="weather-desc" data-i18n="weather" id="gWeatherDesc">Weather in ${userTimezone.split('/')[1]||'Your City'}</div>
 </div>
 <div class="currency-card" style="margin-bottom:8px">
 <div style="font-weight:600;margin-bottom:4px" data-i18n="currency">Quick Currency</div>
@@ -3054,6 +3062,38 @@ function quickCheckin(){showToast('🚀 Quick Check-in opened','success');openMo
 function quickCheckout(){showToast('🚪 Quick Checkout opened','success')}
 function newAdminRequest(){showAdminTab('requests');showToast('📝 New Request form opened','success')}
 function viewAdminReports(){showAdminTab('reports');showToast('📈 Reports opened','success')}
+
+// ✅ WEATHER UPDATE FIX: Live weather simulation for guest page
+let weatherData = { temp: 28, desc: 'Sunny', icon: '🌤️' };
+const weatherIcons = ['🌤️','☀️','⛅','🌧️','⛈️','🌫️','🌙','🌧️'];
+const weatherDescs = ['Sunny','Clear','Partly Cloudy','Rainy','Stormy','Foggy','Night','Showers'];
+
+function updateWeather(){
+// Simulate live weather updates (replace with real API in production)
+const newIdx = Math.floor(Math.random() * weatherIcons.length);
+weatherData = {
+temp: 20 + Math.floor(Math.random() * 15),
+desc: weatherDescs[newIdx],
+icon: weatherIcons[newIdx]
+};
+// Update admin weather display
+const adminTemp = document.getElementById('weatherTemp');
+const adminDesc = document.getElementById('weatherDesc');
+const adminIcon = document.getElementById('weatherIcon');
+if(adminTemp) adminTemp.textContent = `${weatherData.temp}°C`;
+if(adminDesc) adminDesc.textContent = weatherData.desc;
+if(adminIcon) adminIcon.textContent = weatherData.icon;
+// Update guest weather display
+const guestTemp = document.getElementById('gWeatherTemp');
+const guestDesc = document.getElementById('gWeatherDesc');
+const guestIcon = document.getElementById('gWeatherIcon');
+if(guestTemp) guestTemp.textContent = `${weatherData.temp}°C`;
+if(guestDesc) guestDesc.textContent = weatherData.desc;
+if(guestIcon) guestIcon.textContent = weatherData.icon;
+}
+// Update weather every 2 minutes
+setInterval(updateWeather, 120000);
+
 // ✅ MULTI-DEVICE FIX: Initialize with proper order and clientId
 function init(){
 loadUIPrefs();
@@ -3065,12 +3105,28 @@ tickClock();
 initSocket();
 checkSession();
 renderAll();
+updateWeather(); // Initial weather update
 const onlineBtn=document.getElementById('onlineBtn');
 if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
 setInterval(saveLS, 15000);
 window.addEventListener('beforeunload', saveLS);
 }
 init();
+
+// ✅ ADD THIS at the end of the script for better debugging:
+window.addEventListener('load', async () => {
+// Test API connectivity on load
+try {
+const test = await fetch(API_BASE + '/health', { method: 'GET', headers: { 'x-hotel-id': HID } });
+if(!test.ok) throw new Error('Health check failed');
+console.log('✅ Backend API is reachable');
+} catch(e) {
+console.warn('⚠️ Backend API not reachable. Using localStorage only.', e);
+isOnline = false;
+updateNetBadge('offline');
+showToast('⚠️ Backend not connected - using offline mode','warning');
+}
+});
 </script>
 </body>
 </html>
