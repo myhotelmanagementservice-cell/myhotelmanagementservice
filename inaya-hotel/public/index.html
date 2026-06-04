@@ -1062,6 +1062,18 @@ if(idx>-1) inventory[idx]=safeMerge(inventory[idx], item, 'inventory');
 else inventory.push(item);
 renderInventory(); renderGuestInv();
 });
+// ✅ FIX: Added missing food_upd Socket Listener
+socket.on('food_upd',(payload)=>{
+if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
+if(payload.syncToken) processedEvents.add(payload.syncToken);
+if(payload.clientId === clientId) return;
+const f = payload.data;
+const idx=food.findIndex(x=>x._id===f._id);
+if(idx>-1) food[idx]=safeMerge(food[idx], f, 'food');
+else food.push(f);
+renderFood();
+renderGuestFood();
+});
 socket.on('review_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1827,6 +1839,7 @@ tbody.innerHTML=inventory.map(i=>`
 <td>${i.category}</td>
 <td class="${i.stock<=i.min?'low-stock':''}">${i.stock} ${i.unit}${i.stock<=i.min?' ⚠️':''}</td>
 <td>
+<button class="tbl-action" onclick="editInventory('${i._id}')" title="${t('edit')}">✏️</button>
 <button class="tbl-action" onclick="adjStock('${i._id}',10)">➕</button>
 <button class="tbl-action" onclick="adjStock('${i._id}',-10)">➖</button>
 <button class="tbl-action" onclick="delInv('${i._id}')">🗑️</button>
@@ -2301,11 +2314,11 @@ const el=document.getElementById('gHistList');if(!el||!currentUser)return;
 const myReqs=requests.filter(r=>r.guestName===currentUser.name&&r.roomNumber==currentUser.room);
 el.innerHTML=myReqs.map(r=>`
 <div class="req-card" data-id="${r._id}">
-<div style="display:flex;justify-content:center;align-items:flex-start">
-<div>
+<div style="display:flex;justify-content:center;align-items:flex-start;gap:8px">
+<div style="flex:1">
 <strong style="font-size:12px">${r.department}</strong>
 <div style="font-size:13px;opacity:.6;margin-top:2px">${r.description}</div>
-<div style="font-size:10px;opacity:.4;margin-top:2px">${new Date(r.createdAt||Date.now()).toLocaleString()}</div>
+<div style="font-size:11px;opacity:.7;margin-top:4px;font-weight:600">📅 ${new Date(r.createdAt||Date.now()).toLocaleString()}</div>
 </div>
 <span class="badge badge-${r.status}">${r.status}</span>
 </div>
@@ -2372,6 +2385,7 @@ if(req){req.status=status;req.updatedAt=new Date().toISOString();save('requests'
 function delReq(id){if(confirm('Delete?')){requests=requests.filter(r=>r._id!==id);save('requests',requests);renderRequests();updateAdminStats()}}
 function exportReqs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(requests),'Requests');XLSX.writeFile(wb,`requests-${Date.now()}.xlsx`);showToast('Exported!','success')}
 function delRoom(id){if(confirm('Delete?')){rooms=rooms.filter(r=>r._id!==id);save('rooms',rooms);renderRooms();updateAdminStats()}}
+function delFood(id){if(confirm('Delete?')){food=food.filter(f=>f._id!==id);save('food',food);renderFood();renderGuestFood();showToast('Dish deleted','success');}}
 function editRoom(id){
 const r=rooms.find(x=>x._id===id);if(!r)return;
 openModal('roomModal');
@@ -2997,10 +3011,24 @@ speakItemAdded();
 }
 function addInvItem(e){
 e.preventDefault();
-const item={_id:'i_'+Date.now(),name:document.getElementById('mIName').value,category:document.getElementById('mICat').value,stock:parseInt(document.getElementById('mIQty').value),unit:document.getElementById('mIUnit').value||'pcs',min:parseInt(document.getElementById('mIMin').value)||10,hotelId:HID, _version:1};
-inventory.push(item);save('inventory',item,'inventory_upd');closeModal('inventoryModal');renderInventory();renderGuestInv();
-showToast('✅ '+t('itemAdded'),'success');
-speakItemAdded();
+const editId=document.getElementById('inventoryModal')?.dataset?.editId;
+const itemData={name:document.getElementById('mIName').value,category:document.getElementById('mICat').value,stock:parseInt(document.getElementById('mIQty').value),unit:document.getElementById('mIUnit').value||'pcs',min:parseInt(document.getElementById('mIMin').value)||10,hotelId:HID};
+if(editId){
+  const idx=inventory.findIndex(i=>i._id===editId);
+  if(idx>-1){
+    inventory[idx]={...inventory[idx],...itemData, _version:(inventory[idx]._version||0)+1, updatedAt:new Date().toISOString()};
+    save('inventory',inventory[idx],'inventory_upd');
+    showToast('✅ '+t('changesSaved'),'success');
+  }
+}else{
+  const item={_id:'i_'+Date.now(),...itemData, _version:1, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()};
+  inventory.push(item);save('inventory',item,'inventory_upd');
+  showToast('✅ '+t('itemAdded'),'success');
+  speakItemAdded();
+}
+closeModal('inventoryModal');
+if(document.getElementById('inventoryModal').dataset) delete document.getElementById('inventoryModal').dataset.editId;
+renderInventory();renderGuestInv();
 }
 function addToBlacklist(e){
 e.preventDefault();
@@ -3062,12 +3090,10 @@ function quickCheckin(){showToast('🚀 Quick Check-in opened','success');openMo
 function quickCheckout(){showToast('🚪 Quick Checkout opened','success')}
 function newAdminRequest(){showAdminTab('requests');showToast('📝 New Request form opened','success')}
 function viewAdminReports(){showAdminTab('reports');showToast('📈 Reports opened','success')}
-
 // ✅ WEATHER UPDATE FIX: Live weather simulation for guest page
 let weatherData = { temp: 28, desc: 'Sunny', icon: '🌤️' };
 const weatherIcons = ['🌤️','☀️','⛅','🌧️','⛈️','🌫️','🌙','🌧️'];
 const weatherDescs = ['Sunny','Clear','Partly Cloudy','Rainy','Stormy','Foggy','Night','Showers'];
-
 function updateWeather(){
 // Simulate live weather updates (replace with real API in production)
 const newIdx = Math.floor(Math.random() * weatherIcons.length);
@@ -3093,7 +3119,6 @@ if(guestIcon) guestIcon.textContent = weatherData.icon;
 }
 // Update weather every 2 minutes
 setInterval(updateWeather, 120000);
-
 // ✅ MULTI-DEVICE FIX: Initialize with proper order and clientId
 function init(){
 loadUIPrefs();
@@ -3112,7 +3137,6 @@ setInterval(saveLS, 15000);
 window.addEventListener('beforeunload', saveLS);
 }
 init();
-
 // ✅ ADD THIS at the end of the script for better debugging:
 window.addEventListener('load', async () => {
 // Test API connectivity on load
