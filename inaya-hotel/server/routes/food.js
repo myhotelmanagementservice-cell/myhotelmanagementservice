@@ -34,7 +34,7 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// 🔹 POST create new food item
+// 🔹 POST create new food item - ✅ FIXED: Broadcast with proper payload structure
 router.post('/', protect, authorize('admin', 'manager', 'restaurant'), async (req, res) => {
   try {
     const { name, price, category, description, available, emoji } = req.body;
@@ -52,8 +52,16 @@ router.post('/', protect, authorize('admin', 'manager', 'restaurant'), async (re
 
     await item.save();
 
-    // 🔄 Real-time broadcast to all clients in this hotel
-    req.app.get('io').to(`hotel_${req.hotelId}`).emit('food_new', item);
+    // ✅ FIX: Use 'food_upd' event + wrap data properly for frontend compatibility
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`hotel_${req.hotelId}`).emit('food_upd', {
+        data: item,
+        hotelId: req.hotelId,
+        clientId: req.headers['x-client-id'] || null,
+        syncToken: Date.now()
+      });
+    }
 
     // 📝 Audit log
     req.app.get('logger')?.info({ hotelId: req.hotelId, action: 'food_created', userId: req.user.id, details: item.name });
@@ -67,7 +75,7 @@ router.post('/', protect, authorize('admin', 'manager', 'restaurant'), async (re
   }
 });
 
-// 🔹 PUT update existing food item
+// 🔹 PUT update existing food item - ✅ FIXED: Broadcast with proper payload structure
 router.put('/:id', protect, authorize('admin', 'manager', 'restaurant'), async (req, res) => {
   try {
     const item = await Food.findOne({ _id: req.params.id, hotelId: req.hotelId });
@@ -84,7 +92,17 @@ router.put('/:id', protect, authorize('admin', 'manager', 'restaurant'), async (
     Object.assign(item, updateData);
     await item.save();
 
-    req.app.get('io').to(`hotel_${req.hotelId}`).emit('food_upd', item);
+    // ✅ FIX: Use 'food_upd' event + wrap data properly
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`hotel_${req.hotelId}`).emit('food_upd', {
+        data: item,
+        hotelId: req.hotelId,
+        clientId: req.headers['x-client-id'] || null,
+        syncToken: Date.now()
+      });
+    }
+
     req.app.get('logger')?.info({ hotelId: req.hotelId, action: 'food_updated', userId: req.user.id, details: item.name });
 
     res.json({ success: true, message: 'Food item updated', data: item });
@@ -96,13 +114,23 @@ router.put('/:id', protect, authorize('admin', 'manager', 'restaurant'), async (
   }
 });
 
-// 🔹 DELETE food item
+// 🔹 DELETE food item - ✅ FIXED: Use 'food_upd' event with deleted marker
 router.delete('/:id', protect, authorize('admin', 'manager'), async (req, res) => {
   try {
     const item = await Food.findOneAndDelete({ _id: req.params.id, hotelId: req.hotelId });
     if (!item) return res.status(404).json({ success: false, error: 'Food item not found' });
 
-    req.app.get('io').to(`hotel_${req.hotelId}`).emit('food_del', { id: req.params.id, name: item.name });
+    // ✅ FIX: Use 'food_upd' event with deleted marker (frontend expects this pattern)
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`hotel_${req.hotelId}`).emit('food_upd', {
+        data: { _id: req.params.id, hotelId: req.hotelId, deleted: true },
+        hotelId: req.hotelId,
+        clientId: req.headers['x-client-id'] || null,
+        syncToken: Date.now()
+      });
+    }
+
     req.app.get('logger')?.info({ hotelId: req.hotelId, action: 'food_deleted', userId: req.user.id, details: item.name });
 
     res.json({ success: true, message: 'Food item deleted', data: { id: req.params.id, name: item.name } });
