@@ -456,16 +456,16 @@ app.post('/api/tenant', authMiddleware, async (req, res) => {
     // ✅ FIX: Use cfg_upd event name that frontend expects
     broadcast(hotelId, 'cfg_upd', { hotelName, currency, currencySymbol, language, theme }, req.clientId);
 
-        res.json({ 
-          success: true, 
-          message: result.upsertedCount ? 'Tenant created' : 'Tenant updated',
-          data: { hotelId, hotelName }
-        });
-      } catch (error) {
-        console.error('Tenant save error:', error);
-        res.status(500).json({ success: false, error: error.message });
-      }
+    res.json({ 
+      success: true, 
+      message: result.upsertedCount ? 'Tenant created' : 'Tenant updated',
+      data: { hotelId, hotelName }
     });
+  } catch (error) {
+    console.error('Tenant save error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // ✅ Hotel Registration API (Super Admin Only)
 app.post('/api/super/tenants/register', superAdminMiddleware, async (req, res) => {
