@@ -349,7 +349,7 @@ io.on('connection', (socket) => {
 // ✅ FIX: Broadcast helper that includes clientId for deduplication
 const broadcast = (hotelId, event, data, clientId = null) => {
   const payload = {
-    ...data,
+    data,
     hotelId,
     clientId,
     syncToken: Date.now()
