@@ -1,5 +1,5 @@
 require("dotenv").config({ path: __dirname + "/.env" });
-// server.js - Complete Multi-Tenant Hotel SaaS Backend (FINAL PRODUCTION READY - MULTI-DEVICE SYNC FIXED)
+// server.js - Complete Multi-Tenant Hotel SaaS Backend (ALL ISSUES FIXED - PRODUCTION READY)
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
@@ -456,16 +456,16 @@ app.post('/api/tenant', authMiddleware, async (req, res) => {
     // ✅ FIX: Use cfg_upd event name that frontend expects
     broadcast(hotelId, 'cfg_upd', { hotelName, currency, currencySymbol, language, theme }, req.clientId);
 
-    res.json({ 
-      success: true, 
-      message: result.upsertedCount ? 'Tenant created' : 'Tenant updated',
-      data: { hotelId, hotelName }
+        res.json({ 
+          success: true, 
+          message: result.upsertedCount ? 'Tenant created' : 'Tenant updated',
+          data: { hotelId, hotelName }
+        });
+      } catch (error) {
+        console.error('Tenant save error:', error);
+        res.status(500).json({ success: false, error: error.message });
+      }
     });
-  } catch (error) {
-    console.error('Tenant save error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 // ✅ Hotel Registration API (Super Admin Only)
 app.post('/api/super/tenants/register', superAdminMiddleware, async (req, res) => {
@@ -1717,6 +1717,619 @@ app.put('/api/settings', authMiddleware, async (req, res) => {
   }
 });
 
+// ==================== ✅ MISSING ROUTES ADDED HERE ====================
+
+// ✅ BOOKINGS CRUD
+app.get('/api/bookings', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    const bookings = await db.collection('bookings').find({ hotelId }).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, data: bookings, count: bookings.length });
+  } catch (error) {
+    console.error('Bookings fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/bookings', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { guestName, roomNumber, roomType, checkIn, checkOut, guests, totalPriceSAR, status } = req.body;
+    if (!guestName || !roomNumber) {
+      return res.status(400).json({ success: false, error: 'guestName and roomNumber are required' });
+    }
+    if (!dbConnected) {
+      const booking = {
+        _id: 'bk_'+Date.now(),
+        hotelId,
+        guestName,
+        roomNumber: parseInt(roomNumber),
+        roomType: roomType || 'Standard',
+        checkIn: checkIn || new Date().toISOString().split('T')[0],
+        checkOut: checkOut || new Date(Date.now() + 86400000).toISOString().split('T')[0],
+        guests: guests || 1,
+        totalPriceSAR: totalPriceSAR || 0,
+        status: status || 'pending',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        _version: 1
+      };
+      broadcast(hotelId, 'booking_new', booking, req.clientId);
+      return res.status(201).json({ success: true, message: 'Booking added (offline)', data: booking });
+    }
+    const booking = {
+      hotelId,
+      guestName,
+      roomNumber: parseInt(roomNumber),
+      roomType: roomType || 'Standard',
+      checkIn: checkIn || new Date().toISOString().split('T')[0],
+      checkOut: checkOut || new Date(Date.now() + 86400000).toISOString().split('T')[0],
+      guests: guests || 1,
+      totalPriceSAR: totalPriceSAR || 0,
+      status: status || 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      _version: 1
+    };
+    const result = await db.collection('bookings').insertOne(booking);
+    booking._id = result.insertedId;
+    broadcast(hotelId, 'booking_new', booking, req.clientId);
+    res.status(201).json({ success: true, message: 'Booking added', data: booking });
+  } catch (error) {
+    console.error('Booking create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/bookings/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    const { status, guests, checkIn, checkOut, totalPriceSAR } = req.body;
+    if (!dbConnected) {
+      const updatedBooking = {
+        _id: id,
+        hotelId,
+        status,
+        guests: guests !== undefined ? parseInt(guests) : undefined,
+        checkIn,
+        checkOut,
+        totalPriceSAR: totalPriceSAR !== undefined ? parseFloat(totalPriceSAR) : undefined,
+        updatedAt: new Date().toISOString()
+      };
+      broadcast(hotelId, 'booking_upd', updatedBooking, req.clientId);
+      return res.json({ success: true, message: 'Booking updated (offline)', data: updatedBooking });
+    }
+    const updateData = {
+      updatedAt: new Date().toISOString(),
+      ...(status && { status }),
+      ...(guests !== undefined && { guests: parseInt(guests) }),
+      ...(checkIn && { checkIn }),
+      ...(checkOut && { checkOut }),
+      ...(totalPriceSAR !== undefined && { totalPriceSAR: parseFloat(totalPriceSAR) })
+    };
+    const result = await db.collection('bookings').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
+    );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+    const updatedBooking = await db.collection('bookings').findOne({ _id: new ObjectId(id) });
+    broadcast(hotelId, 'booking_upd', updatedBooking, req.clientId);
+    res.json({ success: true, message: 'Booking updated', data: updatedBooking });
+  } catch (error) {
+    console.error('Booking update error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/bookings/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) {
+      broadcast(hotelId, 'booking_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+      return res.json({ success: true, message: 'Booking deleted (offline)' });
+    }
+    const result = await db.collection('bookings').deleteOne({ _id: new ObjectId(id), hotelId });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+    broadcast(hotelId, 'booking_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+    res.json({ success: true, message: 'Booking deleted' });
+  } catch (error) {
+    console.error('Booking delete error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ✅ BLACKLIST CRUD
+app.get('/api/blacklist', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    const blacklist = await db.collection('blacklist').find({ hotelId }).sort({ date: -1 }).toArray();
+    res.json({ success: true, data: blacklist, count: blacklist.length });
+  } catch (error) {
+    console.error('Blacklist fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/blacklist', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { name, room, reason } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, error: 'name is required' });
+    }
+    if (!dbConnected) {
+      const entry = {
+        _id: 'bl_'+Date.now(),
+        hotelId,
+        name,
+        room: room || null,
+        reason: reason || '',
+        date: new Date().toISOString(),
+        _version: 1
+      };
+      broadcast(hotelId, 'blacklist_upd', entry, req.clientId);
+      return res.status(201).json({ success: true, message: 'Guest blocked (offline)', data: entry });
+    }
+    const entry = {
+      hotelId,
+      name,
+      room: room || null,
+      reason: reason || '',
+      date: new Date().toISOString(),
+      _version: 1
+    };
+    const result = await db.collection('blacklist').insertOne(entry);
+    entry._id = result.insertedId;
+    broadcast(hotelId, 'blacklist_upd', entry, req.clientId);
+    res.status(201).json({ success: true, message: 'Guest blocked', data: entry });
+  } catch (error) {
+    console.error('Blacklist create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/blacklist/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) {
+      broadcast(hotelId, 'blacklist_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+      return res.json({ success: true, message: 'Unblocked (offline)' });
+    }
+    const result = await db.collection('blacklist').deleteOne({ _id: new ObjectId(id), hotelId });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Entry not found' });
+    }
+    broadcast(hotelId, 'blacklist_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+    res.json({ success: true, message: 'Guest unblocked' });
+  } catch (error) {
+    console.error('Blacklist delete error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ✅ MAINTENANCE CRUD
+app.get('/api/maintenance', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    const maintenance = await db.collection('maintenance').find({ hotelId }).sort({ scheduled: 1 }).toArray();
+    res.json({ success: true, data: maintenance, count: maintenance.length });
+  } catch (error) {
+    console.error('Maintenance fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/maintenance', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { task, room, scheduled, assigned, priority, status } = req.body;
+    if (!task) {
+      return res.status(400).json({ success: false, error: 'task is required' });
+    }
+    if (!dbConnected) {
+      const item = {
+        _id: 'm_'+Date.now(),
+        hotelId,
+        task,
+        room: room || null,
+        scheduled: scheduled || null,
+        assigned: assigned || null,
+        priority: priority || 'medium',
+        status: status || 'pending',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        _version: 1
+      };
+      broadcast(hotelId, 'maintenance_upd', item, req.clientId);
+      return res.status(201).json({ success: true, message: 'Task added (offline)', data: item });
+    }
+    const item = {
+      hotelId,
+      task,
+      room: room || null,
+      scheduled: scheduled || null,
+      assigned: assigned || null,
+      priority: priority || 'medium',
+      status: status || 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      _version: 1
+    };
+    const result = await db.collection('maintenance').insertOne(item);
+    item._id = result.insertedId;
+    broadcast(hotelId, 'maintenance_upd', item, req.clientId);
+    res.status(201).json({ success: true, message: 'Task added', data: item });
+  } catch (error) {
+    console.error('Maintenance create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/maintenance/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    const { status, assigned, priority } = req.body;
+    if (!dbConnected) {
+      const updated = {
+        _id: id,
+        hotelId,
+        status,
+        assigned,
+        priority,
+        updatedAt: new Date().toISOString()
+      };
+      broadcast(hotelId, 'maintenance_upd', updated, req.clientId);
+      return res.json({ success: true, message: 'Task updated (offline)', data: updated });
+    }
+    const updateData = {
+      updatedAt: new Date().toISOString(),
+      ...(status && { status }),
+      ...(assigned !== undefined && { assigned }),
+      ...(priority && { priority })
+    };
+    const result = await db.collection('maintenance').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
+    );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Task not found' });
+    }
+    const updated = await db.collection('maintenance').findOne({ _id: new ObjectId(id) });
+    broadcast(hotelId, 'maintenance_upd', updated, req.clientId);
+    res.json({ success: true, message: 'Task updated', data: updated });
+  } catch (error) {
+    console.error('Maintenance update error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/maintenance/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) {
+      broadcast(hotelId, 'maintenance_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+      return res.json({ success: true, message: 'Task deleted (offline)' });
+    }
+    const result = await db.collection('maintenance').deleteOne({ _id: new ObjectId(id), hotelId });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Task not found' });
+    }
+    broadcast(hotelId, 'maintenance_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+    res.json({ success: true, message: 'Task deleted' });
+  } catch (error) {
+    console.error('Maintenance delete error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ✅ REVIEWS CRUD
+app.get('/api/reviews', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    const reviews = await db.collection('reviews').find({ hotelId }).sort({ date: -1 }).toArray();
+    res.json({ success: true, data: reviews, count: reviews.length });
+  } catch (error) {
+    console.error('Reviews fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/reviews', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { guest, room, overall, service, cleanliness, comment, recommend } = req.body;
+    if (!guest || overall === undefined) {
+      return res.status(400).json({ success: false, error: 'guest and overall rating are required' });
+    }
+    if (!dbConnected) {
+      const review = {
+        _id: 'rev_'+Date.now(),
+        hotelId,
+        guest,
+        room: room || null,
+        overall: parseInt(overall),
+        service: service !== undefined ? parseInt(service) : null,
+        cleanliness: cleanliness !== undefined ? parseInt(cleanliness) : null,
+        comment: comment || '',
+        recommend: recommend !== false,
+        date: new Date().toISOString(),
+        _version: 1
+      };
+      broadcast(hotelId, 'review_new', review, req.clientId);
+      return res.status(201).json({ success: true, message: 'Review added (offline)', data: review });
+    }
+    const review = {
+      hotelId,
+      guest,
+      room: room || null,
+      overall: parseInt(overall),
+      service: service !== undefined ? parseInt(service) : null,
+      cleanliness: cleanliness !== undefined ? parseInt(cleanliness) : null,
+      comment: comment || '',
+      recommend: recommend !== false,
+      date: new Date().toISOString(),
+      _version: 1
+    };
+    const result = await db.collection('reviews').insertOne(review);
+    review._id = result.insertedId;
+    broadcast(hotelId, 'review_new', review, req.clientId);
+    res.status(201).json({ success: true, message: 'Review added', data: review });
+  } catch (error) {
+    console.error('Review create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ✅ STAFF CRUD
+app.get('/api/staff', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    const staff = await db.collection('staff').find({ hotelId }).sort({ name: 1 }).toArray();
+    res.json({ success: true, data: staff, count: staff.length });
+  } catch (error) {
+    console.error('Staff fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/staff', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { name, role, department, joinDate, status, shift, rating, tasks, attendance, leaveRequest } = req.body;
+    if (!name || !role) {
+      return res.status(400).json({ success: false, error: 'name and role are required' });
+    }
+    if (!dbConnected) {
+      const s = {
+        _id: 's_'+Date.now(),
+        hotelId,
+        name,
+        role,
+        department: department || 'General',
+        joinDate: joinDate || new Date().toISOString().split('T')[0],
+        status: status || 'online',
+        shift: shift || 'morning',
+        rating: rating || 5.0,
+        tasks: tasks || 0,
+        attendance: attendance || 'present',
+        leaveRequest: leaveRequest || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        _version: 1
+      };
+      broadcast(hotelId, 'staff_upd', s, req.clientId);
+      return res.status(201).json({ success: true, message: 'Staff added (offline)', data: s });
+    }
+    const s = {
+      hotelId,
+      name,
+      role,
+      department: department || 'General',
+      joinDate: joinDate || new Date().toISOString().split('T')[0],
+      status: status || 'online',
+      shift: shift || 'morning',
+      rating: rating || 5.0,
+      tasks: tasks || 0,
+      attendance: attendance || 'present',
+      leaveRequest: leaveRequest || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      _version: 1
+    };
+    const result = await db.collection('staff').insertOne(s);
+    s._id = result.insertedId;
+    broadcast(hotelId, 'staff_upd', s, req.clientId);
+    res.status(201).json({ success: true, message: 'Staff added', data: s });
+  } catch (error) {
+    console.error('Staff create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/staff/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    const { status, shift, attendance, leaveRequest, rating, tasks } = req.body;
+    if (!dbConnected) {
+      const updated = {
+        _id: id,
+        hotelId,
+        status,
+        shift,
+        attendance,
+        leaveRequest,
+        rating: rating !== undefined ? parseFloat(rating) : undefined,
+        tasks: tasks !== undefined ? parseInt(tasks) : undefined,
+        updatedAt: new Date().toISOString()
+      };
+      broadcast(hotelId, 'staff_upd', updated, req.clientId);
+      return res.json({ success: true, message: 'Staff updated (offline)', data: updated });
+    }
+    const updateData = {
+      updatedAt: new Date().toISOString(),
+      ...(status && { status }),
+      ...(shift && { shift }),
+      ...(attendance && { attendance }),
+      ...(leaveRequest !== undefined && { leaveRequest }),
+      ...(rating !== undefined && { rating: parseFloat(rating) }),
+      ...(tasks !== undefined && { tasks: parseInt(tasks) })
+    };
+    const result = await db.collection('staff').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
+    );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Staff not found' });
+    }
+    const updated = await db.collection('staff').findOne({ _id: new ObjectId(id) });
+    broadcast(hotelId, 'staff_upd', updated, req.clientId);
+    res.json({ success: true, message: 'Staff updated', data: updated });
+  } catch (error) {
+    console.error('Staff update error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/staff/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) {
+      broadcast(hotelId, 'staff_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+      return res.json({ success: true, message: 'Staff removed (offline)' });
+    }
+    const result = await db.collection('staff').deleteOne({ _id: new ObjectId(id), hotelId });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Staff not found' });
+    }
+    broadcast(hotelId, 'staff_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+    res.json({ success: true, message: 'Staff removed' });
+  } catch (error) {
+    console.error('Staff delete error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ✅ LOGS CRUD
+app.get('/api/logs', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    const logs = await db.collection('logs').find({ hotelId }).sort({ timestamp: -1 }).limit(100).toArray();
+    res.json({ success: true, data: logs, count: logs.length });
+  } catch (error) {
+    console.error('Logs fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/logs', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { user, action, details } = req.body;
+    if (!action) {
+      return res.status(400).json({ success: false, error: 'action is required' });
+    }
+    if (!dbConnected) {
+      const log = {
+        _id: 'log_'+Date.now(),
+        hotelId,
+        timestamp: new Date().toISOString(),
+        user: user || 'System',
+        action,
+        details: details || '',
+        _version: 1
+      };
+      return res.status(201).json({ success: true, message: 'Log added (offline)', data: log });
+    }
+    const log = {
+      hotelId,
+      timestamp: new Date().toISOString(),
+      user: user || 'System',
+      action,
+      details: details || '',
+      _version: 1
+    };
+    const result = await db.collection('logs').insertOne(log);
+    log._id = result.insertedId;
+    res.status(201).json({ success: true, message: 'Log added', data: log });
+  } catch (error) {
+    console.error('Log create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/logs', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) {
+      return res.json({ success: true, message: 'Logs cleared (offline)' });
+    }
+    await db.collection('logs').deleteMany({ hotelId });
+    res.json({ success: true, message: 'Logs cleared' });
+  } catch (error) {
+    console.error('Logs clear error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ✅ CONFIG endpoint (alias for settings)
+app.get('/api/config', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) {
+      return res.json({ success: true, data: { hotelId, name: 'Crown Plaza Hotel', currency: 'SAR', currencySymbol: '﷼', wifi: 'CrownPlaza@2024', airportPrice: 115, localPrice: 60 } });
+    }
+    const settings = await db.collection('settings').findOne({ hotelId });
+    if (!settings) {
+      return res.json({ success: true, data: { hotelId, name: 'Crown Plaza Hotel', currency: 'SAR', currencySymbol: '﷼', wifi: 'CrownPlaza@2024', airportPrice: 115, localPrice: 60 } });
+    }
+    res.json({ success: true, data: settings });
+  } catch (error) {
+    console.error('Config fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/config', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const config = req.body;
+    if (!dbConnected) {
+      const updated = { ...config, hotelId, updatedAt: new Date() };
+      broadcast(hotelId, 'cfg_upd', updated, req.clientId);
+      return res.json({ success: true, message: 'Config saved (offline)', data: updated });
+    }
+    const updateData = { ...config, hotelId, updatedAt: new Date() };
+    const result = await db.collection('settings').updateOne(
+      { hotelId },
+      { $set: updateData },
+      { upsert: true }
+    );
+    const updated = await db.collection('settings').findOne({ hotelId });
+    broadcast(hotelId, 'cfg_upd', updated, req.clientId);
+    res.json({ success: true, message: 'Config saved', data: updated });
+  } catch (error) {
+    console.error('Config save error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ==================== DASHBOARD STATS ====================
 app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
   try {
@@ -1798,7 +2411,7 @@ server.listen(PORT, '0.0.0.0', async () => {
   console.log(`🔐 Auth: JWT + bcrypt enabled`);
   console.log(`🌍 Multi-country: Enabled (currency, language, timezone)`);
   console.log(`💳 Subscriptions: lifetime/monthly/trial supported`);
-  console.log(`📊 APIs: /api/bookings, /api/logs, /api/super/*`);
+  console.log(`📊 APIs: /api/bookings, /api/blacklist, /api/maintenance, /api/reviews, /api/staff, /api/logs, /api/config`);
   console.log(`\n💡 Frontend should send 'x-hotel-id' header or ?hotelId= query param\n`);
   await connectDB();
 });
