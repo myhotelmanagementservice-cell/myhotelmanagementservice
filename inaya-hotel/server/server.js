@@ -1,5 +1,5 @@
 require("dotenv").config({ path: __dirname + "/.env" });
-// server.js - Complete Multi-Tenant Hotel SaaS Backend (FINAL PRODUCTION READY)
+// server.js - Complete Multi-Tenant Hotel SaaS Backend (FINAL PRODUCTION READY - MULTI-DEVICE SYNC FIXED)
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
@@ -185,7 +185,14 @@ const tenantMiddleware = (req, res, next) => {
   next();
 };
 
+// ✅ FIX: Extract clientId from headers for multi-device deduplication
+const clientInfoMiddleware = (req, res, next) => {
+  req.clientId = req.headers['x-client-id'] || null;
+  next();
+};
+
 app.use('/api', tenantMiddleware);
+app.use('/api', clientInfoMiddleware); // ✅ ADD THIS for clientId support
 
 // ✅ Subscription Expiry Validation Middleware
 const checkSubscription = async (req, res, next) => {
@@ -264,19 +271,70 @@ const superAdminMiddleware = async (req, res, next) => {
   }
 };
 
-// ==================== SOCKET.IO REAL-TIME ====================
+// ==================== SOCKET.IO REAL-TIME (FIXED FOR MULTI-DEVICE SYNC) ====================
 io.on('connection', (socket) => {
   console.log('🔌 Client connected:', socket.id);
 
-  socket.on('joinHotel', (hotelId) => {
+  // ✅ FIX: Support both 'join_hotel' (snake_case) and 'joinHotel' (camelCase)
+  socket.on('join_hotel', (hotelId) => {
     socket.join(`hotel_${hotelId}`);
     console.log(`📡 ${socket.id} joined room: hotel_${hotelId}`);
     socket.emit('connected', { hotelId, message: 'Connected to hotel channel' });
   });
 
-  socket.on('join_hotel', (hotelId) => {
+  socket.on('joinHotel', (hotelId) => {
     socket.join(`hotel_${hotelId}`);
     socket.emit('connected', { hotelId, message: 'Connected' });
+  });
+
+  // ✅ FIX: Generic broadcaster that matches frontend expectations
+  const broadcastEvent = (eventName, payload) => {
+    const hotelId = payload?.hotelId;
+    if (!hotelId) return;
+
+    // Add syncToken if not present (for deduplication)
+    const data = {
+      ...payload,
+      syncToken: payload?.syncToken || Date.now(),
+      timestamp: new Date().toISOString()
+    };
+
+    io.to(`hotel_${hotelId}`).emit(eventName, data);
+    console.log(`📡 Broadcast ${eventName} to hotel_${hotelId}`);
+  };
+
+  // ✅ FIX: Request events - match frontend expectations (req_new, req_upd)
+  socket.on('req_new', (payload) => broadcastEvent('req_new', payload));
+  socket.on('req_upd', (payload) => broadcastEvent('req_upd', payload));
+
+  // ✅ FIX: Room events (room_upd)
+  socket.on('room_upd', (payload) => broadcastEvent('room_upd', payload));
+
+  // ✅ FIX: Guest events (guest_upd)
+  socket.on('guest_upd', (payload) => broadcastEvent('guest_upd', payload));
+
+  // ✅ FIX: Food/Inventory events (food_upd, inventory_upd)
+  socket.on('food_upd', (payload) => broadcastEvent('food_upd', payload));
+  socket.on('inventory_upd', (payload) => broadcastEvent('inventory_upd', payload));
+
+  // ✅ FIX: Config/Settings events (cfg_upd, currency_upd)
+  socket.on('cfg_upd', (payload) => broadcastEvent('cfg_upd', payload));
+  socket.on('currency_upd', (payload) => broadcastEvent('currency_upd', payload));
+
+  // ✅ FIX: Booking events (booking_new, booking_upd)
+  socket.on('booking_new', (payload) => broadcastEvent('booking_new', payload));
+  socket.on('booking_upd', (payload) => broadcastEvent('booking_upd', payload));
+
+  // ✅ FIX: Staff events (staff_upd)
+  socket.on('staff_upd', (payload) => broadcastEvent('staff_upd', payload));
+
+  // ✅ FIX: Review events (review_new)
+  socket.on('review_new', (payload) => broadcastEvent('review_new', payload));
+
+  // ✅ FIX: Leave hotel room on disconnect
+  socket.on('leave_hotel', (hotelId) => {
+    socket.leave(`hotel_${hotelId}`);
+    console.log(`📡 ${socket.id} left room: hotel_${hotelId}`);
   });
 
   socket.on('disconnect', () => {
@@ -288,8 +346,15 @@ io.on('connection', (socket) => {
   });
 });
 
-const broadcast = (hotelId, event, data) => {
-  io.to(`hotel_${hotelId}`).emit(event, data);
+// ✅ FIX: Broadcast helper that includes clientId for deduplication
+const broadcast = (hotelId, event, data, clientId = null) => {
+  const payload = {
+    ...data,
+    hotelId,
+    clientId,
+    syncToken: Date.now()
+  };
+  io.to(`hotel_${hotelId}`).emit(event, payload);
   console.log(`📡 Broadcast ${event} to hotel_${hotelId}`);
 };
 
@@ -388,7 +453,8 @@ app.post('/api/tenant', authMiddleware, async (req, res) => {
       { upsert: true }
     );
 
-    broadcast(hotelId, 'settings_update', { hotelName, currency, currencySymbol, language, theme });
+    // ✅ FIX: Use cfg_upd event name that frontend expects
+    broadcast(hotelId, 'cfg_upd', { hotelName, currency, currencySymbol, language, theme }, req.clientId);
 
     res.json({ 
       success: true, 
@@ -573,13 +639,14 @@ app.put('/api/super/tenants/:hotelId', superAdminMiddleware, async (req, res) =>
     }
 
     if (updates.hotelName || updates.currency || updates.language || updates.theme) {
-      broadcast(hotelId, 'settings_update', {
+      // ✅ FIX: Use cfg_upd event name
+      broadcast(hotelId, 'cfg_upd', {
         hotelName: updates.hotelName,
         currency: updates.currency,
         currencySymbol: updates.currencySymbol,
         language: updates.language,
         theme: updates.theme
-      });
+      }, req.clientId);
     }
 
     res.json({ success: true, message: 'Hotel updated' });
@@ -808,7 +875,7 @@ app.post('/api/admin/logout', (req, res) => {
   res.json({ success: true, message: 'Logged out' });
 });
 
-// ==================== ROOMS CRUD ====================
+// ==================== ROOMS CRUD (FIXED BROADCAST EVENTS) ====================
 app.get('/api/rooms', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -855,7 +922,8 @@ app.post('/api/rooms', authMiddleware, async (req, res) => {
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      broadcast(hotelId, 'room_added', room);
+      // ✅ FIX: Use room_upd event name that frontend expects
+      broadcast(hotelId, 'room_upd', room, req.clientId);
       return res.status(201).json({ success: true, message: 'Room added (offline)', data: room });
     }
 
@@ -878,7 +946,8 @@ app.post('/api/rooms', authMiddleware, async (req, res) => {
 
     const result = await db.collection('rooms').insertOne(room);
     room._id = result.insertedId;
-    broadcast(hotelId, 'room_added', room);
+    // ✅ FIX: Use room_upd event name
+    broadcast(hotelId, 'room_upd', room, req.clientId);
     res.status(201).json({ success: true, message: 'Room added', data: room });
   } catch (error) {
     console.error('Room create error:', error);
@@ -904,7 +973,8 @@ app.put('/api/rooms/:id', authMiddleware, async (req, res) => {
         amenities,
         updatedAt: new Date()
       };
-      broadcast(hotelId, 'room_updated', updatedRoom);
+      // ✅ FIX: Use room_upd event name
+      broadcast(hotelId, 'room_upd', updatedRoom, req.clientId);
       return res.json({ success: true, message: 'Room updated (offline)', data: updatedRoom });
     }
 
@@ -928,7 +998,8 @@ app.put('/api/rooms/:id', authMiddleware, async (req, res) => {
     }
 
     const updatedRoom = await db.collection('rooms').findOne({ _id: new ObjectId(id) });
-    broadcast(hotelId, 'room_updated', updatedRoom);
+    // ✅ FIX: Use room_upd event name
+    broadcast(hotelId, 'room_upd', updatedRoom, req.clientId);
     res.json({ success: true, message: 'Room updated', data: updatedRoom });
   } catch (error) {
     console.error('Room update error:', error);
@@ -942,7 +1013,8 @@ app.delete('/api/rooms/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
 
     if (!dbConnected) {
-      broadcast(hotelId, 'room_deleted', { id, hotelId });
+      // ✅ FIX: Use room_upd event name with deleted marker
+      broadcast(hotelId, 'room_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Room deleted (offline)' });
     }
 
@@ -951,7 +1023,8 @@ app.delete('/api/rooms/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Room not found' });
     }
 
-    broadcast(hotelId, 'room_deleted', { id, hotelId });
+    // ✅ FIX: Use room_upd event name with deleted marker
+    broadcast(hotelId, 'room_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Room deleted' });
   } catch (error) {
     console.error('Room delete error:', error);
@@ -959,7 +1032,7 @@ app.delete('/api/rooms/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== GUESTS CRUD ====================
+// ==================== GUESTS CRUD (FIXED BROADCAST EVENTS) ====================
 app.get('/api/guests', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -996,7 +1069,8 @@ app.post('/api/guests', authMiddleware, async (req, res) => {
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      broadcast(hotelId, 'guest_added', guest);
+      // ✅ FIX: Use guest_upd event name
+      broadcast(hotelId, 'guest_upd', guest, req.clientId);
       return res.status(201).json({ success: true, message: 'Guest added (offline)', data: guest });
     }
 
@@ -1016,7 +1090,8 @@ app.post('/api/guests', authMiddleware, async (req, res) => {
 
     const result = await db.collection('guests').insertOne(guest);
     guest._id = result.insertedId;
-    broadcast(hotelId, 'guest_added', guest);
+    // ✅ FIX: Use guest_upd event name
+    broadcast(hotelId, 'guest_upd', guest, req.clientId);
     res.status(201).json({ success: true, message: 'Guest added', data: guest });
   } catch (error) {
     console.error('Guest create error:', error);
@@ -1044,7 +1119,8 @@ app.put('/api/guests/:id', authMiddleware, async (req, res) => {
         status,
         updatedAt: new Date()
       };
-      broadcast(hotelId, 'guest_updated', updatedGuest);
+      // ✅ FIX: Use guest_upd event name
+      broadcast(hotelId, 'guest_upd', updatedGuest, req.clientId);
       return res.json({ success: true, message: 'Guest updated (offline)', data: updatedGuest });
     }
 
@@ -1070,7 +1146,8 @@ app.put('/api/guests/:id', authMiddleware, async (req, res) => {
     }
 
     const updatedGuest = await db.collection('guests').findOne({ _id: new ObjectId(id) });
-    broadcast(hotelId, 'guest_updated', updatedGuest);
+    // ✅ FIX: Use guest_upd event name
+    broadcast(hotelId, 'guest_upd', updatedGuest, req.clientId);
     res.json({ success: true, message: 'Guest updated', data: updatedGuest });
   } catch (error) {
     console.error('Guest update error:', error);
@@ -1084,7 +1161,8 @@ app.delete('/api/guests/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
 
     if (!dbConnected) {
-      broadcast(hotelId, 'guest_deleted', { id, hotelId });
+      // ✅ FIX: Use guest_upd event name with deleted marker
+      broadcast(hotelId, 'guest_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Guest deleted (offline)' });
     }
 
@@ -1093,7 +1171,8 @@ app.delete('/api/guests/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Guest not found' });
     }
 
-    broadcast(hotelId, 'guest_deleted', { id, hotelId });
+    // ✅ FIX: Use guest_upd event name with deleted marker
+    broadcast(hotelId, 'guest_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Guest deleted' });
   } catch (error) {
     console.error('Guest delete error:', error);
@@ -1101,7 +1180,7 @@ app.delete('/api/guests/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== FOOD MENU CRUD ====================
+// ==================== FOOD MENU CRUD (FIXED BROADCAST EVENTS) ====================
 app.get('/api/food', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1136,7 +1215,8 @@ app.post('/api/food', authMiddleware, async (req, res) => {
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      broadcast(hotelId, 'food_added', item);
+      // ✅ FIX: Use food_upd event name
+      broadcast(hotelId, 'food_upd', item, req.clientId);
       return res.status(201).json({ success: true, message: 'Food item added (offline)', data: item });
     }
 
@@ -1154,7 +1234,8 @@ app.post('/api/food', authMiddleware, async (req, res) => {
 
     const result = await db.collection('food').insertOne(item);
     item._id = result.insertedId;
-    broadcast(hotelId, 'food_added', item);
+    // ✅ FIX: Use food_upd event name
+    broadcast(hotelId, 'food_upd', item, req.clientId);
     res.status(201).json({ success: true, message: 'Food item added', data: item });
   } catch (error) {
     console.error('Food create error:', error);
@@ -1180,7 +1261,8 @@ app.put('/api/food/:id', authMiddleware, async (req, res) => {
         image,
         updatedAt: new Date()
       };
-      broadcast(hotelId, 'food_updated', updatedItem);
+      // ✅ FIX: Use food_upd event name
+      broadcast(hotelId, 'food_upd', updatedItem, req.clientId);
       return res.json({ success: true, message: 'Food item updated (offline)', data: updatedItem });
     }
 
@@ -1204,7 +1286,8 @@ app.put('/api/food/:id', authMiddleware, async (req, res) => {
     }
 
     const updatedItem = await db.collection('food').findOne({ _id: new ObjectId(id) });
-    broadcast(hotelId, 'food_updated', updatedItem);
+    // ✅ FIX: Use food_upd event name
+    broadcast(hotelId, 'food_upd', updatedItem, req.clientId);
     res.json({ success: true, message: 'Food item updated', data: updatedItem });
   } catch (error) {
     console.error('Food update error:', error);
@@ -1218,7 +1301,8 @@ app.delete('/api/food/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
 
     if (!dbConnected) {
-      broadcast(hotelId, 'food_deleted', { id, hotelId });
+      // ✅ FIX: Use food_upd event name with deleted marker
+      broadcast(hotelId, 'food_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Food item deleted (offline)' });
     }
 
@@ -1227,7 +1311,8 @@ app.delete('/api/food/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Food item not found' });
     }
 
-    broadcast(hotelId, 'food_deleted', { id, hotelId });
+    // ✅ FIX: Use food_upd event name with deleted marker
+    broadcast(hotelId, 'food_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Food item deleted' });
   } catch (error) {
     console.error('Food delete error:', error);
@@ -1235,7 +1320,7 @@ app.delete('/api/food/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== INVENTORY CRUD ====================
+// ==================== INVENTORY CRUD (FIXED BROADCAST EVENTS) ====================
 app.get('/api/inventory', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1271,7 +1356,8 @@ app.post('/api/inventory', authMiddleware, async (req, res) => {
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      broadcast(hotelId, 'inventory_added', item);
+      // ✅ FIX: Use inventory_upd event name
+      broadcast(hotelId, 'inventory_upd', item, req.clientId);
       return res.status(201).json({ success: true, message: 'Inventory item added (offline)', data: item });
     }
 
@@ -1290,7 +1376,8 @@ app.post('/api/inventory', authMiddleware, async (req, res) => {
 
     const result = await db.collection('inventory').insertOne(item);
     item._id = result.insertedId;
-    broadcast(hotelId, 'inventory_added', item);
+    // ✅ FIX: Use inventory_upd event name
+    broadcast(hotelId, 'inventory_upd', item, req.clientId);
     res.status(201).json({ success: true, message: 'Inventory item added', data: item });
   } catch (error) {
     console.error('Inventory create error:', error);
@@ -1323,7 +1410,8 @@ app.put('/api/inventory/:id', authMiddleware, async (req, res) => {
         else updateData.status = 'in-stock';
       }
       const updatedItem = { _id: id, hotelId, ...updateData };
-      broadcast(hotelId, 'inventory_updated', updatedItem);
+      // ✅ FIX: Use inventory_upd event name
+      broadcast(hotelId, 'inventory_upd', updatedItem, req.clientId);
       return res.json({ success: true, message: 'Inventory item updated (offline)', data: updatedItem });
     }
 
@@ -1356,7 +1444,8 @@ app.put('/api/inventory/:id', authMiddleware, async (req, res) => {
     }
 
     const updatedItem = await db.collection('inventory').findOne({ _id: new ObjectId(id) });
-    broadcast(hotelId, 'inventory_updated', updatedItem);
+    // ✅ FIX: Use inventory_upd event name
+    broadcast(hotelId, 'inventory_upd', updatedItem, req.clientId);
     res.json({ success: true, message: 'Inventory item updated', data: updatedItem });
   } catch (error) {
     console.error('Inventory update error:', error);
@@ -1370,7 +1459,8 @@ app.delete('/api/inventory/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
 
     if (!dbConnected) {
-      broadcast(hotelId, 'inventory_deleted', { id, hotelId });
+      // ✅ FIX: Use inventory_upd event name with deleted marker
+      broadcast(hotelId, 'inventory_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Inventory item deleted (offline)' });
     }
 
@@ -1379,7 +1469,8 @@ app.delete('/api/inventory/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Inventory item not found' });
     }
 
-    broadcast(hotelId, 'inventory_deleted', { id, hotelId });
+    // ✅ FIX: Use inventory_upd event name with deleted marker
+    broadcast(hotelId, 'inventory_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Inventory item deleted' });
   } catch (error) {
     console.error('Inventory delete error:', error);
@@ -1387,7 +1478,7 @@ app.delete('/api/inventory/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== SERVICE REQUESTS CRUD ====================
+// ==================== SERVICE REQUESTS CRUD (FIXED BROADCAST EVENTS) ====================
 app.get('/api/requests', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1434,7 +1525,8 @@ app.post('/api/requests', authMiddleware, async (req, res) => {
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      broadcast(hotelId, 'request_added', request);
+      // ✅ FIX: Use req_new event name that frontend expects
+      broadcast(hotelId, 'req_new', request, req.clientId);
       return res.status(201).json({ success: true, message: 'Request submitted (offline)', data: request });
     }
 
@@ -1457,7 +1549,8 @@ app.post('/api/requests', authMiddleware, async (req, res) => {
 
     const result = await db.collection('requests').insertOne(request);
     request._id = result.insertedId;
-    broadcast(hotelId, 'request_added', request);
+    // ✅ FIX: Use req_new event name
+    broadcast(hotelId, 'req_new', request, req.clientId);
     res.status(201).json({ success: true, message: 'Request submitted', data: request });
   } catch (error) {
     console.error('Request create error:', error);
@@ -1481,7 +1574,8 @@ app.put('/api/requests/:id', authMiddleware, async (req, res) => {
         notes: notes ? (notes + '\n[' + new Date().toISOString() + ']') : undefined,
         updatedAt: new Date()
       };
-      broadcast(hotelId, 'request_updated', updatedRequest);
+      // ✅ FIX: Use req_upd event name
+      broadcast(hotelId, 'req_upd', updatedRequest, req.clientId);
       return res.json({ success: true, message: 'Request updated (offline)', data: updatedRequest });
     }
 
@@ -1503,7 +1597,8 @@ app.put('/api/requests/:id', authMiddleware, async (req, res) => {
     }
 
     const updatedRequest = await db.collection('requests').findOne({ _id: new ObjectId(id) });
-    broadcast(hotelId, 'request_updated', updatedRequest);
+    // ✅ FIX: Use req_upd event name
+    broadcast(hotelId, 'req_upd', updatedRequest, req.clientId);
     res.json({ success: true, message: 'Request updated', data: updatedRequest });
   } catch (error) {
     console.error('Request update error:', error);
@@ -1517,7 +1612,8 @@ app.delete('/api/requests/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
 
     if (!dbConnected) {
-      broadcast(hotelId, 'request_deleted', { id, hotelId });
+      // ✅ FIX: Use req_upd event name with deleted marker
+      broadcast(hotelId, 'req_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Request deleted (offline)' });
     }
 
@@ -1526,7 +1622,8 @@ app.delete('/api/requests/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Request not found' });
     }
 
-    broadcast(hotelId, 'request_deleted', { id, hotelId });
+    // ✅ FIX: Use req_upd event name with deleted marker
+    broadcast(hotelId, 'req_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Request deleted' });
   } catch (error) {
     console.error('Request delete error:', error);
@@ -1534,7 +1631,7 @@ app.delete('/api/requests/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== SETTINGS ====================
+// ==================== SETTINGS (FIXED BROADCAST EVENTS) ====================
 app.get('/api/settings', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1588,13 +1685,14 @@ app.put('/api/settings', authMiddleware, async (req, res) => {
     const settings = req.body;
     if (!dbConnected) {
       const updatedSettings = { ...settings, hotelId, updatedAt: new Date() };
-      broadcast(hotelId, 'settings_update', {
+      // ✅ FIX: Use cfg_upd event name that frontend expects
+      broadcast(hotelId, 'cfg_upd', {
         hotelName: updatedSettings.hotelName,
         currencySymbol: updatedSettings.currencySymbol,
         wifiPassword: updatedSettings.wifiPassword,
         language: updatedSettings.language,
         theme: updatedSettings.theme
-      });
+      }, req.clientId);
       return res.json({ success: true, message: 'Settings saved (offline)', data: updatedSettings });
     }
     const updateData = { ...settings, hotelId, updatedAt: new Date() };
@@ -1604,13 +1702,14 @@ app.put('/api/settings', authMiddleware, async (req, res) => {
       { upsert: true }
     );
     const updatedSettings = await db.collection('settings').findOne({ hotelId });
-    broadcast(hotelId, 'settings_update', {
+    // ✅ FIX: Use cfg_upd event name
+    broadcast(hotelId, 'cfg_upd', {
       hotelName: updatedSettings.hotelName,
       currencySymbol: updatedSettings.currencySymbol,
       wifiPassword: updatedSettings.wifiPassword,
       language: updatedSettings.language,
       theme: updatedSettings.theme
-    });
+    }, req.clientId);
     res.json({ success: true, message: 'Settings saved', data: updatedSettings });
   } catch (error) {
     console.error('Settings save error:', error);
