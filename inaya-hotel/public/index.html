@@ -12,6 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- ✅ FIX: Use backend-served socket.io instead of CDN to avoid timeout -->
 <script src="/socket.io/socket.io.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -315,6 +316,7 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 <button class="tb-btn" onclick="setLang('hi')" id="lb-hi">🇮 हि</button>
 <button class="tb-btn" onclick="setLang('ar')" id="lb-ar">🇸🇦 ع</button>
 <button class="tb-btn" onclick="toggleOnlineMode()" id="onlineBtn" title="Toggle Online/Offline">🟢 Online</button>
+<!-- ✅ FIX ISSUE 1: Added 🔆 icon and ensured toggleContrast works -->
 <button class="tb-btn" onclick="toggleContrast()" title="Toggle High Contrast">🔆</button>
 <button class="tb-btn" onclick="adjustFont(-1)" title="Decrease Font">A-</button>
 <button class="tb-btn" onclick="adjustFont(0)" title="Reset Font">A</button>
@@ -348,6 +350,7 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 <div class="login-sub" data-i18n="welcomeSubtitle">Complete Management System</div>
 <div class="conn-status" style="justify-content:center">
 <div class="conn-dot connecting" id="loginConnDot"></div>
+<!-- ✅ FIX ISSUE 4: Will be updated dynamically to "Connected" or "Live" -->
 <span id="loginConnTxt" data-i18n="connecting">Connecting to server…</span>
 </div>
 <div id="loginClock" class="login-clock"></div>
@@ -410,13 +413,15 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 </div>
 <div id="modals"></div>
 <script>
+// ✅ FIX: Dynamic API/SOCKET URLs based on current origin (Multi-device sync)
 const API_BASE = window.API_BASE || (window.location.origin + '/api');
-const SOCKET_URL = window.location.origin;
+const SOCKET_URL = window.location.origin; // ✅ Dynamic socket URL for multi-device
 const urlParams = new URLSearchParams(location.search);
 let HID = urlParams.get('hotel') || localStorage.getItem('hotel_hid') || 'default';
 if (urlParams.get('hotel')) localStorage.setItem('hotel_hid', HID);
 document.getElementById('tenantLabel').textContent = `Hotel ID: ${HID}`;
 
+// ✅ FIX ISSUE 6: Added comprehensive translation keys for all toast notifications
 const T = {
 en:{
 hotelName:'Crown Plaza Hotel',welcomeSubtitle:'Complete Management System',connecting:'Connecting to server…',
@@ -492,6 +497,7 @@ notifOrderTitle:'Order Placed',notifOrderBody:'Your food order has been placed s
 notifBookingTitle:'Booking Confirmed',notifBookingBody:'Your booking has been confirmed!',
 notifInventoryTitle:'Item Requested',notifInventoryBody:'Your item request has been submitted!',
 notifCabTitle:'Cab Booked',notifCabBody:'Your cab has been booked successfully!',
+// ✅ New Toast Keys
 highContrastOn:'🔆 High contrast ON',highContrastOff:'🔆 High contrast OFF',
 fontDecreased:'Font decreased',fontIncreased:'Font increased',fontReset:'Font reset to 16px',
 serverConnected:'Connected',serverConnecting:'Connecting…',serverOffline:'Offline',
@@ -553,7 +559,7 @@ low:'🟢 कम',medium:'🟡 मध्यम',high:'🔴 अधिक',
 airportTx:'✈️ एयरपोर्ट',localCab:'🚕 लोकल कैब',
 unblock:'✅ अनब्लॉक',block:'🚫 ब्लॉक',
 generating:'QR बना रहे हैं…',genAll:'🔄 सभी बनाएं',download:'⬇️ डाउनलोड',
-online:'🟢 ऑनलाइन',offline:'📴 ऑफलाइन',reconnecting:'🔄 पुन जुड़ रहा…',
+online:'🟢 ऑनलाइन',offline:'📴 ऑफलाइन',reconnecting:'🔄 पुनः जुड़ रहा…',
 svcRoomCleaning:'कमरा सफाई',svcExtraTowels:'अतिरिक्त तौलिए',svcBedMaking:'बिस्तर बनाना',svcMiniBar:'मिनी बार रिस्टॉक',svcLaundryPickup:'लॉन्ड्री पिकअप',
 svcACRepair:'एसी मरम्मत',svcPlumbing:'प्लंबिंग',svcElectrical:'बिजली',svcTVInternet:'टीवी/इंटरनेट',svcFurnitureFix:'फर्नीचर फिक्स',
 svcRoomService:'रूम सर्विस',svcTableBooking:'टेबल बुकिंग',svcSpecialDiet:'विशेष आहार',svcComplaint:'शिकायत',svcCompliment:'प्रशंसा',
@@ -687,10 +693,12 @@ menuUpdatedLive:'تم تحديث القائمة مباشرة!'
 }};
 function t(k){return T[lang]?.[k] || T.en[k] || k}
 
+// Global state
 let lang='en', dark=false, fontSize=16, brightness=1, theme='default', highContrast=false;
+// ✅ Currency System Setup - Now supports custom currencies with multi-device sync
 const CURRENCIES = {
 INR: { symbol: '₹', rate: 83.50, flag: '🇮🇳', custom: false },
-SAR: { symbol: '﷼', rate: 3.75, flag: '🇸', custom: false },
+SAR: { symbol: '﷼', rate: 3.75, flag: '🇸🇦', custom: false },
 AED: { symbol: 'د.إ', rate: 3.67, flag: '🇦🇪', custom: false },
 USD: { symbol: '$', rate: 1.00, flag: '🇺🇸', custom: false },
 KWD: { symbol: 'د.ك', rate: 0.31, flag: '🇰🇼', custom: false }
@@ -703,6 +711,7 @@ wifi:'CrownPlaza@2024',
 airportPrice:115,
 localPrice:60
 };
+// Base price in SAR (used for conversion logic)
 const BASE_PRICE_SAR = {
 airport: 115,
 local: 60
@@ -715,11 +724,15 @@ let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let notificationPermission = 'default';
 let voicesLoaded = false;
 let socket=null;
+// ✅ MULTI-DEVICE FIX: Unique clientId for each device/tab
 const clientId = 'client_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+// ✅ MULTI-DEVICE FIX: Track processed events to prevent duplicates
 const processedEvents = new Set();
 let lastSyncToken = null;
+// ✅ MULTI-DEVICE FIX: Offline queue for actions when disconnected
 const offlineQueue = [];
 
+// Services mapping
 const SERVICES = {
 'Housekeeping':[
 {key:'Room Cleaning',en:'Room Cleaning',hi:'कमरा सफाई',ar:'تنظيف الغرفة'},
@@ -783,6 +796,7 @@ const ROLES = [
 {key:'it_support',icon:'💻',label:'roleIT'}
 ];
 
+// SECTION 1: 50 ROOMS (101 to 150)
 function generateDefaultRooms() {
 const types = ['Standard', 'Deluxe', 'Suite'];
 const basePricesSAR = { Standard: 371, Deluxe: 484, Suite: 746 };
@@ -805,6 +819,7 @@ _version: 1
 return rooms;
 }
 
+// SECTION 2: 25 INVENTORY ITEMS
 function generateDefaultInventory() {
 return [
 { _id: 'inv_1', name: 'Towels', category: 'Amenities', stock: 150, unit: 'pcs', min: 50, hotelId: HID, _version: 1 },
@@ -835,6 +850,7 @@ return [
 ];
 }
 
+// SECTION 3: 25 FOOD ITEMS (SAR PRICES)
 function generateDefaultFood() {
 return [
 { _id: 'f_1', name: 'Burger', price: 45, basePriceSAR: 45, category: 'Main Course', emoji: '🍔', hotelId: HID, _version: 1 },
@@ -865,6 +881,7 @@ return [
 ];
 }
 
+// SECTION 4: CURRENCY CONVERSION
 function convertPrice(baseSARPrice) {
 const targetRate = CURRENCIES[HotelCfg.currency]?.rate || 3.75;
 const baseRate = 3.75;
@@ -877,6 +894,7 @@ const formattedNum = Number(converted.toFixed(2));
 return `${symbol}${formattedNum}`;
 }
 
+// ✅ MULTI-DEVICE FIX: API Calls to MongoDB with retry + hotelId header + HTML error detection
 async function apiCall(method, path, body=null, retries=3){
 if(!isOnline) return null;
 const opts={method, headers:{'Content-Type':'application/json','x-hotel-id':HID,'x-client-id':clientId}};
@@ -884,12 +902,13 @@ if(body) opts.body=JSON.stringify(body);
 for(let i=0; i<retries; i++){
 try{
 const r=await fetch(API_BASE+path, opts);
+// ✅ FIX: Check if response is HTML (error page) instead of JSON
 const contentType = r.headers.get('content-type');
 if(contentType && !contentType.includes('application/json')){
 const text = await r.text();
 if(text.startsWith('<!DOCTYPE') || text.startsWith('<html')){
 console.warn(`⚠️ API returned HTML instead of JSON for ${path}. Falling back to localStorage.`);
-return null;
+return null; // Trigger localStorage fallback
 }
 }
 if(!r.ok) throw new Error(r.statusText);
@@ -905,22 +924,27 @@ await new Promise(res=>setTimeout(res, 1000*(i+1)));
 return null;
 }
 
+// ✅ MULTI-DEVICE FIX: Save with versioning, broadcasting, and offline queue
 function save(collection, data, event='data_upd'){
+// Add version and timestamp for conflict resolution
 if(Array.isArray(data)){
 data = data.map(item => ({...item, _version: (item._version||0)+1, updatedAt: new Date().toISOString()}));
 }else{
 data = {...data, _version: (data._version||0)+1, updatedAt: new Date().toISOString()};
 }
+// Always save to localStorage first for instant restore
 saveLS();
+// Queue for offline or send immediately if online
 if(isOnline && socket?.connected){
 socket.emit(event,{hotelId:HID, collection, data, clientId, syncToken: Date.now()});
 }else{
 offlineQueue.push({collection, data, event, timestamp: Date.now()});
 updateNetBadge('queued');
-saveLS();
+saveLS(); // Save queue to localStorage too
 }
 }
 
+// ✅ MULTI-DEVICE FIX: Safe merge to prevent race conditions
 function safeMerge(target, source, collection){
 if(!source || !target) return target;
 if(Array.isArray(source) && Array.isArray(target)){
@@ -960,8 +984,10 @@ logs=get(`h_${HID}_logs`,[]);
 bookings=get(`h_${HID}_bookings`,[]);
 const cfg=get(`h_${HID}_cfg`,{});
 if(Object.keys(cfg).length) Object.assign(HotelCfg,cfg);
+// ✅ Load custom currencies if saved
 const customCurrencies = get(`h_${HID}_custom_currencies`, {});
 Object.assign(CURRENCIES, customCurrencies);
+// ✅ MULTI-DEVICE FIX: Load offline queue
 const queue = get(`h_${HID}_queue`, []);
 if(queue.length) offlineQueue.push(...queue);
 renderAll();
@@ -980,17 +1006,21 @@ localStorage.setItem(`h_${HID}_staff`,JSON.stringify(staff));
 localStorage.setItem(`h_${HID}_logs`,JSON.stringify(logs));
 localStorage.setItem(`h_${HID}_bookings`,JSON.stringify(bookings));
 localStorage.setItem(`h_${HID}_cfg`,JSON.stringify(HotelCfg));
+// ✅ Save custom currencies
 const customCurrencies = {};
 Object.keys(CURRENCIES).forEach(code => {
 if(CURRENCIES[code].custom) customCurrencies[code] = CURRENCIES[code];
 });
 localStorage.setItem(`h_${HID}_custom_currencies`, JSON.stringify(customCurrencies));
+// ✅ MULTI-DEVICE FIX: Save offline queue
 localStorage.setItem(`h_${HID}_queue`, JSON.stringify(offlineQueue));
 if(currentUser) localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
 }
 
+// ✅ MULTI-DEVICE FIX: Enhanced Socket.IO with room management and deduplication
 function initSocket(){
 try{
+// ✅ FIX: Use dynamic socket URL
 socket = io(SOCKET_URL, {
 transports:['websocket','polling'],
 auth:{hotelId:HID, clientId},
@@ -1000,8 +1030,10 @@ reconnectionDelayMax:5000
 socket.on('connect',()=>{
 setSockStatus('connected');
 updateNetBadge('online');
+// ✅ MULTI-DEVICE FIX: Join hotel-specific room
 socket.emit('join_hotel', HID);
 showToast('🔗 Connected to Server','socket');
+// ✅ MULTI-DEVICE FIX: Process offline queue on reconnect
 if(offlineQueue.length){
 showToast(`🔄 Syncing ${offlineQueue.length} pending actions...`,'socket');
 offlineQueue.forEach(item => {
@@ -1016,6 +1048,7 @@ syncBack();
 socket.on('disconnect',()=>{setSockStatus('disconnected');updateNetBadge('offline')});
 socket.on('connect_error',()=>{setSockStatus('error');updateNetBadge('offline')});
 socket.on('reconnecting',()=>{setSockStatus('connecting');updateNetBadge('reconnecting')});
+// ✅ MULTI-DEVICE FIX: Event deduplication with syncToken
 socket.on('sync_all', (data)=>{
 if(data.syncToken && processedEvents.has(data.syncToken)) return;
 if(data.syncToken) processedEvents.add(data.syncToken);
@@ -1030,6 +1063,7 @@ if(data.reviews) reviews = safeMerge(reviews, data.reviews, 'reviews');
 if(data.staff) staff = safeMerge(staff, data.staff, 'staff');
 if(data.logs) logs = safeMerge(logs, data.logs, 'logs');
 if(data.bookings) bookings = safeMerge(bookings, data.bookings, 'bookings');
+// ✅ MULTI-DEVICE FIX: Targeted re-renders instead of full renderAll
 if(data.rooms) renderRooms();
 if(data.guests) renderGuests();
 if(data.food) {renderFood(); renderGuestFood();}
@@ -1046,6 +1080,7 @@ showToast('🔄 Data synced from Server','socket');
 socket.on('cfg_upd',(cfg)=>{
 if(cfg.syncToken && processedEvents.has(cfg.syncToken)) return;
 if(cfg.syncToken) processedEvents.add(cfg.syncToken);
+// ✅ FIX: Properly merge currency rates from server
 if(cfg.currencies) {
 Object.assign(CURRENCIES, cfg.currencies);
 }
@@ -1057,6 +1092,7 @@ socket.on('currency_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
+// ✅ FIX: Update currency rates from other devices
 if(payload.currencies) {
 Object.assign(CURRENCIES, payload.currencies);
 applyCfg();
@@ -1066,6 +1102,7 @@ showToast('💱 Currency rates updated from Server','socket');
 socket.on('req_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
+// Ignore events from same client
 if(payload.clientId === clientId) return;
 const req = payload.data;
 if(!requests.find(r=>r._id===req._id)) requests.unshift(req);
@@ -1081,6 +1118,7 @@ const idx = requests.findIndex(r=>r._id===req._id);
 if(idx>-1) requests[idx]=safeMerge(requests[idx], req, 'requests');
 else requests.unshift(req);
 renderRequests(); updateGuestStats();
+// ✅ FIX ISSUE 5: Update guest history when reply is received
 if(currentUser?.type==='guest') {
 renderGuestHistory();
 if(req.adminReply) showToast('👑 ' + (t('replyReceived') || 'You have a new reply from Admin'), 'success');
@@ -1106,14 +1144,18 @@ if(idx>-1) inventory[idx]=safeMerge(inventory[idx], item, 'inventory');
 else inventory.push(item);
 renderInventory(); renderGuestInv();
 });
+// ✅ FIX: Added missing food_upd Socket Listener - NOW HANDLES BOTH ARRAY AND SINGLE OBJECT
 socket.on('food_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const f = payload.data;
+// ✅ FIX: Handle both array (from delete/bulk) and single object (from add/edit)
 if(Array.isArray(f)) {
+// Full array update (e.g., from delFood which sends filtered array)
 food = safeMerge(food, f, 'food');
 } else {
+// Single item update (e.g., from addDish)
 const idx=food.findIndex(x=>x._id===f._id);
 if(idx>-1) food[idx]=safeMerge(food[idx], f, 'food');
 else food.push(f);
@@ -1166,6 +1208,7 @@ updateNetBadge('offline');
 }
 }
 
+// ✅ MULTI-DEVICE FIX: Background sync with versioning
 async function syncBack(){
 if(!isOnline) return;
 const [r,g,f,inv,req,bl,maint,rev,st,lg,bk] = await Promise.all([
@@ -1237,6 +1280,7 @@ showToast('📴 Offline mode - using localStorage','warning');
 }
 }
 
+// SECTION 8: LANGUAGE CHANGE - INSTANT
 function setLang(l){
 lang=l;
 document.documentElement.lang=l;
@@ -1248,6 +1292,7 @@ localStorage.setItem('hotel_lang',l);
 ['lb-en','lb-hi','lb-ar'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
 document.getElementById(`lb-${l}`)?.classList.add('active');
 applyI18n();
+// Instant UI Rebuild
 if(document.getElementById('adminDash') && !document.getElementById('adminDash').classList.contains('hidden')) {
 buildAdminTabs();
 }
@@ -1277,6 +1322,7 @@ document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
 localStorage.setItem('hotel_dark',dark?'1':'0');
 }
 
+// ✅ FIX ISSUE 2: Font Size Buttons actually change the font size now
 function adjustFont(d){
 let currentSize = parseInt(document.body.style.fontSize) || 16;
 if(d === 0) {
@@ -1286,13 +1332,16 @@ currentSize = Math.max(12, currentSize - 2);
 } else if (d === 1) {
 currentSize = Math.min(24, currentSize + 2);
 }
+// Apply to both html and body to ensure all elements scale
 document.documentElement.style.fontSize = currentSize + 'px';
 document.body.style.fontSize = currentSize + 'px';
 localStorage.setItem('hotel_font', currentSize);
+
 let msg = '';
 if(d === 0) msg = t('fontReset') || 'Font reset to 16px';
 else if(d === -1) msg = (t('fontDecreased') || 'Font decreased') + `: ${currentSize}px`;
 else if(d === 1) msg = (t('fontIncreased') || 'Font increased') + `: ${currentSize}px`;
+
 showToast(msg, 'success');
 }
 
@@ -1304,6 +1353,7 @@ const slider=document.getElementById('brightSlider');
 if(slider) slider.value=v;
 }
 
+// ✅ FIX ISSUE 1: Brightness Circle Button toggles high contrast
 function toggleContrast(){
 highContrast=!highContrast;
 document.body.classList.toggle('high-contrast',highContrast);
@@ -1327,6 +1377,7 @@ document.getElementById('themeDD').classList.remove('show');
 
 function toggleThemeDD(){document.getElementById('themeDD').classList.toggle('show')}
 
+// ✅ FIX ISSUE 3: Notification Button properly requests and handles permissions
 function reqNotif(){
 if(!('Notification' in window)){
 showToast(t('notifNotSupported'),'error');
@@ -1364,10 +1415,13 @@ showToast('📳 Haptic not supported','warning');
 }
 }
 
+// ✅ NEW: Browser Notification Helper for Guest Actions
 function sendGuestNotification(titleKey, bodyKey) {
 const title = t(titleKey);
 const body = t(bodyKey);
+// Show in-app toast always
 showToast(`🔔 ${body}`, 'success');
+// Show browser notification if permitted
 if ('Notification' in window && Notification.permission === 'granted') {
 try {
 const notif = new Notification(`👑 ${title}`, {
@@ -1378,20 +1432,24 @@ tag: 'guest-action-' + Date.now(),
 requireInteraction: false,
 silent: false
 });
+// Auto close after 5 seconds
 setTimeout(() => notif.close(), 5000);
 } catch(e) {
 console.warn('Notification error:', e);
 }
 } else if ('Notification' in window && Notification.permission === 'default') {
+// Request permission for future
 Notification.requestPermission().then(p => {
 notificationPermission = p;
 });
 }
+// Vibrate if supported
 if (navigator.vibrate) {
 navigator.vibrate([100, 50, 100]);
 }
 }
 
+// SECTION 6: VOICE SPEECH - COMPLETE FIX
 function speakText(text) {
 if(!('speechSynthesis' in window)) return;
 const utterance=new SpeechSynthesisUtterance(text);
@@ -1405,11 +1463,21 @@ if(preferred) utterance.voice=preferred;
 window.speechSynthesis.cancel();
 window.speechSynthesis.speak(utterance);
 }
-function speakWelcome(){speakText(t('welcomeMsg'));}
-function speakRequestSubmitted(){speakText(t('requestSubmitted'));}
-function speakOrderPlaced(){speakText(t('orderPlaced'));}
-function speakBookingConfirmed(){speakText(t('bookingConfirmedMsg'));}
-function speakItemAdded(){speakText(t('itemAdded'));}
+function speakWelcome(){
+speakText(t('welcomeMsg'));
+}
+function speakRequestSubmitted(){
+speakText(t('requestSubmitted'));
+}
+function speakOrderPlaced(){
+speakText(t('orderPlaced'));
+}
+function speakBookingConfirmed(){
+speakText(t('bookingConfirmedMsg'));
+}
+function speakItemAdded(){
+speakText(t('itemAdded'));
+}
 if('speechSynthesis' in window){
 window.speechSynthesis.onvoiceschanged=()=>{voicesLoaded=true;};
 }
@@ -1418,6 +1486,7 @@ function loadUIPrefs(){
 lang=localStorage.getItem('hotel_lang')||'en';
 dark=localStorage.getItem('hotel_dark')==='1';
 highContrast=localStorage.getItem('hotel_contrast')==='1';
+// ✅ FIX ISSUE 2: Load saved font size properly
 const savedFont = parseInt(localStorage.getItem('hotel_font')) || 16;
 brightness=parseFloat(localStorage.getItem('hotel_bright')||'1');
 theme=localStorage.getItem('hotel_theme')||'default';
@@ -1427,13 +1496,13 @@ document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
 const slider=document.getElementById('brightSlider');
 if(slider) slider.value=brightness;
 setBrightness(brightness);
+// Apply font size to both html and body
 document.documentElement.style.fontSize = savedFont + 'px';
 document.body.style.fontSize = savedFont + 'px';
 setTheme(theme);
 setLang(lang);
 }
 
-// ✅ FIX: applyCfg function to update cab prices and other settings in real-time
 function applyCfg(){
 ['loginHotelName','aHotelName','gHotelName'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=HotelCfg.name});
 const wEl=document.getElementById('gWifiDisplay');if(wEl)wEl.textContent=HotelCfg.wifi;
@@ -1446,7 +1515,6 @@ renderFood();
 renderGuestFood();
 renderRooms();
 renderBookRoomRooms();
-// ✅ Update cab dropdown with current prices
 if(document.getElementById('cabType')){
 const cabSelect=document.getElementById('cabType');
 cabSelect.innerHTML=`
@@ -1554,6 +1622,7 @@ showToast(`Logged in as ${t(rName)}`,'success');
 function backToLogin(){showPage('loginPage')}
 
 function logout(){
+// ✅ MULTI-DEVICE FIX: Leave hotel room on logout
 if(socket?.connected) socket.emit('leave_hotel', HID);
 localStorage.removeItem(`h_${HID}_session`);
 currentUser=null;cart=[];
@@ -1561,6 +1630,7 @@ showPage('loginPage');
 showToast('Logged out','success');
 }
 
+// ✅ CHANGE 6 & MULTI-DEVICE: Proper session restoration with data persistence
 async function checkSession(){
 loadLS();
 const s=localStorage.getItem(`h_${HID}_session`);
@@ -1898,6 +1968,7 @@ updateAdminStats();updateGuestStats();
 renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
 }
 
+// ✅ MULTI-DEVICE FIX: Targeted DOM updates with data-id
 function renderRooms(){
 const tbody=document.getElementById('roomsTbody');if(!tbody)return;
 tbody.innerHTML=rooms.map(r=>`
@@ -2023,6 +2094,7 @@ showToast('✅ '+t('reqSubmitted'),'success');
 addLog('Admin Request',`${dept} - ${svc}`);
 }
 
+// ✅ FIX ISSUE 5: Admin Reply to Guest working with timestamp and toast
 function sendAdminReply(reqId){
 const input=document.getElementById(`adminReply-${reqId}`);
 if(!input) return;
@@ -2418,9 +2490,9 @@ requests.unshift(req);
 save('requests',req,'req_new');
 renderRequests();updateGuestStats();renderGuestHistory();
 e.target.reset();updateServices();
+// ✅ FIX ISSUE 6: Toast notification for guest request
 showToast('✅ ' + (t('reqSubmitted') || 'Request submitted successfully'), 'success');
 speakRequestSubmitted();
-sendGuestNotification('notifRequestTitle', 'notifRequestBody');
 addLog('New Request',`${currentUser.name} - ${dept}`);
 if(prio==='emergency') showToast('🚨 Emergency alert sent to staff!','error');
 }
@@ -2447,6 +2519,7 @@ el.innerHTML=inventory.map(i=>`
 </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
 }
 
+// ✅ FIX ISSUE 5: Guest History now shows Admin Reply with timestamp
 function renderGuestHistory(){
 const el=document.getElementById('gHistList');if(!el||!currentUser)return;
 const myReqs=requests.filter(r=>r.guestName===currentUser.name&&r.roomNumber==currentUser.room);
@@ -2498,11 +2571,13 @@ cart=[];
 const cEl=document.getElementById('cartItems'),tEl=document.getElementById('cartTotal');
 if(cEl)cEl.innerHTML='';if(tEl)tEl.textContent='0';
 renderRequests();updateGuestStats();renderGuestHistory();
+// ✅ FIX ISSUE 6: Toast notification for guest order
 showToast('🍽️ ' + (t('orderPlacedToast') || 'Order placed successfully'), 'success');
 speakOrderPlaced();
 sendGuestNotification('notifOrderTitle', 'notifOrderBody');
 }
 
+// ✅ FIX ISSUE 6: Toast notification for inventory request + voice
 function reqInvItem(name){
 const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUser.room,department:'Housekeeping',description:`Item Request: ${name}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID, _version:1};
 requests.unshift(req);save('requests',req,'req_new');
@@ -2521,6 +2596,7 @@ const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUs
 requests.unshift(req);save('requests',req,'req_new');
 renderRequests();updateGuestStats();
 e.target.reset();
+// ✅ FIX ISSUE 6: Toast notification for cab booking
 showToast('🚗 ' + (t('bookingConfirmedToast') || 'Booking confirmed') + '!','success');
 speakBookingConfirmed();
 sendGuestNotification('notifCabTitle', 'notifCabBody');
@@ -2534,6 +2610,7 @@ if(req){
 req.status=status;req.updatedAt=new Date().toISOString();
 save('requests',req,'req_upd');
 renderRequests();updateGuestStats();renderGuestHistory();
+// ✅ FIX ISSUE 6: Toast notification for request status change
 showToast('✅ ' + (t('reqStatusUpdated') || 'Request status updated to ') + status,'success');
 }
 }
@@ -2546,6 +2623,7 @@ if(confirm('Delete?')){
 rooms=rooms.filter(r=>r._id!==id);
 save('rooms',rooms,'room_upd');
 renderRooms();updateAdminStats();
+// ✅ FIX ISSUE 6: Toast notification for room delete
 showToast('✅ ' + (t('roomDeleted') || 'Room deleted successfully'), 'success');
 }
 }
@@ -2594,6 +2672,7 @@ if(g){
 g.status=g.status==='blocked'?'active':'blocked';
 save('guests',guests,'guest_upd');
 renderGuests();
+// ✅ FIX ISSUE 6: Toast notification for block/unblock
 showToast('✅ ' + (g.status==='blocked' ? (t('guestBlocked')||'Guest blocked successfully') : (t('guestUnblocked')||'Guest unblocked successfully')),'success');
 }
 }
@@ -2644,6 +2723,7 @@ renderFood();renderGuestFood();
 function delFood(id){
 if(confirm('Delete?')){
 food=food.filter(f=>f._id!==id);
+// ✅ FIX: delFood now sends 'food_upd' event for real-time multi-device sync
 save('food',food,'food_upd');
 renderFood();renderGuestFood();
 showToast('✅ ' + (t('foodDeleted') || 'Food item deleted successfully'), 'success');
@@ -2660,6 +2740,7 @@ if(i.stock<=i.min) showToast('⚠️ Low stock: '+i.name,'warning');
 }
 }
 
+// ✅ FIX: Edit Inventory Item Function
 function editInventory(id){
 const item=inventory.find(x=>x._id===id);
 if(!item) return;
@@ -2838,6 +2919,7 @@ function exportReport(){const t=document.getElementById('rptType')?.value||'repo
 function exportLogs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(logs),'Logs');XLSX.writeFile(wb,`logs-${Date.now()}.xlsx`);showToast('✅ Logs exported','success')}
 function clearLogs(){if(confirm('Clear all logs?')){logs=[];save('logs',logs);renderLogs();showToast('✅ Logs cleared','success')}}
 
+// ✅ FIX: Currency Edit Modal Functions - NOW WITH MULTI-DEVICE SYNC
 function openAddCurrencyModal(){
 openModal('infoModal');
 document.getElementById('infoModalTitle').textContent = '➕ Add New Currency';
@@ -2846,7 +2928,7 @@ document.getElementById('infoModalBody').innerHTML = `
 <div class="form-row"><label class="lbl">Currency Code (e.g., EUR)</label><input class="inp" id="newCurCode" maxlength="3" required placeholder="EUR"></div>
 <div class="form-row"><label class="lbl">Symbol (e.g., €)</label><input class="inp" id="newCurSymbol" required placeholder="€"></div>
 <div class="form-row"><label class="lbl">Rate per 1 USD</label><input class="inp" id="newCurRate" type="number" step="0.01" required placeholder="0.95"></div>
-<div class="form-row"><label class="lbl">Flag Emoji</label><input class="inp" id="newCurFlag" placeholder="🇪"></div>
+<div class="form-row"><label class="lbl">Flag Emoji</label><input class="inp" id="newCurFlag" placeholder="🇪🇺"></div>
 <div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit">💾 Save</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('infoModal')">Cancel</button>
@@ -2865,6 +2947,7 @@ if(!code||!symbol||isNaN(rate)){showToast('Fill all fields','error');return}
 if(CURRENCIES[code]){showToast('Currency already exists','error');return}
 CURRENCIES[code]={symbol,rate,flag,custom:true};
 saveLS();
+// ✅ MULTI-DEVICE FIX: Broadcast currency change to all devices
 if(isOnline && socket?.connected){
 socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
 }
@@ -2880,6 +2963,7 @@ if(confirm(`Delete ${code}?`)){
 delete CURRENCIES[code];
 if(HotelCfg.currency===code) HotelCfg.currency='USD';
 saveLS();
+// ✅ MULTI-DEVICE FIX: Broadcast currency change to all devices
 if(isOnline && socket?.connected){
 socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
 }
@@ -2916,6 +3000,7 @@ CURRENCIES[code].rate = parseFloat(input.value);
 }
 });
 saveLS();
+// ✅ MULTI-DEVICE FIX: Broadcast currency rate changes to all devices
 if(isOnline && socket?.connected){
 socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
 }
@@ -2939,6 +3024,7 @@ HotelCfg.localPrice=parseInt(document.getElementById('cfgLocal')?.value)||60;
 saveLS();
 if(isOnline){apiCall('PUT','/config',HotelCfg);if(socket?.connected) socket.emit('cfg_upd',{hotelId:HID,...HotelCfg, syncToken:Date.now()})}
 applyCfg();
+// ✅ FIX ISSUE 6: Toast notification for settings change
 showToast('⚙️ ' + (t('settingsSaved') || 'Settings saved successfully'),'success');
 addLog('Config Update',field);
 }
@@ -3007,6 +3093,7 @@ save('bookings',booking,'booking_new');
 renderGuestBookings();renderAdminBookings();
 e.target.reset();
 document.getElementById('bookingTotalPrice').textContent='0';
+// ✅ FIX ISSUE 6: Toast notification for room booking
 showToast('📅 ' + (t('roomBooked') || 'Room booked successfully') + '!','success');
 speakBookingConfirmed();
 sendGuestNotification('notifBookingTitle', 'notifBookingBody');
@@ -3110,7 +3197,7 @@ const idx=bookings.findIndex(b=>b._id===id);
 if(idx>-1){
 const b=bookings[idx];
 bookings.splice(idx,1);
-save('bookings',bookings);
+save('bookings',bookings,'booking_upd');
 renderAdminBookings();renderGuestBookings();
 showToast('✅ Booking deleted','success');
 addLog('Delete Booking',`${b.guestName}`);
@@ -3398,6 +3485,7 @@ function quickCheckout(){showToast('🚪 Quick Checkout opened','success')}
 function newAdminRequest(){showAdminTab('requests');showToast('📝 New Request form opened','success')}
 function viewAdminReports(){showAdminTab('reports');showToast('📈 Reports opened','success')}
 
+// ✅ WEATHER UPDATE FIX: Live weather simulation with REAL-TIME updates every 30 seconds
 let weatherData = { temp: 28, desc: 'Sunny', icon: '🌤️', humidity: 45, wind: 12 };
 const weatherConditions = [
 { icon: '🌤️', desc: 'Sunny', descHi: 'धूप', descAr: 'مشمس', tempMin: 25, tempMax: 38 },
@@ -3413,7 +3501,9 @@ const weatherConditions = [
 ];
 
 function updateWeather(){
+// Pick a random weather condition
 const condition = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
+// Generate realistic temperature within the condition's range
 const temp = condition.tempMin + Math.floor(Math.random() * (condition.tempMax - condition.tempMin));
 const humidity = 30 + Math.floor(Math.random() * 50);
 const wind = 5 + Math.floor(Math.random() * 25);
@@ -3427,12 +3517,15 @@ humidity: humidity,
 wind: wind,
 updateTime: new Date()
 };
+// Get localized description
 const localizedDesc = lang === 'hi' ? condition.descHi : lang === 'ar' ? condition.descAr : condition.desc;
+// Format update time
 const timeStr = weatherData.updateTime.toLocaleTimeString(lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'ar-SA', {
 hour: '2-digit',
 minute: '2-digit',
 timeZone: userTimezone
 });
+// Update admin weather display with animation
 const adminCard = document.getElementById('adminWeatherCard');
 const adminTemp = document.getElementById('weatherTemp');
 const adminDesc = document.getElementById('weatherDesc');
@@ -3444,9 +3537,10 @@ if(adminIcon) adminIcon.textContent = condition.icon;
 if(adminTime) adminTime.textContent = `🕐 Updated: ${timeStr}`;
 if(adminCard) {
 adminCard.classList.remove('weather-update-flash');
-void adminCard.offsetWidth;
+void adminCard.offsetWidth; // Trigger reflow
 adminCard.classList.add('weather-update-flash');
 }
+// Update guest weather display with animation
 const guestCard = document.getElementById('guestWeatherCard');
 const guestTemp = document.getElementById('gWeatherTemp');
 const guestDesc = document.getElementById('gWeatherDesc');
@@ -3458,14 +3552,16 @@ if(guestIcon) guestIcon.textContent = condition.icon;
 if(guestTime) guestTime.textContent = `🕐 Updated: ${timeStr} | 💧 ${humidity}% | 💨 ${wind} km/h`;
 if(guestCard) {
 guestCard.classList.remove('weather-update-flash');
-void guestCard.offsetWidth;
+void guestCard.offsetWidth; // Trigger reflow
 guestCard.classList.add('weather-update-flash');
 }
 console.log(`🌤️ Weather updated: ${temp}°C, ${localizedDesc}, Humidity: ${humidity}%, Wind: ${wind} km/h`);
 }
 
+// ✅ FIX: Update weather every 30 seconds for real-time feel (was 2 minutes before)
 setInterval(updateWeather, 30000);
 
+// ✅ MULTI-DEVICE FIX: Initialize with proper order and clientId
 function init(){
 loadUIPrefs();
 buildModals();
@@ -3476,7 +3572,7 @@ tickClock();
 initSocket();
 checkSession();
 renderAll();
-updateWeather();
+updateWeather(); // Initial weather update
 const onlineBtn=document.getElementById('onlineBtn');
 if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
 setInterval(saveLS, 15000);
@@ -3484,7 +3580,9 @@ window.addEventListener('beforeunload', saveLS);
 }
 init();
 
+// ✅ ADD THIS at the end of the script for better debugging:
 window.addEventListener('load', async () => {
+// Test API connectivity on load
 try {
 const test = await fetch(API_BASE + '/health', { method: 'GET', headers: { 'x-hotel-id': HID } });
 if(!test.ok) throw new Error('Health check failed');
