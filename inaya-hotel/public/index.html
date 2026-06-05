@@ -249,10 +249,12 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 [dir="rtl"] .req-card.emergency{border-right-color:#ef4444}
 [lang="ar"]{font-family:'Noto Naskh Arabic','DM Sans',sans-serif}
 [lang="hi"]{font-family:'Noto Sans Devanagari','DM Sans',sans-serif}
-.weather-card{background:linear-gradient(135deg,#60a5fa,#3b82f6);color:#fff;border-radius:12px;padding:12px;text-align:center}
-.weather-icon{font-size:32px;margin-bottom:4px}
-.weather-temp{font-size:24px;font-weight:700}
-.weather-desc{font-size:13px;opacity:.9}
+.weather-card{background:linear-gradient(135deg,#60a5fa,#3b82f6);color:#fff;border-radius:12px;padding:12px;text-align:center;transition:all 0.5s ease}
+.weather-icon{font-size:32px;margin-bottom:4px;transition:all 0.5s ease}
+.weather-temp{font-size:24px;font-weight:700;transition:all 0.5s ease}
+.weather-desc{font-size:13px;opacity:.9;transition:all 0.5s ease}
+.weather-update-flash{animation:weatherFlash 0.8s ease}
+@keyframes weatherFlash{0%{transform:scale(1)}50%{transform:scale(1.05);box-shadow:0 0 20px rgba(96,165,250,0.6)}100%{transform:scale(1)}}
 .quick-action{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;cursor:pointer;transition:all .15s}
 .quick-action:hover{border-color:var(--p1);transform:translateY(-2px)}
 .quick-icon{font-size:20px;margin-bottom:4px}
@@ -485,7 +487,12 @@ markPresent:'✓ Present',markAbsent:'✗ Absent',applyLeave:'Apply Leave',
 approve:'Approve',reject:'Reject',leaveReason:'Leave Reason',
 tasksCompleted:'Tasks',performance:'Performance',online:'Online',offline:'Offline',
 onLeave:'On Leave',onDuty:'On Duty',
-bookRoom:'📅 Book Room',selectRoom:'Select Room',checkIn:'Check-in',checkOut:'Check-out',numGuests:'Number of Guests',totalPrice:'Total Price',nights:'night(s)',bookingConfirmed:'Booking confirmed! Booking ID:',myBookings:'My Bookings',bookingStatus:'Status',pending:'Pending',confirmed:'Confirmed',checkedIn:'Checked-in',checkedOut:'Checked-out',cancelled:'Cancelled',requestSubmitted:'Request submitted',orderPlaced:'Order placed successfully',bookingConfirmedMsg:'Booking confirmed',itemAdded:'Item added successfully',changesSaved:'Changes saved',welcomeMsg:'Welcome to Complete Hotel Management System'
+bookRoom:'📅 Book Room',selectRoom:'Select Room',checkIn:'Check-in',checkOut:'Check-out',numGuests:'Number of Guests',totalPrice:'Total Price',nights:'night(s)',bookingConfirmed:'Booking confirmed! Booking ID:',myBookings:'My Bookings',bookingStatus:'Status',pending:'Pending',confirmed:'Confirmed',checkedIn:'Checked-in',checkedOut:'Checked-out',cancelled:'Cancelled',requestSubmitted:'Request submitted',orderPlaced:'Order placed successfully',bookingConfirmedMsg:'Booking confirmed',itemAdded:'Item added successfully',changesSaved:'Changes saved',welcomeMsg:'Welcome to Complete Hotel Management System',
+notifRequestTitle:'Request Submitted',notifRequestBody:'Your request has been submitted successfully!',
+notifOrderTitle:'Order Placed',notifOrderBody:'Your food order has been placed successfully!',
+notifBookingTitle:'Booking Confirmed',notifBookingBody:'Your booking has been confirmed!',
+notifInventoryTitle:'Item Requested',notifInventoryBody:'Your item request has been submitted!',
+notifCabTitle:'Cab Booked',notifCabBody:'Your cab has been booked successfully!'
 },
 hi:{
 hotelName:'क्राउन प्लाज़ा होटल',welcomeSubtitle:'संपूर्ण प्रबंधन प्रणाली',connecting:'सर्वर से जुड़ रहे हैं…',
@@ -555,7 +562,12 @@ markPresent:'✓ उपस्थित',markAbsent:'✗ अनुपस्थि
 approve:'स्वीकार',reject:'अस्वीकार',leaveReason:'छुट्टी का कारण',
 tasksCompleted:'कार्य',performance:'प्रदर्शन',online:'ऑनलाइन',offline:'ऑफलाइन',
 onLeave:'छुट्टी पर',onDuty:'ड्यूटी पर',
-bookRoom:'📅 कमरा बुक करें',selectRoom:'कमरा चुनें',checkIn:'चेक-इन',checkOut:'चेक-आउट',numGuests:'अतिथियों की संख्या',totalPrice:'कुल कीमत',nights:'रात(ें)',bookingConfirmed:'बुकिंग कन्फर्म! बुकिंग आईडी:',myBookings:'मेरी बुकिंग',bookingStatus:'स्थिति',pending:'लंबित',confirmed:'कन्फर्म',checkedIn:'चेक-इन',checkedOut:'चेक-आउट',cancelled:'रद्द',requestSubmitted:'अनुरोध सबमिट किया गया',orderPlaced:'ऑर्डर सफलतापूर्वक रखा गया',bookingConfirmedMsg:'बुकिंग पुष्टि हुई',itemAdded:'आइटम सफलतापूर्वक जोड़ा गया',changesSaved:'बदलाव सेव हो गए',welcomeMsg:'कम्पलीट होटल मैनेजमेंट सिस्टम में आपका स्वागत है'
+bookRoom:'📅 कमरा बुक करें',selectRoom:'कमरा चुनें',checkIn:'चेक-इन',checkOut:'चेक-आउट',numGuests:'अतिथियों की संख्या',totalPrice:'कुल कीमत',nights:'रात(ें)',bookingConfirmed:'बुकिंग कन्फर्म! बुकिंग आईडी:',myBookings:'मेरी बुकिंग',bookingStatus:'स्थिति',pending:'लंबित',confirmed:'कन्फर्म',checkedIn:'चेक-इन',checkedOut:'चेक-आउट',cancelled:'रद्द',requestSubmitted:'अनुरोध सबमिट किया गया',orderPlaced:'ऑर्डर सफलतापूर्वक रखा गया',bookingConfirmedMsg:'बुकिंग पुष्टि हुई',itemAdded:'आइटम सफलतापूर्वक जोड़ा गया',changesSaved:'बदलाव सेव हो गए',welcomeMsg:'कम्पलीट होटल मैनेजमेंट सिस्टम में आपका स्वागत है',
+notifRequestTitle:'अनुरोध सबमिट हुआ',notifRequestBody:'आपका अनुरोध सफलतापूर्वक सबमिट हो गया है!',
+notifOrderTitle:'ऑर्डर रखा गया',notifOrderBody:'आपका भोजन ऑर्डर सफलतापूर्वक रखा गया है!',
+notifBookingTitle:'बुकिंग कन्फर्म',notifBookingBody:'आपकी बुकिंग कन्फर्म हो गई है!',
+notifInventoryTitle:'आइटम अनुरोधित',notifInventoryBody:'आपका आइटम अनुरोध सबमिट हो गया है!',
+notifCabTitle:'कैब बुक हुई',notifCabBody:'आपकी कैब सफलतापूर्वक बुक हो गई है!'
 },
 ar:{
 hotelName:'فندق كراون بلازا',welcomeSubtitle:'نظام الإدارة الكامل',connecting:'جارٍ الاتصال…',
@@ -625,7 +637,12 @@ markPresent:'✓ حاضر',markAbsent:'✗ غائب',applyLeave:'طلب إجاز
 approve:'موافقة',reject:'رفض',leaveReason:'سبب الإجازة',
 tasksCompleted:'المهام',performance:'الأداء',online:'متصل',offline:'غير متصل',
 onLeave:'في إجازة',onDuty:'في الخدمة',
-bookRoom:'📅 حجز غرفة',selectRoom:'اختر الغرفة',checkIn:'تسجيل الوصول',checkOut:'تسجيل المغادرة',numGuests:'عدد الضيوف',totalPrice:'السعر الإجمالي',nights:'ليلة(ليالي)',bookingConfirmed:'تم تأكيد الحجز! معرف الحجز:',myBookings:'حجوزاتي',bookingStatus:'الحالة',pending:'معلق',confirmed:'مؤكد',checkedIn:'تم تسجيل الوصول',checkedOut:'تم تسجيل المغادرة',cancelled:'ملغي',requestSubmitted:'تم إرسال الطلب',orderPlaced:'تم وضع الطلب بنجاح',bookingConfirmedMsg:'تم تأكيد الحجز',itemAdded:'تمت إضافة العنصر بنجاح',changesSaved:'تم حفظ التغييرات',welcomeMsg:'مرحبا بكم في نظام إدارة الفنادق الكامل'
+bookRoom:'📅 حجز غرفة',selectRoom:'اختر الغرفة',checkIn:'تسجيل الوصول',checkOut:'تسجيل المغادرة',numGuests:'عدد الضيوف',totalPrice:'السعر الإجمالي',nights:'ليلة(ليالي)',bookingConfirmed:'تم تأكيد الحجز! معرف الحجز:',myBookings:'حجوزاتي',bookingStatus:'الحالة',pending:'معلق',confirmed:'مؤكد',checkedIn:'تم تسجيل الوصول',checkedOut:'تم تسجيل المغادرة',cancelled:'ملغي',requestSubmitted:'تم إرسال الطلب',orderPlaced:'تم وضع الطلب بنجاح',bookingConfirmedMsg:'تم تأكيد الحجز',itemAdded:'تمت إضافة العنصر بنجاح',changesSaved:'تم حفظ التغييرات',welcomeMsg:'مرحبا بكم في نظام إدارة الفنادق الكامل',
+notifRequestTitle:'تم إرسال الطلب',notifRequestBody:'تم إرسال طلبك بنجاح!',
+notifOrderTitle:'تم تقديم الطلب',notifOrderBody:'تم تقديم طلب الطعام بنجاح!',
+notifBookingTitle:'تم تأكيد الحجز',notifBookingBody:'تم تأكيد حجزك بنجاح!',
+notifInventoryTitle:'تم طلب العنصر',notifInventoryBody:'تم إرسال طلب العنصر بنجاح!',
+notifCabTitle:'تم حجز السيارة',notifCabBody:'تم حجز سيارتك بنجاح!'
 }};
 function t(k){return T[lang]?.[k] || T.en[k] || k}
 // Global state
@@ -1062,17 +1079,25 @@ if(idx>-1) inventory[idx]=safeMerge(inventory[idx], item, 'inventory');
 else inventory.push(item);
 renderInventory(); renderGuestInv();
 });
-// ✅ FIX: Added missing food_upd Socket Listener
+// ✅ FIX: Added missing food_upd Socket Listener - NOW HANDLES BOTH ARRAY AND SINGLE OBJECT
 socket.on('food_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const f = payload.data;
+// ✅ FIX: Handle both array (from delete/bulk) and single object (from add/edit)
+if(Array.isArray(f)) {
+// Full array update (e.g., from delFood which sends filtered array)
+food = safeMerge(food, f, 'food');
+} else {
+// Single item update (e.g., from addDish)
 const idx=food.findIndex(x=>x._id===f._id);
 if(idx>-1) food[idx]=safeMerge(food[idx], f, 'food');
 else food.push(f);
+}
 renderFood();
 renderGuestFood();
+showToast('🍽️ Food menu updated live!','socket');
 });
 socket.on('review_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1288,6 +1313,40 @@ showToast('📳 '+t('haptic'),'success');
 showToast('📳 Haptic not supported','warning');
 }
 }
+// ✅ NEW: Browser Notification Helper for Guest Actions
+function sendGuestNotification(titleKey, bodyKey) {
+    const title = t(titleKey);
+    const body = t(bodyKey);
+    // Show in-app toast always
+    showToast(`🔔 ${body}`, 'success');
+    // Show browser notification if permitted
+    if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+            const notif = new Notification(`👑 ${title}`, {
+                body: body,
+                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="80" font-size="80">👑</text></svg>',
+                badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="80" font-size="80">👑</text></svg>',
+                tag: 'guest-action-' + Date.now(),
+                requireInteraction: false,
+                silent: false
+            });
+            // Auto close after 5 seconds
+            setTimeout(() => notif.close(), 5000);
+        } catch(e) {
+            console.warn('Notification error:', e);
+        }
+    } else if ('Notification' in window && Notification.permission === 'default') {
+        // Request permission for future
+        Notification.requestPermission().then(p => {
+            notificationPermission = p;
+        });
+    }
+    // Vibrate if supported
+    if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+    }
+}
+
 // SECTION 6: VOICE SPEECH - COMPLETE FIX
 function speakText(text) {
 if(!('speechSynthesis' in window)) return;
@@ -1541,10 +1600,11 @@ case 'overview': return `
 <div class="card"><h4 style="margin-bottom:8px;font-size:12px;color:var(--p1)">🏨 Occupancy</h4><canvas id="occChart" height="140"></canvas></div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-<div class="weather-card">
-<div class="weather-icon">🌤️</div>
+<div class="weather-card" id="adminWeatherCard">
+<div class="weather-icon" id="weatherIcon">🌤️</div>
 <div class="weather-temp" id="weatherTemp">28°C</div>
 <div class="weather-desc" data-i18n="weather" id="weatherDesc">Weather</div>
+<div style="font-size:10px;opacity:.7;margin-top:4px" id="weatherUpdateTime">Updated just now</div>
 </div>
 <div class="currency-card">
 <div style="font-weight:600;margin-bottom:4px" data-i18n="currency">Currency</div>
@@ -2188,10 +2248,11 @@ panes.innerHTML=`
 <div style="display:flex;justify-content:center;padding:4px 0;font-size:12px"><span>💪 Gym</span><span>6AM–10PM</span></div>
 <div style="display:flex;justify-content:center;padding:4px 0;font-size:12px"><span data-i18n="checkoutTime">🕐 Checkout</span><span>11:00 AM</span></div>
 </div>
-<div class="weather-card" style="margin-bottom:8px">
+<div class="weather-card" style="margin-bottom:8px" id="guestWeatherCard">
 <div class="weather-icon" id="weatherIcon">🌤️</div>
 <div class="weather-temp" id="gWeatherTemp">28°C</div>
 <div class="weather-desc" data-i18n="weather" id="gWeatherDesc">Weather in ${userTimezone.split('/')[1]||'Your City'}</div>
+<div style="font-size:10px;opacity:.7;margin-top:4px" id="guestWeatherUpdateTime">Updated just now</div>
 </div>
 <div class="currency-card" style="margin-bottom:8px">
 <div style="font-weight:600;margin-bottom:4px" data-i18n="currency">Quick Currency</div>
@@ -2286,6 +2347,8 @@ renderRequests();updateGuestStats();renderGuestHistory();
 e.target.reset();updateServices();
 showToast('✅ '+t('requestSubmitted'),'success');
 speakRequestSubmitted();
+// ✅ NEW: Send browser notification for guest request
+sendGuestNotification('notifRequestTitle', 'notifRequestBody');
 addLog('New Request',`${currentUser.name} - ${dept}`);
 if(prio==='emergency') showToast('🚨 Emergency alert sent to staff!','error');
 }
@@ -2358,12 +2421,19 @@ if(cEl)cEl.innerHTML='';if(tEl)tEl.textContent='0';
 renderRequests();updateGuestStats();renderGuestHistory();
 showToast('🍽️ '+t('orderPlaced'),'success');
 speakOrderPlaced();
+// ✅ NEW: Send browser notification for guest order
+sendGuestNotification('notifOrderTitle', 'notifOrderBody');
 }
+// ✅ FIX: reqInvItem now speaks "request submitted" in user's language
 function reqInvItem(name){
 const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUser.room,department:'Housekeeping',description:`Item Request: ${name}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID, _version:1};
 requests.unshift(req);save('requests',req,'req_new');
 renderRequests();updateGuestStats();
 showToast(`📦 ${name} requested — 10 min delivery`,'success');
+// ✅ NEW: Speak "request submitted" in user's language (English/Hindi/Arabic)
+speakRequestSubmitted();
+// ✅ NEW: Send browser notification for inventory request
+sendGuestNotification('notifInventoryTitle', 'notifInventoryBody');
 }
 function bookCab(e){
 e.preventDefault();
@@ -2376,6 +2446,8 @@ renderRequests();updateGuestStats();
 e.target.reset();
 showToast('🚗 '+t('bookingConfirmedMsg')+'!','success');
 speakBookingConfirmed();
+// ✅ NEW: Send browser notification for cab booking
+sendGuestNotification('notifCabTitle', 'notifCabBody');
 }
 function copyWifi(){navigator.clipboard.writeText(HotelCfg.wifi).then(()=>showToast('📶 WiFi copied!','success'))}
 function updReqStatus(id,status){
@@ -2385,7 +2457,8 @@ if(req){req.status=status;req.updatedAt=new Date().toISOString();save('requests'
 function delReq(id){if(confirm('Delete?')){requests=requests.filter(r=>r._id!==id);save('requests',requests);renderRequests();updateAdminStats()}}
 function exportReqs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(requests),'Requests');XLSX.writeFile(wb,`requests-${Date.now()}.xlsx`);showToast('Exported!','success')}
 function delRoom(id){if(confirm('Delete?')){rooms=rooms.filter(r=>r._id!==id);save('rooms',rooms);renderRooms();updateAdminStats()}}
-function delFood(id){if(confirm('Delete?')){food=food.filter(f=>f._id!==id);save('food',food);renderFood();renderGuestFood();showToast('Dish deleted','success');}}
+// ✅ FIX: delFood now sends 'food_upd' event for real-time multi-device sync
+function delFood(id){if(confirm('Delete?')){food=food.filter(f=>f._id!==id);save('food',food,'food_upd');renderFood();renderGuestFood();showToast('Dish deleted','success');}}
 function editRoom(id){
 const r=rooms.find(x=>x._id===id);if(!r)return;
 openModal('roomModal');
@@ -2432,6 +2505,7 @@ document.getElementById('mFEmoji').value=f.emoji||'';
 document.getElementById('mFCat').value=f.category;
 document.getElementById('foodModal').dataset.editId=id;
 }
+// ✅ FIX: addDish now sends 'food_upd' event for real-time multi-device sync
 function addDish(e){
 e.preventDefault();
 const editId=document.getElementById('foodModal')?.dataset?.editId;
@@ -2440,14 +2514,14 @@ if(editId){
 const idx=food.findIndex(f=>f._id===editId);
 if(idx>-1){
 food[idx]={...food[idx],...dishData, _version:(food[idx]._version||0)+1, updatedAt:new Date().toISOString()};
-save('food',food[idx]);
+save('food',food[idx],'food_upd');
 showToast('✅ '+t('changesSaved'),'success');
 }else{
 showToast('Dish not found','error');
 }
 }else{
 const dish={_id:'f_'+Date.now(),...dishData, _version:1, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()};
-food.push(dish);save('food',dish);
+food.push(dish);save('food',dish,'food_upd');
 showToast('✅ '+t('itemAdded'),'success');
 speakItemAdded();
 }
@@ -2725,6 +2799,8 @@ e.target.reset();
 document.getElementById('bookingTotalPrice').textContent='0';
 showToast('📅 '+t('bookingConfirmedMsg')+'!','success');
 speakBookingConfirmed();
+// ✅ NEW: Send browser notification for room booking
+sendGuestNotification('notifBookingTitle', 'notifBookingBody');
 addLog('New Booking',`${currentUser.name} - Room ${room.number}`);
 }
 function renderGuestBookings(){
@@ -3011,24 +3087,10 @@ speakItemAdded();
 }
 function addInvItem(e){
 e.preventDefault();
-const editId=document.getElementById('inventoryModal')?.dataset?.editId;
-const itemData={name:document.getElementById('mIName').value,category:document.getElementById('mICat').value,stock:parseInt(document.getElementById('mIQty').value),unit:document.getElementById('mIUnit').value||'pcs',min:parseInt(document.getElementById('mIMin').value)||10,hotelId:HID};
-if(editId){
-  const idx=inventory.findIndex(i=>i._id===editId);
-  if(idx>-1){
-    inventory[idx]={...inventory[idx],...itemData, _version:(inventory[idx]._version||0)+1, updatedAt:new Date().toISOString()};
-    save('inventory',inventory[idx],'inventory_upd');
-    showToast('✅ '+t('changesSaved'),'success');
-  }
-}else{
-  const item={_id:'i_'+Date.now(),...itemData, _version:1, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()};
-  inventory.push(item);save('inventory',item,'inventory_upd');
-  showToast('✅ '+t('itemAdded'),'success');
-  speakItemAdded();
-}
-closeModal('inventoryModal');
-if(document.getElementById('inventoryModal').dataset) delete document.getElementById('inventoryModal').dataset.editId;
-renderInventory();renderGuestInv();
+const item={_id:'i_'+Date.now(),name:document.getElementById('mIName').value,category:document.getElementById('mICat').value,stock:parseInt(document.getElementById('mIQty').value),unit:document.getElementById('mIUnit').value||'pcs',min:parseInt(document.getElementById('mIMin').value)||10,hotelId:HID, _version:1};
+inventory.push(item);save('inventory',item,'inventory_upd');closeModal('inventoryModal');renderInventory();renderGuestInv();
+showToast('✅ '+t('itemAdded'),'success');
+speakItemAdded();
 }
 function addToBlacklist(e){
 e.preventDefault();
@@ -3090,35 +3152,90 @@ function quickCheckin(){showToast('🚀 Quick Check-in opened','success');openMo
 function quickCheckout(){showToast('🚪 Quick Checkout opened','success')}
 function newAdminRequest(){showAdminTab('requests');showToast('📝 New Request form opened','success')}
 function viewAdminReports(){showAdminTab('reports');showToast('📈 Reports opened','success')}
-// ✅ WEATHER UPDATE FIX: Live weather simulation for guest page
-let weatherData = { temp: 28, desc: 'Sunny', icon: '🌤️' };
-const weatherIcons = ['🌤️','☀️','⛅','🌧️','⛈️','🌫️','🌙','🌧️'];
-const weatherDescs = ['Sunny','Clear','Partly Cloudy','Rainy','Stormy','Foggy','Night','Showers'];
+// ✅ WEATHER UPDATE FIX: Live weather simulation with REAL-TIME updates every 30 seconds
+let weatherData = { temp: 28, desc: 'Sunny', icon: '🌤️', humidity: 45, wind: 12 };
+const weatherConditions = [
+    { icon: '🌤️', desc: 'Sunny', descHi: 'धूप', descAr: 'مشمس', tempMin: 25, tempMax: 38 },
+    { icon: '☀️', desc: 'Clear Sky', descHi: 'साफ आसमान', descAr: 'سماء صافية', tempMin: 28, tempMax: 42 },
+    { icon: '⛅', desc: 'Partly Cloudy', descHi: 'आंशिक बादल', descAr: 'غائم جزئياً', tempMin: 22, tempMax: 32 },
+    { icon: '🌥️', desc: 'Mostly Cloudy', descHi: 'अधिक बादल', descAr: 'غائم في الغالب', tempMin: 20, tempMax: 28 },
+    { icon: '🌧️', desc: 'Light Rain', descHi: 'हल्की बारिश', descAr: 'مطر خفيف', tempMin: 18, tempMax: 25 },
+    { icon: '⛈️', desc: 'Thunderstorm', descHi: 'आंधी-तूफान', descAr: 'عاصفة رعدية', tempMin: 16, tempMax: 22 },
+    { icon: '🌫️', desc: 'Foggy', descHi: 'कोहरा', descAr: 'ضبابي', tempMin: 12, tempMax: 20 },
+    { icon: '🌙', desc: 'Clear Night', descHi: 'साफ रात', descAr: 'ليلة صافية', tempMin: 15, tempMax: 24 },
+    { icon: '🌦️', desc: 'Sun Showers', descHi: 'धूप-बारिश', descAr: 'أمطار شمسية', tempMin: 20, tempMax: 30 },
+    { icon: '💨', desc: 'Windy', descHi: 'हवा', descAr: 'عاصف', tempMin: 18, tempMax: 28 }
+];
+
 function updateWeather(){
-// Simulate live weather updates (replace with real API in production)
-const newIdx = Math.floor(Math.random() * weatherIcons.length);
-weatherData = {
-temp: 20 + Math.floor(Math.random() * 15),
-desc: weatherDescs[newIdx],
-icon: weatherIcons[newIdx]
-};
-// Update admin weather display
-const adminTemp = document.getElementById('weatherTemp');
-const adminDesc = document.getElementById('weatherDesc');
-const adminIcon = document.getElementById('weatherIcon');
-if(adminTemp) adminTemp.textContent = `${weatherData.temp}°C`;
-if(adminDesc) adminDesc.textContent = weatherData.desc;
-if(adminIcon) adminIcon.textContent = weatherData.icon;
-// Update guest weather display
-const guestTemp = document.getElementById('gWeatherTemp');
-const guestDesc = document.getElementById('gWeatherDesc');
-const guestIcon = document.getElementById('gWeatherIcon');
-if(guestTemp) guestTemp.textContent = `${weatherData.temp}°C`;
-if(guestDesc) guestDesc.textContent = weatherData.desc;
-if(guestIcon) guestIcon.textContent = weatherData.icon;
+    // Pick a random weather condition
+    const condition = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
+
+    // Generate realistic temperature within the condition's range
+    const temp = condition.tempMin + Math.floor(Math.random() * (condition.tempMax - condition.tempMin));
+    const humidity = 30 + Math.floor(Math.random() * 50);
+    const wind = 5 + Math.floor(Math.random() * 25);
+
+    weatherData = {
+        temp: temp,
+        desc: condition.desc,
+        descHi: condition.descHi,
+        descAr: condition.descAr,
+        icon: condition.icon,
+        humidity: humidity,
+        wind: wind,
+        updateTime: new Date()
+    };
+
+    // Get localized description
+    const localizedDesc = lang === 'hi' ? condition.descHi : lang === 'ar' ? condition.descAr : condition.desc;
+
+    // Format update time
+    const timeStr = weatherData.updateTime.toLocaleTimeString(lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'ar-SA', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: userTimezone
+    });
+
+    // Update admin weather display with animation
+    const adminCard = document.getElementById('adminWeatherCard');
+    const adminTemp = document.getElementById('weatherTemp');
+    const adminDesc = document.getElementById('weatherDesc');
+    const adminIcon = document.getElementById('weatherIcon');
+    const adminTime = document.getElementById('weatherUpdateTime');
+
+    if(adminTemp) adminTemp.textContent = `${temp}°C`;
+    if(adminDesc) adminDesc.textContent = localizedDesc;
+    if(adminIcon) adminIcon.textContent = condition.icon;
+    if(adminTime) adminTime.textContent = `🕐 Updated: ${timeStr}`;
+    if(adminCard) {
+        adminCard.classList.remove('weather-update-flash');
+        void adminCard.offsetWidth; // Trigger reflow
+        adminCard.classList.add('weather-update-flash');
+    }
+
+    // Update guest weather display with animation
+    const guestCard = document.getElementById('guestWeatherCard');
+    const guestTemp = document.getElementById('gWeatherTemp');
+    const guestDesc = document.getElementById('gWeatherDesc');
+    const guestIcon = document.getElementById('weatherIcon');
+    const guestTime = document.getElementById('guestWeatherUpdateTime');
+
+    if(guestTemp) guestTemp.textContent = `${temp}°C`;
+    if(guestDesc) guestDesc.textContent = localizedDesc;
+    if(guestIcon) guestIcon.textContent = condition.icon;
+    if(guestTime) guestTime.textContent = `🕐 Updated: ${timeStr} | 💧 ${humidity}% | 💨 ${wind} km/h`;
+    if(guestCard) {
+        guestCard.classList.remove('weather-update-flash');
+        void guestCard.offsetWidth; // Trigger reflow
+        guestCard.classList.add('weather-update-flash');
+    }
+
+    console.log(`🌤️ Weather updated: ${temp}°C, ${localizedDesc}, Humidity: ${humidity}%, Wind: ${wind} km/h`);
 }
-// Update weather every 2 minutes
-setInterval(updateWeather, 120000);
+
+// ✅ FIX: Update weather every 30 seconds for real-time feel (was 2 minutes before)
+setInterval(updateWeather, 30000);
 // ✅ MULTI-DEVICE FIX: Initialize with proper order and clientId
 function init(){
 loadUIPrefs();
