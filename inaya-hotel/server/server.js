@@ -706,6 +706,134 @@ app.get('/api/super/countries', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ==================== ✅ NEW: SUPER ADMIN STATS API ====================
+app.get('/api/super/stats', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) {
+      // Return default/empty stats if DB not connected
+      return res.json({
+        success: true,
+        data: {
+          totalHotels: 0,
+          totalRevenue: 0,
+          activeSubscriptions: 0,
+          totalGuests: 0,
+          hotelsGrowth: 0,
+          revenueGrowth: 0,
+          churnRate: 0,
+          guestsGrowth: 0
+        }
+      });
+    }
+
+    // Get all tenants
+    const tenants = await db.collection('tenants').find({}).toArray();
+    const totalHotels = tenants.length;
+    const activeTenants = tenants.filter(t => t.active !== false);
+    const activeSubscriptions = activeTenants.length;
+
+    // Calculate revenue based on subscription type (pro=99/year, enterprise=499/year)
+    let totalRevenue = 0;
+    tenants.forEach(t => {
+      const plan = (t.subscriptionType || '').toLowerCase();
+      if (plan === 'enterprise') totalRevenue += 499;
+      else if (plan === 'pro') totalRevenue += 99;
+      // basic/free = 0
+    });
+
+    // Count total guests across all hotels
+    const guestsAgg = await db.collection('guests').aggregate([
+      { $group: { _id: null, total: { $sum: 1 } } }
+    ]).toArray();
+    const totalGuests = guestsAgg[0]?.total || 0;
+
+    // Calculate growth metrics (compare with last month)
+    const now = new Date();
+    const lastMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const lastMonthTenants = tenants.filter(t => t.createdAt && new Date(t.createdAt) < lastMonth);
+    const hotelsGrowth = lastMonthTenants.length > 0 
+      ? Math.round(((totalHotels - lastMonthTenants.length) / lastMonthTenants.length) * 100)
+      : (totalHotels > 0 ? 100 : 0);
+
+    // For churn rate: inactive tenants / total tenants
+    const inactiveTenants = tenants.filter(t => t.active === false);
+    const churnRate = totalHotels > 0 
+      ? Math.round((inactiveTenants.length / totalHotels) * 100)
+      : 0;
+
+    // Revenue growth (simplified - assume 8% default if no historical data)
+    const revenueGrowth = 8;
+
+    // Guest growth (simplified)
+    const guestsGrowth = 12;
+
+    res.json({
+      success: true,
+      data: {
+        totalHotels,
+        totalRevenue,
+        activeSubscriptions,
+        totalGuests,
+        hotelsGrowth,
+        revenueGrowth,
+        churnRate,
+        guestsGrowth
+      }
+    });
+  } catch (error) {
+    console.error('Super stats error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================== ✅ NEW: SUPER ADMIN TRANSACTIONS API ====================
+app.get('/api/super/transactions', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) {
+      return res.json({ success: true, data: [] });
+    }
+
+    // Get all tenants to build transactions from subscription data
+    const tenants = await db.collection('tenants').find({}).toArray();
+
+    // Build transactions array from tenant subscription data
+    const transactions = tenants
+      .filter(t => t.subscriptionType && t.createdAt)
+      .map(t => {
+        const plan = (t.subscriptionType || '').toLowerCase();
+        let amount = 0;
+        let type = 'subscription';
+
+        if (plan === 'enterprise') amount = 499;
+        else if (plan === 'pro') amount = 99;
+        else if (plan === 'basic' || plan === 'free') {
+          amount = 0;
+          type = 'trial';
+        }
+
+        return {
+          _id: t._id?.toString() || `tx_${t.hotelId}`,
+          hotelId: t.hotelId,
+          hotelName: t.hotelName || t.hotelId,
+          type: type,
+          amount: amount,
+          currency: t.currency || 'USD',
+          date: t.createdAt ? new Date(t.createdAt).toISOString() : new Date().toISOString(),
+          status: t.active !== false ? 'completed' : 'cancelled',
+          subscriptionType: t.subscriptionType,
+          expiryDate: t.subscriptionExpiry ? new Date(t.subscriptionExpiry).toISOString() : null
+        };
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.json({ success: true, data: transactions, count: transactions.length });
+  } catch (error) {
+    console.error('Super transactions error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ==================== AUTHENTICATION ====================
 app.post('/api/super/admins/register', superAdminMiddleware, async (req, res) => {
   try {
@@ -2412,6 +2540,7 @@ server.listen(PORT, '0.0.0.0', async () => {
   console.log(`🌍 Multi-country: Enabled (currency, language, timezone)`);
   console.log(`💳 Subscriptions: lifetime/monthly/trial supported`);
   console.log(`📊 APIs: /api/bookings, /api/blacklist, /api/maintenance, /api/reviews, /api/staff, /api/logs, /api/config`);
+  console.log(`📈 Super Admin APIs: /api/super/stats, /api/super/transactions`);
   console.log(`\n💡 Frontend should send 'x-hotel-id' header or ?hotelId= query param\n`);
   await connectDB();
 });

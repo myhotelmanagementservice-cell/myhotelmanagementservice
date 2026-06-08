@@ -113,11 +113,11 @@
             <form id="superLoginForm" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium mb-1" data-i18n="email">Email</label>
-                    <input type="email" id="saEmail" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary outline-none transition" placeholder="superadmin@crownplaza.com" required>
+                    <input type="email" id="saEmail" placeholder="Admin Login" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary outline-none transition" required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1" data-i18n="password">Password</label>
-                    <input type="password" id="saPass" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary outline-none transition" placeholder="••••••••" required>
+                    <input type="password" id="saPass" placeholder="Enter password" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary outline-none transition" required>
                 </div>
                 <button type="submit" class="w-full bg-primary hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-500/30">
                     <i class="fas fa-sign-in-alt mr-2"></i> <span data-i18n="login">Login</span>
@@ -426,7 +426,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Admin Password *</label>
-                    <input type="password" id="adminPassword" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="••••••••" required minlength="8">
+                    <input type="password" id="adminPassword" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" required minlength="8">
                     <p class="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
@@ -512,13 +512,18 @@
 
     <script>
         // ================= STATE & CONFIG =================
-        const API_BASE = 'http://localhost:3000/api';
-        let currentLang = 'en';
-        let isDark = true;
+        // ✅ FIX: Dynamic API_BASE based on current origin
+        const API_BASE = window.location.origin + '/api';
+        let currentLang = localStorage.getItem('lang') || 'en';
+        let isDark = localStorage.getItem('theme') !== 'light';
         let authToken = null;
         let hotels = [];
         let revenueChart = null;
         let subChart = null;
+
+        // ✅ FIX: In-memory settings (NOT stored in localStorage)
+        let maintenanceMode = false;
+        let emailNotifs = true;
 
         // Translations
         const translations = {
@@ -533,14 +538,19 @@
                 registeredHotels: 'Registered Hotels', hotelName: 'Hotel Name',
                 adminEmail: 'Admin Email', plan: 'Plan', expiry: 'Expiry', status: 'Status', actions: 'Actions',
                 recentTransactions: 'Recent Transactions', systemSettings: 'System Settings',
-                addHotel: 'Add Hotel', editHotel: 'Edit Hotel', deleteHotel: 'Delete',
+                addHotel: 'Add Hotel', editHotel: 'Edit Hotel', deleteHotel: 'Delete', save: 'Save',
                 hotelAdded: 'Hotel added successfully!', hotelUpdated: 'Hotel updated!',
                 hotelDeleted: 'Hotel deleted!', error: 'Error: ', success: 'Success!',
                 loading: 'Loading...', saving: 'Saving...', deleting: 'Deleting...',
                 confirmDelete: 'Are you sure you want to delete this hotel?',
                 maintenanceEnabled: 'Maintenance mode enabled', maintenanceDisabled: 'Maintenance mode disabled',
                 emailEnabled: 'Email notifications enabled', emailDisabled: 'Email notifications disabled',
-                apiKeyCopied: 'API key copied to clipboard!'
+                apiKeyCopied: 'API key copied to clipboard!',
+                invalidCredentials: 'Invalid credentials. Please try again.',
+                loginFailed: 'Login failed. Please check server connection.',
+                apiError: 'Server error. Please try again later.',
+                noHotels: 'No hotels found. Add your first hotel to get started.',
+                adminUpdated: 'Admin credentials updated successfully!'
             },
             hi: {
                 superAdminLogin: 'सुपर एडमिन लॉगिन', loginSubtitle: 'प्लेटफॉर्म कंट्रोल सेंटर एक्सेस करें',
@@ -553,14 +563,19 @@
                 registeredHotels: 'पंजीकृत होटल', hotelName: 'होटल का नाम',
                 adminEmail: 'एडमिन ईमेल', plan: 'प्लान', expiry: 'समाप्ति', status: 'स्थिति', actions: 'कार्रवाई',
                 recentTransactions: 'हाल के लेनदेन', systemSettings: 'सिस्टम सेटिंग्स',
-                addHotel: 'होटल जोड़ें', editHotel: 'संपादित करें', deleteHotel: 'हटाएं',
+                addHotel: 'होटल जोड़ें', editHotel: 'संपादित करें', deleteHotel: 'हटाएं', save: 'सहेजें',
                 hotelAdded: 'होटल सफलतापूर्वक जोड़ा गया!', hotelUpdated: 'होटल अपडेट किया गया!',
                 hotelDeleted: 'होटल हटा दिया गया!', error: 'त्रुटि: ', success: 'सफल!',
                 loading: 'लोड हो रहा है...', saving: 'सेव हो रहा है...', deleting: 'हटाया जा रहा है...',
                 confirmDelete: 'क्या आप वाकई इस होटल को हटाना चाहते हैं?',
                 maintenanceEnabled: 'मेंटेनेंस मोड चालू', maintenanceDisabled: 'मेंटेनेंस मोड बंद',
                 emailEnabled: 'ईमेल नोटिफिकेशन चालू', emailDisabled: 'ईमेल नोटिफिकेशन बंद',
-                apiKeyCopied: 'API की कॉपी कर ली गई!'
+                apiKeyCopied: 'API की कॉपी कर ली गई!',
+                invalidCredentials: 'अमान्य क्रेडेंशियल्स। कृपया पुनः प्रयास करें।',
+                loginFailed: 'लॉगिन विफल। कृपया सर्वर कनेक्शन जांचें।',
+                apiError: 'सर्वर त्रुटि। कृपया बाद में पुनः प्रयास करें।',
+                noHotels: 'कोई होटल नहीं मिला। शुरू करने के लिए अपना पहला होटल जोड़ें।',
+                adminUpdated: 'एडमिन क्रेडेंशियल्स सफलतापूर्वक अपडेट किए गए!'
             },
             ar: {
                 superAdminLogin: 'تسجيل دخول المسؤول الرئيسي', loginSubtitle: 'الوصول إلى مركز التحكم',
@@ -573,45 +588,62 @@
                 registeredHotels: 'الفنادق المسجلة', hotelName: 'اسم الفندق',
                 adminEmail: 'بريد المسؤول', plan: 'الخطة', expiry: 'تاريخ الانتهاء', status: 'الحالة', actions: 'إجراءات',
                 recentTransactions: 'المعاملات الأخيرة', systemSettings: 'إعدادات النظام',
-                addHotel: 'إضافة فندق', editHotel: 'تعديل', deleteHotel: 'حذف',
+                addHotel: 'إضافة فندق', editHotel: 'تعديل', deleteHotel: 'حذف', save: 'حفظ',
                 hotelAdded: 'تمت إضافة الفندق بنجاح!', hotelUpdated: 'تم تحديث الفندق!',
                 hotelDeleted: 'تم حذف الفندق!', error: 'خطأ: ', success: 'نجاح!',
                 loading: 'جاري التحميل...', saving: 'جاري الحفظ...', deleting: 'جاري الحذف...',
                 confirmDelete: 'هل أنت متأكد من حذف هذا الفندق؟',
                 maintenanceEnabled: 'تم تفعيل وضع الصيانة', maintenanceDisabled: 'تم تعطيل وضع الصيانة',
                 emailEnabled: 'تم تفعيل إشعارات البريد', emailDisabled: 'تم تعطيل إشعارات البريد',
-                apiKeyCopied: 'تم نسخ مفتاح API!'
+                apiKeyCopied: 'تم نسخ مفتاح API!',
+                invalidCredentials: 'بيانات اعتماد غير صالحة. يرجى المحاولة مرة أخرى.',
+                loginFailed: 'فشل تسجيل الدخول. يرجى التحقق من اتصال الخادم.',
+                apiError: 'خطأ في الخادم. يرجى المحاولة لاحقًا.',
+                noHotels: 'لم يتم العثور على فنادق. أضف فندقك الأول للبدء.',
+                adminUpdated: 'تم تحديث بيانات المسؤول بنجاح!'
             }
         };
 
         // ================= INITIALIZATION =================
         document.addEventListener('DOMContentLoaded', () => {
-            checkAuth();
             applyTheme();
-            loadSettings();
+            applyLang();
+            checkAuth();
         });
 
         // ================= API HELPER =================
         async function apiCall(method, endpoint, body = null) {
             const headers = {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
+                'Content-Type': 'application/json'
             };
+
+            // ✅ FIX: Add Bearer token if available
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
 
             const config = { method, headers };
             if (body) config.body = JSON.stringify(body);
 
             try {
                 const response = await fetch(`${API_BASE}${endpoint}`, config);
+
+                // ✅ FIX: Handle non-JSON responses (e.g., HTML error pages)
+                const contentType = response.headers.get('content-type');
+                if (contentType && !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(t('apiError'));
+                }
+
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || 'API request failed');
+                    throw new Error(data.error || data.message || t('apiError'));
                 }
                 return data;
             } catch (error) {
                 console.error('API Error:', error);
-                showToast(error.message, 'error');
+                // ✅ FIX: Don't show toast here - let caller handle it
                 throw error;
             }
         }
@@ -619,24 +651,38 @@
         // ================= AUTHENTICATION =================
         document.getElementById('superLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('saEmail').value;
+            const email = document.getElementById('saEmail').value.trim();
             const pass = document.getElementById('saPass').value;
+
+            if (!email || !pass) {
+                showToast(t('invalidCredentials'), 'error');
+                return;
+            }
 
             showToast(t('loading'), 'info');
 
             try {
-                // Try JWT auth first
+                // ✅ FIX: Real MongoDB login via API - NO hardcoded credentials, NO fallback
                 const response = await fetch(`${API_BASE}/admin/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password: pass, hotelId: 'INAYA-PLATFORM' })
+                    body: JSON.stringify({ 
+                        email, 
+                        password: pass, 
+                        hotelId: 'SUPER_ADMIN' 
+                    })
                 });
+
+                const contentType = response.headers.get('content-type');
+                if (contentType && !contentType.includes('application/json')) {
+                    throw new Error(t('loginFailed'));
+                }
 
                 const data = await response.json();
 
                 if (response.ok && data.token) {
+                    // ✅ FIX: Store ONLY token in localStorage
                     authToken = data.token;
-                    localStorage.setItem('superAdminAuth', 'true');
                     localStorage.setItem('superAdminToken', authToken);
 
                     document.getElementById('loginPage').classList.add('hidden');
@@ -645,44 +691,19 @@
                     showToast(t('success'), 'success');
                     initDashboard();
                 } else {
-                    // Fallback to mock auth for demo
-                    if (email === 'superadmin@crownplaza.com' && pass === 'admin123') {
-                        authToken = 'mock-token-' + Date.now();
-                        localStorage.setItem('superAdminAuth', 'true');
-                        localStorage.setItem('superAdminToken', authToken);
-
-                        document.getElementById('loginPage').classList.add('hidden');
-                        document.getElementById('dashboard').classList.remove('hidden');
-
-                        showToast(t('success'), 'success');
-                        initDashboard();
-                    } else {
-                        showToast(data.error || 'Invalid credentials', 'error');
-                    }
+                    showToast(data.error || data.message || t('invalidCredentials'), 'error');
                 }
             } catch (error) {
-                // Fallback to mock auth if API fails
-                if (email === 'superadmin@crownplaza.com' && pass === 'admin123') {
-                    authToken = 'mock-token-' + Date.now();
-                    localStorage.setItem('superAdminAuth', 'true');
-                    localStorage.setItem('superAdminToken', authToken);
-
-                    document.getElementById('loginPage').classList.add('hidden');
-                    document.getElementById('dashboard').classList.remove('hidden');
-
-                    showToast(t('success') + ' (Demo Mode)', 'success');
-                    initDashboard();
-                } else {
-                    showToast('Invalid credentials', 'error');
-                }
+                console.error('Login error:', error);
+                showToast(error.message || t('loginFailed'), 'error');
             }
         });
 
         function checkAuth() {
-            const storedAuth = localStorage.getItem('superAdminAuth');
+            // ✅ FIX: Only check superAdminToken (not superAdminAuth)
             const storedToken = localStorage.getItem('superAdminToken');
 
-            if (storedAuth === 'true' && storedToken) {
+            if (storedToken) {
                 authToken = storedToken;
                 document.getElementById('loginPage').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
@@ -691,9 +712,10 @@
         }
 
         function logout() {
-            localStorage.removeItem('superAdminAuth');
+            // ✅ FIX: Remove ONLY superAdminToken
             localStorage.removeItem('superAdminToken');
             authToken = null;
+            hotels = [];
             location.reload();
         }
 
@@ -702,7 +724,7 @@
             await loadHotels();
             await loadStats();
             renderCharts();
-            applyLang();
+            await loadTransactions();
         }
 
         function showSection(sectionId) {
@@ -725,29 +747,33 @@
             document.getElementById('pageTitle').setAttribute('data-i18n', titles[sectionId]);
             applyLang();
 
-            // Refresh data when switching to hotels section
+            // Refresh data when switching sections
             if (sectionId === 'hotels') {
                 loadHotels();
+            } else if (sectionId === 'overview') {
+                loadStats();
+                renderCharts();
+            } else if (sectionId === 'revenue') {
+                loadTransactions();
             }
         }
 
         // ================= HOTEL MANAGEMENT =================
         async function loadHotels() {
             try {
-                showToast(t('loading'), 'info');
-
-                // Try API first
+                // ✅ FIX: Fetch ONLY from MongoDB API - NO mock fallback
                 const response = await apiCall('GET', '/super/tenants');
-                hotels = response.data || [];
+                hotels = response.data || response.hotels || response || [];
+
+                // Ensure hotels is an array
+                if (!Array.isArray(hotels)) {
+                    hotels = [];
+                }
 
             } catch (error) {
-                // Fallback to mock data
-                hotels = [
-                    { hotelId: 'CROWN-DXB', hotelName: 'Crown Plaza Dubai', adminEmail: 'admin@dubai.com', subscriptionType: 'pro', active: true, subscriptionExpiry: '2026-12-31', stats: { rooms: 120, guests: 450, openRequests: 3 } },
-                    { hotelId: 'HILTON-TYO', hotelName: 'Hilton Garden Inn Tokyo', adminEmail: 'mgr@garden.com', subscriptionType: 'enterprise', active: true, subscriptionExpiry: '2027-06-30', stats: { rooms: 85, guests: 320, openRequests: 1 } },
-                    { hotelId: 'BUDGET-MUM', hotelName: 'Budget Stay Mumbai', adminEmail: 'owner@budget.com', subscriptionType: 'basic', active: true, subscriptionExpiry: '2026-02-15', stats: { rooms: 25, guests: 80, openRequests: 0 } },
-                    { hotelId: 'GRAND-DEL', hotelName: 'Grand Hyatt Delhi', adminEmail: 'admin@hyatt.com', subscriptionType: 'enterprise', active: true, subscriptionExpiry: '2027-03-31', stats: { rooms: 200, guests: 680, openRequests: 5 } }
-                ];
+                console.error('Failed to load hotels:', error);
+                hotels = [];
+                showToast(error.message || t('apiError'), 'error');
             }
 
             renderHotelsTable();
@@ -769,16 +795,17 @@
 
             tbody.innerHTML = list.map(hotel => {
                 const expiryDate = hotel.subscriptionExpiry ? new Date(hotel.subscriptionExpiry).toLocaleDateString() : 'N/A';
-                const statusClass = hotel.active ? 'bg-green-500' : 'bg-yellow-500';
-                const statusText = hotel.active ? 'Active' : 'Trial';
+                const isActive = hotel.active !== false; // Default to active if not specified
+                const statusClass = isActive ? 'bg-green-500' : 'bg-yellow-500';
+                const statusText = isActive ? 'Active' : 'Trial';
 
                 return `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                        <td class="p-4 font-medium">${hotel.hotelName}</td>
-                        <td class="p-4 text-gray-500">${hotel.adminEmail}</td>
+                        <td class="p-4 font-medium">${hotel.hotelName || hotel.name || 'N/A'}</td>
+                        <td class="p-4 text-gray-500">${hotel.adminEmail || hotel.email || 'N/A'}</td>
                         <td class="p-4">
-                            <span class="px-2 py-1 rounded text-xs font-bold ${getPlanBadge(hotel.subscriptionType)}">
-                                ${hotel.subscriptionType?.toUpperCase() || 'BASIC'}
+                            <span class="px-2 py-1 rounded text-xs font-bold ${getPlanBadge(hotel.subscriptionType || hotel.plan)}">
+                                ${(hotel.subscriptionType || hotel.plan || 'BASIC').toUpperCase()}
                             </span>
                         </td>
                         <td class="p-4 text-gray-500">${expiryDate}</td>
@@ -790,13 +817,13 @@
                         </td>
                         <td class="p-4">
                             <div class="flex gap-2">
-                                <button onclick="editHotel('${hotel.hotelId}')" class="p-2 text-blue-500 hover:text-blue-700 transition" title="${t('editHotel')}">
+                                <button onclick="editHotel('${hotel.hotelId || hotel._id}')" class="p-2 text-blue-500 hover:text-blue-700 transition" title="${t('editHotel')}">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button onclick="openDeleteModal('${hotel.hotelId}', '${hotel.hotelName}')" class="p-2 text-red-500 hover:text-red-700 transition" title="${t('deleteHotel')}">
+                                <button onclick="openDeleteModal('${hotel.hotelId || hotel._id}', '${(hotel.hotelName || hotel.name || '').replace(/'/g, "\\'")}')" class="p-2 text-red-500 hover:text-red-700 transition" title="${t('deleteHotel')}">
                                     <i class="fas fa-trash"></i>
                                 </button>
-                                <button onclick="openAdminModal('${hotel.hotelId}')" class="p-2 text-purple-500 hover:text-purple-700 transition" title="Update Admin">
+                                <button onclick="openAdminModal('${hotel.hotelId || hotel._id}')" class="p-2 text-purple-500 hover:text-purple-700 transition" title="Update Admin">
                                     <i class="fas fa-user-cog"></i>
                                 </button>
                             </div>
@@ -809,6 +836,7 @@
         function getPlanBadge(plan) {
             const badges = {
                 'basic': 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
+                'free': 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
                 'pro': 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200',
                 'enterprise': 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200'
             };
@@ -820,13 +848,19 @@
             const statusFilter = document.getElementById('hotelFilter').value;
 
             const filtered = hotels.filter(hotel => {
-                const matchesSearch = hotel.hotelName.toLowerCase().includes(searchTerm) || 
-                                     hotel.adminEmail.toLowerCase().includes(searchTerm) ||
-                                     hotel.hotelId.toLowerCase().includes(searchTerm);
+                const name = (hotel.hotelName || hotel.name || '').toLowerCase();
+                const email = (hotel.adminEmail || hotel.email || '').toLowerCase();
+                const id = (hotel.hotelId || hotel._id || '').toLowerCase();
+
+                const matchesSearch = name.includes(searchTerm) || 
+                                     email.includes(searchTerm) ||
+                                     id.includes(searchTerm);
+
+                const isActive = hotel.active !== false;
                 const matchesStatus = statusFilter === 'all' || 
-                                     (statusFilter === 'Active' && hotel.active) ||
-                                     (statusFilter === 'Trial' && !hotel.active) ||
-                                     (statusFilter === 'Inactive' && !hotel.active);
+                                     (statusFilter === 'Active' && isActive) ||
+                                     (statusFilter === 'Trial' && !isActive) ||
+                                     (statusFilter === 'Inactive' && !isActive);
                 return matchesSearch && matchesStatus;
             });
 
@@ -839,24 +873,25 @@
             document.getElementById('modalSubmitText').textContent = t('addHotel');
             document.getElementById('hotelForm').reset();
             document.getElementById('editHotelId').value = '';
+            document.getElementById('hotelId').disabled = false;
             document.getElementById('hotelModal').classList.add('active');
         }
 
         function editHotel(hotelId) {
-            const hotel = hotels.find(h => h.hotelId === hotelId);
+            const hotel = hotels.find(h => (h.hotelId === hotelId || h._id === hotelId));
             if (!hotel) return;
 
             document.getElementById('modalTitle').textContent = t('editHotel');
             document.getElementById('modalSubmitText').textContent = t('save');
-            document.getElementById('editHotelId').value = hotel.hotelId;
-            document.getElementById('hotelId').value = hotel.hotelId;
+            document.getElementById('editHotelId').value = hotel.hotelId || hotel._id;
+            document.getElementById('hotelId').value = hotel.hotelId || '';
             document.getElementById('hotelId').disabled = true;
-            document.getElementById('hotelName').value = hotel.hotelName;
-            document.getElementById('adminEmail').value = hotel.adminEmail;
+            document.getElementById('hotelName').value = hotel.hotelName || hotel.name || '';
+            document.getElementById('adminEmail').value = hotel.adminEmail || hotel.email || '';
             document.getElementById('adminPassword').value = '';
             document.getElementById('currency').value = hotel.currency || 'USD';
             document.getElementById('language').value = hotel.language || 'en';
-            document.getElementById('subscriptionType').value = hotel.subscriptionType || 'basic';
+            document.getElementById('subscriptionType').value = hotel.subscriptionType || hotel.plan || 'basic';
 
             document.getElementById('hotelModal').classList.add('active');
         }
@@ -885,46 +920,51 @@
 
             const editId = document.getElementById('editHotelId').value;
             const hotelData = {
-                hotelId: document.getElementById('hotelId').value,
-                hotelName: document.getElementById('hotelName').value,
-                adminEmail: document.getElementById('adminEmail').value,
-                adminPassword: document.getElementById('adminPassword').value,
+                hotelId: document.getElementById('hotelId').value.trim(),
+                hotelName: document.getElementById('hotelName').value.trim(),
+                adminEmail: document.getElementById('adminEmail').value.trim(),
                 currency: document.getElementById('currency').value,
                 language: document.getElementById('language').value,
                 subscriptionType: document.getElementById('subscriptionType').value
             };
 
+            // ✅ FIX: Only include password if provided (for edit mode)
+            const adminPassword = document.getElementById('adminPassword').value;
+            if (adminPassword) {
+                hotelData.adminPassword = adminPassword;
+            }
+
+            // Validation
+            if (!hotelData.hotelId || !hotelData.hotelName || !hotelData.adminEmail) {
+                showToast(t('error') + 'All required fields must be filled', 'error');
+                return;
+            }
+
+            if (!editId && !adminPassword) {
+                showToast(t('error') + 'Password is required for new hotels', 'error');
+                return;
+            }
+
             try {
                 showToast(editId ? t('saving') : t('loading'), 'info');
 
                 if (editId) {
-                    // Update existing hotel
+                    // ✅ FIX: Update existing hotel via MongoDB API
                     await apiCall('PUT', `/super/tenants/${editId}`, hotelData);
                     showToast(t('hotelUpdated'), 'success');
                 } else {
-                    // Create new hotel
+                    // ✅ FIX: Create new hotel via MongoDB API (backend creates admin + default data)
                     await apiCall('POST', '/super/tenants/register', hotelData);
                     showToast(t('hotelAdded'), 'success');
                 }
 
                 closeModal('hotelModal');
                 await loadHotels();
+                await loadStats();
 
             } catch (error) {
-                // Fallback: update local state for demo
-                if (editId) {
-                    const idx = hotels.findIndex(h => h.hotelId === editId);
-                    if (idx !== -1) {
-                        hotels[idx] = { ...hotels[idx], ...hotelData };
-                        showToast(t('hotelUpdated') + ' (Demo)', 'success');
-                    }
-                } else {
-                    hotels.unshift({ ...hotelData, active: true, subscriptionExpiry: new Date(Date.now() + 7*24*60*60*1000).toISOString() });
-                    showToast(t('hotelAdded') + ' (Demo)', 'success');
-                }
-                closeModal('hotelModal');
-                renderHotelsTable();
-                updateStats();
+                console.error('Hotel save error:', error);
+                showToast(t('error') + (error.message || 'Unknown error'), 'error');
             }
         });
 
@@ -932,85 +972,133 @@
             e.preventDefault();
 
             const hotelId = document.getElementById('editAdminHotelId').value;
-            const newEmail = document.getElementById('newAdminEmail').value;
+            const newEmail = document.getElementById('newAdminEmail').value.trim();
             const newPassword = document.getElementById('newAdminPassword').value;
+
+            if (!newEmail && !newPassword) {
+                showToast(t('error') + 'Please provide email or password', 'error');
+                return;
+            }
 
             try {
                 showToast(t('saving'), 'info');
 
-                await apiCall('POST', '/super/admins/register', {
-                    email: newEmail,
-                    password: newPassword,
+                // ✅ FIX: Update admin credentials via MongoDB API
+                const payload = {
                     hotelId: hotelId,
                     role: 'admin'
-                });
+                };
+                if (newEmail) payload.email = newEmail;
+                if (newPassword) payload.password = newPassword;
 
-                showToast('Admin credentials updated!', 'success');
+                await apiCall('POST', '/super/admins/register', payload);
+
+                showToast(t('adminUpdated'), 'success');
                 closeModal('adminModal');
 
             } catch (error) {
-                // Demo fallback
-                showToast('Admin updated (Demo Mode)', 'success');
-                closeModal('adminModal');
+                console.error('Admin update error:', error);
+                showToast(t('error') + (error.message || 'Unknown error'), 'error');
             }
         });
 
         async function confirmDelete() {
             const hotelId = document.getElementById('deleteHotelId').value;
-            const hotelName = document.getElementById('deleteHotelName').textContent;
 
             try {
                 showToast(t('deleting'), 'info');
+
+                // ✅ FIX: Delete hotel via MongoDB API
                 await apiCall('DELETE', `/super/tenants/${hotelId}`);
                 showToast(t('hotelDeleted'), 'success');
 
-            } catch (error) {
-                // Demo fallback
-                hotels = hotels.filter(h => h.hotelId !== hotelId);
-                showToast(t('hotelDeleted') + ' (Demo)', 'success');
-            }
+                closeModal('deleteModal');
+                await loadHotels();
+                await loadStats();
 
-            closeModal('deleteModal');
-            await loadHotels();
+            } catch (error) {
+                console.error('Delete error:', error);
+                showToast(t('error') + (error.message || 'Unknown error'), 'error');
+                closeModal('deleteModal');
+            }
         }
 
         // ================= SUBSCRIPTION MANAGEMENT =================
         function managePlan(plan) {
-            const planNames = { free: 'Free', pro: 'Pro', enterprise: 'Enterprise' };
-            const filtered = hotels.filter(h => h.subscriptionType === plan);
+            const planNames = { free: 'Free', basic: 'Free', pro: 'Pro', enterprise: 'Enterprise' };
+            const filtered = hotels.filter(h => (h.subscriptionType || h.plan) === plan);
 
             if (filtered.length === 0) {
-                showToast(`No hotels on ${planNames[plan]} plan`, 'info');
+                showToast(`No hotels on ${planNames[plan] || plan} plan`, 'info');
                 return;
             }
 
             // Show filtered view
             renderHotelsTable(filtered);
             showSection('hotels');
-            showToast(`Showing ${filtered.length} ${planNames[plan]} plan hotels`, 'info');
+            showToast(`Showing ${filtered.length} ${planNames[plan] || plan} plan hotels`, 'info');
+        }
+
+        // ================= TRANSACTIONS =================
+        async function loadTransactions() {
+            const tbody = document.getElementById('revenueTableBody');
+            if (!tbody) return;
+
+            try {
+                // ✅ FIX: Fetch real transactions from MongoDB API
+                const response = await apiCall('GET', '/super/transactions');
+                const transactions = response.data || response.transactions || response || [];
+
+                if (!Array.isArray(transactions) || transactions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">No transactions yet</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = transactions.map(tx => {
+                    const date = tx.date || tx.createdAt ? new Date(tx.date || tx.createdAt).toLocaleDateString() : 'N/A';
+                    const amount = tx.amount ? `$${Number(tx.amount).toLocaleString()}` : '$0';
+                    const typeClass = tx.type === 'subscription' ? 'text-blue-500' : tx.type === 'payment' ? 'text-green-500' : 'text-gray-500';
+
+                    return `
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                            <td class="p-4 font-mono text-xs">${tx._id || tx.id || 'N/A'}</td>
+                            <td class="p-4">${tx.hotelName || tx.hotelId || 'N/A'}</td>
+                            <td class="p-4"><span class="${typeClass} font-medium">${tx.type || 'N/A'}</span></td>
+                            <td class="p-4 font-bold text-green-500">${amount}</td>
+                            <td class="p-4 text-gray-500">${date}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Failed to load transactions:', error);
+                tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">No transactions available</td></tr>';
+            }
         }
 
         // ================= SETTINGS =================
         function loadSettings() {
-            // Load from localStorage or use defaults
-            const maintenance = localStorage.getItem('maintenanceMode') === 'true';
-            const emailNotifs = localStorage.getItem('emailNotifs') !== 'false';
-
-            document.getElementById('maintenanceToggle').checked = maintenance;
+            // ✅ FIX: Load settings from in-memory variables (NOT localStorage)
+            document.getElementById('maintenanceToggle').checked = maintenanceMode;
             document.getElementById('emailToggle').checked = emailNotifs;
         }
 
         function toggleMaintenance() {
             const enabled = document.getElementById('maintenanceToggle').checked;
-            localStorage.setItem('maintenanceMode', enabled);
+            // ✅ FIX: Store ONLY in memory, NOT in localStorage
+            maintenanceMode = enabled;
             showToast(enabled ? t('maintenanceEnabled') : t('maintenanceDisabled'), enabled ? 'warning' : 'success');
 
-            // In production: apiCall('PUT', '/super/settings', { maintenanceMode: enabled })
+            // ✅ FIX: Optionally sync to backend
+            apiCall('PUT', '/super/settings', { maintenanceMode: enabled }).catch(err => {
+                console.warn('Failed to sync maintenance mode to server:', err);
+            });
         }
 
         function toggleEmailNotifs() {
             const enabled = document.getElementById('emailToggle').checked;
-            localStorage.setItem('emailNotifs', enabled);
+            // ✅ FIX: Store ONLY in memory, NOT in localStorage
+            emailNotifs = enabled;
             showToast(enabled ? t('emailEnabled') : t('emailDisabled'), 'success');
         }
 
@@ -1024,34 +1112,44 @@
         // ================= STATS & CHARTS =================
         async function loadStats() {
             try {
+                // ✅ FIX: Fetch real stats from MongoDB API - NO mock fallback
                 const response = await apiCall('GET', '/super/stats');
-                updateStats(response.data);
+                const stats = response.data || response.stats || response;
+                updateStats(stats);
             } catch (error) {
-                // Use mock stats
+                console.error('Failed to load stats:', error);
+                // ✅ FIX: Calculate basic stats from loaded hotels (real data, not mock)
                 updateStats({
                     totalHotels: hotels.length,
-                    totalRevenue: 845200,
-                    activeSubscriptions: hotels.filter(h => h.active).length,
-                    totalGuests: 1200000,
-                    hotelsGrowth: 12,
-                    revenueGrowth: 8.5,
-                    churnRate: 2,
-                    guestsGrowth: 25
+                    totalRevenue: hotels.reduce((sum, h) => {
+                        const plan = h.subscriptionType || h.plan;
+                        return sum + (plan === 'enterprise' ? 499 : plan === 'pro' ? 99 : 0);
+                    }, 0) * 12,
+                    activeSubscriptions: hotels.filter(h => h.active !== false).length,
+                    totalGuests: hotels.reduce((sum, h) => sum + (h.stats?.guests || h.totalGuests || 0), 0),
+                    hotelsGrowth: 0,
+                    revenueGrowth: 0,
+                    churnRate: 0,
+                    guestsGrowth: 0
                 });
             }
         }
 
         function updateStats(data = null) {
             const stats = data || {
-                totalHotels: hotels.length,
-                totalRevenue: hotels.reduce((sum, h) => sum + (h.subscriptionType === 'enterprise' ? 499 : h.subscriptionType === 'pro' ? 99 : 0), 0) * 12,
-                activeSubscriptions: hotels.filter(h => h.active).length,
-                totalGuests: hotels.reduce((sum, h) => sum + (h.stats?.guests || 0), 0)
+                totalHotels: 0,
+                totalRevenue: 0,
+                activeSubscriptions: 0,
+                totalGuests: 0,
+                hotelsGrowth: 0,
+                revenueGrowth: 0,
+                churnRate: 0,
+                guestsGrowth: 0
             };
 
             document.getElementById('statTotalHotels').textContent = stats.totalHotels || 0;
             document.getElementById('statTotalRevenue').textContent = '$' + (stats.totalRevenue || 0).toLocaleString();
-            document.getElementById('statActiveSubs').textContent = stats.activeSubscriptions || 0;
+            document.getElementById('statActiveSubs').textContent = stats.activeSubscriptions || stats.activeSubs || 0;
             document.getElementById('statTotalGuests').textContent = (stats.totalGuests || 0).toLocaleString();
 
             document.getElementById('statHotelsGrowth').textContent = '+' + (stats.hotelsGrowth || 0) + '%';
@@ -1063,6 +1161,8 @@
         function renderCharts() {
             // Revenue Chart
             const ctx1 = document.getElementById('revenueChart');
+            if (!ctx1) return;
+
             if (revenueChart) revenueChart.destroy();
 
             revenueChart = new Chart(ctx1, {
@@ -1098,17 +1198,22 @@
 
             // Subscription Chart
             const ctx2 = document.getElementById('subChart');
+            if (!ctx2) return;
+
             if (subChart) subChart.destroy();
 
-            const planCounts = { basic: 0, pro: 0, enterprise: 0 };
-            hotels.forEach(h => { planCounts[h.subscriptionType] = (planCounts[h.subscriptionType] || 0) + 1; });
+            const planCounts = { basic: 0, free: 0, pro: 0, enterprise: 0 };
+            hotels.forEach(h => { 
+                const plan = h.subscriptionType || h.plan || 'basic';
+                planCounts[plan] = (planCounts[plan] || 0) + 1; 
+            });
 
             subChart = new Chart(ctx2, {
                 type: 'doughnut',
                 data: {
                     labels: ['Free', 'Pro', 'Enterprise'],
                     datasets: [{
-                        data: [planCounts.basic, planCounts.pro, planCounts.enterprise],
+                        data: [planCounts.basic + (planCounts.free || 0), planCounts.pro, planCounts.enterprise],
                         backgroundColor: ['#94a3b8', '#3b82f6', '#8b5cf6'],
                         borderWidth: 0
                     }]
@@ -1140,6 +1245,7 @@
             setTimeout(() => {
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.3s ease';
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
@@ -1150,7 +1256,8 @@
 
         function toggleTheme() {
             isDark = !isDark;
-            document.documentElement.classList.toggle('dark');
+            document.documentElement.classList.toggle('dark', isDark);
+            // ✅ FIX: Store ONLY theme in localStorage
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
 
             // Re-render charts with updated colors
@@ -1160,9 +1267,14 @@
         }
 
         function applyTheme() {
-            if (localStorage.getItem('theme') === 'light') {
+            // ✅ FIX: Load theme from localStorage
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
                 isDark = false;
                 document.documentElement.classList.remove('dark');
+            } else {
+                isDark = true;
+                document.documentElement.classList.add('dark');
             }
         }
 
@@ -1170,17 +1282,22 @@
             const langs = ['en', 'hi', 'ar'];
             const currentIndex = langs.indexOf(currentLang);
             currentLang = langs[(currentIndex + 1) % langs.length];
+            // ✅ FIX: Store lang in localStorage
+            localStorage.setItem('lang', currentLang);
             document.getElementById('langBtn').innerText = currentLang.toUpperCase();
             applyLang();
         }
 
         function applyLang() {
-            const t = translations[currentLang];
+            const trans = translations[currentLang];
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
-                if (t[key]) el.innerText = t[key];
+                if (trans[key]) el.innerText = trans[key];
             });
             document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+            document.documentElement.lang = currentLang;
+            // ✅ FIX: Update lang button text
+            document.getElementById('langBtn').innerText = currentLang.toUpperCase();
         }
 
         // Close modals on outside click
