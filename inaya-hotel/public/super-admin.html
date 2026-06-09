@@ -4,14 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Admin | Crown Plaza System</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- Tailwind Config for Custom Colors -->
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -29,77 +24,32 @@
         }
     </script>
     <style>
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-
-        .glass-effect {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(10px);
-        }
-
+        .glass-effect { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); }
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Modal Styles */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.6);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
         .modal-overlay.active { display: flex; }
-        .modal-box {
-            background: var(--card, #fff);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            width: 100%;
-            max-width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-        }
+        .modal-box { background: var(--card, #fff); border-radius: 1rem; padding: 1.5rem; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
         body.dark .modal-box { background: #1e293b; }
-
-        /* Toast Notifications */
-        #toastContainer {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .toast {
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            animation: slideIn 0.3s ease;
-            max-width: 300px;
-        }
+        #toastContainer { position: fixed; top: 1rem; right: 1rem; z-index: 2000; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast { padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; animation: slideIn 0.3s ease; max-width: 350px; word-break: break-word; }
         .toast.success { background: #10b981; color: white; }
         .toast.error { background: #ef4444; color: white; }
         .toast.warning { background: #f59e0b; color: white; }
         .toast.info { background: #3b82f6; color: white; }
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .spinner { border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 3px solid #fff; width: 16px; height: 16px; animation: spin 0.8s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .skeleton { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }
+        .dark .skeleton { background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%); background-size: 200% 100%; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-darkBg text-gray-800 dark:text-gray-200 transition-colors duration-300 font-sans">
 
-    <!-- Toast Container -->
     <div id="toastContainer"></div>
 
     <!-- ================= LOGIN PAGE ================= -->
@@ -113,23 +63,22 @@
             <form id="superLoginForm" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium mb-1" data-i18n="email">Email</label>
-                    <input type="email" id="saEmail" placeholder="Admin Login" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary outline-none transition" required>
+                    <input type="email" id="saEmail" placeholder="Admin Login" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary outline-none transition" required autocomplete="username">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1" data-i18n="password">Password</label>
-                    <input type="password" id="saPass" placeholder="Enter password" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary outline-none transition" required>
+                    <input type="password" id="saPass" placeholder="Enter password" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary outline-none transition" required autocomplete="current-password">
                 </div>
-                <button type="submit" class="w-full bg-primary hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-500/30">
+                <button type="submit" id="loginBtn" class="w-full bg-primary hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2">
                     <i class="fas fa-sign-in-alt mr-2"></i> <span data-i18n="login">Login</span>
                 </button>
+                <p id="loginError" class="text-red-500 text-sm text-center hidden"></p>
             </form>
         </div>
     </div>
 
     <!-- ================= DASHBOARD LAYOUT ================= -->
     <div id="dashboard" class="hidden min-h-screen flex flex-col md:flex-row">
-
-        <!-- Sidebar -->
         <aside class="w-full md:w-64 bg-white dark:bg-darkCard border-r border-gray-200 dark:border-gray-700 flex flex-col sticky top-0 md:h-screen z-20">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
                 <i class="fas fa-crown text-accent text-2xl"></i>
@@ -169,10 +118,7 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="flex-1 p-4 md:p-8 overflow-y-auto">
-
-            <!-- Header -->
             <header class="flex justify-between items-center mb-8">
                 <div>
                     <h1 class="text-2xl font-bold" id="pageTitle" data-i18n="dashboard">Dashboard</h1>
@@ -190,59 +136,57 @@
 
             <!-- SECTION: OVERVIEW -->
             <section id="overview" class="section-content fade-in">
-                <!-- Stats Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-gray-500 text-sm" data-i18n="totalHotels">Total Hotels</p>
-                                <h3 class="text-3xl font-bold mt-2" id="statTotalHotels">0</h3>
+                                <h3 class="text-3xl font-bold mt-2" id="statTotalHotels">--</h3>
                             </div>
                             <div class="p-2 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg"><i class="fas fa-hotel"></i></div>
                         </div>
-                        <p class="text-green-500 text-xs mt-2"><i class="fas fa-arrow-up"></i> <span id="statHotelsGrowth">+0%</span> this month</p>
                     </div>
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-gray-500 text-sm" data-i18n="totalRevenue">Total Revenue</p>
-                                <h3 class="text-3xl font-bold mt-2" id="statTotalRevenue">$0</h3>
+                                <h3 class="text-3xl font-bold mt-2" id="statTotalRevenue">--</h3>
                             </div>
                             <div class="p-2 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300 rounded-lg"><i class="fas fa-dollar-sign"></i></div>
                         </div>
-                        <p class="text-green-500 text-xs mt-2"><i class="fas fa-arrow-up"></i> <span id="statRevenueGrowth">+0%</span> this month</p>
                     </div>
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-gray-500 text-sm" data-i18n="activeSubs">Active Subscriptions</p>
-                                <h3 class="text-3xl font-bold mt-2" id="statActiveSubs">0</h3>
+                                <h3 class="text-3xl font-bold mt-2" id="statActiveSubs">--</h3>
                             </div>
                             <div class="p-2 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 rounded-lg"><i class="fas fa-crown"></i></div>
                         </div>
-                        <p class="text-red-500 text-xs mt-2"><i class="fas fa-arrow-down"></i> <span id="statChurnRate">0%</span> churn rate</p>
                     </div>
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-gray-500 text-sm" data-i18n="totalGuests">Total Guests</p>
-                                <h3 class="text-3xl font-bold mt-2" id="statTotalGuests">0</h3>
+                                <h3 class="text-3xl font-bold mt-2" id="statTotalGuests">--</h3>
                             </div>
                             <div class="p-2 bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300 rounded-lg"><i class="fas fa-users"></i></div>
                         </div>
-                        <p class="text-green-500 text-xs mt-2"><i class="fas fa-arrow-up"></i> <span id="statGuestsGrowth">+0%</span> year over year</p>
                     </div>
                 </div>
 
-                <!-- Charts Area -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <h3 class="font-bold mb-4" data-i18n="revenueChart">Revenue Overview</h3>
-                        <canvas id="revenueChart"></canvas>
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
                     </div>
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <h3 class="font-bold mb-4" data-i18n="subChart">Subscription Distribution</h3>
-                        <canvas id="subChart"></canvas>
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="subChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -274,9 +218,7 @@
                                     <th class="p-4" data-i18n="actions">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="hotelsTableBody" class="divide-y divide-gray-200 dark:divide-gray-700">
-                                <!-- JS Populated -->
-                            </tbody>
+                            <tbody id="hotelsTableBody" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
                         </table>
                     </div>
                     <div id="hotelsEmpty" class="p-8 text-center text-gray-500 hidden">
@@ -304,18 +246,14 @@
                                     <th class="p-4">Date</th>
                                 </tr>
                             </thead>
-                            <tbody id="revenueTableBody" class="divide-y divide-gray-200 dark:divide-gray-700">
-                                <!-- JS Populated -->
-                            </tbody>
+                            <tbody id="revenueTableBody" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-             <!-- SECTION: SUBSCRIPTIONS -->
              <section id="subscriptions" class="section-content hidden fade-in">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Free Plan -->
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center">
                         <h3 class="font-bold text-xl mb-2">Free</h3>
                         <p class="text-3xl font-bold text-gray-500">$0<span class="text-sm">/mo</span></p>
@@ -326,7 +264,6 @@
                         </ul>
                         <button onclick="managePlan('free')" class="w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Manage Free Users</button>
                     </div>
-                    <!-- Pro Plan -->
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-lg border-2 border-primary relative text-center">
                         <div class="absolute top-0 right-0 bg-primary text-white text-xs px-2 py-1 rounded-bl-lg rounded-tr-lg">POPULAR</div>
                         <h3 class="font-bold text-xl mb-2 text-primary">Pro</h3>
@@ -339,7 +276,6 @@
                         </ul>
                         <button onclick="managePlan('pro')" class="w-full py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Manage Pro Users</button>
                     </div>
-                    <!-- Enterprise -->
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center">
                         <h3 class="font-bold text-xl mb-2">Enterprise</h3>
                         <p class="text-3xl font-bold">$499<span class="text-sm">/mo</span></p>
@@ -353,7 +289,6 @@
                 </div>
              </section>
 
-             <!-- SECTION: SETTINGS -->
              <section id="settings" class="section-content hidden fade-in">
                 <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 max-w-2xl">
                     <h3 class="font-bold mb-6" data-i18n="systemSettings">System Settings</h3>
@@ -394,20 +329,15 @@
                     </div>
                 </div>
              </section>
-
         </main>
     </div>
-
-    <!-- ================= MODALS ================= -->
 
     <!-- Add/Edit Hotel Modal -->
     <div id="hotelModal" class="modal-overlay">
         <div class="modal-box">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-bold text-lg" id="modalTitle">Add Hotel</h3>
-                <button onclick="closeModal('hotelModal')" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-                    <i class="fas fa-times"></i>
-                </button>
+                <button onclick="closeModal('hotelModal')" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="fas fa-times"></i></button>
             </div>
             <form id="hotelForm" class="space-y-4">
                 <input type="hidden" id="editHotelId">
@@ -425,9 +355,9 @@
                     <input type="email" id="adminEmail" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="admin@hotel.com" required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Admin Password *</label>
-                    <input type="password" id="adminPassword" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" required minlength="8">
-                    <p class="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
+                    <label class="block text-sm font-medium mb-1">Admin Password <span id="pwdRequired">*</span></label>
+                    <input type="password" id="adminPassword" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" minlength="8">
+                    <p class="text-xs text-gray-500 mt-1" id="pwdHint">Minimum 8 characters</p>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -459,7 +389,7 @@
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal('hotelModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
-                    <button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">
+                    <button type="submit" id="hotelSubmitBtn" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2">
                         <span id="modalSubmitText">Add Hotel</span>
                     </button>
                 </div>
@@ -472,9 +402,7 @@
         <div class="modal-box">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-bold text-lg">Update Admin Credentials</h3>
-                <button onclick="closeModal('adminModal')" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-                    <i class="fas fa-times"></i>
-                </button>
+                <button onclick="closeModal('adminModal')" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="fas fa-times"></i></button>
             </div>
             <form id="adminForm" class="space-y-4">
                 <input type="hidden" id="editAdminHotelId">
@@ -488,7 +416,7 @@
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="closeModal('adminModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
-                    <button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Update</button>
+                    <button type="submit" id="adminSubmitBtn" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2">Update</button>
                 </div>
             </form>
         </div>
@@ -497,35 +425,30 @@
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-box text-center">
-            <div class="text-red-500 text-4xl mb-4">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
+            <div class="text-red-500 text-4xl mb-4"><i class="fas fa-exclamation-triangle"></i></div>
             <h3 class="font-bold text-lg mb-2">Delete Hotel?</h3>
             <p class="text-gray-500 mb-6">This will permanently delete <strong id="deleteHotelName"></strong> and all its data. This action cannot be undone.</p>
             <input type="hidden" id="deleteHotelId">
             <div class="flex gap-3">
                 <button onclick="closeModal('deleteModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
-                <button onclick="confirmDelete()" class="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">Delete</button>
+                <button onclick="confirmDelete()" id="deleteConfirmBtn" class="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-2">Delete</button>
             </div>
         </div>
     </div>
 
     <script>
         // ================= STATE & CONFIG =================
-        // ✅ FIX: Dynamic API_BASE based on current origin
         const API_BASE = window.location.origin + '/api';
         let currentLang = localStorage.getItem('lang') || 'en';
         let isDark = localStorage.getItem('theme') !== 'light';
-        let authToken = null;
+        let authToken = localStorage.getItem('superAdminToken') || null;
         let hotels = [];
         let revenueChart = null;
         let subChart = null;
-
-        // ✅ FIX: In-memory settings (NOT stored in localStorage)
         let maintenanceMode = false;
         let emailNotifs = true;
+        let isDashboardInitialized = false; // ✅ Prevent double init
 
-        // Translations
         const translations = {
             en: {
                 superAdminLogin: 'Super Admin Login', loginSubtitle: 'Access Platform Control Center',
@@ -542,15 +465,15 @@
                 hotelAdded: 'Hotel added successfully!', hotelUpdated: 'Hotel updated!',
                 hotelDeleted: 'Hotel deleted!', error: 'Error: ', success: 'Success!',
                 loading: 'Loading...', saving: 'Saving...', deleting: 'Deleting...',
-                confirmDelete: 'Are you sure you want to delete this hotel?',
                 maintenanceEnabled: 'Maintenance mode enabled', maintenanceDisabled: 'Maintenance mode disabled',
                 emailEnabled: 'Email notifications enabled', emailDisabled: 'Email notifications disabled',
                 apiKeyCopied: 'API key copied to clipboard!',
                 invalidCredentials: 'Invalid credentials. Please try again.',
                 loginFailed: 'Login failed. Please check server connection.',
                 apiError: 'Server error. Please try again later.',
-                noHotels: 'No hotels found. Add your first hotel to get started.',
-                adminUpdated: 'Admin credentials updated successfully!'
+                adminUpdated: 'Admin credentials updated successfully!',
+                networkError: 'Network error. Check if backend is running.',
+                sessionExpired: 'Session expired. Please login again.'
             },
             hi: {
                 superAdminLogin: 'सुपर एडमिन लॉगिन', loginSubtitle: 'प्लेटफॉर्म कंट्रोल सेंटर एक्सेस करें',
@@ -567,15 +490,15 @@
                 hotelAdded: 'होटल सफलतापूर्वक जोड़ा गया!', hotelUpdated: 'होटल अपडेट किया गया!',
                 hotelDeleted: 'होटल हटा दिया गया!', error: 'त्रुटि: ', success: 'सफल!',
                 loading: 'लोड हो रहा है...', saving: 'सेव हो रहा है...', deleting: 'हटाया जा रहा है...',
-                confirmDelete: 'क्या आप वाकई इस होटल को हटाना चाहते हैं?',
                 maintenanceEnabled: 'मेंटेनेंस मोड चालू', maintenanceDisabled: 'मेंटेनेंस मोड बंद',
                 emailEnabled: 'ईमेल नोटिफिकेशन चालू', emailDisabled: 'ईमेल नोटिफिकेशन बंद',
                 apiKeyCopied: 'API की कॉपी कर ली गई!',
                 invalidCredentials: 'अमान्य क्रेडेंशियल्स। कृपया पुनः प्रयास करें।',
                 loginFailed: 'लॉगिन विफल। कृपया सर्वर कनेक्शन जांचें।',
                 apiError: 'सर्वर त्रुटि। कृपया बाद में पुनः प्रयास करें।',
-                noHotels: 'कोई होटल नहीं मिला। शुरू करने के लिए अपना पहला होटल जोड़ें।',
-                adminUpdated: 'एडमिन क्रेडेंशियल्स सफलतापूर्वक अपडेट किए गए!'
+                adminUpdated: 'एडमिन क्रेडेंशियल्स सफलतापूर्वक अपडेट किए गए!',
+                networkError: 'नेटवर्क त्रुटि। बैकएंड चल रहा है जांचें।',
+                sessionExpired: 'सत्र समाप्त। कृपया फिर से लॉगिन करें।'
             },
             ar: {
                 superAdminLogin: 'تسجيل دخول المسؤول الرئيسي', loginSubtitle: 'الوصول إلى مركز التحكم',
@@ -592,60 +515,62 @@
                 hotelAdded: 'تمت إضافة الفندق بنجاح!', hotelUpdated: 'تم تحديث الفندق!',
                 hotelDeleted: 'تم حذف الفندق!', error: 'خطأ: ', success: 'نجاح!',
                 loading: 'جاري التحميل...', saving: 'جاري الحفظ...', deleting: 'جاري الحذف...',
-                confirmDelete: 'هل أنت متأكد من حذف هذا الفندق؟',
                 maintenanceEnabled: 'تم تفعيل وضع الصيانة', maintenanceDisabled: 'تم تعطيل وضع الصيانة',
                 emailEnabled: 'تم تفعيل إشعارات البريد', emailDisabled: 'تم تعطيل إشعارات البريد',
                 apiKeyCopied: 'تم نسخ مفتاح API!',
                 invalidCredentials: 'بيانات اعتماد غير صالحة. يرجى المحاولة مرة أخرى.',
                 loginFailed: 'فشل تسجيل الدخول. يرجى التحقق من اتصال الخادم.',
                 apiError: 'خطأ في الخادم. يرجى المحاولة لاحقًا.',
-                noHotels: 'لم يتم العثور على فنادق. أضف فندقك الأول للبدء.',
-                adminUpdated: 'تم تحديث بيانات المسؤول بنجاح!'
+                adminUpdated: 'تم تحديث بيانات المسؤول بنجاح!',
+                networkError: 'خطأ في الشبكة. تحقق من تشغيل الخادم.',
+                sessionExpired: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.'
             }
         };
 
         // ================= INITIALIZATION =================
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             applyTheme();
             applyLang();
-            checkAuth();
+            await checkAuth();
         });
 
         // ================= API HELPER =================
         async function apiCall(method, endpoint, body = null) {
-            const headers = {
-                'Content-Type': 'application/json'
-            };
-
-            // ✅ FIX: Add Bearer token if available
-            if (authToken) {
-                headers['Authorization'] = `Bearer ${authToken}`;
-            }
+            const headers = { 'Content-Type': 'application/json' };
+            if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
             const config = { method, headers };
             if (body) config.body = JSON.stringify(body);
 
+            let response;
             try {
-                const response = await fetch(`${API_BASE}${endpoint}`, config);
-
-                // ✅ FIX: Handle non-JSON responses (e.g., HTML error pages)
-                const contentType = response.headers.get('content-type');
-                if (contentType && !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    throw new Error(t('apiError'));
-                }
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || data.message || t('apiError'));
-                }
-                return data;
-            } catch (error) {
-                console.error('API Error:', error);
-                // ✅ FIX: Don't show toast here - let caller handle it
-                throw error;
+                response = await fetch(`${API_BASE}${endpoint}`, config);
+            } catch (networkError) {
+                console.error('Network error:', networkError);
+                throw new Error(t('networkError'));
             }
+
+            // Handle 401 - token expired
+            if (response.status === 401) {
+                localStorage.removeItem('superAdminToken');
+                authToken = null;
+                showToast(t('sessionExpired'), 'error');
+                setTimeout(() => location.reload(), 1500);
+                throw new Error(t('sessionExpired'));
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text.substring(0, 200));
+                throw new Error(`${t('apiError')} (Status: ${response.status})`);
+            }
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || data.message || `${t('apiError')} (Status: ${response.status})`);
+            }
+            return data;
         }
 
         // ================= AUTHENTICATION =================
@@ -653,35 +578,37 @@
             e.preventDefault();
             const email = document.getElementById('saEmail').value.trim();
             const pass = document.getElementById('saPass').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+
+            loginError.classList.add('hidden');
+            loginError.textContent = '';
 
             if (!email || !pass) {
-                showToast(t('invalidCredentials'), 'error');
+                loginError.textContent = t('invalidCredentials');
+                loginError.classList.remove('hidden');
                 return;
             }
 
-            showToast(t('loading'), 'info');
+            // Show loading state
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="spinner"></span> <span>' + t('loading') + '</span>';
 
             try {
-                // ✅ FIX: Real MongoDB login via API - NO hardcoded credentials, NO fallback
                 const response = await fetch(`${API_BASE}/admin/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        email, 
-                        password: pass, 
-                        hotelId: 'SUPER_ADMIN' 
-                    })
+                    body: JSON.stringify({ email, password: pass, hotelId: 'SUPER_ADMIN' })
                 });
 
-                const contentType = response.headers.get('content-type');
-                if (contentType && !contentType.includes('application/json')) {
-                    throw new Error(t('loginFailed'));
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    throw new Error(t('loginFailed') + ' (Invalid server response)');
                 }
 
                 const data = await response.json();
 
                 if (response.ok && data.token) {
-                    // ✅ FIX: Store ONLY token in localStorage
                     authToken = data.token;
                     localStorage.setItem('superAdminToken', authToken);
 
@@ -689,42 +616,77 @@
                     document.getElementById('dashboard').classList.remove('hidden');
 
                     showToast(t('success'), 'success');
-                    initDashboard();
+                    await initDashboard();
                 } else {
-                    showToast(data.error || data.message || t('invalidCredentials'), 'error');
+                    const errorMsg = data.error || data.message || t('invalidCredentials');
+                    loginError.textContent = errorMsg;
+                    loginError.classList.remove('hidden');
+                    showToast(errorMsg, 'error');
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                showToast(error.message || t('loginFailed'), 'error');
+                const errorMsg = error.message || t('loginFailed');
+                loginError.textContent = errorMsg;
+                loginError.classList.remove('hidden');
+                showToast(errorMsg, 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> <span data-i18n="login">' + t('login') + '</span>';
             }
         });
 
-        function checkAuth() {
-            // ✅ FIX: Only check superAdminToken (not superAdminAuth)
-            const storedToken = localStorage.getItem('superAdminToken');
+        async function checkAuth() {
+            if (!authToken) {
+                // No token - show login
+                document.getElementById('loginPage').classList.remove('hidden');
+                document.getElementById('dashboard').classList.add('hidden');
+                return;
+            }
 
-            if (storedToken) {
-                authToken = storedToken;
+            // ✅ Validate token by calling a protected endpoint
+            try {
+                await apiCall('GET', '/super/stats');
+                // Token valid - show dashboard
                 document.getElementById('loginPage').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
-                initDashboard();
+                await initDashboard();
+            } catch (error) {
+                console.warn('Token validation failed:', error.message);
+                // Token invalid - clear and show login
+                localStorage.removeItem('superAdminToken');
+                authToken = null;
+                document.getElementById('loginPage').classList.remove('hidden');
+                document.getElementById('dashboard').classList.add('hidden');
             }
         }
 
         function logout() {
-            // ✅ FIX: Remove ONLY superAdminToken
             localStorage.removeItem('superAdminToken');
             authToken = null;
             hotels = [];
+            isDashboardInitialized = false;
             location.reload();
         }
 
         // ================= DASHBOARD LOGIC =================
         async function initDashboard() {
-            await loadHotels();
-            await loadStats();
+            if (isDashboardInitialized) return; // ✅ Prevent double init
+            isDashboardInitialized = true;
+
+            // ✅ SEQUENTIAL loading - no parallel calls, no flicker
+            try {
+                await loadHotels();
+            } catch (e) { console.error('loadHotels failed:', e); }
+
+            try {
+                await loadStats();
+            } catch (e) { console.error('loadStats failed:', e); }
+
             renderCharts();
-            await loadTransactions();
+
+            try {
+                await loadTransactions();
+            } catch (e) { console.error('loadTransactions failed:', e); }
         }
 
         function showSection(sectionId) {
@@ -736,48 +698,31 @@
             });
             document.getElementById('nav-' + sectionId).classList.add('bg-gray-100', 'dark:bg-gray-700', 'active-nav');
 
-            // Update page title
             const titles = {
-                overview: 'dashboard',
-                hotels: 'registeredHotels',
-                revenue: 'recentTransactions',
-                subscriptions: 'subscriptions',
-                settings: 'systemSettings'
+                overview: 'dashboard', hotels: 'registeredHotels',
+                revenue: 'recentTransactions', subscriptions: 'subscriptions', settings: 'systemSettings'
             };
             document.getElementById('pageTitle').setAttribute('data-i18n', titles[sectionId]);
             applyLang();
 
-            // Refresh data when switching sections
-            if (sectionId === 'hotels') {
+            // ✅ Only reload data if needed - no unnecessary re-renders
+            if (sectionId === 'hotels' && hotels.length === 0) {
                 loadHotels();
-            } else if (sectionId === 'overview') {
-                loadStats();
-                renderCharts();
-            } else if (sectionId === 'revenue') {
-                loadTransactions();
             }
         }
 
         // ================= HOTEL MANAGEMENT =================
         async function loadHotels() {
             try {
-                // ✅ FIX: Fetch ONLY from MongoDB API - NO mock fallback
                 const response = await apiCall('GET', '/super/tenants');
                 hotels = response.data || response.hotels || response || [];
-
-                // Ensure hotels is an array
-                if (!Array.isArray(hotels)) {
-                    hotels = [];
-                }
-
+                if (!Array.isArray(hotels)) hotels = [];
             } catch (error) {
                 console.error('Failed to load hotels:', error);
                 hotels = [];
-                showToast(error.message || t('apiError'), 'error');
+                // ✅ Don't show toast on initial load - only on user actions
             }
-
             renderHotelsTable();
-            updateStats();
         }
 
         function renderHotelsTable(filteredHotels = null) {
@@ -792,12 +737,13 @@
             }
 
             emptyState.classList.add('hidden');
-
             tbody.innerHTML = list.map(hotel => {
                 const expiryDate = hotel.subscriptionExpiry ? new Date(hotel.subscriptionExpiry).toLocaleDateString() : 'N/A';
-                const isActive = hotel.active !== false; // Default to active if not specified
+                const isActive = hotel.active !== false;
                 const statusClass = isActive ? 'bg-green-500' : 'bg-yellow-500';
                 const statusText = isActive ? 'Active' : 'Trial';
+                const hotelId = (hotel.hotelId || hotel._id || '').toString().replace(/'/g, "\\'");
+                const hotelName = (hotel.hotelName || hotel.name || '').toString().replace(/'/g, "\\'");
 
                 return `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
@@ -817,13 +763,13 @@
                         </td>
                         <td class="p-4">
                             <div class="flex gap-2">
-                                <button onclick="editHotel('${hotel.hotelId || hotel._id}')" class="p-2 text-blue-500 hover:text-blue-700 transition" title="${t('editHotel')}">
+                                <button onclick="editHotel('${hotelId}')" class="p-2 text-blue-500 hover:text-blue-700 transition" title="${t('editHotel')}">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button onclick="openDeleteModal('${hotel.hotelId || hotel._id}', '${(hotel.hotelName || hotel.name || '').replace(/'/g, "\\'")}')" class="p-2 text-red-500 hover:text-red-700 transition" title="${t('deleteHotel')}">
+                                <button onclick="openDeleteModal('${hotelId}', '${hotelName}')" class="p-2 text-red-500 hover:text-red-700 transition" title="${t('deleteHotel')}">
                                     <i class="fas fa-trash"></i>
                                 </button>
-                                <button onclick="openAdminModal('${hotel.hotelId || hotel._id}')" class="p-2 text-purple-500 hover:text-purple-700 transition" title="Update Admin">
+                                <button onclick="openAdminModal('${hotelId}')" class="p-2 text-purple-500 hover:text-purple-700 transition" title="Update Admin">
                                     <i class="fas fa-user-cog"></i>
                                 </button>
                             </div>
@@ -851,19 +797,14 @@
                 const name = (hotel.hotelName || hotel.name || '').toLowerCase();
                 const email = (hotel.adminEmail || hotel.email || '').toLowerCase();
                 const id = (hotel.hotelId || hotel._id || '').toLowerCase();
-
-                const matchesSearch = name.includes(searchTerm) || 
-                                     email.includes(searchTerm) ||
-                                     id.includes(searchTerm);
-
+                const matchesSearch = name.includes(searchTerm) || email.includes(searchTerm) || id.includes(searchTerm);
                 const isActive = hotel.active !== false;
-                const matchesStatus = statusFilter === 'all' || 
-                                     (statusFilter === 'Active' && isActive) ||
-                                     (statusFilter === 'Trial' && !isActive) ||
-                                     (statusFilter === 'Inactive' && !isActive);
+                const matchesStatus = statusFilter === 'all' ||
+                    (statusFilter === 'Active' && isActive) ||
+                    (statusFilter === 'Trial' && !isActive) ||
+                    (statusFilter === 'Inactive' && !isActive);
                 return matchesSearch && matchesStatus;
             });
-
             renderHotelsTable(filtered);
         }
 
@@ -874,6 +815,9 @@
             document.getElementById('hotelForm').reset();
             document.getElementById('editHotelId').value = '';
             document.getElementById('hotelId').disabled = false;
+            document.getElementById('adminPassword').required = true;
+            document.getElementById('pwdRequired').style.display = 'inline';
+            document.getElementById('pwdHint').textContent = 'Minimum 8 characters';
             document.getElementById('hotelModal').classList.add('active');
         }
 
@@ -889,10 +833,12 @@
             document.getElementById('hotelName').value = hotel.hotelName || hotel.name || '';
             document.getElementById('adminEmail').value = hotel.adminEmail || hotel.email || '';
             document.getElementById('adminPassword').value = '';
+            document.getElementById('adminPassword').required = false;
+            document.getElementById('pwdRequired').style.display = 'none';
+            document.getElementById('pwdHint').textContent = 'Leave blank to keep current password';
             document.getElementById('currency').value = hotel.currency || 'USD';
             document.getElementById('language').value = hotel.language || 'en';
             document.getElementById('subscriptionType').value = hotel.subscriptionType || hotel.plan || 'basic';
-
             document.getElementById('hotelModal').classList.add('active');
         }
 
@@ -919,6 +865,8 @@
             e.preventDefault();
 
             const editId = document.getElementById('editHotelId').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+
             const hotelData = {
                 hotelId: document.getElementById('hotelId').value.trim(),
                 hotelName: document.getElementById('hotelName').value.trim(),
@@ -928,13 +876,8 @@
                 subscriptionType: document.getElementById('subscriptionType').value
             };
 
-            // ✅ FIX: Only include password if provided (for edit mode)
-            const adminPassword = document.getElementById('adminPassword').value;
-            if (adminPassword) {
-                hotelData.adminPassword = adminPassword;
-            }
+            if (adminPassword) hotelData.adminPassword = adminPassword;
 
-            // Validation
             if (!hotelData.hotelId || !hotelData.hotelName || !hotelData.adminEmail) {
                 showToast(t('error') + 'All required fields must be filled', 'error');
                 return;
@@ -945,26 +888,32 @@
                 return;
             }
 
-            try {
-                showToast(editId ? t('saving') : t('loading'), 'info');
+            const submitBtn = document.getElementById('hotelSubmitBtn');
+            const originalText = document.getElementById('modalSubmitText').textContent;
+            submitBtn.disabled = true;
+            document.getElementById('modalSubmitText').innerHTML = '<span class="spinner"></span> ' + (editId ? t('saving') : t('loading'));
 
+            try {
                 if (editId) {
-                    // ✅ FIX: Update existing hotel via MongoDB API
                     await apiCall('PUT', `/super/tenants/${editId}`, hotelData);
                     showToast(t('hotelUpdated'), 'success');
                 } else {
-                    // ✅ FIX: Create new hotel via MongoDB API (backend creates admin + default data)
                     await apiCall('POST', '/super/tenants/register', hotelData);
                     showToast(t('hotelAdded'), 'success');
                 }
 
                 closeModal('hotelModal');
+                // ✅ Reload data AFTER successful save - no page refresh
                 await loadHotels();
                 await loadStats();
+                renderCharts();
 
             } catch (error) {
                 console.error('Hotel save error:', error);
                 showToast(t('error') + (error.message || 'Unknown error'), 'error');
+            } finally {
+                submitBtn.disabled = false;
+                document.getElementById('modalSubmitText').textContent = originalText;
             }
         });
 
@@ -980,46 +929,47 @@
                 return;
             }
 
-            try {
-                showToast(t('saving'), 'info');
+            const submitBtn = document.getElementById('adminSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span> ' + t('saving');
 
-                // ✅ FIX: Update admin credentials via MongoDB API
-                const payload = {
-                    hotelId: hotelId,
-                    role: 'admin'
-                };
+            try {
+                const payload = { hotelId: hotelId, role: 'admin' };
                 if (newEmail) payload.email = newEmail;
                 if (newPassword) payload.password = newPassword;
 
                 await apiCall('POST', '/super/admins/register', payload);
-
                 showToast(t('adminUpdated'), 'success');
                 closeModal('adminModal');
-
             } catch (error) {
                 console.error('Admin update error:', error);
                 showToast(t('error') + (error.message || 'Unknown error'), 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Update';
             }
         });
 
         async function confirmDelete() {
             const hotelId = document.getElementById('deleteHotelId').value;
+            const deleteBtn = document.getElementById('deleteConfirmBtn');
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<span class="spinner"></span> ' + t('deleting');
 
             try {
-                showToast(t('deleting'), 'info');
-
-                // ✅ FIX: Delete hotel via MongoDB API
                 await apiCall('DELETE', `/super/tenants/${hotelId}`);
                 showToast(t('hotelDeleted'), 'success');
-
                 closeModal('deleteModal');
                 await loadHotels();
                 await loadStats();
-
+                renderCharts();
             } catch (error) {
                 console.error('Delete error:', error);
                 showToast(t('error') + (error.message || 'Unknown error'), 'error');
                 closeModal('deleteModal');
+            } finally {
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = 'Delete';
             }
         }
 
@@ -1033,7 +983,6 @@
                 return;
             }
 
-            // Show filtered view
             renderHotelsTable(filtered);
             showSection('hotels');
             showToast(`Showing ${filtered.length} ${planNames[plan] || plan} plan hotels`, 'info');
@@ -1045,7 +994,6 @@
             if (!tbody) return;
 
             try {
-                // ✅ FIX: Fetch real transactions from MongoDB API
                 const response = await apiCall('GET', '/super/transactions');
                 const transactions = response.data || response.transactions || response || [];
 
@@ -1055,7 +1003,7 @@
                 }
 
                 tbody.innerHTML = transactions.map(tx => {
-                    const date = tx.date || tx.createdAt ? new Date(tx.date || tx.createdAt).toLocaleDateString() : 'N/A';
+                    const date = (tx.date || tx.createdAt) ? new Date(tx.date || tx.createdAt).toLocaleDateString() : 'N/A';
                     const amount = tx.amount ? `$${Number(tx.amount).toLocaleString()}` : '$0';
                     const typeClass = tx.type === 'subscription' ? 'text-blue-500' : tx.type === 'payment' ? 'text-green-500' : 'text-gray-500';
 
@@ -1069,7 +1017,6 @@
                         </tr>
                     `;
                 }).join('');
-
             } catch (error) {
                 console.error('Failed to load transactions:', error);
                 tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">No transactions available</td></tr>';
@@ -1077,101 +1024,71 @@
         }
 
         // ================= SETTINGS =================
-        function loadSettings() {
-            // ✅ FIX: Load settings from in-memory variables (NOT localStorage)
-            document.getElementById('maintenanceToggle').checked = maintenanceMode;
-            document.getElementById('emailToggle').checked = emailNotifs;
-        }
-
         function toggleMaintenance() {
             const enabled = document.getElementById('maintenanceToggle').checked;
-            // ✅ FIX: Store ONLY in memory, NOT in localStorage
             maintenanceMode = enabled;
             showToast(enabled ? t('maintenanceEnabled') : t('maintenanceDisabled'), enabled ? 'warning' : 'success');
-
-            // ✅ FIX: Optionally sync to backend
             apiCall('PUT', '/super/settings', { maintenanceMode: enabled }).catch(err => {
-                console.warn('Failed to sync maintenance mode to server:', err);
+                console.warn('Failed to sync maintenance mode:', err);
             });
         }
 
         function toggleEmailNotifs() {
             const enabled = document.getElementById('emailToggle').checked;
-            // ✅ FIX: Store ONLY in memory, NOT in localStorage
             emailNotifs = enabled;
             showToast(enabled ? t('emailEnabled') : t('emailDisabled'), 'success');
         }
 
         function copyApiKey() {
             const apiKey = document.getElementById('apiKeyInput').value;
-            navigator.clipboard.writeText(apiKey).then(() => {
-                showToast(t('apiKeyCopied'), 'success');
-            });
+            navigator.clipboard.writeText(apiKey).then(() => showToast(t('apiKeyCopied'), 'success'));
         }
 
         // ================= STATS & CHARTS =================
         async function loadStats() {
             try {
-                // ✅ FIX: Fetch real stats from MongoDB API - NO mock fallback
                 const response = await apiCall('GET', '/super/stats');
-                const stats = response.data || response.stats || response;
+                const stats = response.data || response.stats || response || {};
                 updateStats(stats);
             } catch (error) {
-                console.error('Failed to load stats:', error);
-                // ✅ FIX: Calculate basic stats from loaded hotels (real data, not mock)
+                console.warn('Stats API failed, calculating from hotels:', error.message);
+                // ✅ Calculate from real hotels data (not mock)
                 updateStats({
                     totalHotels: hotels.length,
                     totalRevenue: hotels.reduce((sum, h) => {
                         const plan = h.subscriptionType || h.plan;
                         return sum + (plan === 'enterprise' ? 499 : plan === 'pro' ? 99 : 0);
-                    }, 0) * 12,
+                    }, 0),
                     activeSubscriptions: hotels.filter(h => h.active !== false).length,
-                    totalGuests: hotels.reduce((sum, h) => sum + (h.stats?.guests || h.totalGuests || 0), 0),
-                    hotelsGrowth: 0,
-                    revenueGrowth: 0,
-                    churnRate: 0,
-                    guestsGrowth: 0
+                    totalGuests: hotels.reduce((sum, h) => sum + (h.stats?.guests || h.totalGuests || 0), 0)
                 });
             }
         }
 
         function updateStats(data = null) {
-            const stats = data || {
-                totalHotels: 0,
-                totalRevenue: 0,
-                activeSubscriptions: 0,
-                totalGuests: 0,
-                hotelsGrowth: 0,
-                revenueGrowth: 0,
-                churnRate: 0,
-                guestsGrowth: 0
-            };
-
+            const stats = data || { totalHotels: 0, totalRevenue: 0, activeSubscriptions: 0, totalGuests: 0 };
             document.getElementById('statTotalHotels').textContent = stats.totalHotels || 0;
             document.getElementById('statTotalRevenue').textContent = '$' + (stats.totalRevenue || 0).toLocaleString();
             document.getElementById('statActiveSubs').textContent = stats.activeSubscriptions || stats.activeSubs || 0;
             document.getElementById('statTotalGuests').textContent = (stats.totalGuests || 0).toLocaleString();
-
-            document.getElementById('statHotelsGrowth').textContent = '+' + (stats.hotelsGrowth || 0) + '%';
-            document.getElementById('statRevenueGrowth').textContent = '+' + (stats.revenueGrowth || 0) + '%';
-            document.getElementById('statChurnRate').textContent = (stats.churnRate || 0) + '%';
-            document.getElementById('statGuestsGrowth').textContent = '+' + (stats.guestsGrowth || 0) + '%';
         }
 
         function renderCharts() {
-            // Revenue Chart
+            // ✅ Revenue Chart - NO hardcoded data, uses real stats
             const ctx1 = document.getElementById('revenueChart');
             if (!ctx1) return;
-
             if (revenueChart) revenueChart.destroy();
+
+            // Calculate monthly revenue from hotels (real data)
+            const monthlyRevenue = calculateMonthlyRevenue();
 
             revenueChart = new Chart(ctx1, {
                 type: 'line',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    labels: monthlyRevenue.labels,
                     datasets: [{
                         label: 'Revenue ($)',
-                        data: [12000, 19000, 15000, 25000, 22000, 30000],
+                        data: monthlyRevenue.data,
                         borderColor: '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         tension: 0.4,
@@ -1196,22 +1113,21 @@
                 }
             });
 
-            // Subscription Chart
+            // Subscription Chart - uses real hotels data
             const ctx2 = document.getElementById('subChart');
             if (!ctx2) return;
-
             if (subChart) subChart.destroy();
 
             const planCounts = { basic: 0, free: 0, pro: 0, enterprise: 0 };
-            hotels.forEach(h => { 
+            hotels.forEach(h => {
                 const plan = h.subscriptionType || h.plan || 'basic';
-                planCounts[plan] = (planCounts[plan] || 0) + 1; 
+                planCounts[plan] = (planCounts[plan] || 0) + 1;
             });
 
             subChart = new Chart(ctx2, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Free', 'Pro', 'Enterprise'],
+                    labels: ['Free/Basic', 'Pro', 'Enterprise'],
                     datasets: [{
                         data: [planCounts.basic + (planCounts.free || 0), planCounts.pro, planCounts.enterprise],
                         backgroundColor: ['#94a3b8', '#3b82f6', '#8b5cf6'],
@@ -1231,15 +1147,40 @@
             });
         }
 
+        // ✅ Calculate real monthly revenue from hotels (NO hardcoded data)
+        function calculateMonthlyRevenue() {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const currentMonth = new Date().getMonth();
+            const labels = [];
+            const data = [];
+
+            // Show last 6 months
+            for (let i = 5; i >= 0; i--) {
+                const monthIndex = (currentMonth - i + 12) % 12;
+                labels.push(months[monthIndex]);
+                data.push(0); // Will be updated if backend provides monthly data
+            }
+
+            // If we have hotels, show current monthly recurring revenue
+            if (hotels.length > 0) {
+                const monthlyRevenue = hotels.reduce((sum, h) => {
+                    const plan = h.subscriptionType || h.plan;
+                    return sum + (plan === 'enterprise' ? 499 : plan === 'pro' ? 99 : 0);
+                }, 0);
+                // Show revenue in current month
+                data[data.length - 1] = monthlyRevenue;
+            }
+
+            return { labels, data };
+        }
+
         // ================= UI HELPERS =================
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
-                <span>${message}</span>
-            `;
+            const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+            toast.innerHTML = `<i class="fas fa-${icon}"></i> <span>${message}</span>`;
             container.appendChild(toast);
 
             setTimeout(() => {
@@ -1247,7 +1188,7 @@
                 toast.style.transform = 'translateX(100%)';
                 toast.style.transition = 'all 0.3s ease';
                 setTimeout(() => toast.remove(), 300);
-            }, 3000);
+            }, 3500);
         }
 
         function t(key) {
@@ -1257,17 +1198,11 @@
         function toggleTheme() {
             isDark = !isDark;
             document.documentElement.classList.toggle('dark', isDark);
-            // ✅ FIX: Store ONLY theme in localStorage
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
-
-            // Re-render charts with updated colors
-            if (revenueChart || subChart) {
-                renderCharts();
-            }
+            if (revenueChart || subChart) renderCharts();
         }
 
         function applyTheme() {
-            // ✅ FIX: Load theme from localStorage
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme === 'light') {
                 isDark = false;
@@ -1282,9 +1217,7 @@
             const langs = ['en', 'hi', 'ar'];
             const currentIndex = langs.indexOf(currentLang);
             currentLang = langs[(currentIndex + 1) % langs.length];
-            // ✅ FIX: Store lang in localStorage
             localStorage.setItem('lang', currentLang);
-            document.getElementById('langBtn').innerText = currentLang.toUpperCase();
             applyLang();
         }
 
@@ -1296,7 +1229,6 @@
             });
             document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
             document.documentElement.lang = currentLang;
-            // ✅ FIX: Update lang button text
             document.getElementById('langBtn').innerText = currentLang.toUpperCase();
         }
 
@@ -1310,13 +1242,10 @@
             });
         });
 
-        // Close modals on Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                document.querySelectorAll('.modal-overlay.active').forEach(modal => {
-                    modal.classList.remove('active');
-                    document.getElementById('hotelId').disabled = false;
-                });
+                document.querySelectorAll('.modal-overlay.active').forEach(modal => modal.classList.remove('active'));
+                document.getElementById('hotelId').disabled = false;
             }
         });
     </script>
