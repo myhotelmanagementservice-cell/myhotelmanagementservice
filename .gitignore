@@ -1,7 +1,32 @@
+# Dependencies
 node_modules/
+
+# Environment
 .env
-logs/
-uploads/
+
+# Replit specific files
+.replit*
+.agent*
+.agents/
+.folder_info
+.project_info
+replit.md
+scripts/
+
+# Alternative entry points
+simple-server.js
+start.sh
+build.sh
+index.js
+pnpm-workspace.yaml
+tsconfig*.json
+
+# Build caches
+artifacts/
+.cache/
+.local/
+.upm/
+
+# OS files
 .DS_Store
 *.log
-.pm2/
