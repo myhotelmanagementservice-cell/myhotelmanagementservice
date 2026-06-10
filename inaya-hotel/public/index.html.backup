@@ -1674,31 +1674,21 @@ async function adminLogin(e){
 e.preventDefault();
 const email=document.getElementById('adminEmailIn').value.trim();
 const pass=document.getElementById('adminPassIn').value;
-showToast('🔄 Logging in...','info');
-try{
-const response=await fetch(API_BASE+'/admin/login',{
-method:'POST',
-headers:{'Content-Type':'application/json','x-hotel-id':HID},
-body:JSON.stringify({email:email,password:pass,hotelId:HID})
-});
-const data=await response.json();
-if(response.ok && data.success && data.token){
-currentUser={type:'admin',email:data.user.email,role:data.user.role,token:data.token,hotelId:data.hotelId};
-localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
-localStorage.setItem(`h_${HID}_token`,data.token);
+
+try {
+const res = await apiCall('POST', '/admin/login', { email, password: pass, hotelId: HID });
+if (res && res.success) {
+currentUser = { type: 'admin', email, role: res.role || 'super_admin', token: res.token };
+saveUIPrefs();
 buildRolePage();
 showPage('rolePage');
 speakWelcome();
-showToast('✅ Login successful!','success');
-if(isOnline && socket?.connected){
-socket.emit('admin_join',{hotelId:HID,email:email,clientId});
+showToast('Login successful','success');
+} else {
+showToast('❌ ' + (res?.message || 'Invalid credentials. Please check and try again.'), 'error');
 }
-}else{
-showToast('❌ '+(data.error||'Invalid credentials'),'error');
-}
-}catch(error){
-console.error('Login error:',error);
-showToast('❌ Login failed: '+error.message,'error');
+} catch (err) {
+showToast('❌ Login failed: ' + (err.message || 'Server error'), 'error');
 }
 }
 
