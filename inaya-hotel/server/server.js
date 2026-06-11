@@ -903,8 +903,6 @@ app.post('/api/admin/login', async (req, res) => {
       return res.status(503).json({ success: false, error: 'Database connecting...' });
     }
 
-    if (hotelId && hotelId !== 'HOTEL001') {
-      const tenant = await db.collection('tenants').findOne({ hotelId });
       if (!tenant) {
         await db.collection('tenants').insertOne({
           hotelId,

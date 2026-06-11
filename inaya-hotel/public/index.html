@@ -359,13 +359,18 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 <button class="login-tab" id="adminTabBtn" onclick="switchLogin('admin')" data-i18n="adminTab">👑 Admin</button>
 </div>
 <form id="guestLoginForm" onsubmit="guestLogin(event)">
-<div class="form-row"><label class="lbl" data-i18n="yourName">Your Name</label><input class="inp" id="guestNameIn" data-i18n-ph="enterName" placeholder="Enter your name" required></div>
-<div class="form-row"><label class="lbl" data-i18n="roomNumber">Room Number</label><input class="inp" id="guestRoomIn" type="number" placeholder="e.g. 101" required></div>
+<div class="form-row"><label class="lbl" data-i18n="yourName">Your Name</label><input class="inp" id="guestNameIn" data-i18n-ph="enterName" placeholder="Enter Hotel ID" required></div>
+<div class="form-row"><label class="lbl" data-i18n="roomNumber">Room Number</label><input class="inp" id="guestRoomIn" type="number" placeholder="Enter Hotel ID" required></div>
 <button class="btn-primary" style="width:100%;padding:11px" type="submit" data-i18n="loginGuest">🔐 Login as Guest</button>
 </form>
 <form id="adminLoginForm" class="hidden" onsubmit="adminLogin(event)">
-<div class="form-row"><label class="lbl" data-i18n="emailAddress">Email</label><input class="inp" id="adminEmailIn" type="email" data-i18n-ph="adminLogin" placeholder="Administrator login" required></div>
-<div class="form-row"><label class="lbl" data-i18n="password">Password</label><input class="inp" id="adminPassIn" type="password" data-i18n-ph="enterPassword" placeholder="Enter password" required></div>
+<div class="form-row"><label class="lbl" data-i18n="emailAddress">Email</label><input class="inp" id="adminEmailIn" type="email" data-i18n-ph="adminLogin" placeholder="Enter Hotel ID" required></div>
+<div class="form-row"><label class="lbl" data-i18n="password">Password</label><input class="inp" id="adminPassIn" type="password" data-i18n-ph="enterPassword" placeholder="Enter Hotel ID" required></div>
+
+<div class="form-row">
+<label class="lbl">Hotel ID</label>
+<input class="inp" id="adminHotelId" placeholder="Enter Hotel ID" required>
+</div>
 <button class="btn-primary" style="width:100%;padding:11px" type="submit" data-i18n="loginAdmin">🔐 Login as Admin</button>
 </form>
 <div style="text-align:center;margin-top:10px;font-size:10px;opacity:.5" id="tenantLabel"></div>
@@ -1909,7 +1914,7 @@ case 'requests': return `
 <select class="inp" id="adminService" required><option value="" data-i18n="selectService">Select Service</option></select>
 </div>
 <div style="margin-top:6px">
-<textarea class="inp" id="adminDesc" rows="2" data-i18n-ph="describeIssue" placeholder="Describe issue…"></textarea>
+<textarea class="inp" id="adminDesc" rows="2" data-i18n-ph="describeIssue" placeholder="Enter Hotel ID"></textarea>
 </div>
 <button class="btn-primary" style="margin-top:6px;padding:6px 12px;font-size:10px" type="submit" data-i18n="submitRequest">Submit</button>
 </form>
@@ -2158,7 +2163,7 @@ el.innerHTML=list.map(r=>`
 <option value="completed" ${r.status==='completed'?'selected':''}>Done</option>
 </select>
 <div class="admin-reply">
-<textarea class="admin-reply-input" id="adminReply-${r._id}" placeholder="${t('reply')}...">${r.adminReply||''}</textarea>
+<textarea class="admin-reply-input" id="adminReply-${r._id}" placeholder="Enter Hotel ID">${r.adminReply||''}</textarea>
 <button class="btn-primary" style="margin-top:4px;padding:4px 8px;font-size:10px" onclick="sendAdminReply('${r._id}')">${t('reply')}</button>
 </div>
 <button class="tbl-action" onclick="delReq('${r._id}')" style="margin-top:4px">🗑️</button>
@@ -2437,7 +2442,7 @@ panes.innerHTML=`
 </select>
 </div>
 <div class="form-row">
-<textarea class="inp" id="gDesc" rows="2" data-i18n-ph="describeIssue" placeholder="Describe your issue…"></textarea>
+<textarea class="inp" id="gDesc" rows="2" data-i18n-ph="describeIssue" placeholder="Enter Hotel ID"></textarea>
 </div>
 <button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="submitRequest">Submit Request</button>
 </form>
@@ -3060,10 +3065,10 @@ openModal('infoModal');
 document.getElementById('infoModalTitle').textContent = '➕ Add New Currency';
 document.getElementById('infoModalBody').innerHTML = `
 <form onsubmit="addNewCurrency(event)">
-<div class="form-row"><label class="lbl">Currency Code (e.g., EUR)</label><input class="inp" id="newCurCode" maxlength="3" required placeholder="EUR"></div>
-<div class="form-row"><label class="lbl">Symbol (e.g., €)</label><input class="inp" id="newCurSymbol" required placeholder="€"></div>
-<div class="form-row"><label class="lbl">Rate per 1 USD</label><input class="inp" id="newCurRate" type="number" step="0.01" required placeholder="0.95"></div>
-<div class="form-row"><label class="lbl">Flag Emoji</label><input class="inp" id="newCurFlag" placeholder="🇪🇺"></div>
+<div class="form-row"><label class="lbl">Currency Code (e.g., EUR)</label><input class="inp" id="newCurCode" maxlength="3" required placeholder="Enter Hotel ID"></div>
+<div class="form-row"><label class="lbl">Symbol (e.g., €)</label><input class="inp" id="newCurSymbol" required placeholder="Enter Hotel ID"></div>
+<div class="form-row"><label class="lbl">Rate per 1 USD</label><input class="inp" id="newCurRate" type="number" step="0.01" required placeholder="Enter Hotel ID"></div>
+<div class="form-row"><label class="lbl">Flag Emoji</label><input class="inp" id="newCurFlag" placeholder="Enter Hotel ID"></div>
 <div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit">💾 Save</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('infoModal')">Cancel</button>
@@ -3397,7 +3402,7 @@ container.innerHTML=`
 <div class="form-row"><label class="lbl">Name</label><input class="inp" id="mFName" required></div>
 <div class="form-2">
 <div class="form-row"><label class="lbl" data-i18n="price">Price</label><input class="inp" id="mFPrice" type="number" required></div>
-<div class="form-row"><label class="lbl">Emoji</label><input class="inp" id="mFEmoji" placeholder="🍔" style="text-align:center"></div>
+<div class="form-row"><label class="lbl">Emoji</label><input class="inp" id="mFEmoji" placeholder="Enter Hotel ID" style="text-align:center"></div>
 </div>
 <div class="form-row"><label class="lbl" data-i18n="category">Category</label>
 <select class="inp" id="mFCat"><option>Main Course</option><option>Appetizer</option><option>Dessert</option><option>Beverage</option></select></div>
@@ -3415,7 +3420,7 @@ container.innerHTML=`
 <div class="form-row"><label class="lbl" data-i18n="item">Item Name</label><input class="inp" id="mIName" required></div>
 <div class="form-2">
 <div class="form-row"><label class="lbl" data-i18n="stock">Stock</label><input class="inp" id="mIQty" type="number" required></div>
-<div class="form-row"><label class="lbl" data-i18n="unit">Unit</label><input class="inp" id="mIUnit" placeholder="pcs"></div>
+<div class="form-row"><label class="lbl" data-i18n="unit">Unit</label><input class="inp" id="mIUnit" placeholder="Enter Hotel ID"></div>
 </div>
 <div class="form-2">
 <div class="form-row"><label class="lbl" data-i18n="category">Category</label>
@@ -3504,7 +3509,7 @@ container.innerHTML=`
 <div style="margin-bottom:10px"><label class="lbl" data-i18n="overall">Overall</label><div class="stars" id="starOverall"></div></div>
 <div style="margin-bottom:10px"><label class="lbl" data-i18n="service">Service</label><div class="stars" id="starService"></div></div>
 <div style="margin-bottom:10px"><label class="lbl" data-i18n="cleanliness">Cleanliness</label><div class="stars" id="starClean"></div></div>
-<div class="form-row"><textarea class="inp" id="ratingComment" rows="2" data-i18n-ph="shareExp" placeholder="Share your experience…"></textarea></div>
+<div class="form-row"><textarea class="inp" id="ratingComment" rows="2" data-i18n-ph="shareExp" placeholder="Enter Hotel ID"></textarea></div>
 <button class="btn-primary" style="width:100%;padding:10px;margin-top:8px" onclick="submitRating()" data-i18n="submitReview">Submit Review</button>
 </div>
 </div>
