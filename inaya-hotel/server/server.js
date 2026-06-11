@@ -177,7 +177,7 @@ const getHotelId = (req) => {
          req.query.hotelId || 
          req.query.hotel || 
          (req.session?.hotelId) || 
-         'default';
+         'HOTEL001';
 };
 
 const tenantMiddleware = (req, res, next) => {
@@ -198,7 +198,7 @@ app.use('/api', clientInfoMiddleware); // ✅ ADD THIS for clientId support
 const checkSubscription = async (req, res, next) => {
   try {
     const hotelId = req.hotelId;
-    if (hotelId === 'default') return next();
+    if (hotelId === 'HOTEL001') return next();
     if (!dbConnected) return next();
 
     const tenant = await db.collection('tenants').findOne({ hotelId });
@@ -393,7 +393,7 @@ app.get('/api/tenant', async (req, res) => {
           language: 'en',
           country: 'USA',
           active: true,
-          theme: 'default',
+          theme: 'HOTEL001',
           subscriptionType: 'basic'
         } 
       });
@@ -412,7 +412,7 @@ app.get('/api/tenant', async (req, res) => {
           language: 'en',
           country: 'USA',
           active: true,
-          theme: 'default',
+          theme: 'HOTEL001',
           subscriptionType: 'basic'
         } 
       });
@@ -524,7 +524,7 @@ app.post('/api/super/tenants/register', superAdminMiddleware, async (req, res) =
       country: country || 'Unknown',
       timezone: timezone || 'UTC',
       active: true,
-      theme: theme || 'default',
+      theme: theme || 'HOTEL001',
       subscriptionType: subscriptionType || 'basic',
       subscriptionExpiry,
       createdAt: new Date(),
@@ -887,23 +887,23 @@ app.post('/api/admin/login', async (req, res) => {
           email,
           name: 'Admin',
           role: 'super_admin',
-          hotelId: hotelId || 'default',
+          hotelId: hotelId || 'HOTEL001',
           permissions: ['rooms', 'guests', 'food', 'inventory', 'requests', 'settings']
         });
         req.session.isAdmin = true;
         req.session.adminEmail = email;
-        req.session.hotelId = hotelId || 'default';
+        req.session.hotelId = hotelId || 'HOTEL001';
         return res.json({
           success: true,
           token,
           user: { email, name: 'Admin', role: 'super_admin', permissions: ['all'] },
-          hotelId: hotelId || 'default'
+          hotelId: hotelId || 'HOTEL001'
         });
       }
       return res.status(503).json({ success: false, error: 'Database connecting...' });
     }
 
-    if (hotelId && hotelId !== 'default') {
+    if (hotelId && hotelId !== 'HOTEL001') {
       const tenant = await db.collection('tenants').findOne({ hotelId });
       if (!tenant) {
         await db.collection('tenants').insertOne({
@@ -914,7 +914,7 @@ app.post('/api/admin/login', async (req, res) => {
           language: 'en',
           country: 'Unknown',
           active: true,
-          theme: 'default',
+          theme: 'HOTEL001',
           subscriptionType: 'basic',
           createdAt: new Date()
         });
@@ -943,13 +943,13 @@ app.post('/api/admin/login', async (req, res) => {
       email: user.email,
       name: user.name,
       role: user.role,
-      hotelId: hotelId || user.hotelId || 'default',
+      hotelId: hotelId || user.hotelId || 'HOTEL001',
       permissions: user.permissions
     });
 
     req.session.isAdmin = true;
     req.session.adminEmail = email;
-    req.session.hotelId = hotelId || user.hotelId || 'default';
+    req.session.hotelId = hotelId || user.hotelId || 'HOTEL001';
     req.session.user = { email: user.email, name: user.name, role: user.role, permissions: user.permissions };
 
     console.log('✅ Admin login successful:', email);
@@ -963,7 +963,7 @@ app.post('/api/admin/login', async (req, res) => {
         role: user.role,
         permissions: user.permissions
       },
-      hotelId: hotelId || user.hotelId || 'default'
+      hotelId: hotelId || user.hotelId || 'HOTEL001'
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -991,7 +991,7 @@ app.get('/api/admin/check-session', (req, res) => {
       success: true, 
       isAdmin: true, 
       email: req.session.adminEmail,
-      hotelId: req.session.hotelId || 'default'
+      hotelId: req.session.hotelId || 'HOTEL001'
     });
   } else {
     res.json({ success: false, isAdmin: false });

@@ -16,7 +16,7 @@ const SUPER_ADMIN = {
 };
 
 const DEFAULT_HOTEL = {
-  hotelId: 'CROWN-DEFAULT',
+  hotelId: 'HOTEL001',
   hotelName: 'Crown Plaza Hotel',
   adminEmail: 'admin@crownplaza.com',
   adminPassword: 'admin123',
