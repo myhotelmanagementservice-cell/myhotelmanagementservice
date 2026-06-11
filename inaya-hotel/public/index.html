@@ -418,17 +418,9 @@ const API_BASE = window.API_BASE || (window.location.origin + '/api');
 const SOCKET_URL = window.location.origin; // ✅ Dynamic socket URL for multi-device
 const urlParams = new URLSearchParams(location.search);
 
-// ✅ FIX 3: HID (Hotel ID) properly save/load
+// ✅ FIX 4: HID (Hotel ID) is ALWAYS saved/loaded from localStorage to ensure stability on refresh
 let HID = urlParams.get('hotel') || localStorage.getItem('hotel_hid') || 'default';
-if(urlParams.get('hotel')){
-  localStorage.setItem('hotel_hid', HID);
-  console.log(`✅ Hotel ID saved from URL: ${HID}`);
-}else if(localStorage.getItem('hotel_hid')){
-  console.log(`✅ Hotel ID loaded from localStorage: ${HID}`);
-}else{
-  localStorage.setItem('hotel_hid', HID);
-  console.log(`✅ Default Hotel ID saved: ${HID}`);
-}
+localStorage.setItem('hotel_hid', HID);
 document.getElementById('tenantLabel').textContent = `Hotel ID: ${HID}`;
 
 // ✅ FIX ISSUE 6: Added comprehensive translation keys for all toast notifications
@@ -921,25 +913,24 @@ const opts={
     'Content-Type':'application/json',
     'x-hotel-id':HID,
     'x-client-id':clientId,
-    ...(token && {'Authorization': `Bearer ${token}`})
+    ...(token ? {'Authorization': `Bearer ${token}`} : {})
   }
 };
 if(body) opts.body=JSON.stringify(body);
 for(let i=0; i<retries; i++){
   try{
     const r=await fetch(API_BASE+path, opts);
-    // ✅ FIX: Check if response is HTML (error page) instead of JSON
     const contentType = r.headers.get('content-type');
     if(contentType && !contentType.includes('application/json')){
       const text = await r.text();
       if(text.startsWith('<!DOCTYPE') || text.startsWith('<html')){
         console.warn(`⚠️ API returned HTML instead of JSON for ${path}. Falling back to localStorage.`);
-        return null; // Trigger localStorage fallback
+        return null;
       }
     }
-    // ✅ FIX: Handle 401 Unauthorized (token expired/invalid)
+    // ✅ FIX: Handle 401 Unauthorized
     if(r.status === 401){
-      console.warn('⚠️ Token expired - logging out');
+      console.warn('⚠️ Token expired/invalid - logging out');
       localStorage.removeItem(`h_${HID}_token`);
       localStorage.removeItem(`h_${HID}_session`);
       showToast('⚠️ Session expired - please login again', 'warning');
@@ -959,18 +950,14 @@ for(let i=0; i<retries; i++){
 return null;
 }
 
-// ✅ FIX 5: saveUIPrefs function update karunga (remove token on logout)
+// ✅ NEW: Save UI Preferences to LocalStorage (Only 3 items + session + queue)
 function saveUIPrefs() {
 localStorage.setItem('hotel_lang', lang);
 localStorage.setItem('hotel_dark', dark ? '1' : '0');
 localStorage.setItem('hotel_theme', theme);
 localStorage.setItem(`h_${HID}_queue`, JSON.stringify(offlineQueue));
-if(currentUser) {
-  localStorage.setItem(`h_${HID}_session`, JSON.stringify(currentUser));
-} else {
-  localStorage.removeItem(`h_${HID}_session`);
-  localStorage.removeItem(`h_${HID}_token`);
-}
+if(currentUser) localStorage.setItem(`h_${HID}_session`, JSON.stringify(currentUser));
+else localStorage.removeItem(`h_${HID}_session`);
 }
 
 // ✅ NEW: Save Data to MongoDB via API
@@ -1715,7 +1702,7 @@ body:JSON.stringify({email:email,password:pass,hotelId:HID})
 });
 const data=await response.json();
 if(response.ok && data.success && data.token){
-  // ✅ FIX: Update HID if backend returns a specific hotelId
+  // ✅ FIX: Update HID if backend returns a specific one
   const resolvedHID = data.hotelId || HID;
   if(resolvedHID !== HID){
     HID = resolvedHID;
@@ -1770,88 +1757,92 @@ function logout(){
 if(socket?.connected) socket.emit('leave_hotel', HID);
 currentUser=null;
 localStorage.removeItem(`h_${HID}_token`);
-saveUIPrefs(); // This will remove session from LS
+localStorage.removeItem(`h_${HID}_session`);
 cart=[];
 showPage('loginPage');
 showToast('Logged out','success');
 }
 
-// ✅ FIX 2: checkSession() function update karunga (Verify token with backend)
+// ✅ FIX 2 & 5: checkSession() function update karunga (Verify token with backend + Show feedback)
 async function checkSession(){
-const s=localStorage.getItem(`h_${HID}_session`);
+const s = localStorage.getItem(`h_${HID}_session`);
 const token = localStorage.getItem(`h_${HID}_token`);
-if(!s || !token) return;
+if(!s || !token) {
+  console.log('ℹ️ No session or token found');
+  return;
+}
 
 try{
-currentUser = JSON.parse(s);
-if(!currentUser) return;
+  currentUser = JSON.parse(s);
+  if(!currentUser) return;
 
-// ✅ FIX: Verify token with backend if online
-if(isOnline){
-  try{
-    const verifyResponse = await fetch(API_BASE + '/admin/check-session', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'x-hotel-id': HID
+  // ✅ FIX: Verify token with backend if online
+  if(isOnline){
+    try{
+      const verifyResponse = await fetch(API_BASE + '/admin/check-session', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-hotel-id': HID
+        }
+      });
+
+      if(!verifyResponse.ok){
+        console.warn('⚠️ Token verification failed - logging out');
+        localStorage.removeItem(`h_${HID}_token`);
+        localStorage.removeItem(`h_${HID}_session`);
+        showToast('⚠️ Session expired - please login again', 'warning');
+        return;
       }
-    });
 
-    if(!verifyResponse.ok){
-      console.warn('⚠️ Token verification failed - logging out');
-      localStorage.removeItem(`h_${HID}_token`);
-      localStorage.removeItem(`h_${HID}_session`);
-      showToast('⚠️ Session expired - please login again', 'warning');
-      return;
+      const verifyData = await verifyResponse.json();
+      if(!verifyData.success || !verifyData.isAdmin){
+        console.warn('⚠️ Invalid session - logging out');
+        localStorage.removeItem(`h_${HID}_token`);
+        localStorage.removeItem(`h_${HID}_session`);
+        return;
+      }
+      console.log('✅ Session verified successfully');
+    }catch(verifyError){
+      console.warn('⚠️ Token verification error:', verifyError.message);
+      // Continue anyway for offline mode
     }
+  }
 
-    const verifyData = await verifyResponse.json();
-    if(!verifyData.success || !verifyData.isAdmin){
-      console.warn('⚠️ Invalid session - logging out');
-      localStorage.removeItem(`h_${HID}_token`);
-      localStorage.removeItem(`h_${HID}_session`);
-      return;
+  // ✅ FIX: Proper session restoration with feedback
+  if(currentUser.type==='admin'){
+    buildAdminTabs();
+    showPage('adminDash');
+    const rName=ROLES.find(r=>r.key===currentUser.role)?.label||'Admin';
+    document.getElementById('aRole').textContent=t(rName);
+    renderAll();
+    updateAdminStats();
+    showAdminTab('overview');
+    showToast('✅ Session restored - Welcome back!', 'success');
+  }else if(currentUser.type==='guest'){
+    showPage('guestDash');
+    document.getElementById('gInfo').textContent=`👤 ${currentUser.name} | #${currentUser.room}`;
+    updateGuestStats();
+    renderGuestFood();
+    renderGuestInv();
+    renderGuestHistory();
+    renderGuestBookings();
+    showGuestTab('reqTab');
+    showToast(`✅ Welcome back, ${currentUser.name}!`, 'success');
+  }
+
+  // ✅ FIX: Socket join on session restore
+  if(isOnline && socket?.connected){
+    socket.emit('join_hotel', HID);
+    if(currentUser.type==='guest'){
+      socket.emit('guest_join', {hotelId:HID, name: currentUser.name, room: currentUser.room, clientId});
     }
-  }catch(verifyError){
-    console.warn('⚠️ Token verification error:', verifyError.message);
-    // Continue anyway for offline mode
   }
-}
-
-// ✅ FIX: Proper session restoration with feedback
-if(currentUser.type==='admin'){
-  buildAdminTabs();
-  showPage('adminDash');
-  const rName=ROLES.find(r=>r.key===currentUser.role)?.label||'Admin';
-  document.getElementById('aRole').textContent=t(rName);
-  renderAll();
-  updateAdminStats();
-  showAdminTab('overview');
-  showToast('✅ Session restored - Welcome back!', 'success');
-}else if(currentUser.type==='guest'){
-  showPage('guestDash');
-  document.getElementById('gInfo').textContent=`👤 ${currentUser.name} | #${currentUser.room}`;
-  updateGuestStats();
-  renderGuestFood();
-  renderGuestInv();
-  renderGuestHistory();
-  renderGuestBookings();
-  showGuestTab('reqTab');
-  showToast(`✅ Welcome back, ${currentUser.name}!`, 'success');
-}
-
-// ✅ FIX: Socket join on session restore
-if(isOnline && socket?.connected){
-  socket.emit('join_hotel', HID);
-  if(currentUser.type==='guest'){
-    socket.emit('guest_join', {hotelId:HID, name: currentUser.name, room: currentUser.room, clientId});
-  }
-}
 }catch(e){
-console.warn('Session restore error:',e);
-localStorage.removeItem(`h_${HID}_session`);
-localStorage.removeItem(`h_${HID}_token`);
-showToast('❌ Session restore failed - please login again', 'error');
+  console.warn('Session restore error:',e);
+  localStorage.removeItem(`h_${HID}_session`);
+  localStorage.removeItem(`h_${HID}_token`);
+  showToast('❌ Session restore failed - please login again', 'error');
 }
 }
 
