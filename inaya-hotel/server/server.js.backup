@@ -74,7 +74,6 @@ async function connectDB() {
     await db.command({ ping: 1 });
     dbConnected = true;
     console.log('✅ MongoDB Connected Successfully!');
-  await initSessionsCollection();
 
     await createIndexes();
     return db;
@@ -2643,66 +2642,3 @@ async function refreshSession(token) {
 }
 
 // Call init after DB connection
-
-// ==================== MONGODB SESSIONS ====================
-async function initSessionsCollection() {
-  try {
-    const collections = await db.listCollections({ name: 'sessions' }).toArray();
-    if (collections.length === 0) {
-      await db.createCollection('sessions');
-      await db.collection('sessions').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-      await db.collection('sessions').createIndex({ token: 1 }, { unique: true });
-      console.log('✅ Sessions collection created');
-    }
-  } catch (err) {
-    console.log('Sessions error:', err.message);
-  }
-}
-
-async function createSession(userId, email, hotelId, role, token) {
-  return await db.collection('sessions').insertOne({
-    userId, email, hotelId, role, token,
-    createdAt: new Date(),
-    expiresAt: new Date(Date.now() + 30 * 60 * 1000)
-  });
-}
-
-async function verifySession(token) {
-  return await db.collection('sessions').findOne({ 
-    token: token,
-    expiresAt: { $gt: new Date() }
-  });
-}
-
-async function deleteSession(token) {
-  return await db.collection('sessions').deleteOne({ token: token });
-}
-
-async function refreshSession(token) {
-  return await db.collection('sessions').updateOne(
-    { token: token },
-    { $set: { expiresAt: new Date(Date.now() + 30 * 60 * 1000) } }
-  );
-}
-
-async function sessionAuth(req, res, next) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ success: false, error: 'No token' });
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const session = await verifySession(token);
-    if (!session) return res.status(401).json({ success: false, error: 'Session expired' });
-    await refreshSession(token);
-    req.user = decoded;
-    req.hotelId = session.hotelId;
-    next();
-  } catch (error) {
-    res.status(401).json({ success: false, error: 'Invalid token' });
-  }
-}
-
-app.post('/api/logout', async (req, res) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (token) await deleteSession(token);
-  res.json({ success: true, message: 'Logged out' });
-});
