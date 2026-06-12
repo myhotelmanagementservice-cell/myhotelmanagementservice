@@ -12,7 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <style>
 /* ===================== RESET & BASE ===================== */
 *{box-sizing:border-box;margin:0;padding:0}
@@ -49,6 +49,31 @@ body.theme-forest{--p1:#10b981;--p2:#34d399;--p3:#059669;--header:linear-gradien
 body.theme-ocean{--p1:#06b6d4;--p2:#3b82f6;--p3:#0e7490;--header:linear-gradient(135deg,#06b6d4,#3b82f6);--toolbar-bg:rgba(6,182,212,.97)}
 body.theme-royal{--p1:#ec4899;--p2:#8b5cf6;--p3:#be185d;--header:linear-gradient(135deg,#ec4899,#8b5cf6);--toolbar-bg:rgba(236,72,153,.97)}
 body.high-contrast{filter:contrast(1.3) saturate(1.2)}
+
+/* ===================== ✅ FIX 2: LOADING SCREEN ===================== */
+#loadingScreen{
+  position:fixed;inset:0;z-index:9999999;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:20px;
+  transition:opacity 0.4s ease;
+}
+#loadingScreen.hidden-loading{opacity:0;pointer-events:none}
+.loading-spinner{
+  width:50px;height:50px;
+  border:4px solid var(--border);
+  border-top-color:var(--p1);
+  border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+.loading-text{
+  font-size:16px;font-weight:600;color:var(--p1);
+  font-family:'DM Sans',sans-serif;
+}
+.loading-subtext{
+  font-size:12px;color:var(--fg);opacity:0.6;
+  font-family:'DM Sans',sans-serif;
+}
 
 /* ===================== FIXED TOOLBAR ===================== */
 #toolbar{
@@ -148,7 +173,7 @@ select.inp{cursor:pointer}
 .tab-pane{display:none}.tab-pane.active{display:block;animation:fadeUp .2s ease}
 
 /* ===================== LOGIN PAGE ===================== */
-#loginPage{min-height:100dvh;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--header);padding:10px}
+#loginPage{min-height:100dvh;width:100%;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--header);padding:10px}
 .login-card{width:100%;max-width:400px;background:var(--card);border-radius:20px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.2)}
 .login-logo{font-size:40px;text-align:center;margin-bottom:4px;animation:float 3s ease-in-out infinite}
 .login-h{font-size:20px;font-weight:700;color:var(--fg);text-align:center;margin-bottom:4px}
@@ -251,12 +276,18 @@ select.inp{cursor:pointer}
 }
 [dir="rtl"] .req-card{border-left:none;border-right:4px solid var(--p1)}
 [dir="rtl"] .req-card.emergency{border-right-color:#ef4444}
-/* ✅ Arabic font fix */
 [lang="ar"]{font-family:'Noto Naskh Arabic','DM Sans',sans-serif}
 [lang="hi"]{font-family:'Noto Sans Devanagari','DM Sans',sans-serif}
 </style>
 </head>
 <body>
+
+<!-- ✅ FIX 2: LOADING SCREEN - Prevents login flash on refresh -->
+<div id="loadingScreen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Loading Crown Plaza...</div>
+  <div class="loading-subtext">Verifying your session...</div>
+</div>
 
 <!-- ✅ ONLINE/OFFLINE BADGE + SOCKET STATUS -->
 <div id="netBadge">🟢 Online</div>
@@ -264,12 +295,11 @@ select.inp{cursor:pointer}
 <div id="toasts"></div>
 <div class="conn-bar" id="connBar" style="width:0"></div>
 
-<!-- ========== TOOLBAR (Fixed, Isolated, z-index:99999) ========== -->
+<!-- ========== TOOLBAR ========== -->
 <div id="toolbar">
   <button class="tb-btn active" onclick="setLang('en')" id="lb-en">🇬🇧 EN</button>
   <button class="tb-btn" onclick="setLang('hi')" id="lb-hi">🇮🇳 हि</button>
   <button class="tb-btn" onclick="setLang('ar')" id="lb-ar">🇸🇦 ع</button>
-  <!-- ✅ NEW: Online/Offline Toggle Button -->
   <button class="tb-btn" onclick="toggleOnlineMode()" id="onlineBtn" title="Toggle Online/Offline">🟢 Online</button>
   <button class="tb-btn" onclick="toggleContrast()" title="Contrast">🔆</button>
   <button class="tb-btn" onclick="adjustFont(-1)" title="A-">A-</button>
@@ -312,13 +342,11 @@ select.inp{cursor:pointer}
       <button class="login-tab active" id="guestTabBtn" onclick="switchLogin('guest')" data-i18n="guestTab">🏨 Guest</button>
       <button class="login-tab" id="adminTabBtn" onclick="switchLogin('admin')" data-i18n="adminTab">👑 Admin</button>
     </div>
-    <!-- Guest Form -->
     <form id="guestLoginForm" onsubmit="guestLogin(event)">
       <div class="form-row"><label class="lbl" data-i18n="yourName">Your Name</label><input class="inp" id="guestNameIn" data-i18n-ph="enterName" placeholder="Enter your name" required></div>
       <div class="form-row"><label class="lbl" data-i18n="roomNumber">Room Number</label><input class="inp" id="guestRoomIn" type="number" placeholder="e.g. 101" required></div>
       <button class="btn-primary" style="width:100%;padding:11px" type="submit" data-i18n="loginGuest">🔐 Login as Guest</button>
     </form>
-    <!-- Admin Form -->
     <form id="adminLoginForm" class="hidden" onsubmit="adminLogin(event)">
       <div class="form-row"><label class="lbl" data-i18n="emailAddress">Email</label><input class="inp" id="adminEmailIn" type="email" placeholder="admin@crownplaza.com" required></div>
       <div class="form-row"><label class="lbl" data-i18n="password">Password</label><input class="inp" id="adminPassIn" type="password" placeholder="••••••••" required></div>
@@ -329,7 +357,7 @@ select.inp{cursor:pointer}
 </div>
 
 <!-- ========== ROLE SELECT PAGE ========== -->
-<div id="rolePage" class="hidden" style="min-height:100dvh;background:var(--header);display:flex;align-items:center;justify-content:center;padding:12px">
+<div id="rolePage" class="hidden" style="min-height:100dvh;background:var(--header);display:none;align-items:center;justify-content:center;padding:12px">
   <div class="card" style="width:100%;max-width:520px">
     <button onclick="backToLogin()" style="font-size:11px;color:var(--p1);background:none;border:none;cursor:pointer;margin-bottom:10px" data-i18n="back">← Back</button>
     <h2 style="font-size:18px;font-weight:700;text-align:center;margin-bottom:14px;color:var(--fg)" data-i18n="selectRole">👑 Select Your Role</h2>
@@ -379,10 +407,10 @@ select.inp{cursor:pointer}
 
 <script>
 // ================================================================
-// CONFIGURATION
+// ✅ FIX 1: CONFIGURATION - Dynamic URLs
 // ================================================================
-const API = window.API_BASE || 'http://localhost:3000/api';
-const SOCKET_URL = window.SOCKET_URL || 'http://localhost:3000';
+const API = window.API_BASE || (window.location.origin + '/api');
+const SOCKET_URL = window.SOCKET_URL || window.location.origin;
 
 // ================================================================
 // MULTI-TENANT: Extract hotel ID
@@ -393,7 +421,22 @@ if (urlParams.get('hotel')) localStorage.setItem('hotel_hid', HID);
 document.getElementById('tenantLabel').textContent = `Hotel ID: ${HID}`;
 
 // ================================================================
-// TRANSLATIONS - Complete EN/HI/AR with proper keys
+// ✅ FIX 1: Centralized Auth Headers Function
+// ================================================================
+function getAuthHeaders() {
+  const token = localStorage.getItem(`h_${HID}_token`);
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-hotel-id': HID
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+// ================================================================
+// TRANSLATIONS
 // ================================================================
 const T = {
 en:{
@@ -551,7 +594,7 @@ let currentUser=null, HotelCfg={name:'Crown Plaza Hotel',currency:'$',wifi:'Crow
 let rooms=[], guests=[], food=[], inventory=[], requests=[], blacklist=[], maintenance=[], reviews=[], loyalty=[], staff=[], logs=[];
 let cart=[], ratingData={overall:0,service:0,clean:0};
 let deptChart=null, occChart=null;
-let isOnline=true; // ✅ Track online mode
+let isOnline=true;
 
 const SERVICES = {
   'Housekeeping':['Room Cleaning','Extra Towels','Bed Making','Mini Bar Restock','Laundry Pickup'],
@@ -575,7 +618,7 @@ const ROLES = [
 ];
 
 // ================================================================
-// SOCKET.IO — Real-time multi-device sync
+// ✅ FIX 1: SOCKET.IO — Real-time multi-device sync
 // ================================================================
 let socket=null;
 function initSocket(){
@@ -644,9 +687,29 @@ function initSocket(){
       renderInventory(); renderGuestInv();
     });
 
+    socket.on('food_upd',(item)=>{
+      const idx=food.findIndex(f=>f._id===item._id);
+      if(idx>-1) food[idx]=item; else food.push(item);
+      renderFood(); renderGuestFood();
+    });
+
     socket.on('review_new',(rev)=>{
       if(!reviews.find(r=>r._id===rev._id)) reviews.unshift(rev);
       renderReviews();
+    });
+
+    socket.on('staff_upd',(s)=>{
+      const idx=staff.findIndex(x=>x._id===s._id);
+      if(idx>-1) staff[idx]=s; else staff.push(s);
+      renderStaff();
+    });
+
+    socket.on('booking_new',(b)=>{
+      renderAll();
+    });
+
+    socket.on('booking_upd',(b)=>{
+      renderAll();
     });
 
   }catch(e){
@@ -668,7 +731,6 @@ function setSockStatus(s){
   if(sockEl) sockEl.style.display=s==='connected'?'none':'flex';
 }
 
-// ✅ Update Online/Offline Badge
 function updateNetBadge(status){
   const badge=document.getElementById('netBadge');
   if(!badge) return;
@@ -678,7 +740,6 @@ function updateNetBadge(status){
   else if(status==='reconnecting'){badge.classList.add('reconnecting');badge.textContent=t('reconnecting')}
 }
 
-// ✅ Toggle Online/Offline Mode Button
 function toggleOnlineMode(){
   isOnline=!isOnline;
   const btn=document.getElementById('onlineBtn');
@@ -696,22 +757,48 @@ function toggleOnlineMode(){
 }
 
 // ================================================================
-// API CALLS — all include x-hotel-id header
+// ✅ FIX 1: API CALLS — All include Authorization + x-hotel-id headers
 // ================================================================
 async function apiCall(method, path, body=null){
-  if(!isOnline) return null; // Skip API if offline mode
-  const opts={method, headers:{'Content-Type':'application/json','x-hotel-id':HID}};
+  if(!isOnline) return null;
+  const opts={method, headers:getAuthHeaders()};
   if(body) opts.body=JSON.stringify(body);
   try{
     const r=await fetch(API+path, opts);
+
+    // ✅ FIX: Handle 401 - Session expired
+    if(r.status === 401){
+      console.warn('Session expired (401)');
+      localStorage.removeItem(`h_${HID}_token`);
+      localStorage.removeItem(`h_${HID}_session`);
+      currentUser = null;
+      showPage('loginPage');
+      showToast('⚠️ Session expired. Please login again.','warning');
+      return null;
+    }
+
+    // ✅ FIX: Handle HTML response (server error page)
+    const contentType = r.headers.get('content-type');
+    if(contentType && !contentType.includes('application/json')){
+      const text = await r.text();
+      if(text.startsWith('<!DOCTYPE') || text.startsWith('<html')){
+        console.warn(`API returned HTML for ${path}`);
+        return null;
+      }
+    }
+
     if(!r.ok) throw new Error(r.statusText);
-    return r.json();
+    const data = await r.json();
+    return data;
   }catch(e){
-    console.warn('API error (using localStorage fallback):',e.message);
+    console.warn(`API error for ${method} ${path}:`,e.message);
     return null;
   }
 }
 
+// ================================================================
+// ✅ FIX 1: SYNC FROM MONGODB — Primary data source on refresh
+// ================================================================
 async function syncBack(){
   if(!isOnline) return;
   const [r,g,f,inv,req,bl,maint,rev,st,lg] = await Promise.all([
@@ -719,15 +806,33 @@ async function syncBack(){
     apiCall('GET','/inventory'),apiCall('GET','/requests'),apiCall('GET','/blacklist'),
     apiCall('GET','/maintenance'),apiCall('GET','/reviews'),apiCall('GET','/staff'),apiCall('GET','/logs')
   ]);
-  if(r) rooms=r;if(g) guests=g;if(f) food=f;if(inv) inventory=inv;
-  if(req) requests=req;if(bl) blacklist=bl;if(maint) maintenance=maint;
-  if(rev) reviews=rev;if(st) staff=st;if(lg) logs=lg;
+
+  // ✅ FIX: Only update if we got valid array data from MongoDB
+  if(r && Array.isArray(r) && r.length > 0) rooms=r;
+  if(g && Array.isArray(g)) guests=g;
+  if(f && Array.isArray(f) && f.length > 0) food=f;
+  if(inv && Array.isArray(inv) && inv.length > 0) inventory=inv;
+  if(req && Array.isArray(req)) requests=req;
+  if(bl && Array.isArray(bl)) blacklist=bl;
+  if(maint && Array.isArray(maint)) maintenance=maint;
+  if(rev && Array.isArray(rev)) reviews=rev;
+  if(st && Array.isArray(st) && st.length > 0) staff=st;
+  if(lg && Array.isArray(lg)) logs=lg;
+
   const cfg=await apiCall('GET','/config');
-  if(cfg) {Object.assign(HotelCfg,cfg); applyCfg();}
+  if(cfg && typeof cfg === 'object') {Object.assign(HotelCfg,cfg); applyCfg();}
+
+  // ✅ FIX: Save to localStorage as cache after MongoDB sync
+  saveLS();
   renderAll();
+
+  // If no rooms from MongoDB, load defaults
   if(!rooms.length) loadLS();
 }
 
+// ================================================================
+// LOCAL STORAGE — Used as CACHE + FALLBACK
+// ================================================================
 function saveLS(){
   localStorage.setItem(`h_${HID}_rooms`,JSON.stringify(rooms));
   localStorage.setItem(`h_${HID}_guests`,JSON.stringify(guests));
@@ -741,6 +846,7 @@ function saveLS(){
   localStorage.setItem(`h_${HID}_logs`,JSON.stringify(logs));
   localStorage.setItem(`h_${HID}_cfg`,JSON.stringify(HotelCfg));
 }
+
 function loadLS(){
   const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
   rooms=get(`h_${HID}_rooms`,[{_id:'r1',number:101,type:'Standard',price:99,status:'Vacant',guestName:''},{_id:'r2',number:102,type:'Deluxe',price:129,status:'Occupied',guestName:'John Smith'},{_id:'r3',number:103,type:'Suite',price:199,status:'Vacant',guestName:''}]);
@@ -758,10 +864,43 @@ function loadLS(){
   renderAll();
 }
 
+// ================================================================
+// ✅ FIX 1: SAVE — Saves to MongoDB via API + localStorage cache
+// ================================================================
 function save(collection, data, event='data_upd'){
+  // ✅ Always save to localStorage as cache
   saveLS();
+
+  // ✅ Send to Socket.IO for real-time sync
   if(isOnline && socket?.connected) socket.emit(event,{hotelId:HID, collection, data});
-  if(isOnline) apiCall('POST',`/${collection}`,{data, hotelId:HID});
+
+  // ✅ FIX: Save to MongoDB via API
+  if(isOnline){
+    if(Array.isArray(data)){
+      // Bulk save - PUT entire collection
+      apiCall('PUT',`/${collection}`,{data:data, hotelId:HID});
+    } else if(data && data._id) {
+      // Single item - check if it exists
+      const exists = collection === 'rooms' ? rooms.find(r=>r._id===data._id) :
+                     collection === 'guests' ? guests.find(g=>g._id===data._id) :
+                     collection === 'food' ? food.find(f=>f._id===data._id) :
+                     collection === 'inventory' ? inventory.find(i=>i._id===data._id) :
+                     collection === 'requests' ? requests.find(r=>r._id===data._id) :
+                     collection === 'blacklist' ? blacklist.find(b=>b._id===data._id) :
+                     collection === 'maintenance' ? maintenance.find(m=>m._id===data._id) :
+                     collection === 'reviews' ? reviews.find(r=>r._id===data._id) :
+                     collection === 'staff' ? staff.find(s=>s._id===data._id) :
+                     collection === 'logs' ? logs.find(l=>l._id===data._id) : null;
+
+      if(exists){
+        apiCall('PUT',`/${collection}/${data._id}`, data);
+      } else {
+        apiCall('POST',`/${collection}`, data);
+      }
+    } else {
+      apiCall('POST',`/${collection}`,{data, hotelId:HID});
+    }
+  }
 }
 
 // ================================================================
@@ -771,7 +910,6 @@ function setLang(l){
   lang=l;
   document.documentElement.lang=l;
   document.documentElement.dir=l==='ar'?'rtl':'ltr';
-  // ✅ Apply font family for Arabic/Hindi
   if(l==='ar') document.body.style.fontFamily="'Noto Naskh Arabic','DM Sans',sans-serif";
   else if(l==='hi') document.body.style.fontFamily="'Noto Sans Devanagari','DM Sans',sans-serif";
   else document.body.style.fontFamily="'DM Sans','Noto Sans Devanagari','Noto Naskh Arabic',system-ui,sans-serif";
@@ -782,7 +920,6 @@ function setLang(l){
   applyI18n();
   renderAll();
   document.querySelectorAll('[data-i18n-ph]').forEach(el=>{const v=t(el.getAttribute('data-i18n-ph'));if(v)el.placeholder=v});
-  // Update online button text
   const onlineBtn=document.getElementById('onlineBtn');
   if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
 }
@@ -881,6 +1018,17 @@ function showToast(msg,type=''){
 }
 
 // ================================================================
+// ✅ FIX 2: HIDE LOADING SCREEN
+// ================================================================
+function hideLoadingScreen(){
+  const ls = document.getElementById('loadingScreen');
+  if(ls){
+    ls.classList.add('hidden-loading');
+    setTimeout(()=>{ls.style.display='none'},400);
+  }
+}
+
+// ================================================================
 // AUTH
 // ================================================================
 function switchLogin(type){
@@ -906,19 +1054,41 @@ async function guestLogin(e){
   if(isOnline && socket?.connected) socket.emit('guest_join',{hotelId:HID,name,room});
 }
 
+// ✅ FIX 1: Admin Login - Save JWT token to localStorage
 async function adminLogin(e){
   e.preventDefault();
   const email=document.getElementById('adminEmailIn').value.trim();
   const pass=document.getElementById('adminPassIn').value;
-  const result=await apiCall('POST','/auth',{email,password:pass});
-  if(result?.success || (email==='admin@crownplaza.com' && pass==='admin123')){
-    currentUser={type:'admin',email,role:'super_admin'};
+
+  showToast('🔄 Logging in...','info');
+
+  // ✅ Try backend login first
+  const result=await apiCall('POST','/admin/login',{email,password:pass,hotelId:HID});
+
+  if(result?.success && result.token){
+    // ✅ FIX: Save JWT token to localStorage
+    localStorage.setItem(`h_${HID}_token`, result.token);
+    localStorage.setItem(`h_${HID}_hotelId`, result.hotelId || HID);
+
+    currentUser={type:'admin',email:result.user?.email || email,role:result.user?.role || 'super_admin',token:result.token,hotelId:result.hotelId || HID};
     localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
+
+    buildRolePage();
+    showPage('rolePage');
+    showToast('✅ Login successful!','success');
+  } else if(email==='admin@crownplaza.com' && pass==='admin123'){
+    // ✅ Fallback: Mock credentials
+    const mockToken = 'mock_jwt_' + Date.now();
+    localStorage.setItem(`h_${HID}_token`, mockToken);
+
+    currentUser={type:'admin',email,role:'super_admin',token:mockToken};
+    localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
+
     buildRolePage();
     showPage('rolePage');
     showToast('Login successful','success');
   }else{
-    showToast('Invalid credentials. Try admin@crownplaza.com / admin123','error');
+    showToast('❌ Invalid credentials. Try admin@crownplaza.com / admin123','error');
   }
 }
 
@@ -943,38 +1113,94 @@ function loginAsRole(role){
 
 function backToLogin(){showPage('loginPage')}
 
+// ✅ FIX 1: Logout - Clear token from localStorage
 function logout(){
   localStorage.removeItem(`h_${HID}_session`);
+  localStorage.removeItem(`h_${HID}_token`);
+  localStorage.removeItem(`h_${HID}_hotelId`);
   currentUser=null;cart=[];
   showPage('loginPage');
   showToast('Logged out','success');
 }
 
-function checkSession(){
+// ✅ FIX 1 + FIX 2: Check Session - Verify with backend, no flash
+async function checkSession(){
   const s=localStorage.getItem(`h_${HID}_session`);
-  if(!s)return;
+  const token=localStorage.getItem(`h_${HID}_token`);
+
+  if(!s){
+    // No session - show login
+    showPage('loginPage');
+    hideLoadingScreen();
+    return;
+  }
+
   try{
     currentUser=JSON.parse(s);
-    if(currentUser.type==='admin'){
-      buildAdminTabs();showPage('adminDash');
-      const rName=ROLES.find(r=>r.key===currentUser.role)?.label||'Admin';
-      document.getElementById('aRole').textContent=t(rName);
-      renderAll();updateAdminStats();showAdminTab('overview');
-    }else if(currentUser.type==='guest'){
+
+    // ✅ FIX: If admin with token, verify with backend
+    if(currentUser.type==='admin' && token){
+      const verifyResult = await apiCall('GET','/admin/check-session');
+
+      if(verifyResult?.success && verifyResult.isAdmin){
+        // ✅ Valid session - restore admin dashboard
+        buildAdminTabs();
+        showPage('adminDash');
+        const rName=ROLES.find(r=>r.key===currentUser.role)?.label||'Admin';
+        document.getElementById('aRole').textContent=t(rName);
+
+        // ✅ Load data from MongoDB
+        await syncBack();
+
+        updateAdminStats();
+        showAdminTab('overview');
+        showToast("✅ Session restored — Welcome back!",'success');
+        hideLoadingScreen();
+      } else {
+        // ✅ Invalid token - clear and show login
+        localStorage.removeItem(`h_${HID}_token`);
+        localStorage.removeItem(`h_${HID}_session`);
+        currentUser=null;
+        showPage('loginPage');
+        hideLoadingScreen();
+      }
+    } else if(currentUser.type==='guest'){
+      // ✅ Guest session - restore directly
       showPage('guestDash');
       document.getElementById('gInfo').textContent=`👤 ${currentUser.name} | #${currentUser.room}`;
+
+      // ✅ Load data from MongoDB
+      await syncBack();
+
       updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();
       showGuestTab('reqTab');
+      showToast("✅ Session restored — Welcome back!",'success');
+      hideLoadingScreen();
+    } else {
+      showPage('loginPage');
+      hideLoadingScreen();
     }
-  }catch(e){localStorage.removeItem(`h_${HID}_session`)}
+  }catch(e){
+    console.warn('Session restore error:',e);
+    localStorage.removeItem(`h_${HID}_session`);
+    showPage('loginPage');
+    hideLoadingScreen();
+  }
 }
 
 function showPage(id){
   ['loginPage','rolePage','adminDash','guestDash'].forEach(p=>{
-    const el=document.getElementById(p);if(el){el.classList.toggle('hidden',p!==id);if(p!==id)el.style.display='';else el.style.display=''}
+    const el=document.getElementById(p);
+    if(!el) return;
+    if(p===id){
+      el.classList.remove('hidden');
+      if(p==='loginPage' || p==='rolePage') el.style.display='flex';
+      else el.style.display='';
+    } else {
+      el.classList.add('hidden');
+      el.style.display='none';
+    }
   });
-  if(id==='loginPage'){document.getElementById('loginPage').style.display='flex'}
-  if(id==='rolePage'){document.getElementById('rolePage').style.display='flex'}
 }
 
 // ================================================================
@@ -1383,9 +1609,9 @@ function renderLogs(){
 }
 
 function addLog(action,details){
-  const entry={timestamp:new Date().toISOString(),user:currentUser?.name||currentUser?.email||'System',action,details};
+  const entry={_id:'log_'+Date.now(),timestamp:new Date().toISOString(),user:currentUser?.name||currentUser?.email||'System',action,details,hotelId:HID};
   logs.unshift(entry);
-  save('logs',logs);
+  save('logs',entry);
   renderLogs();
 }
 
@@ -1444,7 +1670,6 @@ function buildGuestPanes(){
       <span class="gnav-icon">${tb.icon}</span>${t(tb.label)}
     </button>`).join('');
   panes.innerHTML=`
-    <!-- Request Tab -->
     <div class="card hidden" id="gp-reqTab">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="reqTab">📝 New Request</h3>
       <form onsubmit="submitGuestReq(event)">
@@ -1479,7 +1704,6 @@ function buildGuestPanes(){
         <button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="submitRequest">Submit Request</button>
       </form>
     </div>
-    <!-- Food Tab -->
     <div class="card hidden" id="gp-foodTab">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="foodMenu">🍕 Food Menu</h3>
       <div class="food-grid" id="gFoodGrid"></div>
@@ -1492,13 +1716,11 @@ function buildGuestPanes(){
         <button class="btn-primary" style="width:100%" onclick="placeOrder()" data-i18n="placeOrder">🛒 Place Order</button>
       </div>
     </div>
-    <!-- Inventory Tab -->
     <div class="card hidden" id="gp-invTab">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="invItems">📦 Available Items</h3>
       <div class="inv-grid" id="gInvGrid"></div>
       <p style="text-align:center;font-size:11px;opacity:.5;margin-top:10px">💡 Items delivered within 10 minutes</p>
     </div>
-    <!-- Cab Tab -->
     <div class="card hidden" id="gp-cabTab">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="transport">🚗 Transport</h3>
       <form onsubmit="bookCab(event)">
@@ -1513,12 +1735,10 @@ function buildGuestPanes(){
         <button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="bookNow">📅 Book Now</button>
       </form>
     </div>
-    <!-- History Tab -->
     <div class="card hidden" id="gp-histTab">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="myHistory">📋 My History</h3>
       <div id="gHistList"></div>
     </div>
-    <!-- Info Tab -->
     <div class="card hidden" id="gp-infoTab">
       <h3 style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--fg)" data-i18n="hotelInfo">ℹ️ Hotel Info</h3>
       <div class="card-sm" style="margin-bottom:8px">
@@ -1557,6 +1777,9 @@ function showGuestTab(id){
     if(p) p.classList.toggle('hidden',tb.id!==id);
     if(b) b.classList.toggle('active',tb.id===id);
   });
+  if(id==='foodTab') renderGuestFood();
+  if(id==='invTab') renderGuestInv();
+  if(id==='histTab') renderGuestHistory();
 }
 
 function updateServices(){
@@ -1734,7 +1957,10 @@ function saveCfg(field){
   else if(field==='wifi') HotelCfg.wifi=document.getElementById('cfgWifi')?.value||HotelCfg.wifi;
   else if(field==='transport'){HotelCfg.airportPrice=parseInt(document.getElementById('cfgAirport')?.value)||30}
   saveLS();
-  if(isOnline){apiCall('PUT','/config',HotelCfg);if(socket?.connected) socket.emit('cfg_upd',{hotelId:HID,...HotelCfg})}
+  if(isOnline){
+    apiCall('PUT','/config',HotelCfg);
+    if(socket?.connected) socket.emit('cfg_upd',{hotelId:HID,...HotelCfg});
+  }
   applyCfg();
   showToast('⚙️ Settings saved & synced','success');
   addLog('Config Update',field);
@@ -1759,7 +1985,6 @@ function genAllQR(){
 function buildModals(){
   const container=document.getElementById('modals');
   container.innerHTML=`
-  <!-- ROOM MODAL -->
   <div class="modal-overlay" id="roomModal">
     <div class="modal-box">
       <div class="modal-h" data-i18n="addRoom">Add Room</div>
@@ -1779,7 +2004,6 @@ function buildModals(){
       </form>
     </div>
   </div>
-  <!-- GUEST MODAL -->
   <div class="modal-overlay" id="guestModal">
     <div class="modal-box">
       <div class="modal-h" data-i18n="addGuest">Add Guest</div>
@@ -1799,7 +2023,6 @@ function buildModals(){
       </form>
     </div>
   </div>
-  <!-- FOOD MODAL -->
   <div class="modal-overlay" id="foodModal">
     <div class="modal-box">
       <div class="modal-h" data-i18n="addDish">Add Dish</div>
@@ -1818,7 +2041,6 @@ function buildModals(){
       </form>
     </div>
   </div>
-  <!-- INVENTORY MODAL -->
   <div class="modal-overlay" id="inventoryModal">
     <div class="modal-box">
       <div class="modal-h" data-i18n="addItem">Add Item</div>
@@ -1840,7 +2062,6 @@ function buildModals(){
       </form>
     </div>
   </div>
-  <!-- BLACKLIST MODAL -->
   <div class="modal-overlay" id="blacklistModal">
     <div class="modal-box">
       <div class="modal-h">🚫 Block Guest</div>
@@ -1855,7 +2076,6 @@ function buildModals(){
       </form>
     </div>
   </div>
-  <!-- MAINTENANCE MODAL -->
   <div class="modal-overlay" id="maintModal">
     <div class="modal-box">
       <div class="modal-h" data-i18n="addTask">Add Task</div>
@@ -1875,7 +2095,6 @@ function buildModals(){
       </form>
     </div>
   </div>
-  <!-- RATING MODAL -->
   <div class="modal-overlay" id="ratingModal">
     <div class="modal-box">
       <div class="modal-h" data-i18n="rateStay">⭐ Rate Your Stay</div>
@@ -1886,7 +2105,6 @@ function buildModals(){
       <button class="btn-primary" style="width:100%;padding:10px;margin-top:8px" onclick="submitRating()" data-i18n="submitReview">Submit Review</button>
     </div>
   </div>
-  <!-- INFO MODAL -->
   <div class="modal-overlay" id="infoModal">
     <div class="modal-box">
       <div class="modal-h" id="infoModalTitle">Info</div>
@@ -1912,7 +2130,7 @@ function addGuest(e){
 function addDish(e){
   e.preventDefault();
   const dish={_id:'f_'+Date.now(),name:document.getElementById('mFName').value,price:parseFloat(document.getElementById('mFPrice').value),category:document.getElementById('mFCat').value,emoji:document.getElementById('mFEmoji').value||'🍽️',hotelId:HID};
-  food.push(dish);save('food',food);closeModal('foodModal');renderFood();renderGuestFood();showToast('Dish added','success');
+  food.push(dish);save('food',dish);closeModal('foodModal');renderFood();renderGuestFood();showToast('Dish added','success');
 }
 function addInvItem(e){
   e.preventDefault();
@@ -1973,7 +2191,7 @@ document.addEventListener('keydown',e=>{
 // ONLINE / OFFLINE AUTO-DETECT
 // ================================================================
 window.addEventListener('online',()=>{
-  if(!isOnline) return; // Don't auto-connect if user manually went offline
+  if(!isOnline) return;
   updateNetBadge('online');
   if(socket) socket.connect();
   showToast('🌐 Back online','success');
@@ -1984,23 +2202,36 @@ window.addEventListener('offline',()=>{
 });
 
 // ================================================================
-// INIT
+// ✅ FIX 1 + FIX 2: INIT — Loading screen → Session check → MongoDB sync
 // ================================================================
-function init(){
+async function init(){
+  // 1. Load UI preferences (instant, from localStorage)
   loadUIPrefs();
   buildModals();
   buildGuestPanes();
   buildRolePage();
-  loadLS(); // ✅ Load from localStorage first (instant load on refresh)
   tickClock();
-  initSocket(); // Connect socket (will syncBack from MongoDB on connect)
-  checkSession(); // Restore previous session
-  renderAll();
-  // Update online button text based on current state
+
+  // 2. ✅ Loading screen is visible at this point
+
+  // 3. Load from localStorage cache first (instant render)
+  loadLS();
+
+  // 4. Connect socket (will syncBack from MongoDB on connect)
+  initSocket();
+
+  // 5. ✅ Check session with backend verification
+  await checkSession();
+
+  // 6. Update online button text
   const onlineBtn=document.getElementById('onlineBtn');
   if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
-  // periodic local save backup
+
+  // 7. Periodic localStorage backup
   setInterval(saveLS, 15000);
+
+  // 8. Save on page unload
+  window.addEventListener('beforeunload', saveLS);
 }
 
 init();
