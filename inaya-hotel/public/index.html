@@ -903,7 +903,7 @@ function saveSession() {
 // ✅ FIX ISSUE 6: API Calls with Auth Headers & SESSION_EXPIRED handling
 async function apiCall(method, path, body=null, retries=3){
 if(!isOnline) return null;
-const token = sessionStorage.getItem('hotel_token');
+const token = localStorage.getItem('hotel_token');
 const opts={method, headers:{'Content-Type':'application/json','x-hotel-id':HID,'x-client-id':clientId}};
 if(token) opts.headers['Authorization'] = `Bearer ${token}`;
 if(body) opts.body=JSON.stringify(body);
