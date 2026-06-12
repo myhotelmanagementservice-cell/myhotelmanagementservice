@@ -50,34 +50,6 @@ body.theme-forest{--p1:#10b981;--p2:#34d399;--p3:#059669;--header:linear-gradien
 body.theme-ocean{--p1:#06b6d4;--p2:#3b82f6;--p3:#0e7490;--header:linear-gradient(135deg,#06b6d4,#3b82f6);--toolbar-bg:rgba(6,182,212,.97)}
 body.theme-royal{--p1:#ec4899;--p2:#8b5cf6;--p3:#be185d;--header:linear-gradient(135deg,#ec4899,#8b5cf6);--toolbar-bg:rgba(236,72,153,.97)}
 body.high-contrast{filter:contrast(1.4) saturate(1.3)}
-
-/* ✅ FIX 2: LOADING SCREEN - Prevents login flash on refresh */
-#loadingScreen{
-  position:fixed;inset:0;z-index:9999999;
-  background:var(--bg);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:20px;
-  transition:opacity 0.4s ease;
-}
-#loadingScreen.fade-out{opacity:0;pointer-events:none}
-body.dark #loadingScreen{background:#0f0e17}
-.loading-spinner{
-  width:50px;height:50px;
-  border:4px solid var(--border);
-  border-top-color:var(--p1);
-  border-radius:50%;
-  animation:spin 0.8s linear infinite;
-}
-.loading-text{
-  font-size:16px;font-weight:600;color:var(--p1);
-  font-family:'DM Sans',sans-serif;
-}
-body.dark .loading-text{color:#a78bfa}
-.loading-subtext{
-  font-size:12px;color:var(--fg);opacity:0.6;
-  font-family:'DM Sans',sans-serif;
-}
-
 #toolbar{width:100%!important;left:0!important;right:0!important;margin:0!important;
 position:fixed!important;bottom:0!important;left:0!important;right:0!important;
 width:100vw!important;background:var(--toolbar-bg)!important;
@@ -337,14 +309,6 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 </style>
 </head>
 <body>
-
-<!-- ✅ FIX 2: LOADING SCREEN - Prevents login flash on refresh -->
-<div id="loadingScreen">
-  <div class="loading-spinner"></div>
-  <div class="loading-text">Loading Crown Plaza...</div>
-  <div class="loading-subtext">Verifying your session...</div>
-</div>
-
 <div id="netBadge">🟢 Online</div>
 <div id="sockStatus"><span class="sock-dot connecting" id="sockDot"></span><span id="sockTxt">Connecting…</span></div>
 <div id="toolbar">
@@ -924,25 +888,22 @@ const symbol = CURRENCIES[HotelCfg.currency]?.symbol || '﷼';
 const formattedNum = Number(converted.toFixed(2));
 return `${symbol}${formattedNum}`;
 }
+
 // ✅ FIX ISSUE 1 & 6: Session Management & API Calls
 function saveSession() {
-if(currentUser) {
-sessionStorage.setItem('hotel_session', JSON.stringify(currentUser));
-if(currentUser.token) sessionStorage.setItem('hotel_token', currentUser.token);
-// ✅ FIX 1: Also save to localStorage for refresh persistence
-localStorage.setItem(`h_${HID}_session`, JSON.stringify(currentUser));
-if(currentUser.token) localStorage.setItem(`h_${HID}_token`, currentUser.token);
-} else {
-sessionStorage.removeItem('hotel_session');
-sessionStorage.removeItem('hotel_token');
-localStorage.removeItem(`h_${HID}_session`);
-localStorage.removeItem(`h_${HID}_token`);
+    if(currentUser) {
+        sessionStorage.setItem('hotel_session', JSON.stringify(currentUser));
+        if(currentUser.token) sessionStorage.setItem('hotel_token', currentUser.token);
+    } else {
+        sessionStorage.removeItem('hotel_session');
+        sessionStorage.removeItem('hotel_token');
+    }
 }
-}
+
 // ✅ FIX ISSUE 6: API Calls with Auth Headers & SESSION_EXPIRED handling
 async function apiCall(method, path, body=null, retries=3){
 if(!isOnline) return null;
-const token = sessionStorage.getItem('hotel_token') || localStorage.getItem(`h_${HID}_token`);
+const token = sessionStorage.getItem('hotel_token');
 const opts={method, headers:{'Content-Type':'application/json','x-hotel-id':HID,'x-client-id':clientId}};
 if(token) opts.headers['Authorization'] = `Bearer ${token}`;
 if(body) opts.body=JSON.stringify(body);
@@ -951,16 +912,18 @@ try{
 const r=await fetch(API_BASE+path, opts);
 const text = await r.text();
 let data;
-try { data = JSON.parse(text); } catch(e) {
+try { data = JSON.parse(text); } catch(e) { 
 if(text.startsWith('<!DOCTYPE') || text.startsWith('<html')) return null;
-throw new Error('Invalid JSON');
+throw new Error('Invalid JSON'); 
 }
+
 // ✅ FIX ISSUE 6: Handle SESSION_EXPIRED
 if(data && data.code === 'SESSION_EXPIRED') {
-alert("Session expired. Please login again.");
-logout();
-return null;
+    alert("Session expired. Please login again.");
+    logout();
+    return null;
 }
+
 if(!r.ok) throw new Error(r.statusText);
 return data;
 }catch(e){
@@ -973,14 +936,15 @@ await new Promise(res=>setTimeout(res, 1000*(i+1)));
 }
 return null;
 }
+
 // ✅ FIX: Save UI Preferences to LocalStorage (Session is now in sessionStorage)
 function saveUIPrefs() {
 localStorage.setItem('hotel_lang', lang);
 localStorage.setItem('hotel_dark', dark ? '1' : '0');
 localStorage.setItem('hotel_theme', theme);
 localStorage.setItem(`h_${HID}_queue`, JSON.stringify(offlineQueue));
-// Session is now managed via sessionStorage to comply with security requirements
 }
+
 // ✅ NEW: Save Data to MongoDB via API
 async function saveToMongo(collection, data) {
 if (!isOnline) {
@@ -1019,6 +983,7 @@ offlineQueue.push({collection, data, timestamp: Date.now()});
 saveUIPrefs();
 }
 }
+
 // ✅ NEW: Load All Data from MongoDB via API
 async function loadAllData() {
 try {
@@ -1067,6 +1032,7 @@ inventory = generateDefaultInventory();
 renderAll();
 }
 }
+
 // ✅ MULTI-DEVICE FIX: Save with versioning, broadcasting, and offline queue
 function save(collection, data, event='data_upd'){
 // Add version and timestamp for conflict resolution
@@ -1086,6 +1052,7 @@ updateNetBadge('queued');
 saveUIPrefs();
 }
 }
+
 // ✅ MULTI-DEVICE FIX: Safe merge to prevent race conditions
 function safeMerge(target, source, collection){
 if(!source || !target) return target;
@@ -1104,6 +1071,7 @@ return {...target, ...source};
 }
 return target;
 }
+
 // ✅ MULTI-DEVICE FIX: Enhanced Socket.IO with room management and deduplication
 function initSocket(){
 try{
@@ -1135,6 +1103,7 @@ syncBack();
 socket.on('disconnect',()=>{setSockStatus('disconnected');updateNetBadge('offline')});
 socket.on('connect_error',()=>{setSockStatus('error');updateNetBadge('offline')});
 socket.on('reconnecting',()=>{setSockStatus('connecting');updateNetBadge('reconnecting')});
+
 // ✅ MULTI-DEVICE FIX: Event deduplication with syncToken
 socket.on('sync_all', (data)=>{
 if(data.syncToken && processedEvents.has(data.syncToken)) return;
@@ -1150,6 +1119,7 @@ if(data.reviews) reviews = safeMerge(reviews, data.reviews, 'reviews');
 if(data.staff) staff = safeMerge(staff, data.staff, 'staff');
 if(data.logs) logs = safeMerge(logs, data.logs, 'logs');
 if(data.bookings) bookings = safeMerge(bookings, data.bookings, 'bookings');
+
 // ✅ MULTI-DEVICE FIX: Targeted re-renders instead of full renderAll
 if(data.rooms) renderRooms();
 if(data.guests) renderGuests();
@@ -1164,6 +1134,7 @@ if(data.logs) renderLogs();
 if(data.bookings) {renderGuestBookings(); renderAdminBookings();}
 showToast('🔄 Data synced from Server','socket');
 });
+
 socket.on('cfg_upd',(cfg)=>{
 if(cfg.syncToken && processedEvents.has(cfg.syncToken)) return;
 if(cfg.syncToken) processedEvents.add(cfg.syncToken);
@@ -1174,6 +1145,7 @@ Object.assign(HotelCfg, cfg);
 applyCfg();
 showToast('⚙️ Config updated from Server','socket');
 });
+
 socket.on('currency_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1184,6 +1156,7 @@ applyCfg();
 showToast('💱 Currency rates updated from Server','socket');
 }
 });
+
 socket.on('req_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1193,6 +1166,7 @@ if(!requests.find(r=>r._id===req._id)) requests.unshift(req);
 renderRequests(); updateAdminStats();
 if(currentUser?.type==='admin') showToast(`📋 New request: ${req.guestName}`,'socket');
 });
+
 // ✅ FIX: Handle action === 'delete' for real-time sync
 socket.on('req_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1212,6 +1186,7 @@ renderGuestHistory();
 if(req.adminReply) showToast('👑 ' + (t('replyReceived') || 'You have a new reply from Admin'), 'success');
 }
 });
+
 socket.on('room_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1226,6 +1201,7 @@ else rooms.push(room);
 }
 renderRooms(); updateAdminStats();
 });
+
 socket.on('inventory_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1240,18 +1216,17 @@ else inventory.push(item);
 }
 renderInventory(); renderGuestInv();
 });
-// ✅ FIX: Added missing food_upd Socket Listener - NOW HANDLES BOTH ARRAY AND SINGLE OBJECT
+
 socket.on('food_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const f = payload.data;
-// ✅ FIX: Handle both array (from delete/bulk) and single object (from add/edit)
-if(Array.isArray(f)) {
-// Full array update (e.g., from delFood which sends filtered array)
+if(payload.action === 'delete') {
+food = food.filter(x => x._id !== f._id);
+} else if(Array.isArray(f)) {
 food = safeMerge(food, f, 'food');
 } else {
-// Single item update (e.g., from addDish)
 const idx=food.findIndex(x=>x._id===f._id);
 if(idx>-1) food[idx]=safeMerge(food[idx], f, 'food');
 else food.push(f);
@@ -1260,6 +1235,7 @@ renderFood();
 renderGuestFood();
 showToast('🍽️ ' + (t('menuUpdatedLive') || 'Menu updated live!'),'socket');
 });
+
 socket.on('review_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1268,6 +1244,7 @@ const rev = payload.data;
 if(!reviews.find(r=>r._id===rev._id)) reviews.unshift(rev);
 renderReviews();
 });
+
 socket.on('booking_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1277,6 +1254,7 @@ if(!bookings.find(b=>b._id===booking._id)) bookings.unshift(booking);
 renderGuestBookings(); renderAdminBookings();
 if(currentUser?.type==='admin') showToast(`📅 New booking: ${booking.guestName}`,'socket');
 });
+
 socket.on('booking_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1291,6 +1269,7 @@ else bookings.unshift(booking);
 }
 renderGuestBookings(); renderAdminBookings();
 });
+
 socket.on('staff_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1305,6 +1284,7 @@ else staff.push(s);
 }
 renderStaff();
 });
+
 // ✅ NEW: Real-time listeners for missing modules
 socket.on('guest_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1320,6 +1300,7 @@ else guests.push(g);
 }
 renderGuests(); renderLoyalty(); updateGuestStats();
 });
+
 socket.on('blacklist_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1334,6 +1315,7 @@ else blacklist.push(b);
 }
 renderBlacklist();
 });
+
 socket.on('maintenance_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1348,6 +1330,7 @@ else maintenance.push(m);
 }
 renderMaintenance();
 });
+
 socket.on('logs_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1360,12 +1343,14 @@ if(!logs.find(x=>x._id===l._id)) logs.unshift(l);
 }
 renderLogs();
 });
+
 }catch(e){
 console.warn('Socket unavailable, offline mode');
 setSockStatus('error');
 updateNetBadge('offline');
 }
 }
+
 // ✅ MULTI-DEVICE FIX: Background sync with versioning
 async function syncBack(){
 if(!isOnline) return;
@@ -1390,6 +1375,7 @@ if(cfg) {Object.assign(HotelCfg,cfg); applyCfg();}
 renderAll();
 if(!rooms.length) loadAllData();
 }
+
 // ✅ FIX ISSUE 4: Properly update login page connection status
 function setSockStatus(s){
 const dot=document.getElementById('sockDot'), txt=document.getElementById('sockTxt');
@@ -1404,12 +1390,12 @@ const m=map[s]||map.disconnected;
 [dot,loginDot].forEach(el=>{if(el){el.className=(el.id==='loginConnDot'?'conn-dot ':'sock-dot ')+m.cls}});
 if(txt) txt.textContent=m.text;
 if(loginTxt) {
-// ✅ Show "Connected" or "Live" when actually connected
 loginTxt.textContent = s === 'connected' ? (t('serverConnected')||'Connected') : m.text;
 }
 const sockEl=document.getElementById('sockStatus');
 if(sockEl) sockEl.style.display=s==='connected'?'none':'flex';
 }
+
 function updateNetBadge(status){
 const badge=document.getElementById('netBadge');
 const loginBadge=document.getElementById('loginNetBadge');
@@ -1419,6 +1405,7 @@ const text=status==='online'?t('online'):status==='offline'?t('offline'):status=
 if(badge){badge.className='';badge.classList.add(className);badge.textContent=text}
 if(loginBadge){loginBadge.className='';loginBadge.classList.add(className);loginBadge.textContent=text}
 }
+
 function toggleOnlineMode(){
 isOnline=!isOnline;
 const btn=document.getElementById('onlineBtn');
@@ -1434,6 +1421,7 @@ if(socket && socket.connected) socket.disconnect();
 showToast('📴 Offline mode - using localStorage','warning');
 }
 }
+
 // SECTION 8: LANGUAGE CHANGE - INSTANT
 function setLang(l){
 lang=l;
@@ -1460,6 +1448,7 @@ if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
 updateLoginClock();
 renderAll();
 }
+
 function applyI18n(){
 document.querySelectorAll('[data-i18n]').forEach(el=>{
 const v=t(el.getAttribute('data-i18n'));
@@ -1467,12 +1456,14 @@ if(v) el.textContent=v;
 });
 ['loginHotelName','aHotelName','gHotelName'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=HotelCfg.name});
 }
+
 function toggleDark(){
 dark=!dark;
 document.body.classList.toggle('dark',dark);
 document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
 saveUIPrefs();
 }
+
 // ✅ FIX ISSUE 2: Font Size Buttons actually change the font size now
 function adjustFont(d){
 let currentSize = parseInt(document.body.style.fontSize) || 16;
@@ -1483,7 +1474,6 @@ currentSize = Math.max(12, currentSize - 2);
 } else if (d === 1) {
 currentSize = Math.min(24, currentSize + 2);
 }
-// Apply to both html and body to ensure all elements scale
 document.documentElement.style.fontSize = currentSize + 'px';
 document.body.style.fontSize = currentSize + 'px';
 let msg = '';
@@ -1492,12 +1482,14 @@ else if(d === -1) msg = (t('fontDecreased') || 'Font decreased') + `: ${currentS
 else if(d === 1) msg = (t('fontIncreased') || 'Font increased') + `: ${currentSize}px`;
 showToast(msg, 'success');
 }
+
 function setBrightness(v){
 brightness=parseFloat(v);
 document.body.style.filter=`brightness(${v})`;
 const slider=document.getElementById('brightSlider');
 if(slider) slider.value=v;
 }
+
 // ✅ FIX ISSUE 1: Brightness Circle Button toggles high contrast
 function toggleContrast(){
 highContrast=!highContrast;
@@ -1505,6 +1497,7 @@ document.body.classList.toggle('high-contrast',highContrast);
 console.log(highContrast ? 'High contrast ON' : 'High contrast OFF');
 showToast(highContrast ? (t('highContrastOn')||'🔆 High contrast ON') : (t('highContrastOff')||'🔆 High contrast OFF'), 'success');
 }
+
 function setTheme(th){
 theme=th;
 document.body.className=document.body.className.replace(/theme-\S+/g,'').trim();
@@ -1517,7 +1510,9 @@ saveUIPrefs();
 if(dark) document.body.classList.add('dark');
 document.getElementById('themeDD').classList.remove('show');
 }
+
 function toggleThemeDD(){document.getElementById('themeDD').classList.toggle('show')}
+
 // ✅ FIX ISSUE 3: Notification Button properly requests and handles permissions
 function reqNotif(){
 if(!('Notification' in window)){
@@ -1546,6 +1541,7 @@ showToast(t('notifPending')||'Permission pending','warning');
 }
 });
 }
+
 function haptic(){
 if(navigator.vibrate){
 navigator.vibrate([50,50,50]);
@@ -1554,13 +1550,12 @@ showToast('📳 '+t('haptic'),'success');
 showToast('📳 Haptic not supported','warning');
 }
 }
+
 // ✅ NEW: Browser Notification Helper for Guest Actions
 function sendGuestNotification(titleKey, bodyKey) {
 const title = t(titleKey);
 const body = t(bodyKey);
-// Show in-app toast always
 showToast(`🔔 ${body}`, 'success');
-// Show browser notification if permitted
 if ('Notification' in window && Notification.permission === 'granted') {
 try {
 const notif = new Notification(`👑 ${title}`, {
@@ -1571,22 +1566,20 @@ tag: 'guest-action-' + Date.now(),
 requireInteraction: false,
 silent: false
 });
-// Auto close after 5 seconds
 setTimeout(() => notif.close(), 5000);
 } catch(e) {
 console.warn('Notification error:', e);
 }
 } else if ('Notification' in window && Notification.permission === 'default') {
-// Request permission for future
 Notification.requestPermission().then(p => {
 notificationPermission = p;
 });
 }
-// Vibrate if supported
 if (navigator.vibrate) {
 navigator.vibrate([100, 50, 100]);
 }
 }
+
 // SECTION 6: VOICE SPEECH - COMPLETE FIX
 function speakText(text) {
 if(!('speechSynthesis' in window)) return;
@@ -1601,33 +1594,24 @@ if(preferred) utterance.voice=preferred;
 window.speechSynthesis.cancel();
 window.speechSynthesis.speak(utterance);
 }
-function speakWelcome(){
-speakText(t('welcomeMsg'));
-}
-function speakRequestSubmitted(){
-speakText(t('requestSubmitted'));
-}
-function speakOrderPlaced(){
-speakText(t('orderPlaced'));
-}
-function speakBookingConfirmed(){
-speakText(t('bookingConfirmedMsg'));
-}
-function speakItemAdded(){
-speakText(t('itemAdded'));
-}
+
+function speakWelcome(){speakText(t('welcomeMsg'));}
+function speakRequestSubmitted(){speakText(t('requestSubmitted'));}
+function speakOrderPlaced(){speakText(t('orderPlaced'));}
+function speakBookingConfirmed(){speakText(t('bookingConfirmedMsg'));}
+function speakItemAdded(){speakText(t('itemAdded'));}
+
 if('speechSynthesis' in window){
 window.speechSynthesis.onvoiceschanged=()=>{voicesLoaded=true;};
 }
+
 function loadUIPrefs(){
 lang=localStorage.getItem('hotel_lang')||'en';
 dark=localStorage.getItem('hotel_dark')==='1';
 theme=localStorage.getItem('hotel_theme')||'default';
-// Remove other items from LocalStorage if they exist
 localStorage.removeItem('hotel_contrast');
 localStorage.removeItem('hotel_font');
 localStorage.removeItem('hotel_bright');
-// Keep highContrast, fontSize, brightness in memory with defaults
 highContrast = false;
 fontSize = 16;
 brightness = 1;
@@ -1637,12 +1621,12 @@ document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
 const slider=document.getElementById('brightSlider');
 if(slider) slider.value=brightness;
 setBrightness(brightness);
-// Apply font size to both html and body
 document.documentElement.style.fontSize = fontSize + 'px';
 document.body.style.fontSize = fontSize + 'px';
 setTheme(theme);
 setLang(lang);
 }
+
 function applyCfg(){
 ['loginHotelName','aHotelName','gHotelName'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=HotelCfg.name});
 const wEl=document.getElementById('gWifiDisplay');if(wEl)wEl.textContent=HotelCfg.wifi;
@@ -1662,7 +1646,10 @@ cabSelect.innerHTML=`
 <option value="local" data-i18n="localCab">🚕 Local Cab - ${formatPrice(HotelCfg.localPrice)}/hr</option>
 `;
 }
+// ✅ FIX ISSUE 4: Update cab price display on config change
+updateCabPrice();
 }
+
 function updateLoginClock(){
 const now=new Date();
 const locale=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
@@ -1675,6 +1662,7 @@ const timeStr=now.toLocaleString(locale,options);
 const loginClock=document.getElementById('loginClock');
 if(loginClock) loginClock.textContent=timeStr;
 }
+
 function tickClock(){
 const now=new Date();
 const locale=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
@@ -1688,7 +1676,9 @@ const timeStr=now.toLocaleString(locale,options);
 const gLT=document.getElementById('gLocalTime');if(gLT)gLT.textContent=now.toLocaleTimeString(locale,{timeZone:userTimezone});
 updateLoginClock();
 }
+
 setInterval(tickClock,1000);
+
 function showToast(msg,type=''){
 const c=document.getElementById('toasts');
 const d=document.createElement('div');
@@ -1696,12 +1686,15 @@ d.className=`toast${type?' '+type:''}`;
 d.textContent=msg;c.appendChild(d);
 setTimeout(()=>{d.style.opacity='0';d.style.transform='translateX(80px)';d.style.transition='.3s';setTimeout(()=>d.remove(),300)},3000);
 }
+
 function switchLogin(type){
 document.getElementById('guestLoginForm').classList.toggle('hidden',type!=='guest');
 document.getElementById('adminLoginForm').classList.toggle('hidden',type!=='admin');
 document.getElementById('guestTabBtn').classList.toggle('active',type==='guest');
 document.getElementById('adminTabBtn').classList.toggle('active',type==='admin');
 }
+
+// ✅ FIX ISSUE 1 & 5: Guest Login with sessionStorage
 async function guestLogin(e){
 e.preventDefault();
 const name=document.getElementById('guestNameIn').value.trim();
@@ -1709,7 +1702,7 @@ const room=document.getElementById('guestRoomIn').value.trim();
 if(!name||!room){showToast('Fill all fields','error');return}
 if(blacklist.find(b=>b.name.toLowerCase()===name.toLowerCase())){showToast('❌ Access denied','error');return}
 currentUser={type:'guest',name,room,points:0};
-saveSession(); // ✅ Save to sessionStorage AND localStorage
+saveSession(); // ✅ Save to sessionStorage
 showPage('guestDash');
 document.getElementById('gInfo').textContent=`👤 ${name} | #${room}`;
 updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
@@ -1718,26 +1711,29 @@ showToast(`Welcome, ${name}! 🌟`,'success');
 speakWelcome();
 if(isOnline && socket?.connected) socket.emit('guest_join',{hotelId:HID,name,room, clientId});
 }
-// ✅ CONVERTED: Hardcoded login to MongoDB login via /api/admin/login
+
+// ✅ FIX ISSUE 1 & 5: Admin Login with sessionStorage
 async function adminLogin(e){
 e.preventDefault();
 const hotelId = document.getElementById('adminHotelIdIn').value.trim();
 const email=document.getElementById('adminEmailIn').value.trim();
 const pass=document.getElementById('adminPassIn').value;
+
 // Mock credentials check
 if(hotelId === 'HOTEL001' && email === 'admin@crownplaza.com' && pass === 'admin123') {
-const mockToken = 'mock_jwt_' + Math.random().toString(36).substring(2) + Date.now();
-currentUser={type:'admin', email, role:'super_admin', token:mockToken, hotelId:hotelId};
-saveSession(); // ✅ Save to sessionStorage AND localStorage
-buildRolePage();
-showPage('rolePage');
-speakWelcome();
-showToast('✅ Login successful!','success');
-if(isOnline && socket?.connected){
-socket.emit('admin_join',{hotelId:hotelId,email:email,clientId});
+    const mockToken = 'mock_jwt_' + Math.random().toString(36).substring(2) + Date.now();
+    currentUser={type:'admin', email, role:'super_admin', token:mockToken, hotelId:hotelId};
+    saveSession(); // ✅ Save to sessionStorage
+    buildRolePage();
+    showPage('rolePage');
+    speakWelcome();
+    showToast('✅ Login successful!','success');
+    if(isOnline && socket?.connected){
+        socket.emit('admin_join',{hotelId:hotelId,email:email,clientId});
+    }
+    return;
 }
-return;
-}
+
 showToast('🔄 Logging in...','info');
 try{
 const response=await fetch(API_BASE+'/admin/login',{
@@ -1748,7 +1744,7 @@ body:JSON.stringify({email:email,password:pass,hotelId:hotelId})
 const data=await response.json();
 if(response.ok && data.success && data.token){
 currentUser={type:'admin',email:data.user.email,role:data.user.role,token:data.token,hotelId:data.hotelId};
-saveSession(); // ✅ Save to sessionStorage AND localStorage
+saveSession(); // ✅ Save to sessionStorage
 buildRolePage();
 showPage('rolePage');
 speakWelcome();
@@ -1764,12 +1760,14 @@ console.error('Login error:',error);
 showToast('❌ Login failed: '+error.message,'error');
 }
 }
+
 function buildRolePage(){
 const g=document.getElementById('roleGrid');
 g.innerHTML=ROLES.map(r=>`<button class="role-card" onclick="loginAsRole('${r.key}')">
 <div class="role-icon">${r.icon}</div><div class="role-name">${t(r.label)}</div>
 </button>`).join('');
 }
+
 function loginAsRole(role){
 currentUser.role=role;
 saveSession();
@@ -1781,31 +1779,37 @@ renderAll();updateAdminStats();
 showAdminTab('overview');
 showToast(`Logged in as ${t(rName)}`,'success');
 }
+
 function backToLogin(){showPage('loginPage')}
+
+// ✅ FIX ISSUE 2: Clear form fields and session on logout
 function logout(){
-// ✅ MULTI-DEVICE FIX: Leave hotel room on logout
 if(socket?.connected) socket.emit('leave_hotel', HID);
 currentUser=null;
-sessionStorage.clear();
-// ✅ FIX 1: Also clear localStorage session
+sessionStorage.clear(); // ✅ Clear sessionStorage
 localStorage.removeItem(`h_${HID}_session`);
 localStorage.removeItem(`h_${HID}_token`);
-saveUIPrefs();
+
+// ✅ FIX ISSUE 2: Clear form fields
+['adminEmailIn', 'adminPassIn', 'adminHotelIdIn', 'guestNameIn', 'guestRoomIn'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+});
+
 cart=[];
 showPage('loginPage');
 showToast('Logged out','success');
 }
-// ✅ FIX 1 + FIX 2: Proper session restoration with loading screen control
+
+// ✅ FIX ISSUE 5: Refresh stability with sessionStorage & tab restoration
 async function checkSession(){
-// ✅ FIX 1: Check localStorage first (persistent across refresh)
-const lsSession = localStorage.getItem(`h_${HID}_session`);
-const ssSession = sessionStorage.getItem('hotel_session');
-const s = lsSession || ssSession;
-if(!s) return false;
+const s = sessionStorage.getItem('hotel_session');
+if(!s) return;
 try{
 currentUser = JSON.parse(s);
-if(!currentUser) return false;
-const savedTab = sessionStorage.getItem('currentTab') || localStorage.getItem(`h_${HID}_currentTab`);
+if(!currentUser) return;
+const savedTab = sessionStorage.getItem('currentTab');
+
 if(currentUser.type==='admin'){
 buildAdminTabs();
 showPage('adminDash');
@@ -1833,14 +1837,15 @@ showGuestTab('reqTab');
 }
 }
 showToast("✅ Session restored — Welcome back!", 'success');
-return true;
 }catch(e){
 console.warn('Session restore error:',e);
-localStorage.removeItem(`h_${HID}_session`);
 sessionStorage.removeItem('hotel_session');
-return false;
+}
+if(isOnline && socket?.connected){
+socket.emit('guest_join', {hotelId:HID, name: currentUser?.name, room: currentUser?.room, clientId});
 }
 }
+
 function showPage(id){
 ['loginPage','rolePage','adminDash','guestDash'].forEach(p=>{
 const el=document.getElementById(p);if(!el)return;
@@ -1853,6 +1858,7 @@ el.style.display = 'none';
 }
 });
 }
+
 const ADMIN_TABS=[
 {id:'overview',label:'tabOverview'},
 {id:'rooms',label:'tabRooms'},
@@ -1871,12 +1877,14 @@ const ADMIN_TABS=[
 {id:'logs',label:'tabLogs'},
 {id:'bookings',label:'tabBookings'}
 ];
+
 function buildAdminTabs(){
 const bar=document.getElementById('adminTabsBar');
 const content=document.getElementById('adminTabsContent');
 bar.innerHTML=ADMIN_TABS.map(tb=>`<button class="tab-btn" data-tab="${tb.id}" onclick="showAdminTab('${tb.id}')">${t(tb.label)}</button>`).join('');
 content.innerHTML=ADMIN_TABS.map(tb=>`<div class="tab-pane" id="atab-${tb.id}">${buildTabContent(tb.id)}</div>`).join('');
 }
+
 function buildTabContent(id){
 switch(id){
 case 'overview': return `
@@ -2122,6 +2130,7 @@ case 'bookings': return `
 default: return '';
 }
 }
+
 // ✅ FIX ISSUE 5: Save current tab to sessionStorage
 function showAdminTab(id){
 document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
@@ -2130,11 +2139,9 @@ if(id==='overview') setTimeout(initCharts,200);
 if(id==='requests') updateAdminServices();
 if(id==='staff') renderStaff();
 if(id==='bookings') renderAdminBookings();
-if(sessionStorage.getItem('hotel_session') || localStorage.getItem(`h_${HID}_session`)) {
 sessionStorage.setItem('currentTab', id);
-localStorage.setItem(`h_${HID}_currentTab`, id);
 }
-}
+
 function renderAll(){
 applyI18n();
 renderRooms();renderGuests();renderFood();renderInventory();
@@ -2143,6 +2150,7 @@ renderLoyalty();renderStaff();renderLogs();renderAdminBookings();
 updateAdminStats();updateGuestStats();
 renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
 }
+
 // ✅ MULTI-DEVICE FIX: Targeted DOM updates with data-id
 function renderRooms(){
 const tbody=document.getElementById('roomsTbody');if(!tbody)return;
@@ -2159,6 +2167,7 @@ tbody.innerHTML=rooms.map(r=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--p2);padding:12px">No rooms</td></tr>';
 }
+
 function renderGuests(){
 const tbody=document.getElementById('guestsTbody');if(!tbody)return;
 tbody.innerHTML=guests.map(g=>`
@@ -2173,6 +2182,7 @@ tbody.innerHTML=guests.map(g=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:12px">No guests</td></tr>';
 }
+
 function renderFood(){
 const el=document.getElementById('foodAdminList');if(!el)return;
 el.innerHTML=food.map(f=>`
@@ -2188,6 +2198,7 @@ el.innerHTML=food.map(f=>`
 </div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No dishes</p>';
 }
+
 function renderInventory(){
 const tbody=document.getElementById('invTbody');if(!tbody)return;
 tbody.innerHTML=inventory.map(i=>`
@@ -2203,6 +2214,7 @@ tbody.innerHTML=inventory.map(i=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px">No items</td></tr>';
 }
+
 function renderRequests(filter='all'){
 const el=document.getElementById('reqsList');if(!el)return;
 let list=requests;
@@ -2235,6 +2247,7 @@ el.innerHTML=list.map(r=>`
 </div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No requests</p>';
 }
+
 function updateAdminServices(){
 const dept=document.getElementById('adminDept')?.value;
 const sel=document.getElementById('adminService');if(!sel)return;
@@ -2248,6 +2261,7 @@ sel.appendChild(o);
 });
 }
 }
+
 function submitAdminReq(e){
 e.preventDefault();
 const dept=document.getElementById('adminDept')?.value;
@@ -2262,6 +2276,7 @@ e.target.reset();updateAdminServices();
 showToast('✅ '+t('reqSubmitted'),'success');
 addLog('Admin Request',`${dept} - ${svc}`);
 }
+
 // ✅ FIX ISSUE 5: Admin Reply to Guest working with timestamp and toast
 function sendAdminReply(reqId){
 const input=document.getElementById(`adminReply-${reqId}`);
@@ -2278,6 +2293,7 @@ showToast('✅ ' + (t('replySentToGuest') || 'Reply sent to guest'),'success');
 addLog('Admin Reply',`To ${req.guestName}: ${reply}`);
 }
 }
+
 function sendReply(reqId){
 const input=document.getElementById(`reply-${reqId}`);
 if(!input) return;
@@ -2293,6 +2309,7 @@ showToast(t('replySent'),'success');
 addLog('Reply Sent',`To ${req.guestName}: ${reply}`);
 }
 }
+
 function renderBlacklist(){
 const tbody=document.getElementById('blTbody');if(!tbody)return;
 tbody.innerHTML=blacklist.map((b,i)=>`
@@ -2304,6 +2321,7 @@ tbody.innerHTML=blacklist.map((b,i)=>`
 <td><button class="tbl-action" style="color:#10b981" onclick="unblockGuest(${i})">${t('unblock')}</button></td>
 </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:12px;opacity:.5">No blocked guests</td></tr>';
 }
+
 function renderMaintenance(){
 const tbody=document.getElementById('maintTbody');if(!tbody)return;
 tbody.innerHTML=maintenance.map((m,i)=>`
@@ -2319,6 +2337,7 @@ tbody.innerHTML=maintenance.map((m,i)=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:12px;opacity:.5">No tasks</td></tr>';
 }
+
 function renderReviews(){
 const el=document.getElementById('reviewsList');if(!el)return;
 if(reviews.length){
@@ -2340,6 +2359,7 @@ el.innerHTML=reviews.slice(0,10).map(r=>`
 </div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No reviews yet</p>';
 }
+
 function renderLoyalty(){
 const tbody=document.getElementById('loyaltyTbody');if(!tbody)return;
 const tot=guests.reduce((s,g)=>s+(g.points||0),0);
@@ -2357,6 +2377,7 @@ tbody.innerHTML=guests.filter(g=>(g.points||0)>0).map((g,i)=>`
 </td>
 </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px;opacity:.5">No members</td></tr>';
 }
+
 function renderStaff(){
 const el=document.getElementById('staffGrid');if(!el)return;
 el.innerHTML=staff.map((s,i)=>`
@@ -2402,6 +2423,7 @@ ${s.leaveRequest?`
 </div>
 `).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No staff</p>';
 }
+
 function renderLogs(){
 const tbody=document.getElementById('logsTbody');if(!tbody)return;
 tbody.innerHTML=logs.slice(0,50).map(l=>`
@@ -2412,12 +2434,14 @@ tbody.innerHTML=logs.slice(0,50).map(l=>`
 <td style="font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.details||'—'}</td>
 </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px;opacity:.5">No logs</td></tr>';
 }
+
 function addLog(action,details){
 const entry={_id:'log_'+Date.now(),_isNew:true,timestamp:new Date().toISOString(),user:currentUser?.name||currentUser?.email||'System',action,details,hotelId:HID};
 logs.unshift(entry);
-save('logs', entry); // Save only the new entry to avoid bulk PUTs
+save('logs', entry);
 renderLogs();
 }
+
 function updateAdminStats(){
 const el=id=>document.getElementById(id);
 if(el('stTot'))el('stTot').textContent=rooms.length;
@@ -2426,6 +2450,7 @@ if(el('stOpen'))el('stOpen').textContent=requests.filter(r=>r.status==='open').l
 if(el('stProg'))el('stProg').textContent=requests.filter(r=>r.status==='in_progress').length;
 if(el('stEmerg'))el('stEmerg').textContent=requests.filter(r=>r.priority==='emergency').length;
 }
+
 function initCharts(){
 const dCtx=document.getElementById('deptChart');
 const oCtx=document.getElementById('occChart');
@@ -2445,6 +2470,7 @@ const total=rooms.length||1;
 occChart=new Chart(oCtx,{type:'bar',data:{labels:['W1','W2','W3','W4'],datasets:[{label:'%',data:[68,75,82,Math.round(occupied/total*100)],backgroundColor:'#6c63ff',borderRadius:6}]},options:{...opts,scales:{y:{beginAtZero:true,max:100,ticks:{color:'var(--fg)'},grid:{color:'var(--border)'}},x:{ticks:{color:'var(--fg)'},grid:{display:false}}}}});
 }
 }
+
 const GUEST_TABS=[
 {id:'reqTab',icon:'📝',label:'reqTab'},
 {id:'foodTab',icon:'🍕',label:'foodTab'},
@@ -2454,6 +2480,7 @@ const GUEST_TABS=[
 {id:'infoTab',icon:'ℹ️',label:'infoTab'},
 {id:'bookTab',icon:'📅',label:'bookTab'}
 ];
+
 function buildGuestPanes(){
 const nav=document.getElementById('guestNav');
 const panes=document.getElementById('guestPanes');
@@ -2518,10 +2545,15 @@ panes.innerHTML=`
 <form onsubmit="bookCab(event)">
 <div class="form-row">
 <label class="lbl">Type</label>
-<select class="inp" id="cabType">
+<select class="inp" id="cabType" onchange="updateCabPrice()">
 <option value="airport" data-i18n="airportTx">✈️ Airport Transfer - ${formatPrice(HotelCfg.airportPrice)}</option>
 <option value="local" data-i18n="localCab">🚕 Local Cab - ${formatPrice(HotelCfg.localPrice)}/hr</option>
 </select>
+</div>
+<!-- ✅ FIX ISSUE 4: Cab Price Display -->
+<div class="form-row">
+<label class="lbl">💰 Price</label>
+<div id="cabPriceDisplay" style="font-size:16px;font-weight:700;color:var(--p1);padding:8px;background:var(--card2);border-radius:8px">${formatPrice(HotelCfg.airportPrice)}</div>
 </div>
 <div class="form-row"><label class="lbl" data-i18n="scheduled">Date & Time</label><input class="inp" id="cabTime" type="datetime-local"></div>
 <button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="bookNow">📅 Book Now</button>
@@ -2606,6 +2638,7 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}">${n}</option>`).join('')}
 </div>
 </div>`;
 }
+
 // ✅ FIX ISSUE 5: Save current guest tab to sessionStorage
 function showGuestTab(id){
 GUEST_TABS.forEach(tb=>{
@@ -2618,11 +2651,9 @@ if(id==='foodTab') renderGuestFood();
 if(id==='invTab') renderGuestInv();
 if(id==='histTab') renderGuestHistory();
 if(id==='bookTab') {renderGuestBookings();renderBookRoomRooms();}
-if(sessionStorage.getItem('hotel_session') || localStorage.getItem(`h_${HID}_session`)) {
 sessionStorage.setItem('currentTab', 'guest_' + id);
-localStorage.setItem(`h_${HID}_currentTab`, 'guest_' + id);
 }
-}
+
 function updateServices(){
 const dept=document.getElementById('gDept')?.value;
 const sel=document.getElementById('gService');if(!sel)return;
@@ -2636,6 +2667,7 @@ sel.appendChild(o);
 });
 }
 }
+
 function submitGuestReq(e){
 e.preventDefault();
 const dept=document.getElementById('gDept')?.value;
@@ -2648,12 +2680,12 @@ requests.unshift(req);
 save('requests',req,'req_new');
 renderRequests();updateGuestStats();renderGuestHistory();
 e.target.reset();updateServices();
-// ✅ FIX ISSUE 6: Toast notification for guest request
 showToast('✅ ' + (t('reqSubmitted') || 'Request submitted successfully'), 'success');
 speakRequestSubmitted();
 addLog('New Request',`${currentUser.name} - ${dept}`);
 if(prio==='emergency') showToast('🚨 Emergency alert sent to staff!','error');
 }
+
 function renderGuestFood(){
 const el=document.getElementById('gFoodGrid');if(!el)return;
 el.innerHTML=food.map(f=>`
@@ -2664,6 +2696,7 @@ el.innerHTML=food.map(f=>`
 <div class="food-price">${formatPrice(f.basePriceSAR)}</div>
 </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No items available</p>';
 }
+
 function renderGuestInv(){
 const el=document.getElementById('gInvGrid');if(!el)return;
 el.innerHTML=inventory.map(i=>`
@@ -2674,6 +2707,7 @@ el.innerHTML=inventory.map(i=>`
 <button class="btn-primary" style="margin-top:6px;padding:4px 8px;font-size:10px" onclick="reqInvItem('${i.name}')" data-i18n="requestMore">Request</button>
 </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
 }
+
 // ✅ FIX ISSUE 5: Guest History now shows Admin Reply with timestamp
 function renderGuestHistory(){
 const el=document.getElementById('gHistList');if(!el||!currentUser)return;
@@ -2691,6 +2725,7 @@ ${r.adminReply ? `<div class="admin-reply" style="margin-top:8px;padding:8px;bac
 </div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No requests yet</p>';
 }
+
 function updateGuestStats(){
 if(!currentUser)return;
 const myReqs=requests.filter(r=>r.guestName===currentUser.name);
@@ -2704,6 +2739,7 @@ const pEl=el('gPts'),pdEl=el('gPtsDisplay');
 if(pEl)pEl.textContent=`⭐ ${pts} pts`;
 if(pdEl)pdEl.textContent=pts;
 }
+
 function addToCart(id,name,baseSARPrice){
 cart.push({id,name,basePrice:baseSARPrice});
 const cartEl=document.getElementById('cartItems');
@@ -2715,6 +2751,7 @@ cartEl.innerHTML=cart.map(i=>`<div style="display:flex;justify-content:center;pa
 }
 showToast(`${name} added to cart 🛒`,'success');
 }
+
 function placeOrder(){
 if(!cart.length){showToast('Cart is empty','error');return}
 const req={_id:'req_'+Date.now(),_isNew:true,guestName:currentUser.name,roomNumber:currentUser.room,department:'Restaurant',description:`Food: ${cart.map(i=>i.name).join(', ')}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID, _version:1};
@@ -2723,12 +2760,11 @@ cart=[];
 const cEl=document.getElementById('cartItems'),tEl=document.getElementById('cartTotal');
 if(cEl)cEl.innerHTML='';if(tEl)tEl.textContent='0';
 renderRequests();updateGuestStats();renderGuestHistory();
-// ✅ FIX ISSUE 6: Toast notification for guest order
 showToast('🍽️ ' + (t('orderPlacedToast') || 'Order placed successfully'), 'success');
 speakOrderPlaced();
 sendGuestNotification('notifOrderTitle', 'notifOrderBody');
 }
-// ✅ FIX ISSUE 6: Toast notification for inventory request + voice
+
 function reqInvItem(name){
 const req={_id:'req_'+Date.now(),_isNew:true,guestName:currentUser.name,roomNumber:currentUser.room,department:'Housekeeping',description:`Item Request: ${name}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID, _version:1};
 requests.unshift(req);save('requests',req,'req_new');
@@ -2737,6 +2773,7 @@ showToast('📦 ' + (t('invRequested') || 'Request sent for ') + name,'success')
 speakRequestSubmitted();
 sendGuestNotification('notifInventoryTitle', 'notifInventoryBody');
 }
+
 function bookCab(e){
 e.preventDefault();
 const type=document.getElementById('cabType')?.value;
@@ -2746,22 +2783,23 @@ const req={_id:'req_'+Date.now(),_isNew:true,guestName:currentUser.name,roomNumb
 requests.unshift(req);save('requests',req,'req_new');
 renderRequests();updateGuestStats();
 e.target.reset();
-// ✅ FIX ISSUE 6: Toast notification for cab booking
 showToast('🚗 ' + (t('bookingConfirmedToast') || 'Booking confirmed') + '!','success');
 speakBookingConfirmed();
 sendGuestNotification('notifCabTitle', 'notifCabBody');
 }
+
 function copyWifi(){navigator.clipboard.writeText(HotelCfg.wifi).then(()=>showToast('📶 WiFi copied!','success'))}
+
 function updReqStatus(id,status){
 const req=requests.find(r=>r._id===id);
 if(req){
 req.status=status;req.updatedAt=new Date().toISOString();
 save('requests',req,'req_upd');
 renderRequests();updateGuestStats();renderGuestHistory();
-// ✅ FIX ISSUE 6: Toast notification for request status change
 showToast('✅ ' + (t('reqStatusUpdated') || 'Request status updated to ') + status,'success');
 }
 }
+
 function delReq(id){
 if(confirm('Delete?')){
 const req = requests.find(r => r._id === id);
@@ -2771,7 +2809,9 @@ if(socket?.connected) socket.emit('req_upd',{hotelId:HID, collection:'requests',
 renderRequests();updateAdminStats();
 }
 }
+
 function exportReqs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(requests),'Requests');XLSX.writeFile(wb,`requests-${Date.now()}.xlsx`);showToast('Exported!','success')}
+
 function delRoom(id){
 if(confirm('Delete?')){
 const room = rooms.find(r => r._id === id);
@@ -2779,10 +2819,10 @@ rooms=rooms.filter(r=>r._id!==id);
 if(isOnline) apiCall('DELETE', `/rooms/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('room_upd',{hotelId:HID, collection:'rooms', data:room, clientId, syncToken: Date.now(), action: 'delete'});
 renderRooms();updateAdminStats();
-// ✅ FIX ISSUE 6: Toast notification for room delete
 showToast('✅ ' + (t('roomDeleted') || 'Room deleted successfully'), 'success');
 }
 }
+
 function editRoom(id){
 const r=rooms.find(x=>x._id===id);if(!r)return;
 openModal('roomModal');
@@ -2792,6 +2832,7 @@ document.getElementById('mRoomPrice').value=r.basePriceSAR;
 document.getElementById('mRoomStatus').value=r.status;
 document.getElementById('roomModal').dataset.editId=id;
 }
+
 function addRoom(e){
 e.preventDefault();
 const editId=document.getElementById('roomModal')?.dataset?.editId;
@@ -2817,17 +2858,19 @@ closeModal('roomModal');
 if(document.getElementById('roomModal').dataset) delete document.getElementById('roomModal').dataset.editId;
 renderRooms();updateAdminStats();
 }
+
 function editGuest(id){const g=guests.find(x=>x._id===id);if(!g)return;alert('Edit: '+g.name+' (connect backend for full edit)');}
+
 function toggleBlock(id){
 const g=guests.find(x=>x._id===id);
 if(g){
 g.status=g.status==='blocked'?'active':'blocked';
 save('guests',g,'guest_upd');
 renderGuests();
-// ✅ FIX ISSUE 6: Toast notification for block/unblock
 showToast('✅ ' + (g.status==='blocked' ? (t('guestBlocked')||'Guest blocked successfully') : (t('guestUnblocked')||'Guest unblocked successfully')),'success');
 }
 }
+
 function delGuest(id){
 if(confirm('Delete?')){
 const guest = guests.find(g => g._id === id);
@@ -2838,6 +2881,7 @@ renderGuests();
 showToast('✅ ' + (t('guestDeleted') || 'Guest deleted successfully'), 'success');
 }
 }
+
 function editFood(id){
 const f=food.find(x=>x._id===id);if(!f)return;
 openModal('foodModal');
@@ -2847,6 +2891,7 @@ document.getElementById('mFEmoji').value=f.emoji||'';
 document.getElementById('mFCat').value=f.category;
 document.getElementById('foodModal').dataset.editId=id;
 }
+
 function addDish(e){
 e.preventDefault();
 const editId=document.getElementById('foodModal')?.dataset?.editId;
@@ -2870,6 +2915,7 @@ closeModal('foodModal');
 if(document.getElementById('foodModal').dataset) delete document.getElementById('foodModal').dataset.editId;
 renderFood();renderGuestFood();
 }
+
 function delFood(id){
 if(confirm('Delete?')){
 const foodItem = food.find(f => f._id === id);
@@ -2880,6 +2926,7 @@ renderFood();renderGuestFood();
 showToast('✅ ' + (t('foodDeleted') || 'Food item deleted successfully'), 'success');
 }
 }
+
 function adjStock(id,delta){
 const i=inventory.find(x=>x._id===id);
 if(i){
@@ -2889,7 +2936,7 @@ renderInventory();renderGuestInv();
 if(i.stock<=i.min) showToast('⚠️ Low stock: '+i.name,'warning');
 }
 }
-// ✅ FIX: Edit Inventory Item Function
+
 function editInventory(id){
 const item=inventory.find(x=>x._id===id);
 if(!item) return;
@@ -2902,6 +2949,7 @@ document.getElementById('mIMin').value=item.min||10;
 document.getElementById('inventoryModal').dataset.editId=id;
 showToast('✏️ Editing: '+item.name);
 }
+
 function delInv(id){
 if(confirm('Delete?')){
 const invItem = inventory.find(i => i._id === id);
@@ -2912,6 +2960,7 @@ renderInventory();renderGuestInv();
 showToast('✅ ' + (t('invDeleted') || 'Inventory item deleted successfully'), 'success');
 }
 }
+
 function unblockGuest(idx){
 if(confirm('Unblock?')){
 const e=blacklist[idx];
@@ -2922,12 +2971,14 @@ renderBlacklist();
 showToast('✅ ' + (e.name + ' ' + (t('guestUnblocked') || 'unblocked successfully')),'success');
 }
 }
+
 function updMaint(i,s){
 maintenance[i].status=s;
 save('maintenance',maintenance[i],'maintenance_upd');
 renderMaintenance();
 showToast('✅ Updated','success');
 }
+
 function delMaint(i){
 if(confirm('Delete?')){
 const id = maintenance[i]._id;
@@ -2939,6 +2990,7 @@ renderMaintenance();
 showToast('✅ Deleted','success');
 }
 }
+
 function addPts(id,pts){
 const g=guests.find(x=>x._id===id);
 if(g){
@@ -2948,6 +3000,7 @@ renderLoyalty();
 showToast(`✅ +${pts} pts`,'success');
 }
 }
+
 function redeemPts(id,pts){
 const g=guests.find(x=>x._id===id);
 if(g&&(g.points||0)>=pts){
@@ -2957,6 +3010,7 @@ renderLoyalty();
 showToast(`✅ ${pts} pts redeemed`,'success');
 }else showToast('Not enough points','error');
 }
+
 function rateStaff(i){
 staff[i].rating=parseFloat(Math.min(5,staff[i].rating+0.1).toFixed(1));
 staff[i].tasks=(staff[i].tasks||0)+1;
@@ -2964,6 +3018,7 @@ save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast('✅ Rating updated','success');
 }
+
 function delStaff(i){
 if(confirm('Remove staff?')){
 const id = staff[i]._id;
@@ -2975,7 +3030,9 @@ renderStaff();
 showToast('✅ ' + (t('staffDeleted') || 'Staff member deleted successfully'),'success');
 }
 }
+
 function openStaffModal(){openModal('staffModal');}
+
 function addStaff(e){
 e.preventDefault();
 const name=document.getElementById('mSName')?.value;
@@ -2992,18 +3049,21 @@ showToast('✅ ' + (t('staffAdded') || 'Staff member added successfully'),'succe
 speakItemAdded();
 addLog('Add Staff',name);
 }
+
 function updateStaffStatus(i,status){
 staff[i].status=status;
 save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast(`✅ ${staff[i].name} status updated`,'success');
 }
+
 function markAttendance(i,val){
 staff[i].attendance=val;
 save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast(`✅ Attendance: ${val}`,'success');
 }
+
 function editStaff(i){
 const s=staff[i];
 const newName=prompt('Edit Name:',s.name);
@@ -3016,6 +3076,7 @@ renderStaff();
 showToast('✅ ' + (t('staffUpdated') || 'Staff member updated successfully'),'success');
 }
 }
+
 function applyLeave(i){
 const reason=prompt(t('leaveReason')+':');
 const date=prompt('Date (YYYY-MM-DD):',new Date().toISOString().split('T')[0]);
@@ -3026,6 +3087,7 @@ renderStaff();
 showToast('✅ Leave request submitted','success');
 }
 }
+
 function approveLeave(i){
 if(staff[i].leaveRequest){
 staff[i].leaveRequest.status='approved';
@@ -3035,6 +3097,7 @@ renderStaff();
 showToast('✅ Leave approved','success');
 }
 }
+
 function rejectLeave(i){
 if(staff[i].leaveRequest){
 staff[i].leaveRequest=null;
@@ -3043,7 +3106,9 @@ renderStaff();
 showToast('✅ Leave rejected','success');
 }
 }
+
 function replyRev(g){const r=prompt(`Reply to ${g}:`);if(r)showToast('✅ Reply sent','success')}
+
 function genReport(){
 const t=document.getElementById('rptType')?.value;
 const out=document.getElementById('rptOut');if(!out)return;
@@ -3054,8 +3119,11 @@ else if(t==='requests'){const bd={};requests.forEach(r=>{bd[r.department]=(bd[r.
 else{html=`<p>👥 Total: <b>${guests.length}</b></p><p>✅ Active: <b>${guests.filter(g=>g.status==='active').length}</b></p><p>🚫 Blocked: <b>${guests.filter(g=>g.status==='blocked').length}</b></p>`}
 out.innerHTML=html;
 }
+
 function exportReport(){const t=document.getElementById('rptType')?.value||'report';const d=t==='occupancy'?rooms:t==='guests'?guests:requests;const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d),t);XLSX.writeFile(wb,`${t}-${Date.now()}.xlsx`);showToast('✅ Exported!','success')}
+
 function exportLogs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(logs),'Logs');XLSX.writeFile(wb,`logs-${Date.now()}.xlsx`);showToast('✅ Logs exported','success')}
+
 function clearLogs(){
 if(confirm('Clear all logs?')){
 logs=[];
@@ -3065,7 +3133,7 @@ renderLogs();
 showToast('✅ Logs cleared','success');
 }
 }
-// ✅ FIX: Currency Edit Modal Functions - NOW WITH MULTI-DEVICE SYNC
+
 function openAddCurrencyModal(){
 openModal('infoModal');
 document.getElementById('infoModalTitle').textContent = '➕ Add New Currency';
@@ -3082,6 +3150,7 @@ document.getElementById('infoModalBody').innerHTML = `
 </form>
 `;
 }
+
 function addNewCurrency(e){
 e.preventDefault();
 const code=document.getElementById('newCurCode').value.toUpperCase();
@@ -3101,6 +3170,7 @@ applyCfg();
 showToast(`✅ ${code} added!`,'success');
 addLog('Add Currency',code);
 }
+
 function deleteCurrency(code){
 if(!CURRENCIES[code]?.custom){showToast('Cannot delete built-in currency','error');return}
 if(confirm(`Delete ${code}?`)){
@@ -3116,6 +3186,7 @@ showToast(`${code} deleted`,'success');
 addLog('Delete Currency',code);
 }
 }
+
 function editCurrencyRates(){
 const rates = Object.entries(CURRENCIES).map(([code, data]) =>
 `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
@@ -3134,6 +3205,7 @@ document.getElementById('infoModalBody').innerHTML = `
 <button class="btn-primary" style="width:100%" onclick="saveCurrencyRates()">💾 Save Rates</button>
 `;
 }
+
 function saveCurrencyRates(){
 Object.keys(CURRENCIES).forEach(code => {
 const input = document.getElementById(`rate-${code}`);
@@ -3151,6 +3223,7 @@ applyCfg();
 showToast('💱 Exchange rates updated','success');
 addLog('Currency Update', 'Exchange rates modified');
 }
+
 function saveCfg(field){
 if(field==='name') HotelCfg.name=document.getElementById('cfgName')?.value||HotelCfg.name;
 else if(field==='currency') {
@@ -3163,13 +3236,13 @@ HotelCfg.airportPrice=parseInt(document.getElementById('cfgAirport')?.value)||11
 HotelCfg.localPrice=parseInt(document.getElementById('cfgLocal')?.value)||60;
 }
 saveUIPrefs();
-saveToMongo('config', HotelCfg); // ✅ CONVERTED: Save config to MongoDB
+saveToMongo('config', HotelCfg);
 if(socket?.connected) socket.emit('cfg_upd',{hotelId:HID,...HotelCfg, syncToken:Date.now()});
 applyCfg();
-// ✅ FIX ISSUE 6: Toast notification for settings change
 showToast('⚙️ ' + (t('settingsSaved') || 'Settings saved successfully'),'success');
 addLog('Config Update',field);
 }
+
 function genAllQR(){
 const grid=document.getElementById('qrGrid');if(!grid)return;
 grid.innerHTML='';
@@ -3182,6 +3255,7 @@ try{new QRCode(document.getElementById(`qr_${room.number}`),{text:`${location.or
 });
 showToast('✅ QR codes generated!','success');
 }
+
 function renderBookRoomRooms(){
 const select=document.getElementById('bookRoomSelect');if(!select)return;
 select.innerHTML='<option value="">'+t('selectRoom')+'</option>';
@@ -3193,6 +3267,7 @@ opt.dataset.price=r.basePriceSAR;
 select.appendChild(opt);
 });
 }
+
 function calcBookingPrice(){
 const select=document.getElementById('bookRoomSelect');
 const checkIn=document.getElementById('bookCheckIn')?.value;
@@ -3211,6 +3286,7 @@ totalEl.textContent=`${total} (${nights} ${t('nights')})`;
 totalEl.textContent='0';
 }
 }
+
 function bookRoom(e){
 e.preventDefault();
 const roomId=document.getElementById('bookRoomSelect')?.value;
@@ -3231,12 +3307,12 @@ save('bookings',booking,'booking_new');
 renderGuestBookings();renderAdminBookings();
 e.target.reset();
 document.getElementById('bookingTotalPrice').textContent='0';
-// ✅ FIX ISSUE 6: Toast notification for room booking
 showToast('📅 ' + (t('roomBooked') || 'Room booked successfully') + '!','success');
 speakBookingConfirmed();
 sendGuestNotification('notifBookingTitle', 'notifBookingBody');
 addLog('New Booking',`${currentUser.name} - Room ${room.number}`);
 }
+
 function renderGuestBookings(){
 const el=document.getElementById('guestBookingList');if(!el||!currentUser)return;
 const myBookings=bookings.filter(b=>b.guestName===currentUser.name);
@@ -3256,6 +3332,7 @@ el.innerHTML=myBookings.map(b=>`
 <div style="font-size:10px;opacity:.5">ID: ${b._id}</div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No bookings yet</p>';
 }
+
 function renderAdminBookings(){
 const el=document.getElementById('adminBookingGrid');if(!el)return;
 const statusFilter=document.getElementById('bookingFilterStatus')?.value||'all';
@@ -3292,6 +3369,7 @@ el.innerHTML=list.map(b=>`
 <div style="font-size:10px;opacity:.5;margin-top:4px">ID: ${b._id}</div>
 </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No bookings</p>';
 }
+
 function updateBookingStatus(id,status){
 const b=bookings.find(x=>x._id===id);
 if(b){
@@ -3303,6 +3381,7 @@ showToast('✅ Booking status updated','success');
 addLog('Update Booking',`${b.guestName} - ${status}`);
 }
 }
+
 function editBooking(id){
 const b=bookings.find(x=>x._id===id);if(!b)return;
 const newGuests=prompt('Edit number of guests:',b.guests);
@@ -3324,6 +3403,7 @@ showToast('✅ Booking updated','success');
 addLog('Edit Booking',`${b.guestName}`);
 }
 }
+
 function deleteBooking(id){
 if(confirm('Delete this booking?')){
 const idx=bookings.findIndex(b=>b._id===id);
@@ -3338,12 +3418,14 @@ addLog('Delete Booking',`${b.guestName}`);
 }
 }
 }
+
 function exportBookings(){
 const wb=XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bookings),'Bookings');
 XLSX.writeFile(wb,`bookings-${Date.now()}.xlsx`);
 showToast('✅ Bookings exported!','success');
 }
+
 function buildModals(){
 const container=document.getElementById('modals');
 container.innerHTML=`
@@ -3511,8 +3593,10 @@ container.innerHTML=`
 </div>
 </div>`;
 }
+
 function openModal(id){document.getElementById(id)?.classList.add('open')}
 function closeModal(id){document.getElementById(id)?.classList.remove('open')}
+
 function addGuest(e){
 e.preventDefault();
 const guest={_id:'g_'+Date.now(),_isNew:true,name:document.getElementById('mGName').value,room:document.getElementById('mGRoom').value,points:parseInt(document.getElementById('mGPts').value)||0,status:document.getElementById('mGStatus').value,checkin:document.getElementById('mGCheckin').value,hotelId:HID, _version:1};
@@ -3520,6 +3604,7 @@ guests.push(guest);save('guests',guest,'guest_new');closeModal('guestModal');ren
 showToast('✅ ' + (t('guestAdded') || 'Guest added successfully'),'success');
 speakItemAdded();
 }
+
 function addInvItem(e){
 e.preventDefault();
 const editId=document.getElementById('inventoryModal')?.dataset?.editId;
@@ -3541,16 +3626,19 @@ closeModal('inventoryModal');
 if(document.getElementById('inventoryModal').dataset) delete document.getElementById('inventoryModal').dataset.editId;
 renderInventory();renderGuestInv();
 }
+
 function addToBlacklist(e){
 e.preventDefault();
 const entry={_id:'bl_'+Date.now(),_isNew:true,name:document.getElementById('mBName').value,room:document.getElementById('mBRoom').value,reason:document.getElementById('mBReason').value,date:new Date().toISOString(),hotelId:HID, _version:1};
 blacklist.push(entry);save('blacklist',entry,'blacklist_new');closeModal('blacklistModal');renderBlacklist();showToast('✅ Guest blocked','error');addLog('Blacklist',entry.name);
 }
+
 function addMaint(e){
 e.preventDefault();
 const task={_id:'m_'+Date.now(),_isNew:true,task:document.getElementById('mMTask').value,room:document.getElementById('mMRoom').value,scheduled:document.getElementById('mMDate').value,assigned:document.getElementById('mMAssigned').value,priority:document.getElementById('mMPrio').value,status:'pending',hotelId:HID, _version:1};
 maintenance.push(task);save('maintenance',task,'maintenance_new');closeModal('maintModal');renderMaintenance();showToast('✅ Task scheduled','success');
 }
+
 function openRatingModal(){
 openModal('ratingModal');
 ['Overall','Service','Clean'].forEach(type=>{
@@ -3558,49 +3646,71 @@ const el=document.getElementById('star'+type);if(!el)return;
 el.innerHTML=[1,2,3,4,5].map(i=>`<span onclick="setStar('${type.toLowerCase()}',${i})" style="font-size:24px;cursor:pointer;transition:transform .1s">☆</span>`).join('');
 });
 }
+
 function setStar(type,val){
 const map={overall:'Overall',service:'Service',clean:'Clean'};
 const el=document.getElementById('star'+map[type]);if(!el)return;
 [...el.children].forEach((s,i)=>{s.textContent=i<val?'★':'☆';s.style.color=i<val?'#f59e0b':'var(--fg)'});
 ratingData[type]=val;
 }
+
 function submitRating(){
 if(!ratingData.overall){showToast('Please select a rating','error');return}
 const rev={_id:'rev_'+Date.now(),_isNew:true,guest:currentUser.name,room:currentUser.room,overall:ratingData.overall,service:ratingData.service||0,cleanliness:ratingData.clean||0,recommend:ratingData.overall>=3,comment:document.getElementById('ratingComment')?.value||'',date:new Date().toISOString(),hotelId:HID, _version:1};
 reviews.unshift(rev);save('reviews',rev,'review_new');closeModal('ratingModal');renderReviews();showToast('⭐ Thank you for rating!','success');ratingData={overall:0,service:0,clean:0};
 }
+
 function infoModal(title,body){
 document.getElementById('infoModalTitle').textContent=title;
 document.getElementById('infoModalBody').innerHTML=body;
 openModal('infoModal');
 }
+
 function showConcierge(){
 infoModal('🤖 Concierge',`
 <details style="background:var(--card2);border-radius:8px;padding:8px;margin-bottom:6px"><summary style="cursor:pointer;font-weight:600">WiFi password?</summary><p style="margin-top:4px;font-family:'DM Mono',monospace">${HotelCfg.wifi}</p></details>
 <details style="background:var(--card2);border-radius:8px;padding:8px;margin-bottom:6px"><summary style="cursor:pointer;font-weight:600">Checkout time?</summary><p style="margin-top:4px">11:00 AM</p></details>
 <details style="background:var(--card2);border-radius:8px;padding:8px"><summary style="cursor:pointer;font-weight:600">How to raise a request?</summary><p style="margin-top:4px">Go to the Request tab and select your department.</p></details>`);
 }
+
 document.addEventListener('click',e=>{
 if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
 if(!e.target.closest('#themeDD')&&!e.target.closest('[onclick*="toggleThemeDD"]')) document.getElementById('themeDD')?.classList.remove('show');
 });
+
 document.addEventListener('keydown',e=>{
 if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
 });
+
 window.addEventListener('online',()=>{
 if(!isOnline) return;
 updateNetBadge('online');
 if(socket) socket.connect();
 showToast('🌐 Back online','success');
 });
+
 window.addEventListener('offline',()=>{
 updateNetBadge('offline');
 showToast('📴 Offline mode','warning');
 });
+
 function quickCheckin(){showToast('🚀 Quick Check-in opened','success');openModal('guestModal')}
 function quickCheckout(){showToast('🚪 Quick Checkout opened','success')}
 function newAdminRequest(){showAdminTab('requests');showToast('📝 New Request form opened','success')}
 function viewAdminReports(){showAdminTab('reports');showToast('📈 Reports opened','success')}
+
+// ✅ FIX ISSUE 4: Cab Price Update Function
+function updateCabPrice() {
+    const type = document.getElementById('cabType')?.value;
+    const display = document.getElementById('cabPriceDisplay');
+    if(!display) return;
+    if(type === 'airport') {
+        display.textContent = formatPrice(HotelCfg.airportPrice);
+    } else {
+        display.textContent = formatPrice(HotelCfg.localPrice) + ' / hour';
+    }
+}
+
 // ✅ WEATHER UPDATE FIX: Live weather simulation with REAL-TIME updates every 30 seconds
 let weatherData = { temp: 28, desc: 'Sunny', icon: '🌤️', humidity: 45, wind: 12 };
 const weatherConditions = [
@@ -3615,10 +3725,9 @@ const weatherConditions = [
 { icon: '🌦️', desc: 'Sun Showers', descHi: 'धूप-बारिश', descAr: 'أمطار شمسية', tempMin: 20, tempMax: 30 },
 { icon: '💨', desc: 'Windy', descHi: 'हवा', descAr: 'عاصف', tempMin: 18, tempMax: 28 }
 ];
+
 function updateWeather(){
-// Pick a random weather condition
 const condition = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
-// Generate realistic temperature within the condition's range
 const temp = condition.tempMin + Math.floor(Math.random() * (condition.tempMax - condition.tempMin));
 const humidity = 30 + Math.floor(Math.random() * 50);
 const wind = 5 + Math.floor(Math.random() * 25);
@@ -3632,15 +3741,12 @@ humidity: humidity,
 wind: wind,
 updateTime: new Date()
 };
-// Get localized description
 const localizedDesc = lang === 'hi' ? condition.descHi : lang === 'ar' ? condition.descAr : condition.desc;
-// Format update time
 const timeStr = weatherData.updateTime.toLocaleTimeString(lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'ar-SA', {
 hour: '2-digit',
 minute: '2-digit',
 timeZone: userTimezone
 });
-// Update admin weather display with animation
 const adminCard = document.getElementById('adminWeatherCard');
 const adminTemp = document.getElementById('weatherTemp');
 const adminDesc = document.getElementById('weatherDesc');
@@ -3652,10 +3758,9 @@ if(adminIcon) adminIcon.textContent = condition.icon;
 if(adminTime) adminTime.textContent = `🕐 Updated: ${timeStr}`;
 if(adminCard) {
 adminCard.classList.remove('weather-update-flash');
-void adminCard.offsetWidth; // Trigger reflow
+void adminCard.offsetWidth;
 adminCard.classList.add('weather-update-flash');
 }
-// Update guest weather display with animation
 const guestCard = document.getElementById('guestWeatherCard');
 const guestTemp = document.getElementById('gWeatherTemp');
 const guestDesc = document.getElementById('gWeatherDesc');
@@ -3667,66 +3772,36 @@ if(guestIcon) guestIcon.textContent = condition.icon;
 if(guestTime) guestTime.textContent = `🕐 Updated: ${timeStr} | 💧 ${humidity}% | 💨 ${wind} km/h`;
 if(guestCard) {
 guestCard.classList.remove('weather-update-flash');
-void guestCard.offsetWidth; // Trigger reflow
+void guestCard.offsetWidth;
 guestCard.classList.add('weather-update-flash');
 }
 console.log(`🌤️ Weather updated: ${temp}°C, ${localizedDesc}, Humidity: ${humidity}%, Wind: ${wind} km/h`);
 }
-// ✅ FIX: Update weather every 30 seconds for real-time feel (was 2 minutes before)
-setInterval(updateWeather, 30000);
 
-// ✅ FIX 2: Hide Loading Screen Function
-function hideLoadingScreen() {
-  const loadingScreen = document.getElementById('loadingScreen');
-  if (loadingScreen && !loadingScreen.classList.contains('fade-out')) {
-    loadingScreen.classList.add('fade-out');
-    setTimeout(() => {
-      loadingScreen.style.display = 'none';
-    }, 400);
-  }
-}
+setInterval(updateWeather, 30000);
 
 // ✅ MULTI-DEVICE FIX: Initialize with proper order and clientId
 async function init(){
-  // ✅ FIX 2: Safety timeout - force hide loading screen after 8 seconds
-  const safetyTimeout = setTimeout(() => {
-    hideLoadingScreen();
-    console.warn('⚠️ Loading timeout - showing login');
-    showPage('loginPage');
-  }, 8000);
-
-  loadUIPrefs();
-  buildModals();
-  buildGuestPanes();
-  buildRolePage();
-  await loadAllData(); // ✅ CONVERTED: Load from MongoDB instead of LocalStorage
-  tickClock();
-  initSocket();
-
-  // ✅ FIX 1 + FIX 2: Await checkSession before hiding loading screen
-  const sessionRestored = await checkSession();
-
-  // If no session, show login page
-  if(!sessionRestored) {
-    showPage('loginPage');
-  }
-
-  renderAll();
-  updateWeather(); // Initial weather update
-
-  // ✅ FIX 2: Clear safety timeout and hide loading screen
-  clearTimeout(safetyTimeout);
-  hideLoadingScreen();
-
-  const onlineBtn=document.getElementById('onlineBtn');
-  if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
-  setInterval(saveUIPrefs, 15000); // ✅ CONVERTED: Save only UI prefs
-  window.addEventListener('beforeunload', saveUIPrefs); // ✅ CONVERTED: Save only UI prefs
+loadUIPrefs();
+buildModals();
+buildGuestPanes();
+buildRolePage();
+await loadAllData();
+tickClock();
+initSocket();
+await checkSession(); // ✅ Check session on load
+renderAll();
+updateWeather();
+updateCabPrice(); // ✅ Initialize cab price
+const onlineBtn=document.getElementById('onlineBtn');
+if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
+setInterval(saveUIPrefs, 15000);
+window.addEventListener('beforeunload', saveUIPrefs);
 }
+
 init();
-// ✅ ADD THIS at the end of the script for better debugging:
+
 window.addEventListener('load', async () => {
-// Test API connectivity on load
 try {
 const test = await fetch(API_BASE + '/health', { method: 'GET', headers: { 'x-hotel-id': HID } });
 if(!test.ok) throw new Error('Health check failed');
@@ -3736,8 +3811,6 @@ console.warn('⚠️ Backend API not reachable. Using localStorage only.', e);
 isOnline = false;
 updateNetBadge('offline');
 showToast('⚠️ Backend not connected - using offline mode','warning');
-// ✅ FIX 2: Hide loading screen even if backend is down
-hideLoadingScreen();
 }
 });
 </script>
