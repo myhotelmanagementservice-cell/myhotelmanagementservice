@@ -1,5 +1,5 @@
 require("dotenv").config({ path: __dirname + "/.env" });
-// server.js - Complete Multi-Tenant Hotel SaaS Backend (ALL ISSUES FIXED - PRODUCTION READY)
+// server.js - Complete Multi-Tenant Hotel SaaS Backend (ADVANCED - PRODUCTION READY v2.0)
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
@@ -9,6 +9,12 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
+// ✅ NEW: Advanced middleware imports
+let compression, helmet, rateLimit;
+try { compression = require('compression'); } catch(e) { compression = null; }
+try { helmet = require('helmet'); } catch(e) { helmet = null; }
+try { rateLimit = require('express-rate-limit'); } catch(e) { rateLimit = null; }
 
 const app = express();
 const server = http.createServer(app);
@@ -20,30 +26,58 @@ const io = new Server(server, {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true
   },
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
-// Middleware
+// ==================== ADVANCED MIDDLEWARE ====================
+
+// ✅ NEW: Compression for faster responses
+if (compression) {
+  app.use(compression());
+  console.log('✅ Compression enabled');
+}
+
+// ✅ NEW: Security headers (Helmet) - configured for SPA compatibility
+if (helmet) {
+  app.use(helmet({
+    contentSecurityPolicy: false, // Disable CSP to avoid blocking frontend assets
+    crossOriginEmbedderPolicy: false
+  }));
+  console.log('✅ Helmet security headers enabled');
+}
+
+// CORS
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-hotel-id', 'x-client-id', 'x-idempotency-key', 'x-request-id']
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // ✅ Static file path - supports both root and inaya-hotel folder
 const publicPath = path.join(__dirname, process.env.PUBLIC_PATH || '../public');
-app.use(express.static(publicPath));
+app.use(express.static(publicPath, {
+  maxAge: '1h',           // Cache static assets
+  etag: true,
+  lastModified: true
+}));
 
 // Session configuration
 app.use(session({
   secret: process.env.SESSION_SECRET || 'inaya-hotel-secret-key-change-in-production',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false, // ✅ FIXED: Don't save empty sessions
+  rolling: true,            // ✅ NEW: Reset expiry on each request (keeps session alive on activity)
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000
+    sameSite: 'lax',
+    maxAge: parseInt(process.env.SESSION_MAX_AGE) || 7 * 24 * 60 * 60 * 1000 // 7 days default
   }
 }));
 
@@ -53,20 +87,39 @@ const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb
 const DB_NAME = process.env.DB_NAME || 'inaya_hotel';
 const JWT_SECRET = process.env.JWT_SECRET || 'jwt-secret-key-change-in-production';
 
+// ✅ NEW: Idle timeout configuration (in milliseconds)
+const IDLE_TIMEOUT_MS = parseInt(process.env.IDLE_TIMEOUT_MS) || 30 * 60 * 1000; // 30 minutes default
+const TOKEN_EXPIRY = process.env.TOKEN_EXPIRY || '7d';
+const TOKEN_REFRESH_THRESHOLD_MS = parseInt(process.env.TOKEN_REFRESH_THRESHOLD_MS) || 60 * 60 * 1000; // Refresh if <1hr left
+
 let db;
 let client;
 let dbConnected = false;
+let dbReconnectTimer = null;
+
+// ✅ NEW: In-memory store for idempotency keys (clears old ones every hour)
+const idempotencyStore = new Map();
+setInterval(() => {
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000; // Remove keys older than 24h
+  for (const [key, val] of idempotencyStore.entries()) {
+    if (val.timestamp < cutoff) idempotencyStore.delete(key);
+  }
+}, 60 * 60 * 1000);
 
 // ==================== MONGODB CONNECTION ====================
 async function connectDB() {
   try {
     console.log('🔄 Connecting to MongoDB Atlas...');
+    if (dbReconnectTimer) { clearTimeout(dbReconnectTimer); dbReconnectTimer = null; }
 
-    // ✅ FIXED: Removed deprecated options for MongoDB Driver 4.0+
     client = new MongoClient(MONGODB_URI, {
       serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
       maxPoolSize: 10,
-      minPoolSize: 5
+      minPoolSize: 5,
+      retryWrites: true,
+      retryReads: true
     });
 
     await client.connect();
@@ -75,34 +128,51 @@ async function connectDB() {
     dbConnected = true;
     console.log('✅ MongoDB Connected Successfully!');
 
+    // ✅ NEW: Monitor connection events
+    client.on('close', () => {
+      console.warn('⚠️ MongoDB connection closed. Attempting reconnect...');
+      dbConnected = false;
+      scheduleReconnect();
+    });
+    client.on('error', (err) => {
+      console.error('⚠️ MongoDB client error:', err.message);
+      dbConnected = false;
+      scheduleReconnect();
+    });
+
     await createIndexes();
     return db;
   } catch (error) {
     console.error('❌ MongoDB Connection Error:', error.message);
     dbConnected = false;
-    setTimeout(connectDB, 5000);
+    scheduleReconnect();
     return null;
   }
 }
 
-// ✅✅✅ FIXED: Index creation with KEY PATTERN check (not just name)
+function scheduleReconnect() {
+  if (!dbReconnectTimer) {
+    dbReconnectTimer = setTimeout(() => {
+      dbReconnectTimer = null;
+      connectDB();
+    }, 5000);
+  }
+}
+
+// ✅ FIXED: Index creation with KEY PATTERN check
 async function createIndexes() {
   try {
-    const collections = ['rooms', 'guests', 'food', 'inventory', 'requests', 'blacklist', 'maintenance', 'reviews', 'loyalty', 'staff', 'logs', 'settings', 'tenants', 'bookings', 'users'];
+    const collections = ['rooms', 'guests', 'food', 'inventory', 'requests', 'blacklist', 'maintenance', 'reviews', 'loyalty', 'staff', 'logs', 'settings', 'tenants', 'bookings', 'users', 'sessions'];
 
     for (const col of collections) {
       const collection = db.collection(col);
-
-      // Get existing indexes with their key patterns
       let existingIndexes = [];
       try {
         existingIndexes = await collection.listIndexes().toArray();
       } catch (e) {
-        console.log(`ℹ️ Collection '${col}' not ready yet, skipping index check`);
         continue;
       }
 
-      // ✅ Helper: Check if index with SAME KEY PATTERN exists (regardless of name)
       const indexExistsWithKeys = (targetKeys) => {
         return existingIndexes.some(idx => {
           if (!idx.key) return false;
@@ -110,73 +180,74 @@ async function createIndexes() {
         });
       };
 
-      // 1. Multi-tenant index on hotelId for ALL collections
       if (!indexExistsWithKeys({ hotelId: 1 })) {
-        try { 
-          await collection.createIndex({ hotelId: 1 }, { background: true, name: `hotelId_1` }); 
-          console.log(`✅ Created index hotelId_1 on ${col}`);
-        } catch(e) { 
-          console.log(`ℹ️ Index {hotelId:1} already exists on ${col}`);
-        }
+        try { await collection.createIndex({ hotelId: 1 }, { background: true, name: `hotelId_1` }); } catch(e) {}
       }
 
-      // 2. Collection-specific indexes with key pattern check
-      if (col === 'rooms') {
-        if (!indexExistsWithKeys({ number: 1, hotelId: 1 })) {
-          await collection.createIndex({ number: 1, hotelId: 1 }, { unique: true, background: true, name: 'number_hotelId_unique' });
-          console.log(`✅ Created unique index number_hotelId_unique on ${col}`);
-        }
+      if (col === 'rooms' && !indexExistsWithKeys({ number: 1, hotelId: 1 })) {
+        await collection.createIndex({ number: 1, hotelId: 1 }, { unique: true, background: true });
       }
-      if (col === 'guests') {
-        if (!indexExistsWithKeys({ email: 1, hotelId: 1 })) {
-          await collection.createIndex({ email: 1, hotelId: 1 }, { background: true, name: 'email_hotelId_idx' });
-          console.log(`✅ Created index email_hotelId_idx on ${col}`);
-        }
+      if (col === 'guests' && !indexExistsWithKeys({ email: 1, hotelId: 1 })) {
+        await collection.createIndex({ email: 1, hotelId: 1 }, { background: true });
       }
-      if (col === 'settings') {
-        if (!indexExistsWithKeys({ hotelId: 1 })) {
-          await collection.createIndex({ hotelId: 1 }, { unique: true, background: true, name: 'hotelId_settings_unique' });
-          console.log(`✅ Created unique index hotelId_settings_unique on ${col}`);
-        }
+      if (col === 'settings' && !indexExistsWithKeys({ hotelId: 1 })) {
+        await collection.createIndex({ hotelId: 1 }, { unique: true, background: true });
       }
-      if (col === 'tenants') {
-        if (!indexExistsWithKeys({ hotelId: 1 })) {
-          await collection.createIndex({ hotelId: 1 }, { unique: true, background: true, name: 'hotelId_tenants_unique' });
-          console.log(`✅ Created unique index hotelId_tenants_unique on ${col}`);
-        }
+      if (col === 'tenants' && !indexExistsWithKeys({ hotelId: 1 })) {
+        await collection.createIndex({ hotelId: 1 }, { unique: true, background: true });
       }
-      if (col === 'bookings') {
-        if (!indexExistsWithKeys({ guestName: 1, hotelId: 1 })) {
-          await collection.createIndex({ guestName: 1, hotelId: 1 }, { background: true, name: 'guestName_hotelId_idx' });
-          console.log(`✅ Created index guestName_hotelId_idx on ${col}`);
-        }
+      if (col === 'bookings' && !indexExistsWithKeys({ guestName: 1, hotelId: 1 })) {
+        await collection.createIndex({ guestName: 1, hotelId: 1 }, { background: true });
       }
-      if (col === 'logs') {
-        if (!indexExistsWithKeys({ timestamp: -1, hotelId: 1 })) {
-          await collection.createIndex({ timestamp: -1, hotelId: 1 }, { background: true, name: 'timestamp_hotelId_idx' });
-          console.log(`✅ Created index timestamp_hotelId_idx on ${col}`);
-        }
+      if (col === 'logs' && !indexExistsWithKeys({ timestamp: -1, hotelId: 1 })) {
+        await collection.createIndex({ timestamp: -1, hotelId: 1 }, { background: true });
       }
-      if (col === 'users') {
-        if (!indexExistsWithKeys({ email: 1, hotelId: 1 })) {
-          await collection.createIndex({ email: 1, hotelId: 1 }, { unique: true, background: true, name: 'email_hotelId_users_unique' });
-          console.log(`✅ Created unique index email_hotelId_users_unique on ${col}`);
-        }
+      if (col === 'users' && !indexExistsWithKeys({ email: 1, hotelId: 1 })) {
+        await collection.createIndex({ email: 1, hotelId: 1 }, { unique: true, background: true });
+      }
+      // ✅ NEW: Sessions index for TTL auto-cleanup
+      if (col === 'sessions' && !indexExistsWithKeys({ lastActivity: 1 })) {
+        await collection.createIndex({ lastActivity: 1 }, { expireAfterSeconds: Math.floor(IDLE_TIMEOUT_MS / 1000) + 3600 });
       }
     }
     console.log('✅ All indexes verified/created successfully');
   } catch (e) {
-    // Non-critical - indexes likely already exist
     console.log(`ℹ️ Index setup note: ${e.message}`);
   }
 }
 
+// ==================== RATE LIMITING ====================
+// ✅ NEW: Rate limiting to prevent abuse
+let loginLimiter, apiLimiter;
+if (rateLimit) {
+  loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20,                   // Max 20 login attempts per window
+    message: { success: false, error: 'Too many login attempts. Please try again after 15 minutes.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => req.ip + '_' + (req.body?.email || '')
+  });
+
+  apiLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 300,                  // 300 requests per minute per IP
+    message: { success: false, error: 'Too many requests. Please slow down.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => req.method === 'GET' // Only limit write operations
+  });
+
+  app.use('/api/', apiLimiter);
+  console.log('✅ Rate limiting enabled');
+}
+
 // ==================== MULTI-TENANT MIDDLEWARE ====================
 const getHotelId = (req) => {
-  return req.headers['x-hotel-id'] || 
-         req.query.hotelId || 
-         req.query.hotel || 
-         (req.session?.hotelId) || 
+  return req.headers['x-hotel-id'] ||
+         req.query.hotelId ||
+         req.query.hotel ||
+         (req.session?.hotelId) ||
          'HOTEL001';
 };
 
@@ -185,14 +256,33 @@ const tenantMiddleware = (req, res, next) => {
   next();
 };
 
-// ✅ FIX: Extract clientId from headers for multi-device deduplication
 const clientInfoMiddleware = (req, res, next) => {
   req.clientId = req.headers['x-client-id'] || null;
+  req.requestId = req.headers['x-request-id'] || `req_${Date.now()}`;
+  next();
+};
+
+// ✅ NEW: Idempotency middleware - prevents duplicate POSTs on retry
+const idempotencyMiddleware = (req, res, next) => {
+  const key = req.headers['x-idempotency-key'];
+  if (!key || req.method !== 'POST') return next();
+
+  if (idempotencyStore.has(key)) {
+    const cached = idempotencyStore.get(key);
+    return res.status(cached.status).json(cached.body);
+  }
+
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    idempotencyStore.set(key, { status: res.statusCode, body, timestamp: Date.now() });
+    return originalJson(body);
+  };
   next();
 };
 
 app.use('/api', tenantMiddleware);
-app.use('/api', clientInfoMiddleware); // ✅ ADD THIS for clientId support
+app.use('/api', clientInfoMiddleware);
+app.use('/api', idempotencyMiddleware);
 
 // ✅ Subscription Expiry Validation Middleware
 const checkSubscription = async (req, res, next) => {
@@ -209,9 +299,9 @@ const checkSubscription = async (req, res, next) => {
     }
 
     if (tenant.subscriptionExpiry && new Date(tenant.subscriptionExpiry) < new Date()) {
-      return res.status(403).json({ 
-        success: false, 
-        error: 'Subscription expired', 
+      return res.status(403).json({
+        success: false,
+        error: 'Subscription expired',
         expiryDate: tenant.subscriptionExpiry,
         action: 'Please renew your subscription'
       });
@@ -224,7 +314,6 @@ const checkSubscription = async (req, res, next) => {
   }
 };
 
-// Apply subscription check to all data-modifying routes
 app.use('/api/rooms', checkSubscription);
 app.use('/api/guests', checkSubscription);
 app.use('/api/food', checkSubscription);
@@ -234,8 +323,13 @@ app.use('/api/bookings', checkSubscription);
 app.use('/api/staff', checkSubscription);
 
 // ==================== AUTH UTILITIES ====================
-const generateToken = (payload) => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+const generateToken = (payload, expiresIn = TOKEN_EXPIRY) => {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+};
+
+// ✅ NEW: Decode token without verification (to check expiry before verifying)
+const decodeTokenSafe = (token) => {
+  try { return jwt.decode(token); } catch(e) { return null; }
 };
 
 const authMiddleware = (req, res, next) => {
@@ -249,8 +343,21 @@ const authMiddleware = (req, res, next) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
     req.hotelId = decoded.hotelId || req.hotelId;
+
+    // ✅ NEW: Auto-refresh token if expiry is close
+    const exp = decoded.exp * 1000;
+    const now = Date.now();
+    if (exp - now < TOKEN_REFRESH_THRESHOLD_MS) {
+      const { iat, exp: _exp, ...rest } = decoded;
+      const newToken = generateToken(rest);
+      res.setHeader('x-refreshed-token', newToken);
+    }
+
     next();
   } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, error: 'Token expired', code: 'TOKEN_EXPIRED' });
+    }
     return res.status(401).json({ success: false, error: 'Invalid token' });
   }
 };
@@ -271,11 +378,93 @@ const superAdminMiddleware = async (req, res, next) => {
   }
 };
 
-// ==================== SOCKET.IO REAL-TIME (FIXED FOR MULTI-DEVICE SYNC) ====================
+// ==================== ✅ NEW: IDLE SESSION MANAGEMENT ====================
+
+// Track active sessions (in-memory + DB for persistence)
+const activeSessions = new Map(); // token -> { lastActivity, hotelId, userId }
+
+// ✅ NEW: Update session activity on every authenticated request
+const updateSessionActivity = async (req) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token || !req.user) return;
+
+  const sessionKey = token.substring(token.length - 32); // Use last 32 chars as key
+  activeSessions.set(sessionKey, {
+    lastActivity: Date.now(),
+    hotelId: req.hotelId,
+    email: req.user?.email
+  });
+
+  // Update in DB if connected (async, non-blocking)
+  if (dbConnected) {
+    db.collection('sessions').updateOne(
+      { sessionKey },
+      { $set: { lastActivity: new Date(), hotelId: req.hotelId, email: req.user?.email } },
+      { upsert: true }
+    ).catch(() => {});
+  }
+};
+
+// ✅ NEW: Check if session is idle
+const checkIdleTimeout = (req, res, next) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return next();
+
+  const sessionKey = token.substring(token.length - 32);
+  const session = activeSessions.get(sessionKey);
+
+  if (session) {
+    const idleTime = Date.now() - session.lastActivity;
+    if (idleTime > IDLE_TIMEOUT_MS) {
+      activeSessions.delete(sessionKey);
+      // Clean from DB
+      if (dbConnected) {
+        db.collection('sessions').deleteOne({ sessionKey }).catch(() => {});
+      }
+      return res.status(401).json({
+        success: false,
+        error: 'Session expired due to inactivity',
+        code: 'SESSION_IDLE_TIMEOUT',
+        idleFor: Math.floor(idleTime / 1000 / 60) + ' minutes'
+      });
+    }
+  }
+
+  // Update activity
+  updateSessionActivity(req);
+  next();
+};
+
+// Apply idle check to authenticated routes
+app.use('/api/rooms', checkIdleTimeout);
+app.use('/api/guests', checkIdleTimeout);
+app.use('/api/food', checkIdleTimeout);
+app.use('/api/inventory', checkIdleTimeout);
+app.use('/api/requests', checkIdleTimeout);
+app.use('/api/bookings', checkIdleTimeout);
+app.use('/api/staff', checkIdleTimeout);
+app.use('/api/settings', checkIdleTimeout);
+app.use('/api/blacklist', checkIdleTimeout);
+app.use('/api/maintenance', checkIdleTimeout);
+app.use('/api/reviews', checkIdleTimeout);
+app.use('/api/logs', checkIdleTimeout);
+app.use('/api/dashboard', checkIdleTimeout);
+
+// ✅ NEW: Periodic cleanup of stale in-memory sessions
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of activeSessions.entries()) {
+    if (now - val.lastActivity > IDLE_TIMEOUT_MS + 60000) {
+      activeSessions.delete(key);
+    }
+  }
+}, 5 * 60 * 1000); // Every 5 minutes
+
+// ==================== SOCKET.IO REAL-TIME ====================
 io.on('connection', (socket) => {
   console.log('🔌 Client connected:', socket.id);
 
-  // ✅ FIX: Support both 'join_hotel' (snake_case) and 'joinHotel' (camelCase)
+  // ✅ Support both snake_case and camelCase event names
   socket.on('join_hotel', (hotelId) => {
     socket.join(`hotel_${hotelId}`);
     console.log(`📡 ${socket.id} joined room: hotel_${hotelId}`);
@@ -287,51 +476,35 @@ io.on('connection', (socket) => {
     socket.emit('connected', { hotelId, message: 'Connected' });
   });
 
-  // ✅ FIX: Generic broadcaster that matches frontend expectations
+  // ✅ NEW: Heartbeat to keep connection alive and detect stale clients
+  socket.on('ping_heartbeat', (data) => {
+    socket.emit('pong_heartbeat', { serverTime: new Date().toISOString(), received: data });
+  });
+
   const broadcastEvent = (eventName, payload) => {
     const hotelId = payload?.hotelId;
     if (!hotelId) return;
-
-    // Add syncToken if not present (for deduplication)
     const data = {
       ...payload,
       syncToken: payload?.syncToken || Date.now(),
       timestamp: new Date().toISOString()
     };
-
     io.to(`hotel_${hotelId}`).emit(eventName, data);
-    console.log(`📡 Broadcast ${eventName} to hotel_${hotelId}`);
   };
 
-  // ✅ FIX: Request events - match frontend expectations (req_new, req_upd)
   socket.on('req_new', (payload) => broadcastEvent('req_new', payload));
   socket.on('req_upd', (payload) => broadcastEvent('req_upd', payload));
-
-  // ✅ FIX: Room events (room_upd)
   socket.on('room_upd', (payload) => broadcastEvent('room_upd', payload));
-
-  // ✅ FIX: Guest events (guest_upd)
   socket.on('guest_upd', (payload) => broadcastEvent('guest_upd', payload));
-
-  // ✅ FIX: Food/Inventory events (food_upd, inventory_upd)
   socket.on('food_upd', (payload) => broadcastEvent('food_upd', payload));
   socket.on('inventory_upd', (payload) => broadcastEvent('inventory_upd', payload));
-
-  // ✅ FIX: Config/Settings events (cfg_upd, currency_upd)
   socket.on('cfg_upd', (payload) => broadcastEvent('cfg_upd', payload));
   socket.on('currency_upd', (payload) => broadcastEvent('currency_upd', payload));
-
-  // ✅ FIX: Booking events (booking_new, booking_upd)
   socket.on('booking_new', (payload) => broadcastEvent('booking_new', payload));
   socket.on('booking_upd', (payload) => broadcastEvent('booking_upd', payload));
-
-  // ✅ FIX: Staff events (staff_upd)
   socket.on('staff_upd', (payload) => broadcastEvent('staff_upd', payload));
-
-  // ✅ FIX: Review events (review_new)
   socket.on('review_new', (payload) => broadcastEvent('review_new', payload));
 
-  // ✅ FIX: Leave hotel room on disconnect
   socket.on('leave_hotel', (hotelId) => {
     socket.leave(`hotel_${hotelId}`);
     console.log(`📡 ${socket.id} left room: hotel_${hotelId}`);
@@ -346,7 +519,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// ✅ FIX: Broadcast helper that includes clientId for deduplication
 const broadcast = (hotelId, event, data, clientId = null) => {
   const payload = {
     data,
@@ -355,16 +527,24 @@ const broadcast = (hotelId, event, data, clientId = null) => {
     syncToken: Date.now()
   };
   io.to(`hotel_${hotelId}`).emit(event, payload);
-  console.log(`📡 Broadcast ${event} to hotel_${hotelId}`);
 };
 
 // ==================== HEALTH CHECK ====================
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    message: 'Inaya Hotel Management System API', 
+  const memUsage = process.memoryUsage();
+  res.json({
+    message: 'Inaya Hotel Management System API',
     status: 'OK',
+    version: '2.0.0',
     mongodb: dbConnected ? 'connected' : 'disconnected',
     socket: io.engine.clientsCount,
+    activeSessions: activeSessions.size,
+    uptime: Math.floor(process.uptime()) + 's',
+    memory: {
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB'
+    },
+    idleTimeoutMs: IDLE_TIMEOUT_MS,
     timestamp: new Date().toISOString()
   });
 });
@@ -377,16 +557,113 @@ app.get('/api/session', (req, res) => {
   }
 });
 
+// ✅ NEW: Token validation + refresh endpoint (frontend calls this on page load)
+app.get('/api/auth/validate', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) {
+    return res.json({ success: false, valid: false, code: 'NO_TOKEN' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const exp = decoded.exp * 1000;
+    const now = Date.now();
+    const idleMs = IDLE_TIMEOUT_MS;
+
+    // Check idle timeout
+    const sessionKey = token.substring(token.length - 32);
+    const session = activeSessions.get(sessionKey);
+    if (session) {
+      const idleTime = now - session.lastActivity;
+      if (idleTime > idleMs) {
+        activeSessions.delete(sessionKey);
+        return res.json({
+          success: false,
+          valid: false,
+          code: 'SESSION_IDLE_TIMEOUT',
+          idleFor: Math.floor(idleTime / 1000 / 60) + ' minutes'
+        });
+      }
+    }
+
+    // Auto-refresh if token expiry is close
+    let newToken = null;
+    if (exp - now < TOKEN_REFRESH_THRESHOLD_MS) {
+      const { iat, exp: _exp, ...rest } = decoded;
+      newToken = generateToken(rest);
+    }
+
+    // Register session activity
+    activeSessions.set(sessionKey, {
+      lastActivity: now,
+      hotelId: decoded.hotelId,
+      email: decoded.email
+    });
+
+    res.json({
+      success: true,
+      valid: true,
+      user: {
+        email: decoded.email,
+        name: decoded.name,
+        role: decoded.role,
+        hotelId: decoded.hotelId,
+        permissions: decoded.permissions
+      },
+      expiresAt: new Date(exp).toISOString(),
+      idleTimeoutMs: idleMs,
+      newToken // Frontend should update stored token if this is present
+    });
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.json({ success: false, valid: false, code: 'TOKEN_EXPIRED' });
+    }
+    return res.json({ success: false, valid: false, code: 'INVALID_TOKEN' });
+  }
+});
+
+// ✅ NEW: Idle timeout config endpoint (frontend reads this on load)
+app.get('/api/auth/config', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      idleTimeoutMs: IDLE_TIMEOUT_MS,
+      idleTimeoutMinutes: Math.floor(IDLE_TIMEOUT_MS / 60000),
+      tokenRefreshThresholdMs: TOKEN_REFRESH_THRESHOLD_MS,
+      sessionMaxAgeMs: parseInt(process.env.SESSION_MAX_AGE) || 7 * 24 * 60 * 60 * 1000
+    }
+  });
+});
+
+// ✅ NEW: Explicit session keep-alive ping (frontend calls this on user activity)
+app.post('/api/auth/ping', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.json({ success: false, error: 'No token' });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const sessionKey = token.substring(token.length - 32);
+    activeSessions.set(sessionKey, {
+      lastActivity: Date.now(),
+      hotelId: decoded.hotelId,
+      email: decoded.email
+    });
+    res.json({ success: true, lastActivity: new Date().toISOString() });
+  } catch {
+    res.json({ success: false, error: 'Invalid token' });
+  }
+});
+
 // ==================== TENANT MANAGEMENT ====================
 app.get('/api/tenant', async (req, res) => {
   try {
     const hotelId = req.hotelId;
 
     if (!dbConnected) {
-      return res.json({ 
-        success: true, 
-        data: { 
-          hotelId, 
+      return res.json({
+        success: true,
+        data: {
+          hotelId,
           hotelName: 'Crown Plaza Hotel',
           currency: 'USD',
           currencySymbol: '$',
@@ -395,17 +672,17 @@ app.get('/api/tenant', async (req, res) => {
           active: true,
           theme: 'HOTEL001',
           subscriptionType: 'basic'
-        } 
+        }
       });
     }
 
     const tenant = await db.collection('tenants').findOne({ hotelId });
 
     if (!tenant) {
-      return res.json({ 
-        success: true, 
-        data: { 
-          hotelId, 
+      return res.json({
+        success: true,
+        data: {
+          hotelId,
           hotelName: 'Crown Plaza Hotel',
           currency: 'USD',
           currencySymbol: '$',
@@ -414,7 +691,7 @@ app.get('/api/tenant', async (req, res) => {
           active: true,
           theme: 'HOTEL001',
           subscriptionType: 'basic'
-        } 
+        }
       });
     }
 
@@ -436,28 +713,27 @@ app.post('/api/tenant', authMiddleware, async (req, res) => {
 
     const result = await db.collection('tenants').updateOne(
       { hotelId },
-      { 
-        $set: { 
-          hotelName, 
-          logo, 
-          currency, 
+      {
+        $set: {
+          hotelName,
+          logo,
+          currency,
           currencySymbol,
-          language, 
-          country, 
-          active, 
-          theme, 
+          language,
+          country,
+          active,
+          theme,
           subscriptionType,
           updatedAt: new Date()
-        } 
+        }
       },
       { upsert: true }
     );
 
-    // ✅ FIX: Use cfg_upd event name that frontend expects
     broadcast(hotelId, 'cfg_upd', { hotelName, currency, currencySymbol, language, theme }, req.clientId);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: result.upsertedCount ? 'Tenant created' : 'Tenant updated',
       data: { hotelId, hotelName }
     });
@@ -470,65 +746,35 @@ app.post('/api/tenant', authMiddleware, async (req, res) => {
 // ✅ Hotel Registration API (Super Admin Only)
 app.post('/api/super/tenants/register', superAdminMiddleware, async (req, res) => {
   try {
-    const { 
-      hotelId, 
-      hotelName, 
-      adminEmail, 
-      adminPassword, 
-      currency, 
-      currencySymbol,
-      language, 
-      country, 
-      subscriptionType,
-      theme,
-      logo,
-      timezone
+    const {
+      hotelId, hotelName, adminEmail, adminPassword,
+      currency, currencySymbol, language, country,
+      subscriptionType, theme, logo, timezone
     } = req.body;
 
     if (!hotelId || !hotelName || !adminEmail || !adminPassword) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'hotelId, hotelName, adminEmail, and adminPassword are required' 
-      });
+      return res.status(400).json({ success: false, error: 'hotelId, hotelName, adminEmail, and adminPassword are required' });
     }
-
-    if (!dbConnected) {
-      return res.status(503).json({ success: false, error: 'Database not connected' });
-    }
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
 
     const existing = await db.collection('tenants').findOne({ hotelId });
-    if (existing) {
-      return res.status(400).json({ success: false, error: 'Hotel ID already registered' });
-    }
+    if (existing) return res.status(400).json({ success: false, error: 'Hotel ID already registered' });
 
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
     let subscriptionExpiry;
-    if (subscriptionType === 'lifetime') {
-      subscriptionExpiry = null;
-    } else if (subscriptionType === 'enterprise') {
-      subscriptionExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-    } else if (subscriptionType === 'pro') {
-      subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    } else {
-      subscriptionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    }
+    if (subscriptionType === 'lifetime') subscriptionExpiry = null;
+    else if (subscriptionType === 'enterprise') subscriptionExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    else if (subscriptionType === 'pro') subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    else subscriptionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     const tenant = {
-      hotelId,
-      hotelName,
-      logo: logo || null,
-      currency: currency || 'USD',
-      currencySymbol: currencySymbol || '$',
-      language: language || 'en',
-      country: country || 'Unknown',
-      timezone: timezone || 'UTC',
-      active: true,
-      theme: theme || 'HOTEL001',
-      subscriptionType: subscriptionType || 'basic',
-      subscriptionExpiry,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      hotelId, hotelName, logo: logo || null,
+      currency: currency || 'USD', currencySymbol: currencySymbol || '$',
+      language: language || 'en', country: country || 'Unknown',
+      timezone: timezone || 'UTC', active: true,
+      theme: theme || 'HOTEL001', subscriptionType: subscriptionType || 'basic',
+      subscriptionExpiry, createdAt: new Date(), updatedAt: new Date()
     };
 
     await db.collection('tenants').insertOne(tenant);
@@ -547,8 +793,7 @@ app.post('/api/super/tenants/register', superAdminMiddleware, async (req, res) =
     await db.collection('users').insertOne(adminUser);
 
     await db.collection('settings').insertOne({
-      hotelId,
-      hotelName,
+      hotelId, hotelName,
       currencySymbol: currencySymbol || '$',
       priceFormat: 'symbol-first',
       taxRate: 0,
@@ -560,18 +805,10 @@ app.post('/api/super/tenants/register', superAdminMiddleware, async (req, res) =
       updatedAt: new Date()
     });
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: 'Hotel registered successfully',
-      data: { 
-        hotelId, 
-        hotelName, 
-        adminEmail,
-        currency,
-        country,
-        subscriptionType,
-        expiryDate: subscriptionExpiry
-      } 
+      data: { hotelId, hotelName, adminEmail, currency, country, subscriptionType, expiryDate: subscriptionExpiry }
     });
   } catch (error) {
     console.error('Hotel registration error:', error);
@@ -579,16 +816,12 @@ app.post('/api/super/tenants/register', superAdminMiddleware, async (req, res) =
   }
 });
 
-// ✅ Super Admin - List All Hotels
 app.get('/api/super/tenants', superAdminMiddleware, async (req, res) => {
   try {
-    if (!dbConnected) {
-      return res.json({ success: true, data: [], count: 0 });
-    }
+    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
 
     const { active, subscriptionType, country } = req.query;
     let filter = {};
-
     if (active !== undefined) filter.active = active === 'true';
     if (subscriptionType) filter.subscriptionType = subscriptionType;
     if (country) filter.country = country;
@@ -602,15 +835,7 @@ app.get('/api/super/tenants', superAdminMiddleware, async (req, res) => {
         db.collection('requests').countDocuments({ hotelId: t.hotelId, status: 'open' }),
         db.collection('bookings').countDocuments({ hotelId: t.hotelId })
       ]);
-      return { 
-        ...t, 
-        stats: { 
-          rooms, 
-          guests, 
-          openRequests: requests,
-          totalBookings: bookings
-        } 
-      };
+      return { ...t, stats: { rooms, guests, openRequests: requests, totalBookings: bookings } };
     }));
 
     res.json({ success: true, data: tenantsWithStats, count: tenantsWithStats.length });
@@ -624,22 +849,16 @@ app.put('/api/super/tenants/:hotelId', superAdminMiddleware, async (req, res) =>
   try {
     const { hotelId } = req.params;
     const updates = req.body;
-
-    if (!dbConnected) {
-      return res.json({ success: true, message: 'Hotel updated (offline mode)' });
-    }
+    if (!dbConnected) return res.json({ success: true, message: 'Hotel updated (offline mode)' });
 
     const result = await db.collection('tenants').updateOne(
       { hotelId },
       { $set: { ...updates, updatedAt: new Date() } }
     );
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Hotel not found' });
-    }
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Hotel not found' });
 
     if (updates.hotelName || updates.currency || updates.language || updates.theme) {
-      // ✅ FIX: Use cfg_upd event name
       broadcast(hotelId, 'cfg_upd', {
         hotelName: updates.hotelName,
         currency: updates.currency,
@@ -659,10 +878,7 @@ app.put('/api/super/tenants/:hotelId', superAdminMiddleware, async (req, res) =>
 app.delete('/api/super/tenants/:hotelId', superAdminMiddleware, async (req, res) => {
   try {
     const { hotelId } = req.params;
-
-    if (!dbConnected) {
-      return res.json({ success: true, message: 'Hotel deleted (offline mode)' });
-    }
+    if (!dbConnected) return res.json({ success: true, message: 'Hotel deleted (offline mode)' });
 
     await Promise.all([
       db.collection('rooms').deleteMany({ hotelId }),
@@ -673,12 +889,12 @@ app.delete('/api/super/tenants/:hotelId', superAdminMiddleware, async (req, res)
       db.collection('bookings').deleteMany({ hotelId }),
       db.collection('staff').deleteMany({ hotelId }),
       db.collection('logs').deleteMany({ hotelId }),
+      db.collection('sessions').deleteMany({ hotelId }),
       db.collection('settings').deleteOne({ hotelId }),
       db.collection('users').deleteMany({ hotelId })
     ]);
 
     await db.collection('tenants').deleteOne({ hotelId });
-
     io.to(`hotel_${hotelId}`).emit('hotel_deleted', { message: 'This hotel has been deactivated' });
 
     res.json({ success: true, message: 'Hotel and all data deleted' });
@@ -690,15 +906,11 @@ app.delete('/api/super/tenants/:hotelId', superAdminMiddleware, async (req, res)
 
 app.get('/api/super/countries', superAdminMiddleware, async (req, res) => {
   try {
-    if (!dbConnected) {
-      return res.json({ success: true, data: [] });
-    }
-
+    if (!dbConnected) return res.json({ success: true, data: [] });
     const countries = await db.collection('tenants').aggregate([
       { $group: { _id: '$country', count: { $sum: 1 }, activeCount: { $sum: { $cond: ['$active', 1, 0] } } } },
       { $sort: { count: -1 } }
     ]).toArray();
-
     res.json({ success: true, data: countries });
   } catch (error) {
     console.error('Countries fetch error:', error);
@@ -706,119 +918,64 @@ app.get('/api/super/countries', superAdminMiddleware, async (req, res) => {
   }
 });
 
-// ==================== ✅ NEW: SUPER ADMIN STATS API ====================
 app.get('/api/super/stats', superAdminMiddleware, async (req, res) => {
   try {
     if (!dbConnected) {
-      // Return default/empty stats if DB not connected
-      return res.json({
-        success: true,
-        data: {
-          totalHotels: 0,
-          totalRevenue: 0,
-          activeSubscriptions: 0,
-          totalGuests: 0,
-          hotelsGrowth: 0,
-          revenueGrowth: 0,
-          churnRate: 0,
-          guestsGrowth: 0
-        }
-      });
+      return res.json({ success: true, data: { totalHotels: 0, totalRevenue: 0, activeSubscriptions: 0, totalGuests: 0, hotelsGrowth: 0, revenueGrowth: 0, churnRate: 0, guestsGrowth: 0 } });
     }
 
-    // Get all tenants
     const tenants = await db.collection('tenants').find({}).toArray();
     const totalHotels = tenants.length;
     const activeTenants = tenants.filter(t => t.active !== false);
     const activeSubscriptions = activeTenants.length;
 
-    // Calculate revenue based on subscription type (pro=99/year, enterprise=499/year)
     let totalRevenue = 0;
     tenants.forEach(t => {
       const plan = (t.subscriptionType || '').toLowerCase();
       if (plan === 'enterprise') totalRevenue += 499;
       else if (plan === 'pro') totalRevenue += 99;
-      // basic/free = 0
     });
 
-    // Count total guests across all hotels
     const guestsAgg = await db.collection('guests').aggregate([
       { $group: { _id: null, total: { $sum: 1 } } }
     ]).toArray();
     const totalGuests = guestsAgg[0]?.total || 0;
 
-    // Calculate growth metrics (compare with last month)
     const now = new Date();
     const lastMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
     const lastMonthTenants = tenants.filter(t => t.createdAt && new Date(t.createdAt) < lastMonth);
-    const hotelsGrowth = lastMonthTenants.length > 0 
+    const hotelsGrowth = lastMonthTenants.length > 0
       ? Math.round(((totalHotels - lastMonthTenants.length) / lastMonthTenants.length) * 100)
       : (totalHotels > 0 ? 100 : 0);
 
-    // For churn rate: inactive tenants / total tenants
     const inactiveTenants = tenants.filter(t => t.active === false);
-    const churnRate = totalHotels > 0 
-      ? Math.round((inactiveTenants.length / totalHotels) * 100)
-      : 0;
+    const churnRate = totalHotels > 0 ? Math.round((inactiveTenants.length / totalHotels) * 100) : 0;
 
-    // Revenue growth (simplified - assume 8% default if no historical data)
-    const revenueGrowth = 8;
-
-    // Guest growth (simplified)
-    const guestsGrowth = 12;
-
-    res.json({
-      success: true,
-      data: {
-        totalHotels,
-        totalRevenue,
-        activeSubscriptions,
-        totalGuests,
-        hotelsGrowth,
-        revenueGrowth,
-        churnRate,
-        guestsGrowth
-      }
-    });
+    res.json({ success: true, data: { totalHotels, totalRevenue, activeSubscriptions, totalGuests, hotelsGrowth, revenueGrowth: 8, churnRate, guestsGrowth: 12 } });
   } catch (error) {
     console.error('Super stats error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ==================== ✅ NEW: SUPER ADMIN TRANSACTIONS API ====================
 app.get('/api/super/transactions', superAdminMiddleware, async (req, res) => {
   try {
-    if (!dbConnected) {
-      return res.json({ success: true, data: [] });
-    }
+    if (!dbConnected) return res.json({ success: true, data: [] });
 
-    // Get all tenants to build transactions from subscription data
     const tenants = await db.collection('tenants').find({}).toArray();
-
-    // Build transactions array from tenant subscription data
     const transactions = tenants
       .filter(t => t.subscriptionType && t.createdAt)
       .map(t => {
         const plan = (t.subscriptionType || '').toLowerCase();
-        let amount = 0;
-        let type = 'subscription';
-
+        let amount = 0, type = 'subscription';
         if (plan === 'enterprise') amount = 499;
         else if (plan === 'pro') amount = 99;
-        else if (plan === 'basic' || plan === 'free') {
-          amount = 0;
-          type = 'trial';
-        }
+        else { amount = 0; type = 'trial'; }
 
         return {
           _id: t._id?.toString() || `tx_${t.hotelId}`,
-          hotelId: t.hotelId,
-          hotelName: t.hotelName || t.hotelId,
-          type: type,
-          amount: amount,
-          currency: t.currency || 'USD',
+          hotelId: t.hotelId, hotelName: t.hotelName || t.hotelId,
+          type, amount, currency: t.currency || 'USD',
           date: t.createdAt ? new Date(t.createdAt).toISOString() : new Date().toISOString(),
           status: t.active !== false ? 'completed' : 'cancelled',
           subscriptionType: t.subscriptionType,
@@ -838,37 +995,24 @@ app.get('/api/super/transactions', superAdminMiddleware, async (req, res) => {
 app.post('/api/super/admins/register', superAdminMiddleware, async (req, res) => {
   try {
     const { email, password, name, hotelId, role, permissions } = req.body;
-
-    if (!email || !password || !hotelId) {
-      return res.status(400).json({ success: false, error: 'email, password, and hotelId are required' });
-    }
-
-    if (!dbConnected) {
-      return res.status(503).json({ success: false, error: 'Database not connected' });
-    }
+    if (!email || !password || !hotelId) return res.status(400).json({ success: false, error: 'email, password, and hotelId are required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
 
     const existing = await db.collection('users').findOne({ email, hotelId });
-    if (existing) {
-      return res.status(400).json({ success: false, error: 'User already exists for this hotel' });
-    }
+    if (existing) return res.status(400).json({ success: false, error: 'User already exists for this hotel' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const user = {
-      email,
-      password: hashedPassword,
+      email, password: hashedPassword,
       name: name || email.split('@')[0],
-      role: role || 'admin',
-      hotelId,
+      role: role || 'admin', hotelId,
       permissions: permissions || ['rooms', 'guests', 'food', 'inventory', 'requests'],
-      active: true,
-      createdAt: new Date()
+      active: true, createdAt: new Date()
     };
 
     const result = await db.collection('users').insertOne(user);
     user._id = result.insertedId;
     delete user.password;
-
     res.status(201).json({ success: true, message: 'Admin created', data: user });
   } catch (error) {
     console.error('Admin register error:', error);
@@ -876,28 +1020,32 @@ app.post('/api/super/admins/register', superAdminMiddleware, async (req, res) =>
   }
 });
 
-app.post('/api/admin/login', async (req, res) => {
+// ✅ Apply rate limiting to login route
+app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async (req, res) => {
   try {
     const { email, password, hotelId } = req.body;
     console.log('🔐 Admin login attempt:', email, 'for hotel:', hotelId);
 
     if (!dbConnected) {
       if (email === 'admin@crownplaza.com' && password === 'admin123') {
-        const token = generateToken({
-          email,
-          name: 'Admin',
-          role: 'super_admin',
+        const tokenPayload = {
+          email, name: 'Admin', role: 'super_admin',
           hotelId: hotelId || 'HOTEL001',
           permissions: ['rooms', 'guests', 'food', 'inventory', 'requests', 'settings']
-        });
+        };
+        const token = generateToken(tokenPayload);
+        // Register session
+        const sessionKey = token.substring(token.length - 32);
+        activeSessions.set(sessionKey, { lastActivity: Date.now(), hotelId: hotelId || 'HOTEL001', email });
+
         req.session.isAdmin = true;
         req.session.adminEmail = email;
         req.session.hotelId = hotelId || 'HOTEL001';
         return res.json({
-          success: true,
-          token,
+          success: true, token,
           user: { email, name: 'Admin', role: 'super_admin', permissions: ['all'] },
-          hotelId: hotelId || 'HOTEL001'
+          hotelId: hotelId || 'HOTEL001',
+          idleTimeoutMs: IDLE_TIMEOUT_MS
         });
       }
       return res.status(503).json({ success: false, error: 'Database connecting...' });
@@ -907,45 +1055,46 @@ app.post('/api/admin/login', async (req, res) => {
       const tenant = await db.collection('tenants').findOne({ hotelId });
       if (!tenant) {
         await db.collection('tenants').insertOne({
-          hotelId,
-          hotelName: 'New Hotel',
-          currency: 'USD',
-          currencySymbol: '$',
-          language: 'en',
-          country: 'Unknown',
-          active: true,
-          theme: 'HOTEL001',
-          subscriptionType: 'basic',
-          createdAt: new Date()
+          hotelId, hotelName: 'New Hotel', currency: 'USD',
+          currencySymbol: '$', language: 'en', country: 'Unknown',
+          active: true, theme: 'HOTEL001', subscriptionType: 'basic', createdAt: new Date()
         });
       }
     }
 
-    const user = await db.collection('users').findOne({ 
-      email: email,
+    const user = await db.collection('users').findOne({
+      email,
       $or: [{ hotelId }, { hotelId: { $exists: false } }]
     });
 
-    if (!user) {
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
-    }
+    if (!user) return res.status(401).json({ success: false, error: 'Invalid credentials' });
 
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
-    }
+    if (!validPassword) return res.status(401).json({ success: false, error: 'Invalid credentials' });
+    if (!user.active) return res.status(403).json({ success: false, error: 'Account is inactive' });
 
-    if (!user.active) {
-      return res.status(403).json({ success: false, error: 'Account is inactive' });
-    }
-
-    const token = generateToken({
-      email: user.email,
-      name: user.name,
-      role: user.role,
+    const tokenPayload = {
+      email: user.email, name: user.name, role: user.role,
       hotelId: hotelId || user.hotelId || 'HOTEL001',
       permissions: user.permissions
+    };
+    const token = generateToken(tokenPayload);
+
+    // ✅ Register session on login
+    const sessionKey = token.substring(token.length - 32);
+    activeSessions.set(sessionKey, {
+      lastActivity: Date.now(),
+      hotelId: hotelId || user.hotelId || 'HOTEL001',
+      email: user.email
     });
+
+    if (dbConnected) {
+      db.collection('sessions').updateOne(
+        { sessionKey },
+        { $set: { lastActivity: new Date(), hotelId: hotelId || user.hotelId || 'HOTEL001', email: user.email } },
+        { upsert: true }
+      ).catch(() => {});
+    }
 
     req.session.isAdmin = true;
     req.session.adminEmail = email;
@@ -955,15 +1104,10 @@ app.post('/api/admin/login', async (req, res) => {
     console.log('✅ Admin login successful:', email);
 
     res.json({
-      success: true,
-      token,
-      user: { 
-        email: user.email, 
-        name: user.name, 
-        role: user.role,
-        permissions: user.permissions
-      },
-      hotelId: hotelId || user.hotelId || 'HOTEL001'
+      success: true, token,
+      user: { email: user.email, name: user.name, role: user.role, permissions: user.permissions },
+      hotelId: hotelId || user.hotelId || 'HOTEL001',
+      idleTimeoutMs: IDLE_TIMEOUT_MS  // ✅ Tell frontend what the idle timeout is
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -976,22 +1120,42 @@ app.get('/api/admin/check-session', (req, res) => {
   if (token) {
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
-      return res.json({ 
-        success: true, 
-        isAdmin: true, 
+
+      // Check idle timeout
+      const sessionKey = token.substring(token.length - 32);
+      const session = activeSessions.get(sessionKey);
+      if (session) {
+        const idleTime = Date.now() - session.lastActivity;
+        if (idleTime > IDLE_TIMEOUT_MS) {
+          activeSessions.delete(sessionKey);
+          return res.json({ success: false, isAdmin: false, code: 'SESSION_IDLE_TIMEOUT' });
+        }
+        // Update activity
+        session.lastActivity = Date.now();
+      }
+
+      return res.json({
+        success: true, isAdmin: true,
         email: decoded.email,
         hotelId: decoded.hotelId,
-        role: decoded.role
+        role: decoded.role,
+        name: decoded.name,
+        permissions: decoded.permissions,
+        idleTimeoutMs: IDLE_TIMEOUT_MS
       });
-    } catch (e) {}
+    } catch (e) {
+      if (e.name === 'TokenExpiredError') {
+        return res.json({ success: false, isAdmin: false, code: 'TOKEN_EXPIRED' });
+      }
+    }
   }
 
   if (req.session.isAdmin) {
-    res.json({ 
-      success: true, 
-      isAdmin: true, 
+    res.json({
+      success: true, isAdmin: true,
       email: req.session.adminEmail,
-      hotelId: req.session.hotelId || 'HOTEL001'
+      hotelId: req.session.hotelId || 'HOTEL001',
+      idleTimeoutMs: IDLE_TIMEOUT_MS
     });
   } else {
     res.json({ success: false, isAdmin: false });
@@ -999,11 +1163,20 @@ app.get('/api/admin/check-session', (req, res) => {
 });
 
 app.post('/api/admin/logout', (req, res) => {
+  // ✅ Clean up session from memory
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (token) {
+    const sessionKey = token.substring(token.length - 32);
+    activeSessions.delete(sessionKey);
+    if (dbConnected) {
+      db.collection('sessions').deleteOne({ sessionKey }).catch(() => {});
+    }
+  }
   req.session.destroy();
-  res.json({ success: true, message: 'Logged out' });
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
-// ==================== ROOMS CRUD (FIXED BROADCAST EVENTS) ====================
+// ==================== ROOMS CRUD ====================
 app.get('/api/rooms', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1039,42 +1212,26 @@ app.post('/api/rooms', authMiddleware, async (req, res) => {
 
     if (!dbConnected) {
       const room = {
-        _id: 'r_'+Date.now(),
-        hotelId,
-        number: parseInt(number),
-        type,
-        price: parseFloat(price),
-        status: status || 'Vacant',
-        guestName: guestName || null,
-        amenities: amenities || [],
-        createdAt: new Date(),
-        updatedAt: new Date()
+        _id: 'r_'+Date.now(), hotelId, number: parseInt(number), type,
+        price: parseFloat(price), status: status || 'Vacant',
+        guestName: guestName || null, amenities: amenities || [],
+        createdAt: new Date(), updatedAt: new Date()
       };
-      // ✅ FIX: Use room_upd event name that frontend expects
       broadcast(hotelId, 'room_upd', room, req.clientId);
       return res.status(201).json({ success: true, message: 'Room added (offline)', data: room });
     }
 
     const existing = await db.collection('rooms').findOne({ hotelId, number: parseInt(number) });
-    if (existing) {
-      return res.status(400).json({ success: false, error: 'Room number already exists' });
-    }
+    if (existing) return res.status(400).json({ success: false, error: 'Room number already exists' });
 
     const room = {
-      hotelId,
-      number: parseInt(number),
-      type,
-      price: parseFloat(price),
-      status: status || 'Vacant',
-      guestName: guestName || null,
-      amenities: amenities || [],
-      createdAt: new Date(),
-      updatedAt: new Date()
+      hotelId, number: parseInt(number), type, price: parseFloat(price),
+      status: status || 'Vacant', guestName: guestName || null,
+      amenities: amenities || [], createdAt: new Date(), updatedAt: new Date()
     };
 
     const result = await db.collection('rooms').insertOne(room);
     room._id = result.insertedId;
-    // ✅ FIX: Use room_upd event name
     broadcast(hotelId, 'room_upd', room, req.clientId);
     res.status(201).json({ success: true, message: 'Room added', data: room });
   } catch (error) {
@@ -1091,17 +1248,11 @@ app.put('/api/rooms/:id', authMiddleware, async (req, res) => {
 
     if (!dbConnected) {
       const updatedRoom = {
-        _id: id,
-        hotelId,
-        number: number ? parseInt(number) : undefined,
-        type,
+        _id: id, hotelId,
+        number: number ? parseInt(number) : undefined, type,
         price: price ? parseFloat(price) : undefined,
-        status,
-        guestName,
-        amenities,
-        updatedAt: new Date()
+        status, guestName, amenities, updatedAt: new Date()
       };
-      // ✅ FIX: Use room_upd event name
       broadcast(hotelId, 'room_upd', updatedRoom, req.clientId);
       return res.json({ success: true, message: 'Room updated (offline)', data: updatedRoom });
     }
@@ -1121,12 +1272,9 @@ app.put('/api/rooms/:id', authMiddleware, async (req, res) => {
       { $set: updateData }
     );
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Room not found' });
-    }
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Room not found' });
 
     const updatedRoom = await db.collection('rooms').findOne({ _id: new ObjectId(id) });
-    // ✅ FIX: Use room_upd event name
     broadcast(hotelId, 'room_upd', updatedRoom, req.clientId);
     res.json({ success: true, message: 'Room updated', data: updatedRoom });
   } catch (error) {
@@ -1141,17 +1289,13 @@ app.delete('/api/rooms/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
 
     if (!dbConnected) {
-      // ✅ FIX: Use room_upd event name with deleted marker
       broadcast(hotelId, 'room_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Room deleted (offline)' });
     }
 
     const result = await db.collection('rooms').deleteOne({ _id: new ObjectId(id), hotelId });
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Room not found' });
-    }
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Room not found' });
 
-    // ✅ FIX: Use room_upd event name with deleted marker
     broadcast(hotelId, 'room_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Room deleted' });
   } catch (error) {
@@ -1160,7 +1304,7 @@ app.delete('/api/rooms/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== GUESTS CRUD (FIXED BROADCAST EVENTS) ====================
+// ==================== GUESTS CRUD ====================
 app.get('/api/guests', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1178,47 +1322,31 @@ app.post('/api/guests', authMiddleware, async (req, res) => {
     const hotelId = req.hotelId;
     const { name, email, phone, room, checkIn, checkOut, points, status } = req.body;
 
-    if (!name || !room) {
-      return res.status(400).json({ success: false, error: 'name and room are required' });
-    }
+    if (!name || !room) return res.status(400).json({ success: false, error: 'name and room are required' });
 
     if (!dbConnected) {
       const guest = {
-        _id: 'g_'+Date.now(),
-        hotelId,
-        name,
-        email: email || null,
-        phone: phone || null,
-        room: parseInt(room),
-        checkIn: checkIn ? new Date(checkIn) : new Date(),
+        _id: 'g_'+Date.now(), hotelId, name,
+        email: email || null, phone: phone || null,
+        room: parseInt(room), checkIn: checkIn ? new Date(checkIn) : new Date(),
         checkOut: checkOut ? new Date(checkOut) : null,
-        points: points || 0,
-        status: status || 'active',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        points: points || 0, status: status || 'active',
+        createdAt: new Date(), updatedAt: new Date()
       };
-      // ✅ FIX: Use guest_upd event name
       broadcast(hotelId, 'guest_upd', guest, req.clientId);
       return res.status(201).json({ success: true, message: 'Guest added (offline)', data: guest });
     }
 
     const guest = {
-      hotelId,
-      name,
-      email: email || null,
-      phone: phone || null,
-      room: parseInt(room),
-      checkIn: checkIn ? new Date(checkIn) : new Date(),
+      hotelId, name, email: email || null, phone: phone || null,
+      room: parseInt(room), checkIn: checkIn ? new Date(checkIn) : new Date(),
       checkOut: checkOut ? new Date(checkOut) : null,
-      points: points || 0,
-      status: status || 'active',
-      createdAt: new Date(),
-      updatedAt: new Date()
+      points: points || 0, status: status || 'active',
+      createdAt: new Date(), updatedAt: new Date()
     };
 
     const result = await db.collection('guests').insertOne(guest);
     guest._id = result.insertedId;
-    // ✅ FIX: Use guest_upd event name
     broadcast(hotelId, 'guest_upd', guest, req.clientId);
     res.status(201).json({ success: true, message: 'Guest added', data: guest });
   } catch (error) {
@@ -1235,19 +1363,13 @@ app.put('/api/guests/:id', authMiddleware, async (req, res) => {
 
     if (!dbConnected) {
       const updatedGuest = {
-        _id: id,
-        hotelId,
-        name,
-        email,
-        phone,
+        _id: id, hotelId, name, email, phone,
         room: room ? parseInt(room) : undefined,
         checkIn: checkIn ? new Date(checkIn) : undefined,
         checkOut: checkOut !== undefined ? (checkOut ? new Date(checkOut) : null) : undefined,
         points: points !== undefined ? parseInt(points) : undefined,
-        status,
-        updatedAt: new Date()
+        status, updatedAt: new Date()
       };
-      // ✅ FIX: Use guest_upd event name
       broadcast(hotelId, 'guest_upd', updatedGuest, req.clientId);
       return res.json({ success: true, message: 'Guest updated (offline)', data: updatedGuest });
     }
@@ -1269,12 +1391,9 @@ app.put('/api/guests/:id', authMiddleware, async (req, res) => {
       { $set: updateData }
     );
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Guest not found' });
-    }
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Guest not found' });
 
     const updatedGuest = await db.collection('guests').findOne({ _id: new ObjectId(id) });
-    // ✅ FIX: Use guest_upd event name
     broadcast(hotelId, 'guest_upd', updatedGuest, req.clientId);
     res.json({ success: true, message: 'Guest updated', data: updatedGuest });
   } catch (error) {
@@ -1289,17 +1408,13 @@ app.delete('/api/guests/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
 
     if (!dbConnected) {
-      // ✅ FIX: Use guest_upd event name with deleted marker
       broadcast(hotelId, 'guest_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Guest deleted (offline)' });
     }
 
     const result = await db.collection('guests').deleteOne({ _id: new ObjectId(id), hotelId });
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Guest not found' });
-    }
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Guest not found' });
 
-    // ✅ FIX: Use guest_upd event name with deleted marker
     broadcast(hotelId, 'guest_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Guest deleted' });
   } catch (error) {
@@ -1308,7 +1423,7 @@ app.delete('/api/guests/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== FOOD MENU CRUD (FIXED BROADCAST EVENTS) ====================
+// ==================== FOOD MENU CRUD ====================
 app.get('/api/food', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1326,43 +1441,28 @@ app.post('/api/food', authMiddleware, async (req, res) => {
     const hotelId = req.hotelId;
     const { name, price, category, description, available, image } = req.body;
 
-    if (!name || !price) {
-      return res.status(400).json({ success: false, error: 'name and price are required' });
-    }
+    if (!name || !price) return res.status(400).json({ success: false, error: 'name and price are required' });
 
     if (!dbConnected) {
       const item = {
-        _id: 'f_'+Date.now(),
-        hotelId,
-        name,
-        price: parseFloat(price),
-        category: category || 'Main Course',
-        description: description || '',
-        available: available !== false,
-        image: image || null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        _id: 'f_'+Date.now(), hotelId, name, price: parseFloat(price),
+        category: category || 'Main Course', description: description || '',
+        available: available !== false, image: image || null,
+        createdAt: new Date(), updatedAt: new Date()
       };
-      // ✅ FIX: Use food_upd event name
       broadcast(hotelId, 'food_upd', item, req.clientId);
       return res.status(201).json({ success: true, message: 'Food item added (offline)', data: item });
     }
 
     const item = {
-      hotelId,
-      name,
-      price: parseFloat(price),
-      category: category || 'Main Course',
-      description: description || '',
-      available: available !== false,
-      image: image || null,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      hotelId, name, price: parseFloat(price),
+      category: category || 'Main Course', description: description || '',
+      available: available !== false, image: image || null,
+      createdAt: new Date(), updatedAt: new Date()
     };
 
     const result = await db.collection('food').insertOne(item);
     item._id = result.insertedId;
-    // ✅ FIX: Use food_upd event name
     broadcast(hotelId, 'food_upd', item, req.clientId);
     res.status(201).json({ success: true, message: 'Food item added', data: item });
   } catch (error) {
@@ -1379,17 +1479,10 @@ app.put('/api/food/:id', authMiddleware, async (req, res) => {
 
     if (!dbConnected) {
       const updatedItem = {
-        _id: id,
-        hotelId,
-        name,
+        _id: id, hotelId, name,
         price: price ? parseFloat(price) : undefined,
-        category,
-        description,
-        available,
-        image,
-        updatedAt: new Date()
+        category, description, available, image, updatedAt: new Date()
       };
-      // ✅ FIX: Use food_upd event name
       broadcast(hotelId, 'food_upd', updatedItem, req.clientId);
       return res.json({ success: true, message: 'Food item updated (offline)', data: updatedItem });
     }
@@ -1409,12 +1502,9 @@ app.put('/api/food/:id', authMiddleware, async (req, res) => {
       { $set: updateData }
     );
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Food item not found' });
-    }
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Food item not found' });
 
     const updatedItem = await db.collection('food').findOne({ _id: new ObjectId(id) });
-    // ✅ FIX: Use food_upd event name
     broadcast(hotelId, 'food_upd', updatedItem, req.clientId);
     res.json({ success: true, message: 'Food item updated', data: updatedItem });
   } catch (error) {
@@ -1429,17 +1519,13 @@ app.delete('/api/food/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
 
     if (!dbConnected) {
-      // ✅ FIX: Use food_upd event name with deleted marker
       broadcast(hotelId, 'food_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Food item deleted (offline)' });
     }
 
     const result = await db.collection('food').deleteOne({ _id: new ObjectId(id), hotelId });
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Food item not found' });
-    }
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Food item not found' });
 
-    // ✅ FIX: Use food_upd event name with deleted marker
     broadcast(hotelId, 'food_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Food item deleted' });
   } catch (error) {
@@ -1448,7 +1534,7 @@ app.delete('/api/food/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== INVENTORY CRUD (FIXED BROADCAST EVENTS) ====================
+// ==================== INVENTORY CRUD ====================
 app.get('/api/inventory', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1470,41 +1556,29 @@ app.post('/api/inventory', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, error: 'name, category, and quantity are required' });
     }
 
+    const autoStatus = parseInt(quantity) <= 0 ? 'out-of-stock'
+      : parseInt(quantity) <= (parseInt(minStock) || 10) ? 'low-stock' : 'in-stock';
+
     if (!dbConnected) {
       const item = {
-        _id: 'i_'+Date.now(),
-        hotelId,
-        name,
-        category,
-        quantity: parseInt(quantity),
-        minStock: parseInt(minStock) || 10,
-        price: price ? parseFloat(price) : 0,
-        unit: unit || 'pcs',
-        status: status || (parseInt(quantity) <= (parseInt(minStock) || 10) ? 'low-stock' : 'in-stock'),
-        createdAt: new Date(),
-        updatedAt: new Date()
+        _id: 'i_'+Date.now(), hotelId, name, category,
+        quantity: parseInt(quantity), minStock: parseInt(minStock) || 10,
+        price: price ? parseFloat(price) : 0, unit: unit || 'pcs',
+        status: status || autoStatus, createdAt: new Date(), updatedAt: new Date()
       };
-      // ✅ FIX: Use inventory_upd event name
       broadcast(hotelId, 'inventory_upd', item, req.clientId);
       return res.status(201).json({ success: true, message: 'Inventory item added (offline)', data: item });
     }
 
     const item = {
-      hotelId,
-      name,
-      category,
-      quantity: parseInt(quantity),
-      minStock: parseInt(minStock) || 10,
-      price: price ? parseFloat(price) : 0,
-      unit: unit || 'pcs',
-      status: status || (parseInt(quantity) <= (parseInt(minStock) || 10) ? 'low-stock' : 'in-stock'),
-      createdAt: new Date(),
-      updatedAt: new Date()
+      hotelId, name, category, quantity: parseInt(quantity),
+      minStock: parseInt(minStock) || 10, price: price ? parseFloat(price) : 0,
+      unit: unit || 'pcs', status: status || autoStatus,
+      createdAt: new Date(), updatedAt: new Date()
     };
 
     const result = await db.collection('inventory').insertOne(item);
     item._id = result.insertedId;
-    // ✅ FIX: Use inventory_upd event name
     broadcast(hotelId, 'inventory_upd', item, req.clientId);
     res.status(201).json({ success: true, message: 'Inventory item added', data: item });
   } catch (error) {
@@ -1519,26 +1593,21 @@ app.put('/api/inventory/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
     const { name, category, quantity, minStock, price, unit, status } = req.body;
 
+    const autoStatus = () => {
+      if (quantity === undefined) return undefined;
+      const qty = parseInt(quantity);
+      const min = parseInt(minStock) || 10;
+      return qty <= 0 ? 'out-of-stock' : qty <= min ? 'low-stock' : 'in-stock';
+    };
+
     if (!dbConnected) {
-      const updateData = {
-        updatedAt: new Date(),
-        name,
-        category,
+      const updatedItem = {
+        _id: id, hotelId, name, category,
         quantity: quantity !== undefined ? parseInt(quantity) : undefined,
         minStock: minStock !== undefined ? parseInt(minStock) : undefined,
         price: price !== undefined ? parseFloat(price) : undefined,
-        unit,
-        status
+        unit, status: status || autoStatus(), updatedAt: new Date()
       };
-      if (quantity !== undefined && minStock !== undefined) {
-        const qty = parseInt(quantity);
-        const min = parseInt(minStock);
-        if (qty <= 0) updateData.status = 'out-of-stock';
-        else if (qty <= min) updateData.status = 'low-stock';
-        else updateData.status = 'in-stock';
-      }
-      const updatedItem = { _id: id, hotelId, ...updateData };
-      // ✅ FIX: Use inventory_upd event name
       broadcast(hotelId, 'inventory_upd', updatedItem, req.clientId);
       return res.json({ success: true, message: 'Inventory item updated (offline)', data: updatedItem });
     }
@@ -1554,25 +1623,17 @@ app.put('/api/inventory/:id', authMiddleware, async (req, res) => {
       ...(status && { status })
     };
 
-    if (quantity !== undefined && minStock !== undefined) {
-      const qty = parseInt(quantity);
-      const min = parseInt(minStock);
-      if (qty <= 0) updateData.status = 'out-of-stock';
-      else if (qty <= min) updateData.status = 'low-stock';
-      else updateData.status = 'in-stock';
-    }
+    const computed = autoStatus();
+    if (computed) updateData.status = computed;
 
     const result = await db.collection('inventory').updateOne(
       { _id: new ObjectId(id), hotelId },
       { $set: updateData }
     );
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Inventory item not found' });
-    }
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Inventory item not found' });
 
     const updatedItem = await db.collection('inventory').findOne({ _id: new ObjectId(id) });
-    // ✅ FIX: Use inventory_upd event name
     broadcast(hotelId, 'inventory_upd', updatedItem, req.clientId);
     res.json({ success: true, message: 'Inventory item updated', data: updatedItem });
   } catch (error) {
@@ -1587,17 +1648,13 @@ app.delete('/api/inventory/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
 
     if (!dbConnected) {
-      // ✅ FIX: Use inventory_upd event name with deleted marker
       broadcast(hotelId, 'inventory_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Inventory item deleted (offline)' });
     }
 
     const result = await db.collection('inventory').deleteOne({ _id: new ObjectId(id), hotelId });
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Inventory item not found' });
-    }
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Inventory item not found' });
 
-    // ✅ FIX: Use inventory_upd event name with deleted marker
     broadcast(hotelId, 'inventory_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Inventory item deleted' });
   } catch (error) {
@@ -1606,7 +1663,7 @@ app.delete('/api/inventory/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== SERVICE REQUESTS CRUD (FIXED BROADCAST EVENTS) ====================
+// ==================== SERVICE REQUESTS CRUD ====================
 app.get('/api/requests', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1637,47 +1694,29 @@ app.post('/api/requests', authMiddleware, async (req, res) => {
 
     if (!dbConnected) {
       const request = {
-        _id: 'req_'+Date.now(),
-        hotelId,
-        guestName,
-        roomNumber: parseInt(roomNumber),
-        department,
-        category: category || 'General',
-        description: description || '',
-        priority: priority || 'normal',
-        status: 'open',
-        type: type || 'service',
-        items: items || [],
+        _id: 'req_'+Date.now(), hotelId, guestName,
+        roomNumber: parseInt(roomNumber), department,
+        category: category || 'General', description: description || '',
+        priority: priority || 'normal', status: 'open',
+        type: type || 'service', items: items || [],
         totalPrice: totalPrice ? parseFloat(totalPrice) : 0,
-        assignedTo: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        assignedTo: null, createdAt: new Date(), updatedAt: new Date()
       };
-      // ✅ FIX: Use req_new event name that frontend expects
       broadcast(hotelId, 'req_new', request, req.clientId);
       return res.status(201).json({ success: true, message: 'Request submitted (offline)', data: request });
     }
 
     const request = {
-      hotelId,
-      guestName,
-      roomNumber: parseInt(roomNumber),
-      department,
-      category: category || 'General',
-      description: description || '',
-      priority: priority || 'normal',
-      status: 'open',
-      type: type || 'service',
-      items: items || [],
+      hotelId, guestName, roomNumber: parseInt(roomNumber), department,
+      category: category || 'General', description: description || '',
+      priority: priority || 'normal', status: 'open',
+      type: type || 'service', items: items || [],
       totalPrice: totalPrice ? parseFloat(totalPrice) : 0,
-      assignedTo: null,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      assignedTo: null, createdAt: new Date(), updatedAt: new Date()
     };
 
     const result = await db.collection('requests').insertOne(request);
     request._id = result.insertedId;
-    // ✅ FIX: Use req_new event name
     broadcast(hotelId, 'req_new', request, req.clientId);
     res.status(201).json({ success: true, message: 'Request submitted', data: request });
   } catch (error) {
@@ -1694,15 +1733,10 @@ app.put('/api/requests/:id', authMiddleware, async (req, res) => {
 
     if (!dbConnected) {
       const updatedRequest = {
-        _id: id,
-        hotelId,
-        status,
-        priority,
-        assignedTo,
+        _id: id, hotelId, status, priority, assignedTo,
         notes: notes ? (notes + '\n[' + new Date().toISOString() + ']') : undefined,
         updatedAt: new Date()
       };
-      // ✅ FIX: Use req_upd event name
       broadcast(hotelId, 'req_upd', updatedRequest, req.clientId);
       return res.json({ success: true, message: 'Request updated (offline)', data: updatedRequest });
     }
@@ -1720,12 +1754,9 @@ app.put('/api/requests/:id', authMiddleware, async (req, res) => {
       { $set: updateData }
     );
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Request not found' });
-    }
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Request not found' });
 
     const updatedRequest = await db.collection('requests').findOne({ _id: new ObjectId(id) });
-    // ✅ FIX: Use req_upd event name
     broadcast(hotelId, 'req_upd', updatedRequest, req.clientId);
     res.json({ success: true, message: 'Request updated', data: updatedRequest });
   } catch (error) {
@@ -1740,17 +1771,13 @@ app.delete('/api/requests/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
 
     if (!dbConnected) {
-      // ✅ FIX: Use req_upd event name with deleted marker
       broadcast(hotelId, 'req_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Request deleted (offline)' });
     }
 
     const result = await db.collection('requests').deleteOne({ _id: new ObjectId(id), hotelId });
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Request not found' });
-    }
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Request not found' });
 
-    // ✅ FIX: Use req_upd event name with deleted marker
     broadcast(hotelId, 'req_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Request deleted' });
   } catch (error) {
@@ -1759,48 +1786,22 @@ app.delete('/api/requests/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== SETTINGS (FIXED BROADCAST EVENTS) ====================
+// ==================== SETTINGS ====================
 app.get('/api/settings', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) {
-      return res.json({ 
-        success: true, 
-        data: { 
-          hotelId,
-          hotelName: 'Crown Plaza Hotel',
-          currencySymbol: '$',
-          priceFormat: 'symbol-first',
-          taxRate: 0,
-          wifiSSID: 'Hotel_Guest',
-          wifiPassword: 'Welcome123',
-          language: 'en',
-          theme: { primaryColor: '#667eea' },
-          transport: { airport: 30, local: 15 },
-          updatedAt: new Date()
-        } 
-      });
-    }
+    const defaultSettings = {
+      hotelId, hotelName: 'Crown Plaza Hotel',
+      currencySymbol: '$', priceFormat: 'symbol-first',
+      taxRate: 0, wifiSSID: 'Hotel_Guest', wifiPassword: 'Welcome123',
+      language: 'en', theme: { primaryColor: '#667eea' },
+      transport: { airport: 30, local: 15 }, updatedAt: new Date()
+    };
+
+    if (!dbConnected) return res.json({ success: true, data: defaultSettings });
+
     const settings = await db.collection('settings').findOne({ hotelId });
-    if (!settings) {
-      return res.json({ 
-        success: true, 
-        data: { 
-          hotelId,
-          hotelName: 'Crown Plaza Hotel',
-          currencySymbol: '$',
-          priceFormat: 'symbol-first',
-          taxRate: 0,
-          wifiSSID: 'Hotel_Guest',
-          wifiPassword: 'Welcome123',
-          language: 'en',
-          theme: { primaryColor: '#667eea' },
-          transport: { airport: 30, local: 15 },
-          updatedAt: new Date()
-        } 
-      });
-    }
-    res.json({ success: true, data: settings });
+    res.json({ success: true, data: settings || defaultSettings });
   } catch (error) {
     console.error('Settings fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1811,9 +1812,9 @@ app.put('/api/settings', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const settings = req.body;
+
     if (!dbConnected) {
       const updatedSettings = { ...settings, hotelId, updatedAt: new Date() };
-      // ✅ FIX: Use cfg_upd event name that frontend expects
       broadcast(hotelId, 'cfg_upd', {
         hotelName: updatedSettings.hotelName,
         currencySymbol: updatedSettings.currencySymbol,
@@ -1823,14 +1824,11 @@ app.put('/api/settings', authMiddleware, async (req, res) => {
       }, req.clientId);
       return res.json({ success: true, message: 'Settings saved (offline)', data: updatedSettings });
     }
+
     const updateData = { ...settings, hotelId, updatedAt: new Date() };
-    const result = await db.collection('settings').updateOne(
-      { hotelId },
-      { $set: updateData },
-      { upsert: true }
-    );
+    await db.collection('settings').updateOne({ hotelId }, { $set: updateData }, { upsert: true });
+
     const updatedSettings = await db.collection('settings').findOne({ hotelId });
-    // ✅ FIX: Use cfg_upd event name
     broadcast(hotelId, 'cfg_upd', {
       hotelName: updatedSettings.hotelName,
       currencySymbol: updatedSettings.currencySymbol,
@@ -1845,9 +1843,7 @@ app.put('/api/settings', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== ✅ MISSING ROUTES ADDED HERE ====================
-
-// ✅ BOOKINGS CRUD
+// ==================== BOOKINGS CRUD ====================
 app.get('/api/bookings', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1864,42 +1860,25 @@ app.post('/api/bookings', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { guestName, roomNumber, roomType, checkIn, checkOut, guests, totalPriceSAR, status } = req.body;
-    if (!guestName || !roomNumber) {
-      return res.status(400).json({ success: false, error: 'guestName and roomNumber are required' });
-    }
-    if (!dbConnected) {
-      const booking = {
-        _id: 'bk_'+Date.now(),
-        hotelId,
-        guestName,
-        roomNumber: parseInt(roomNumber),
-        roomType: roomType || 'Standard',
-        checkIn: checkIn || new Date().toISOString().split('T')[0],
-        checkOut: checkOut || new Date(Date.now() + 86400000).toISOString().split('T')[0],
-        guests: guests || 1,
-        totalPriceSAR: totalPriceSAR || 0,
-        status: status || 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        _version: 1
-      };
-      broadcast(hotelId, 'booking_new', booking, req.clientId);
-      return res.status(201).json({ success: true, message: 'Booking added (offline)', data: booking });
-    }
+
+    if (!guestName || !roomNumber) return res.status(400).json({ success: false, error: 'guestName and roomNumber are required' });
+
     const booking = {
-      hotelId,
-      guestName,
-      roomNumber: parseInt(roomNumber),
+      hotelId, guestName, roomNumber: parseInt(roomNumber),
       roomType: roomType || 'Standard',
       checkIn: checkIn || new Date().toISOString().split('T')[0],
       checkOut: checkOut || new Date(Date.now() + 86400000).toISOString().split('T')[0],
-      guests: guests || 1,
-      totalPriceSAR: totalPriceSAR || 0,
+      guests: guests || 1, totalPriceSAR: totalPriceSAR || 0,
       status: status || 'pending',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      _version: 1
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), _version: 1
     };
+
+    if (!dbConnected) {
+      booking._id = 'bk_'+Date.now();
+      broadcast(hotelId, 'booking_new', booking, req.clientId);
+      return res.status(201).json({ success: true, message: 'Booking added (offline)', data: booking });
+    }
+
     const result = await db.collection('bookings').insertOne(booking);
     booking._id = result.insertedId;
     broadcast(hotelId, 'booking_new', booking, req.clientId);
@@ -1915,20 +1894,19 @@ app.put('/api/bookings/:id', authMiddleware, async (req, res) => {
     const hotelId = req.hotelId;
     const { id } = req.params;
     const { status, guests, checkIn, checkOut, totalPriceSAR } = req.body;
+
     if (!dbConnected) {
       const updatedBooking = {
-        _id: id,
-        hotelId,
-        status,
+        _id: id, hotelId, status,
         guests: guests !== undefined ? parseInt(guests) : undefined,
-        checkIn,
-        checkOut,
+        checkIn, checkOut,
         totalPriceSAR: totalPriceSAR !== undefined ? parseFloat(totalPriceSAR) : undefined,
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'booking_upd', updatedBooking, req.clientId);
       return res.json({ success: true, message: 'Booking updated (offline)', data: updatedBooking });
     }
+
     const updateData = {
       updatedAt: new Date().toISOString(),
       ...(status && { status }),
@@ -1937,13 +1915,14 @@ app.put('/api/bookings/:id', authMiddleware, async (req, res) => {
       ...(checkOut && { checkOut }),
       ...(totalPriceSAR !== undefined && { totalPriceSAR: parseFloat(totalPriceSAR) })
     };
+
     const result = await db.collection('bookings').updateOne(
       { _id: new ObjectId(id), hotelId },
       { $set: updateData }
     );
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Booking not found' });
-    }
+
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Booking not found' });
+
     const updatedBooking = await db.collection('bookings').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'booking_upd', updatedBooking, req.clientId);
     res.json({ success: true, message: 'Booking updated', data: updatedBooking });
@@ -1957,14 +1936,15 @@ app.delete('/api/bookings/:id', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { id } = req.params;
+
     if (!dbConnected) {
       broadcast(hotelId, 'booking_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Booking deleted (offline)' });
     }
+
     const result = await db.collection('bookings').deleteOne({ _id: new ObjectId(id), hotelId });
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Booking not found' });
-    }
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Booking not found' });
+
     broadcast(hotelId, 'booking_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Booking deleted' });
   } catch (error) {
@@ -1973,7 +1953,7 @@ app.delete('/api/bookings/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ BLACKLIST CRUD
+// ==================== BLACKLIST CRUD ====================
 app.get('/api/blacklist', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1990,30 +1970,20 @@ app.post('/api/blacklist', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { name, room, reason } = req.body;
-    if (!name) {
-      return res.status(400).json({ success: false, error: 'name is required' });
-    }
+
+    if (!name) return res.status(400).json({ success: false, error: 'name is required' });
+
+    const entry = {
+      hotelId, name, room: room || null,
+      reason: reason || '', date: new Date().toISOString(), _version: 1
+    };
+
     if (!dbConnected) {
-      const entry = {
-        _id: 'bl_'+Date.now(),
-        hotelId,
-        name,
-        room: room || null,
-        reason: reason || '',
-        date: new Date().toISOString(),
-        _version: 1
-      };
+      entry._id = 'bl_'+Date.now();
       broadcast(hotelId, 'blacklist_upd', entry, req.clientId);
       return res.status(201).json({ success: true, message: 'Guest blocked (offline)', data: entry });
     }
-    const entry = {
-      hotelId,
-      name,
-      room: room || null,
-      reason: reason || '',
-      date: new Date().toISOString(),
-      _version: 1
-    };
+
     const result = await db.collection('blacklist').insertOne(entry);
     entry._id = result.insertedId;
     broadcast(hotelId, 'blacklist_upd', entry, req.clientId);
@@ -2028,14 +1998,15 @@ app.delete('/api/blacklist/:id', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { id } = req.params;
+
     if (!dbConnected) {
       broadcast(hotelId, 'blacklist_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Unblocked (offline)' });
     }
+
     const result = await db.collection('blacklist').deleteOne({ _id: new ObjectId(id), hotelId });
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Entry not found' });
-    }
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Entry not found' });
+
     broadcast(hotelId, 'blacklist_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Guest unblocked' });
   } catch (error) {
@@ -2044,7 +2015,7 @@ app.delete('/api/blacklist/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ MAINTENANCE CRUD
+// ==================== MAINTENANCE CRUD ====================
 app.get('/api/maintenance', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2061,38 +2032,22 @@ app.post('/api/maintenance', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { task, room, scheduled, assigned, priority, status } = req.body;
-    if (!task) {
-      return res.status(400).json({ success: false, error: 'task is required' });
-    }
+
+    if (!task) return res.status(400).json({ success: false, error: 'task is required' });
+
+    const item = {
+      hotelId, task, room: room || null, scheduled: scheduled || null,
+      assigned: assigned || null, priority: priority || 'medium',
+      status: status || 'pending',
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), _version: 1
+    };
+
     if (!dbConnected) {
-      const item = {
-        _id: 'm_'+Date.now(),
-        hotelId,
-        task,
-        room: room || null,
-        scheduled: scheduled || null,
-        assigned: assigned || null,
-        priority: priority || 'medium',
-        status: status || 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        _version: 1
-      };
+      item._id = 'm_'+Date.now();
       broadcast(hotelId, 'maintenance_upd', item, req.clientId);
       return res.status(201).json({ success: true, message: 'Task added (offline)', data: item });
     }
-    const item = {
-      hotelId,
-      task,
-      room: room || null,
-      scheduled: scheduled || null,
-      assigned: assigned || null,
-      priority: priority || 'medium',
-      status: status || 'pending',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      _version: 1
-    };
+
     const result = await db.collection('maintenance').insertOne(item);
     item._id = result.insertedId;
     broadcast(hotelId, 'maintenance_upd', item, req.clientId);
@@ -2108,31 +2063,27 @@ app.put('/api/maintenance/:id', authMiddleware, async (req, res) => {
     const hotelId = req.hotelId;
     const { id } = req.params;
     const { status, assigned, priority } = req.body;
+
     if (!dbConnected) {
-      const updated = {
-        _id: id,
-        hotelId,
-        status,
-        assigned,
-        priority,
-        updatedAt: new Date().toISOString()
-      };
+      const updated = { _id: id, hotelId, status, assigned, priority, updatedAt: new Date().toISOString() };
       broadcast(hotelId, 'maintenance_upd', updated, req.clientId);
       return res.json({ success: true, message: 'Task updated (offline)', data: updated });
     }
+
     const updateData = {
       updatedAt: new Date().toISOString(),
       ...(status && { status }),
       ...(assigned !== undefined && { assigned }),
       ...(priority && { priority })
     };
+
     const result = await db.collection('maintenance').updateOne(
       { _id: new ObjectId(id), hotelId },
       { $set: updateData }
     );
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Task not found' });
-    }
+
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Task not found' });
+
     const updated = await db.collection('maintenance').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'maintenance_upd', updated, req.clientId);
     res.json({ success: true, message: 'Task updated', data: updated });
@@ -2146,14 +2097,15 @@ app.delete('/api/maintenance/:id', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { id } = req.params;
+
     if (!dbConnected) {
       broadcast(hotelId, 'maintenance_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Task deleted (offline)' });
     }
+
     const result = await db.collection('maintenance').deleteOne({ _id: new ObjectId(id), hotelId });
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Task not found' });
-    }
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Task not found' });
+
     broadcast(hotelId, 'maintenance_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Task deleted' });
   } catch (error) {
@@ -2162,7 +2114,7 @@ app.delete('/api/maintenance/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ REVIEWS CRUD
+// ==================== REVIEWS CRUD ====================
 app.get('/api/reviews', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2179,38 +2131,24 @@ app.post('/api/reviews', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { guest, room, overall, service, cleanliness, comment, recommend } = req.body;
-    if (!guest || overall === undefined) {
-      return res.status(400).json({ success: false, error: 'guest and overall rating are required' });
-    }
-    if (!dbConnected) {
-      const review = {
-        _id: 'rev_'+Date.now(),
-        hotelId,
-        guest,
-        room: room || null,
-        overall: parseInt(overall),
-        service: service !== undefined ? parseInt(service) : null,
-        cleanliness: cleanliness !== undefined ? parseInt(cleanliness) : null,
-        comment: comment || '',
-        recommend: recommend !== false,
-        date: new Date().toISOString(),
-        _version: 1
-      };
-      broadcast(hotelId, 'review_new', review, req.clientId);
-      return res.status(201).json({ success: true, message: 'Review added (offline)', data: review });
-    }
+
+    if (!guest || overall === undefined) return res.status(400).json({ success: false, error: 'guest and overall rating are required' });
+
     const review = {
-      hotelId,
-      guest,
-      room: room || null,
+      hotelId, guest, room: room || null,
       overall: parseInt(overall),
       service: service !== undefined ? parseInt(service) : null,
       cleanliness: cleanliness !== undefined ? parseInt(cleanliness) : null,
-      comment: comment || '',
-      recommend: recommend !== false,
-      date: new Date().toISOString(),
-      _version: 1
+      comment: comment || '', recommend: recommend !== false,
+      date: new Date().toISOString(), _version: 1
     };
+
+    if (!dbConnected) {
+      review._id = 'rev_'+Date.now();
+      broadcast(hotelId, 'review_new', review, req.clientId);
+      return res.status(201).json({ success: true, message: 'Review added (offline)', data: review });
+    }
+
     const result = await db.collection('reviews').insertOne(review);
     review._id = result.insertedId;
     broadcast(hotelId, 'review_new', review, req.clientId);
@@ -2221,7 +2159,7 @@ app.post('/api/reviews', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ STAFF CRUD
+// ==================== STAFF CRUD ====================
 app.get('/api/staff', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2238,46 +2176,24 @@ app.post('/api/staff', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { name, role, department, joinDate, status, shift, rating, tasks, attendance, leaveRequest } = req.body;
-    if (!name || !role) {
-      return res.status(400).json({ success: false, error: 'name and role are required' });
-    }
+
+    if (!name || !role) return res.status(400).json({ success: false, error: 'name and role are required' });
+
+    const s = {
+      hotelId, name, role, department: department || 'General',
+      joinDate: joinDate || new Date().toISOString().split('T')[0],
+      status: status || 'online', shift: shift || 'morning',
+      rating: rating || 5.0, tasks: tasks || 0,
+      attendance: attendance || 'present', leaveRequest: leaveRequest || null,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), _version: 1
+    };
+
     if (!dbConnected) {
-      const s = {
-        _id: 's_'+Date.now(),
-        hotelId,
-        name,
-        role,
-        department: department || 'General',
-        joinDate: joinDate || new Date().toISOString().split('T')[0],
-        status: status || 'online',
-        shift: shift || 'morning',
-        rating: rating || 5.0,
-        tasks: tasks || 0,
-        attendance: attendance || 'present',
-        leaveRequest: leaveRequest || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        _version: 1
-      };
+      s._id = 's_'+Date.now();
       broadcast(hotelId, 'staff_upd', s, req.clientId);
       return res.status(201).json({ success: true, message: 'Staff added (offline)', data: s });
     }
-    const s = {
-      hotelId,
-      name,
-      role,
-      department: department || 'General',
-      joinDate: joinDate || new Date().toISOString().split('T')[0],
-      status: status || 'online',
-      shift: shift || 'morning',
-      rating: rating || 5.0,
-      tasks: tasks || 0,
-      attendance: attendance || 'present',
-      leaveRequest: leaveRequest || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      _version: 1
-    };
+
     const result = await db.collection('staff').insertOne(s);
     s._id = result.insertedId;
     broadcast(hotelId, 'staff_upd', s, req.clientId);
@@ -2293,14 +2209,10 @@ app.put('/api/staff/:id', authMiddleware, async (req, res) => {
     const hotelId = req.hotelId;
     const { id } = req.params;
     const { status, shift, attendance, leaveRequest, rating, tasks } = req.body;
+
     if (!dbConnected) {
       const updated = {
-        _id: id,
-        hotelId,
-        status,
-        shift,
-        attendance,
-        leaveRequest,
+        _id: id, hotelId, status, shift, attendance, leaveRequest,
         rating: rating !== undefined ? parseFloat(rating) : undefined,
         tasks: tasks !== undefined ? parseInt(tasks) : undefined,
         updatedAt: new Date().toISOString()
@@ -2308,6 +2220,7 @@ app.put('/api/staff/:id', authMiddleware, async (req, res) => {
       broadcast(hotelId, 'staff_upd', updated, req.clientId);
       return res.json({ success: true, message: 'Staff updated (offline)', data: updated });
     }
+
     const updateData = {
       updatedAt: new Date().toISOString(),
       ...(status && { status }),
@@ -2317,13 +2230,14 @@ app.put('/api/staff/:id', authMiddleware, async (req, res) => {
       ...(rating !== undefined && { rating: parseFloat(rating) }),
       ...(tasks !== undefined && { tasks: parseInt(tasks) })
     };
+
     const result = await db.collection('staff').updateOne(
       { _id: new ObjectId(id), hotelId },
       { $set: updateData }
     );
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Staff not found' });
-    }
+
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Staff not found' });
+
     const updated = await db.collection('staff').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'staff_upd', updated, req.clientId);
     res.json({ success: true, message: 'Staff updated', data: updated });
@@ -2337,14 +2251,15 @@ app.delete('/api/staff/:id', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { id } = req.params;
+
     if (!dbConnected) {
       broadcast(hotelId, 'staff_upd', { _id: id, hotelId, deleted: true }, req.clientId);
       return res.json({ success: true, message: 'Staff removed (offline)' });
     }
+
     const result = await db.collection('staff').deleteOne({ _id: new ObjectId(id), hotelId });
-    if (result.deletedCount === 0) {
-      return res.status(404).json({ success: false, error: 'Staff not found' });
-    }
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Staff not found' });
+
     broadcast(hotelId, 'staff_upd', { _id: id, hotelId, deleted: true }, req.clientId);
     res.json({ success: true, message: 'Staff removed' });
   } catch (error) {
@@ -2353,7 +2268,7 @@ app.delete('/api/staff/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ LOGS CRUD
+// ==================== LOGS CRUD ====================
 app.get('/api/logs', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2370,29 +2285,19 @@ app.post('/api/logs', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { user, action, details } = req.body;
-    if (!action) {
-      return res.status(400).json({ success: false, error: 'action is required' });
-    }
+
+    if (!action) return res.status(400).json({ success: false, error: 'action is required' });
+
+    const log = {
+      hotelId, timestamp: new Date().toISOString(),
+      user: user || 'System', action, details: details || '', _version: 1
+    };
+
     if (!dbConnected) {
-      const log = {
-        _id: 'log_'+Date.now(),
-        hotelId,
-        timestamp: new Date().toISOString(),
-        user: user || 'System',
-        action,
-        details: details || '',
-        _version: 1
-      };
+      log._id = 'log_'+Date.now();
       return res.status(201).json({ success: true, message: 'Log added (offline)', data: log });
     }
-    const log = {
-      hotelId,
-      timestamp: new Date().toISOString(),
-      user: user || 'System',
-      action,
-      details: details || '',
-      _version: 1
-    };
+
     const result = await db.collection('logs').insertOne(log);
     log._id = result.insertedId;
     res.status(201).json({ success: true, message: 'Log added', data: log });
@@ -2405,9 +2310,7 @@ app.post('/api/logs', authMiddleware, async (req, res) => {
 app.delete('/api/logs', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) {
-      return res.json({ success: true, message: 'Logs cleared (offline)' });
-    }
+    if (!dbConnected) return res.json({ success: true, message: 'Logs cleared (offline)' });
     await db.collection('logs').deleteMany({ hotelId });
     res.json({ success: true, message: 'Logs cleared' });
   } catch (error) {
@@ -2416,18 +2319,16 @@ app.delete('/api/logs', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ CONFIG endpoint (alias for settings)
+// ==================== CONFIG (alias for settings) ====================
 app.get('/api/config', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) {
-      return res.json({ success: true, data: { hotelId, name: 'Crown Plaza Hotel', currency: 'SAR', currencySymbol: '﷼', wifi: 'CrownPlaza@2024', airportPrice: 115, localPrice: 60 } });
-    }
+    const defaultConfig = { hotelId, name: 'Crown Plaza Hotel', currency: 'SAR', currencySymbol: '﷼', wifi: 'CrownPlaza@2024', airportPrice: 115, localPrice: 60 };
+
+    if (!dbConnected) return res.json({ success: true, data: defaultConfig });
+
     const settings = await db.collection('settings').findOne({ hotelId });
-    if (!settings) {
-      return res.json({ success: true, data: { hotelId, name: 'Crown Plaza Hotel', currency: 'SAR', currencySymbol: '﷼', wifi: 'CrownPlaza@2024', airportPrice: 115, localPrice: 60 } });
-    }
-    res.json({ success: true, data: settings });
+    res.json({ success: true, data: settings || defaultConfig });
   } catch (error) {
     console.error('Config fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2438,17 +2339,15 @@ app.put('/api/config', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const config = req.body;
+
     if (!dbConnected) {
       const updated = { ...config, hotelId, updatedAt: new Date() };
       broadcast(hotelId, 'cfg_upd', updated, req.clientId);
       return res.json({ success: true, message: 'Config saved (offline)', data: updated });
     }
+
     const updateData = { ...config, hotelId, updatedAt: new Date() };
-    const result = await db.collection('settings').updateOne(
-      { hotelId },
-      { $set: updateData },
-      { upsert: true }
-    );
+    await db.collection('settings').updateOne({ hotelId }, { $set: updateData }, { upsert: true });
     const updated = await db.collection('settings').findOne({ hotelId });
     broadcast(hotelId, 'cfg_upd', updated, req.clientId);
     res.json({ success: true, message: 'Config saved', data: updated });
@@ -2462,9 +2361,8 @@ app.put('/api/config', authMiddleware, async (req, res) => {
 app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected || !db) {
-      return res.status(503).json({ success: false, error: 'Database connecting...' });
-    }
+    if (!dbConnected || !db) return res.status(503).json({ success: false, error: 'Database connecting...' });
+
     const [rooms, bookings, requests, guests, food, inventory] = await Promise.all([
       db.collection('rooms').find({ hotelId }).toArray(),
       db.collection('bookings').find({ hotelId }).toArray(),
@@ -2473,12 +2371,14 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
       db.collection('food').find({ hotelId }).toArray(),
       db.collection('inventory').find({ hotelId }).toArray()
     ]);
+
     const totalRooms = rooms.length;
     const occupiedRooms = rooms.filter(r => r.status === 'Occupied').length;
     const vacantRooms = rooms.filter(r => r.status === 'Vacant').length;
     const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
     const openRequests = requests.filter(r => r.status === 'open').length;
     const emergencyRequests = requests.filter(r => r.priority === 'emergency' && r.status !== 'completed').length;
+
     res.json({
       success: true,
       data: {
@@ -2487,8 +2387,8 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
         requests: { total: requests.length, open: openRequests, emergency: emergencyRequests },
         guests: { total: guests.length, active: guests.filter(g => g.status === 'active').length },
         food: { total: food.length },
-        inventory: { 
-          total: inventory.length, 
+        inventory: {
+          total: inventory.length,
           lowStock: inventory.filter(i => i.status === 'low-stock').length,
           outOfStock: inventory.filter(i => i.status === 'out-of-stock').length
         },
@@ -2497,6 +2397,59 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Stats error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================== ✅ NEW: PAGE STATE PERSISTENCE ====================
+// Stores last active page per user (for refresh stability)
+app.post('/api/user/page-state', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { page, state } = req.body;
+    const email = req.user?.email;
+
+    if (!email) return res.status(400).json({ success: false, error: 'User not identified' });
+
+    const key = `${hotelId}_${email}`;
+
+    if (!dbConnected) {
+      return res.json({ success: true, message: 'Page state saved (memory only)' });
+    }
+
+    await db.collection('sessions').updateOne(
+      { email, hotelId },
+      { $set: { lastPage: page, pageState: state, lastActivity: new Date() } },
+      { upsert: true }
+    );
+
+    res.json({ success: true, message: 'Page state saved' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/user/page-state', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const email = req.user?.email;
+
+    if (!email) return res.status(400).json({ success: false, error: 'User not identified' });
+
+    if (!dbConnected) {
+      return res.json({ success: true, data: { lastPage: null, pageState: null } });
+    }
+
+    const sessionDoc = await db.collection('sessions').findOne({ email, hotelId });
+
+    res.json({
+      success: true,
+      data: {
+        lastPage: sessionDoc?.lastPage || null,
+        pageState: sessionDoc?.pageState || null
+      }
+    });
+  } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -2514,6 +2467,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
+// ✅ IMPORTANT: API 404 before wildcard
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ success: false, error: 'API endpoint not found' });
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
@@ -2524,24 +2482,26 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
-app.use((req, res) => {
-  res.status(404).json({ success: false, error: 'Endpoint not found' });
-});
-
 // ==================== SERVER START ====================
 server.listen(PORT, '0.0.0.0', async () => {
   console.log(`\n🚀 Server running on port ${PORT}`);
   console.log(`🌐 URL: http://localhost:${PORT}`);
   console.log(`👑 Admin: http://localhost:${PORT}/admin`);
   console.log(`🔍 Health: http://localhost:${PORT}/api/health`);
-  console.log(`📡 Socket.io: Enabled`);
+  console.log(`📡 Socket.io: Enabled (with heartbeat)`);
   console.log(`🏨 Multi-tenant: Enabled`);
-  console.log(`🔐 Auth: JWT + bcrypt enabled`);
+  console.log(`🔐 Auth: JWT + bcrypt + idle timeout (${Math.floor(IDLE_TIMEOUT_MS/60000)} min)`);
   console.log(`🌍 Multi-country: Enabled (currency, language, timezone)`);
   console.log(`💳 Subscriptions: lifetime/monthly/trial supported`);
-  console.log(`📊 APIs: /api/bookings, /api/blacklist, /api/maintenance, /api/reviews, /api/staff, /api/logs, /api/config`);
-  console.log(`📈 Super Admin APIs: /api/super/stats, /api/super/transactions`);
-  console.log(`\n💡 Frontend should send 'x-hotel-id' header or ?hotelId= query param\n`);
+  console.log(`📊 Advanced: Rate limiting, compression, idempotency, page state`);
+  console.log(`🔄 Auto token refresh: Enabled (threshold: ${Math.floor(TOKEN_REFRESH_THRESHOLD_MS/60000)} min)`);
+  console.log(`📍 Page stability: /api/user/page-state`);
+  console.log(`🔔 Idle session logout: /api/auth/config, /api/auth/ping`);
+  console.log(`\n💡 NEW .env variables:`);
+  console.log(`   IDLE_TIMEOUT_MS=1800000        (default: 30 min)`);
+  console.log(`   TOKEN_EXPIRY=7d                 (default: 7 days)`);
+  console.log(`   TOKEN_REFRESH_THRESHOLD_MS=3600000 (default: 1hr)`);
+  console.log(`   SESSION_MAX_AGE=604800000       (default: 7 days)\n`);
   await connectDB();
 });
 
@@ -2558,4 +2518,13 @@ process.on('SIGTERM', async () => {
   if (client) await client.close();
   await new Promise(resolve => server.close(resolve));
   process.exit(0);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('💥 Uncaught Exception:', err.message);
+  if (err.message.includes('EADDRINUSE')) process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('💥 Unhandled Rejection:', reason);
 });
