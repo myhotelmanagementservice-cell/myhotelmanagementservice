@@ -17,12 +17,12 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html{height:100%}
-body{margin:0;padding:0;
+body{margin:0;padding:0;margin:0;padding:0;
 font-family:'DM Sans','Noto Sans Devanagari','Noto Naskh Arabic',system-ui,sans-serif;
 background:var(--bg);color:var(--fg);
 min-height:100dvh;width:100vw;overflow-x:hidden;
-transition:background .25s,color .25s,filter .2s;
-font-size:16px;line-height:1.5;
+padding-bottom:70px;transition:background .25s,color .25s,filter .2s;
+font-size:16px;line-height:1.5;margin:0;padding:0;
 }
 :root{
 --p1:#6c63ff;--p2:#a78bfa;--p3:#7c3aed;
@@ -70,6 +70,7 @@ gap:4px;width:100%;margin-bottom:4px;
 }
 @supports(padding-bottom:env(safe-area-inset-bottom)){
 #toolbar{padding-bottom:calc(12px + env(safe-area-inset-bottom))!important}
+body{margin:0;padding:0;margin:0;padding:0;padding-bottom:calc(120px + env(safe-area-inset-bottom))}
 }
 .tb-btn{
 flex: 1 1 auto;
@@ -139,9 +140,6 @@ select.inp{cursor:pointer}
 #loginPage{
 min-height:100dvh;width:100vw;display:flex;flex-direction:column;align-items:center;justify-content:center;
 background:var(--header);padding:0;margin:0;position:relative;
-padding-bottom: 150px; /* ✅ FIX: Ensure content is not hidden by toolbar */
-box-sizing: border-box;
-overflow-y: auto;
 }
 .login-card{
 width:100%;max-width:100vw;background:var(--card);border-radius:0;
@@ -168,6 +166,11 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .login-tabs{display:flex;gap:10px;margin-bottom:20px}
 .login-tab{flex:1;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--card2);color:var(--fg);border:1.5px solid var(--border);transition:all .15s}
 .login-tab.active{background:var(--p1);color:#fff;border-color:var(--p1)}
+.conn-status{display:flex;align-items:center;gap:6px;font-size:13px;padding:6px 12px;border-radius:20px;background:var(--card2);margin-bottom:14px;justify-content:center}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:#9ca3af}
+.conn-dot.connected{background:#10b981;animation:pulse 2s infinite}
+.conn-dot.connecting{background:#f59e0b;animation:blink .8s infinite}
+.conn-dot.error{background:#ef4444}
 .login-clock{font-size:13px;color:var(--fg);opacity:.7;text-align:center;margin-top:10px;font-family:'DM Mono',monospace}
 .guest-nav{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px}
 .gnav-btn{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s;font-size:12px;font-weight:600;color:var(--fg);font-family:inherit}
@@ -235,17 +238,8 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .page-wrap{padding:8px}
 .tb-btn{padding:4px 6px;font-size:9px;min-width:26px}
 #toolbar{gap:3px;padding:10px 8px!important}
+body{margin:0;padding:0;margin:0;padding:0;padding-bottom:120px}
 }
-/* ✅ FIX: Add padding to dashboards to prevent content hiding behind toolbar */
-#adminDash, #guestDash {
-  padding-bottom: 150px;
-}
-@media(max-width:480px){
-  #adminDash, #guestDash {
-    padding-bottom: 160px;
-  }
-}
-
 [dir="rtl"] .req-card{border-left:none;border-right:4px solid var(--p1)}
 [dir="rtl"] .req-card.emergency{border-right-color:#ef4444}
 [lang="ar"]{font-family:'Noto Naskh Arabic','DM Sans',sans-serif}
@@ -355,7 +349,10 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 <div class="login-logo">👑</div>
 <div class="login-h" id="loginHotelName">Crown Plaza Hotel</div>
 <div class="login-sub" data-i18n="welcomeSubtitle">Complete Management System</div>
-<!-- ✅ FIX: Removed "Connecting to server..." status -->
+<div class="conn-status" style="justify-content:center">
+<div class="conn-dot connecting" id="loginConnDot"></div>
+<span id="loginConnTxt" data-i18n="connecting">Connecting to server…</span>
+</div>
 <div id="loginClock" class="login-clock"></div>
 <div class="login-tabs">
 <button class="login-tab active" id="guestTabBtn" onclick="switchLogin('guest')" data-i18n="guestTab">🏨 Guest</button>
@@ -785,36 +782,6 @@ const ROLES = [
 {key:'security',icon:'🛡️',label:'roleSecurity'},
 {key:'it_support',icon:'💻',label:'roleIT'}
 ];
-
-// ✅ FIX: Caching functions for page refresh stability
-function cacheData(key, data) {
-  try {
-    localStorage.setItem(`h_${HID}_${key}`, JSON.stringify(data));
-  } catch(e) { console.warn('Cache save error', e); }
-}
-
-function getCachedData(key) {
-  try {
-    const d = localStorage.getItem(`h_${HID}_${key}`);
-    return d ? JSON.parse(d) : null;
-  } catch(e) { return null; }
-}
-
-function updateCache() {
-  cacheData('rooms', rooms);
-  cacheData('guests', guests);
-  cacheData('food', food);
-  cacheData('inventory', inventory);
-  cacheData('requests', requests);
-  cacheData('blacklist', blacklist);
-  cacheData('maintenance', maintenance);
-  cacheData('reviews', reviews);
-  cacheData('staff', staff);
-  cacheData('logs', logs);
-  cacheData('bookings', bookings);
-  cacheData('config', HotelCfg);
-}
-
 function generateDefaultRooms() {
 const types = ['Standard', 'Deluxe', 'Suite'];
 const basePricesSAR = { Standard: 371, Deluxe: 484, Suite: 746 };
@@ -953,153 +920,106 @@ localStorage.setItem('hotel_theme', theme);
 localStorage.setItem(`h_${HID}_queue`, JSON.stringify(offlineQueue));
 }
 
-// ✅ FIX: saveToMongo now returns boolean and handles its own error queuing
+// ✅ FIX: saveToMongo now returns boolean for proper async/await flow
 async function saveToMongo(collection, data) {
-if (!isOnline) {
-return false;
-}
-try {
-if (Array.isArray(data)) {
-await Promise.all(data.map(async (item) => {
-const isNew = item._isNew;
-const payload = { ...item };
-delete payload._isNew;
-if (isNew || !payload._id) {
-const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-if (res && res._id) item._id = res._id;
-} else {
-await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
-}
-}));
-} else {
-const isNew = data._isNew;
-const payload = { ...data };
-delete payload._isNew;
-if (isNew || !payload._id) {
-const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-if (res && res._id) data._id = res._id;
-} else {
-await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
-}
-}
-return true;
-} catch (e) {
-console.warn(`saveToMongo error for ${collection}:`, e);
-offlineQueue.push({collection, data, timestamp: Date.now()});
-saveUIPrefs();
-return false;
-}
+    if (!isOnline) {
+        return false;
+    }
+    try {
+        if (Array.isArray(data)) {
+            await Promise.all(data.map(async (item) => {
+                const isNew = item._isNew;
+                const payload = { ...item };
+                delete payload._isNew;
+                if (isNew || !payload._id) {
+                    const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
+                    if (res && res._id) item._id = res._id;
+                } else {
+                    await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
+                }
+            }));
+        } else {
+            const isNew = data._isNew;
+            const payload = { ...data };
+            delete payload._isNew;
+            if (isNew || !payload._id) {
+                const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
+                if (res && res._id) data._id = res._id;
+            } else {
+                await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
+            }
+        }
+        return true;
+    } catch (e) {
+        console.warn(`saveToMongo error for ${collection}:`, e);
+        return false;
+    }
 }
 
-// ✅ FIX: loadAllData now caches data and loads from cache if API fails
 async function loadAllData() {
-try {
-const [r, g, f, inv, req, bl, maint, rev, st, lg, bk, cfg] = await Promise.all([
-apiCall('GET', `/rooms?hotelId=${HID}`),
-apiCall('GET', `/guests?hotelId=${HID}`),
-apiCall('GET', `/food?hotelId=${HID}`),
-apiCall('GET', `/inventory?hotelId=${HID}`),
-apiCall('GET', `/requests?hotelId=${HID}`),
-apiCall('GET', `/blacklist?hotelId=${HID}`),
-apiCall('GET', `/maintenance?hotelId=${HID}`),
-apiCall('GET', `/reviews?hotelId=${HID}`),
-apiCall('GET', `/staff?hotelId=${HID}`),
-apiCall('GET', `/logs?hotelId=${HID}`),
-apiCall('GET', `/bookings?hotelId=${HID}`),
-apiCall('GET', `/config?hotelId=${HID}`)
-]);
-
-if(r && Array.isArray(r)) { rooms = r; cacheData('rooms', r); } 
-else { rooms = getCachedData('rooms') || generateDefaultRooms(); }
-
-if(g && Array.isArray(g)) { guests = g; cacheData('guests', g); }
-else { guests = getCachedData('guests') || []; }
-
-if(f && Array.isArray(f)) { food = f; cacheData('food', f); }
-else { food = getCachedData('food') || generateDefaultFood(); }
-
-if(inv && Array.isArray(inv)) { inventory = inv; cacheData('inventory', inv); }
-else { inventory = getCachedData('inventory') || generateDefaultInventory(); }
-
-if(req && Array.isArray(req)) { requests = req; cacheData('requests', req); }
-else { requests = getCachedData('requests') || []; }
-
-if(bl && Array.isArray(bl)) { blacklist = bl; cacheData('blacklist', bl); }
-else { blacklist = getCachedData('blacklist') || []; }
-
-if(maint && Array.isArray(maint)) { maintenance = maint; cacheData('maintenance', maint); }
-else { maintenance = getCachedData('maintenance') || []; }
-
-if(rev && Array.isArray(rev)) { reviews = rev; cacheData('reviews', rev); }
-else { reviews = getCachedData('reviews') || []; }
-
-if(st && Array.isArray(st)) { staff = st; cacheData('staff', st); }
-else { staff = getCachedData('staff') || []; }
-
-if(lg && Array.isArray(lg)) { logs = lg; cacheData('logs', lg); }
-else { logs = getCachedData('logs') || []; }
-
-if(bk && Array.isArray(bk)) { bookings = bk; cacheData('bookings', bk); }
-else { bookings = getCachedData('bookings') || []; }
-
-if(cfg && typeof cfg === 'object') {
-Object.assign(HotelCfg, cfg);
-if(cfg.currencies) Object.assign(CURRENCIES, cfg.currencies);
-cacheData('config', cfg);
-} else {
-const cachedCfg = getCachedData('config');
-if(cachedCfg) {
-  Object.assign(HotelCfg, cachedCfg);
-  if(cachedCfg.currencies) Object.assign(CURRENCIES, cachedCfg.currencies);
-}
-}
-
-lang = localStorage.getItem('hotel_lang') || 'en';
-dark = localStorage.getItem('hotel_dark') === '1';
-theme = localStorage.getItem('hotel_theme') || 'default';
-const queue = JSON.parse(localStorage.getItem(`h_${HID}_queue`) || '[]');
-if(queue.length) offlineQueue.push(...queue);
-applyCfg();
-renderAll();
-updateCache();
-} catch (e) {
-console.warn('loadAllData error', e);
-rooms = getCachedData('rooms') || generateDefaultRooms();
-food = getCachedData('food') || generateDefaultFood();
-inventory = getCachedData('inventory') || generateDefaultInventory();
-guests = getCachedData('guests') || [];
-requests = getCachedData('requests') || [];
-blacklist = getCachedData('blacklist') || [];
-maintenance = getCachedData('maintenance') || [];
-reviews = getCachedData('reviews') || [];
-staff = getCachedData('staff') || [];
-logs = getCachedData('logs') || [];
-bookings = getCachedData('bookings') || [];
-const cachedCfg = getCachedData('config');
-if(cachedCfg) {
-  Object.assign(HotelCfg, cachedCfg);
-  if(cachedCfg.currencies) Object.assign(CURRENCIES, cachedCfg.currencies);
-}
-renderAll();
-}
+    try {
+        const [r, g, f, inv, req, bl, maint, rev, st, lg, bk, cfg] = await Promise.all([
+            apiCall('GET', `/rooms?hotelId=${HID}`),
+            apiCall('GET', `/guests?hotelId=${HID}`),
+            apiCall('GET', `/food?hotelId=${HID}`),
+            apiCall('GET', `/inventory?hotelId=${HID}`),
+            apiCall('GET', `/requests?hotelId=${HID}`),
+            apiCall('GET', `/blacklist?hotelId=${HID}`),
+            apiCall('GET', `/maintenance?hotelId=${HID}`),
+            apiCall('GET', `/reviews?hotelId=${HID}`),
+            apiCall('GET', `/staff?hotelId=${HID}`),
+            apiCall('GET', `/logs?hotelId=${HID}`),
+            apiCall('GET', `/bookings?hotelId=${HID}`),
+            apiCall('GET', `/config?hotelId=${HID}`)
+        ]);
+        if(r && Array.isArray(r)) rooms = r; else rooms = generateDefaultRooms();
+        if(g && Array.isArray(g)) guests = g; else guests = [];
+        if(f && Array.isArray(f)) food = f; else food = generateDefaultFood();
+        if(inv && Array.isArray(inv)) inventory = inv; else inventory = generateDefaultInventory();
+        if(req && Array.isArray(req)) requests = req; else requests = [];
+        if(bl && Array.isArray(bl)) blacklist = bl; else blacklist = [];
+        if(maint && Array.isArray(maint)) maintenance = maint; else maintenance = [];
+        if(rev && Array.isArray(rev)) reviews = rev; else reviews = [];
+        if(st && Array.isArray(st)) staff = st; else staff = [];
+        if(lg && Array.isArray(lg)) logs = lg; else logs = [];
+        if(bk && Array.isArray(bk)) bookings = bk; else bookings = [];
+        if(cfg && typeof cfg === 'object') {
+            Object.assign(HotelCfg, cfg);
+            if(cfg.currencies) Object.assign(CURRENCIES, cfg.currencies);
+        }
+        lang = localStorage.getItem('hotel_lang') || 'en';
+        dark = localStorage.getItem('hotel_dark') === '1';
+        theme = localStorage.getItem('hotel_theme') || 'default';
+        const queue = JSON.parse(localStorage.getItem(`h_${HID}_queue`) || '[]');
+        if(queue.length) offlineQueue.push(...queue);
+        applyCfg();
+        renderAll();
+    } catch (e) {
+        console.warn('loadAllData error', e);
+        rooms = generateDefaultRooms();
+        food = generateDefaultFood();
+        inventory = generateDefaultInventory();
+        renderAll();
+    }
 }
 
 // ✅ FIX: save is now async and awaits DB save before emitting socket event
 async function save(collection, data, event='data_upd'){
-if(Array.isArray(data)){
-data = data.map(item => ({...item, _version: (item._version||0)+1, updatedAt: new Date().toISOString()}));
-}else{
-data = {...data, _version: (data._version||0)+1, updatedAt: new Date().toISOString()};
-}
-const success = await saveToMongo(collection, data);
-if(success){
-  if(isOnline && socket?.connected){
-    socket.emit(event,{hotelId:HID, collection, data, clientId, syncToken: Date.now()});
-  }
-  updateCache();
-} else {
-  updateNetBadge('queued');
-}
+    if(Array.isArray(data)){
+        data = data.map(item => ({...item, _version: (item._version||0)+1, updatedAt: new Date().toISOString()}));
+    }else{
+        data = {...data, _version: (data._version||0)+1, updatedAt: new Date().toISOString()};
+    }
+    const success = await saveToMongo(collection, data);
+    if(success){
+        if(isOnline && socket?.connected){
+            socket.emit(event,{hotelId:HID, collection, data, clientId, syncToken: Date.now()});
+        }
+    } else {
+        offlineQueue.push({collection, data, event, timestamp: Date.now()});
+        updateNetBadge('queued');
+        saveUIPrefs();
+    }
 }
 
 function safeMerge(target, source, collection){
@@ -1133,17 +1053,20 @@ updateNetBadge('online');
 socket.emit('join_hotel', HID);
 showToast('🔗 Connected to Server','socket');
 
-// ✅ FIX: Offline queue sync now awaits DB save
+// ✅ FIX: Offline queue sync now awaits DB save and re-queues on failure
 if(offlineQueue.length){
 showToast(`🔄 Syncing ${offlineQueue.length} pending actions...`,'socket');
 const queueCopy = [...offlineQueue];
 offlineQueue.length = 0;
 saveUIPrefs();
 queueCopy.forEach(async (item) => {
-  const success = await saveToMongo(item.collection, item.data);
-  if(success && socket?.connected){
-    socket.emit(item.event, {hotelId:HID, collection:item.collection, data:item.data, clientId, syncToken: item.timestamp});
-  }
+const success = await saveToMongo(item.collection, item.data);
+if(success && socket?.connected){
+socket.emit(item.event, {hotelId:HID, collection:item.collection, data:item.data, clientId, syncToken: item.timestamp});
+} else if (!success) {
+offlineQueue.push(item);
+saveUIPrefs();
+}
 });
 updateNetBadge('online');
 }
@@ -1153,7 +1076,10 @@ syncBack();
 socket.on('disconnect',()=>{setSockStatus('disconnected');updateNetBadge('offline')});
 socket.on('connect_error',()=>{setSockStatus('error');updateNetBadge('offline')});
 socket.on('reconnecting',()=>{setSockStatus('connecting');updateNetBadge('reconnecting')});
+
+// ✅ FIX: Multi-Tenant Isolation - Ignore events from other hotels
 socket.on('sync_all', (data)=>{
+if(data.hotelId && data.hotelId !== HID) return;
 if(data.syncToken && processedEvents.has(data.syncToken)) return;
 if(data.syncToken) processedEvents.add(data.syncToken);
 if(data.rooms) rooms = safeMerge(rooms, data.rooms, 'rooms');
@@ -1179,9 +1105,9 @@ if(data.staff) renderStaff();
 if(data.logs) renderLogs();
 if(data.bookings) {renderGuestBookings(); renderAdminBookings();}
 showToast('🔄 Data synced from Server','socket');
-updateCache();
 });
 socket.on('cfg_upd',(cfg)=>{
+if(cfg.hotelId && cfg.hotelId !== HID) return;
 if(cfg.syncToken && processedEvents.has(cfg.syncToken)) return;
 if(cfg.syncToken) processedEvents.add(cfg.syncToken);
 if(cfg.currencies) {
@@ -1190,9 +1116,9 @@ Object.assign(CURRENCIES, cfg.currencies);
 Object.assign(HotelCfg, cfg);
 applyCfg();
 showToast('⚙️ Config updated from Server','socket');
-updateCache();
 });
 socket.on('currency_upd',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1200,10 +1126,10 @@ if(payload.currencies) {
 Object.assign(CURRENCIES, payload.currencies);
 applyCfg();
 showToast('💱 Currency rates updated from Server','socket');
-updateCache();
 }
 });
 socket.on('req_new',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1211,9 +1137,9 @@ const req = payload.data;
 if(!requests.find(r=>r._id===req._id)) requests.unshift(req);
 renderRequests(); updateAdminStats();
 if(currentUser?.type==='admin') showToast(`📋 New request: ${req.guestName}`,'socket');
-updateCache();
 });
 socket.on('req_upd',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1230,9 +1156,9 @@ if(currentUser?.type==='guest') {
 renderGuestHistory();
 if(req.adminReply) showToast('👑 ' + (t('replyReceived') || 'You have a new reply from Admin'), 'success');
 }
-updateCache();
 });
 socket.on('room_upd',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1245,9 +1171,9 @@ if(idx>-1) rooms[idx]=safeMerge(rooms[idx], room, 'rooms');
 else rooms.push(room);
 }
 renderRooms(); updateAdminStats();
-updateCache();
 });
 socket.on('inventory_upd',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1260,9 +1186,9 @@ if(idx>-1) inventory[idx]=safeMerge(inventory[idx], item, 'inventory');
 else inventory.push(item);
 }
 renderInventory(); renderGuestInv();
-updateCache();
 });
 socket.on('food_upd',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1279,18 +1205,18 @@ else food.push(f);
 renderFood();
 renderGuestFood();
 showToast('🍽️ ' + (t('menuUpdatedLive') || 'Menu updated live!'),'socket');
-updateCache();
 });
 socket.on('review_new',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const rev = payload.data;
 if(!reviews.find(r=>r._id===rev._id)) reviews.unshift(rev);
 renderReviews();
-updateCache();
 });
 socket.on('booking_new',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1298,9 +1224,9 @@ const booking = payload.data;
 if(!bookings.find(b=>b._id===booking._id)) bookings.unshift(booking);
 renderGuestBookings(); renderAdminBookings();
 if(currentUser?.type==='admin') showToast(`📅 New booking: ${booking.guestName}`,'socket');
-updateCache();
 });
 socket.on('booking_upd',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1313,9 +1239,9 @@ if(idx>-1) bookings[idx]=safeMerge(bookings[idx], booking, 'bookings');
 else bookings.unshift(booking);
 }
 renderGuestBookings(); renderAdminBookings();
-updateCache();
 });
 socket.on('staff_upd',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1328,9 +1254,9 @@ if(idx>-1) staff[idx]=safeMerge(staff[idx], s, 'staff');
 else staff.push(s);
 }
 renderStaff();
-updateCache();
 });
 socket.on('guest_upd',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1343,9 +1269,9 @@ if(idx>-1) guests[idx]=safeMerge(guests[idx], g, 'guests');
 else guests.push(g);
 }
 renderGuests(); renderLoyalty(); updateGuestStats();
-updateCache();
 });
 socket.on('blacklist_upd',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1358,9 +1284,9 @@ if(idx>-1) blacklist[idx]=safeMerge(blacklist[idx], b, 'blacklist');
 else blacklist.push(b);
 }
 renderBlacklist();
-updateCache();
 });
 socket.on('maintenance_upd',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1373,9 +1299,9 @@ if(idx>-1) maintenance[idx]=safeMerge(maintenance[idx], m, 'maintenance');
 else maintenance.push(m);
 }
 renderMaintenance();
-updateCache();
 });
 socket.on('logs_upd',(payload)=>{
+if(payload.hotelId && payload.hotelId !== HID) return;
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
@@ -1386,7 +1312,6 @@ logs = [];
 if(!logs.find(x=>x._id===l._id)) logs.unshift(l);
 }
 renderLogs();
-updateCache();
 });
 }catch(e){
 console.warn('Socket unavailable, offline mode');
@@ -1394,36 +1319,32 @@ setSockStatus('error');
 updateNetBadge('offline');
 }
 }
-
-// ✅ FIX: syncBack now caches data
 async function syncBack(){
 if(!isOnline) return;
 const [r,g,f,inv,req,bl,maint,rev,st,lg,bk,cfg] = await Promise.all([
 apiCall('GET',`/rooms?hotelId=${HID}`),apiCall('GET',`/guests?hotelId=${HID}`),apiCall('GET',`/food?hotelId=${HID}`),
 apiCall('GET',`/inventory?hotelId=${HID}`),apiCall('GET',`/requests?hotelId=${HID}`),apiCall('GET',`/blacklist?hotelId=${HID}`),
-apiCall('GET',`/maintenance?hotelId=${HID}`),apiCall('GET',`/reviews?hotelId=${HID}`),apiCall('GET',`/staff?hotelId=${HID}`),apiCall('GET',`/logs?hotelId=${HID}`),
-apiCall('GET',`/bookings?hotelId=${HID}`),
+apiCall('GET',`/maintenance?hotelId=${HID}`),apiCall('GET',`/reviews?hotelId=${HID}`),apiCall('GET',`/staff?hotelId=${HID}`),apiCall('GET',`/logs?hotelId=${HID}`),apiCall('GET',`/bookings?hotelId=${HID}`),
 apiCall('GET',`/config?hotelId=${HID}`)
 ]);
-if(r) { rooms = safeMerge(rooms, r, 'rooms'); cacheData('rooms', rooms); }
-if(g) { guests = safeMerge(guests, g, 'guests'); cacheData('guests', guests); }
-if(f) { food = safeMerge(food, f, 'food'); cacheData('food', food); }
-if(inv) { inventory = safeMerge(inventory, inv, 'inventory'); cacheData('inventory', inventory); }
-if(req) { requests = safeMerge(requests, req, 'requests'); cacheData('requests', requests); }
-if(bl) { blacklist = safeMerge(blacklist, bl, 'blacklist'); cacheData('blacklist', blacklist); }
-if(maint) { maintenance = safeMerge(maintenance, maint, 'maintenance'); cacheData('maintenance', maintenance); }
-if(rev) { reviews = safeMerge(reviews, rev, 'reviews'); cacheData('reviews', reviews); }
-if(st) { staff = safeMerge(staff, st, 'staff'); cacheData('staff', staff); }
-if(lg) { logs = safeMerge(logs, lg, 'logs'); cacheData('logs', logs); }
-if(bk) { bookings = safeMerge(bookings, bk, 'bookings'); cacheData('bookings', bookings); }
-if(cfg) {Object.assign(HotelCfg,cfg); applyCfg(); cacheData('config', cfg);}
+if(r) rooms = safeMerge(rooms, r, 'rooms');
+if(g) guests = safeMerge(guests, g, 'guests');
+if(f) food = safeMerge(food, f, 'food');
+if(inv) inventory = safeMerge(inventory, inv, 'inventory');
+if(req) requests = safeMerge(requests, req, 'requests');
+if(bl) blacklist = safeMerge(blacklist, bl, 'blacklist');
+if(maint) maintenance = safeMerge(maintenance, maint, 'maintenance');
+if(rev) reviews = safeMerge(reviews, rev, 'reviews');
+if(st) staff = safeMerge(staff, st, 'staff');
+if(lg) logs = safeMerge(logs, lg, 'logs');
+if(bk) bookings = safeMerge(bookings, bk, 'bookings');
+if(cfg) {Object.assign(HotelCfg,cfg); applyCfg();}
 renderAll();
 if(!rooms.length) loadAllData();
 }
-
-// ✅ FIX: Removed references to loginConnDot and loginConnTxt
 function setSockStatus(s){
 const dot=document.getElementById('sockDot'), txt=document.getElementById('sockTxt');
+const loginDot=document.getElementById('loginConnDot'), loginTxt=document.getElementById('loginConnTxt');
 const map={
 connected:{cls:'connected', text: t('serverConnected')||'Live'},
 disconnected:{cls:'error', text: t('serverOffline')||'Offline'},
@@ -1431,13 +1352,14 @@ connecting:{cls:'connecting', text: t('serverConnecting')||'Connecting…'},
 error:{cls:'error', text: t('serverOffline')||'Offline'}
 };
 const m=map[s]||map.disconnected;
-if(dot) dot.className='sock-dot '+m.cls;
+[dot,loginDot].forEach(el=>{if(el){el.className=(el.id==='loginConnDot'?'conn-dot ':'sock-dot ')+m.cls}});
 if(txt) txt.textContent=m.text;
-
+if(loginTxt) {
+loginTxt.textContent = s === 'connected' ? (t('serverConnected')||'Connected') : m.text;
+}
 const sockEl=document.getElementById('sockStatus');
 if(sockEl) sockEl.style.display=s==='connected'?'none':'flex';
 }
-
 function updateNetBadge(status){
 const loginBadge=document.getElementById('loginNetBadge');
 if(!loginBadge) return;
@@ -2750,25 +2672,28 @@ renderRequests();updateGuestStats();renderGuestHistory();
 showToast('✅ ' + (t('reqStatusUpdated') || 'Request status updated to ') + status,'success');
 }
 }
-function delReq(id){
-if(confirm('Delete?')){
-const req = requests.find(r => r._id === id);
-requests=requests.filter(r=>r._id!==id);
-if(isOnline) apiCall('DELETE', `/requests/${id}?hotelId=${HID}`);
-if(socket?.connected) socket.emit('req_upd',{hotelId:HID, collection:'requests', data:req, clientId, syncToken: Date.now(), action: 'delete'});
-renderRequests();updateAdminStats();
-}
+
+// ✅ FIX: All delete functions are now async and await DB deletion before broadcasting
+async function delReq(id){
+    if(confirm('Delete?')){
+        const req = requests.find(r => r._id === id);
+        requests=requests.filter(r=>r._id!==id);
+        if(isOnline) await apiCall('DELETE', `/requests/${id}?hotelId=${HID}`);
+        if(socket?.connected) socket.emit('req_upd',{hotelId:HID, collection:'requests', data:req, clientId, syncToken: Date.now(), action: 'delete'});
+        renderRequests();updateAdminStats();
+    }
 }
 function exportReqs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(requests),'Requests');XLSX.writeFile(wb,`requests-${Date.now()}.xlsx`);showToast('Exported!','success')}
-function delRoom(id){
-if(confirm('Delete?')){
-const room = rooms.find(r => r._id === id);
-rooms=rooms.filter(r=>r._id!==id);
-if(isOnline) apiCall('DELETE', `/rooms/${id}?hotelId=${HID}`);
-if(socket?.connected) socket.emit('room_upd',{hotelId:HID, collection:'rooms', data:room, clientId, syncToken: Date.now(), action: 'delete'});
-renderRooms();updateAdminStats();
-showToast('✅ ' + (t('roomDeleted') || 'Room deleted successfully'), 'success');
-}
+
+async function delRoom(id){
+    if(confirm('Delete?')){
+        const room = rooms.find(r => r._id === id);
+        rooms=rooms.filter(r=>r._id!==id);
+        if(isOnline) await apiCall('DELETE', `/rooms/${id}?hotelId=${HID}`);
+        if(socket?.connected) socket.emit('room_upd',{hotelId:HID, collection:'rooms', data:room, clientId, syncToken: Date.now(), action: 'delete'});
+        renderRooms();updateAdminStats();
+        showToast('✅ ' + (t('roomDeleted') || 'Room deleted successfully'), 'success');
+    }
 }
 function editRoom(id){
 const r=rooms.find(x=>x._id===id);if(!r)return;
@@ -2814,15 +2739,16 @@ renderGuests();
 showToast('✅ ' + (g.status==='blocked' ? (t('guestBlocked')||'Guest blocked successfully') : (t('guestUnblocked')||'Guest unblocked successfully')),'success');
 }
 }
-function delGuest(id){
-if(confirm('Delete?')){
-const guest = guests.find(g => g._id === id);
-guests=guests.filter(g=>g._id!==id);
-if(isOnline) apiCall('DELETE', `/guests/${id}?hotelId=${HID}`);
-if(socket?.connected) socket.emit('guest_upd',{hotelId:HID, collection:'guests', data:guest, clientId, syncToken: Date.now(), action: 'delete'});
-renderGuests();
-showToast('✅ ' + (t('guestDeleted') || 'Guest deleted successfully'), 'success');
-}
+
+async function delGuest(id){
+    if(confirm('Delete?')){
+        const guest = guests.find(g => g._id === id);
+        guests=guests.filter(g=>g._id!==id);
+        if(isOnline) await apiCall('DELETE', `/guests/${id}?hotelId=${HID}`);
+        if(socket?.connected) socket.emit('guest_upd',{hotelId:HID, collection:'guests', data:guest, clientId, syncToken: Date.now(), action: 'delete'});
+        renderGuests();
+        showToast('✅ ' + (t('guestDeleted') || 'Guest deleted successfully'), 'success');
+    }
 }
 function editFood(id){
 const f=food.find(x=>x._id===id);if(!f)return;
@@ -2856,15 +2782,16 @@ closeModal('foodModal');
 if(document.getElementById('foodModal').dataset) delete document.getElementById('foodModal').dataset.editId;
 renderFood();renderGuestFood();
 }
-function delFood(id){
-if(confirm('Delete?')){
-const foodItem = food.find(f => f._id === id);
-food=food.filter(f=>f._id!==id);
-if(isOnline) apiCall('DELETE', `/food/${id}?hotelId=${HID}`);
-if(socket?.connected) socket.emit('food_upd',{hotelId:HID, collection:'food', data:foodItem, clientId, syncToken: Date.now(), action: 'delete'});
-renderFood();renderGuestFood();
-showToast('✅ ' + (t('foodDeleted') || 'Food item deleted successfully'), 'success');
-}
+
+async function delFood(id){
+    if(confirm('Delete?')){
+        const foodItem = food.find(f => f._id === id);
+        food=food.filter(f=>f._id!==id);
+        if(isOnline) await apiCall('DELETE', `/food/${id}?hotelId=${HID}`);
+        if(socket?.connected) socket.emit('food_upd',{hotelId:HID, collection:'food', data:foodItem, clientId, syncToken: Date.now(), action: 'delete'});
+        renderFood();renderGuestFood();
+        showToast('✅ ' + (t('foodDeleted') || 'Food item deleted successfully'), 'success');
+    }
 }
 function adjStock(id,delta){
 const i=inventory.find(x=>x._id===id);
@@ -2887,25 +2814,27 @@ document.getElementById('mIMin').value=item.min||10;
 document.getElementById('inventoryModal').dataset.editId=id;
 showToast('✏️ Editing: '+item.name);
 }
-function delInv(id){
-if(confirm('Delete?')){
-const invItem = inventory.find(i => i._id === id);
-inventory=inventory.filter(i=>i._id!==id);
-if(isOnline) apiCall('DELETE', `/inventory/${id}?hotelId=${HID}`);
-if(socket?.connected) socket.emit('inventory_upd',{hotelId:HID, collection:'inventory', data:invItem, clientId, syncToken: Date.now(), action: 'delete'});
-renderInventory();renderGuestInv();
-showToast('✅ ' + (t('invDeleted') || 'Inventory item deleted successfully'), 'success');
+
+async function delInv(id){
+    if(confirm('Delete?')){
+        const invItem = inventory.find(i => i._id === id);
+        inventory=inventory.filter(i=>i._id!==id);
+        if(isOnline) await apiCall('DELETE', `/inventory/${id}?hotelId=${HID}`);
+        if(socket?.connected) socket.emit('inventory_upd',{hotelId:HID, collection:'inventory', data:invItem, clientId, syncToken: Date.now(), action: 'delete'});
+        renderInventory();renderGuestInv();
+        showToast('✅ ' + (t('invDeleted') || 'Inventory item deleted successfully'), 'success');
+    }
 }
-}
-function unblockGuest(idx){
-if(confirm('Unblock?')){
-const e=blacklist[idx];
-blacklist.splice(idx,1);
-if(isOnline && e._id) apiCall('DELETE', `/blacklist/${e._id}?hotelId=${HID}`);
-if(socket?.connected) socket.emit('blacklist_upd',{hotelId:HID, collection:'blacklist', data:e, clientId, syncToken: Date.now(), action: 'delete'});
-renderBlacklist();
-showToast('✅ ' + (e.name + ' ' + (t('guestUnblocked') || 'unblocked successfully')),'success');
-}
+
+async function unblockGuest(idx){
+    if(confirm('Unblock?')){
+        const e=blacklist[idx];
+        blacklist.splice(idx,1);
+        if(isOnline && e._id) await apiCall('DELETE', `/blacklist/${e._id}?hotelId=${HID}`);
+        if(socket?.connected) socket.emit('blacklist_upd',{hotelId:HID, collection:'blacklist', data:e, clientId, syncToken: Date.now(), action: 'delete'});
+        renderBlacklist();
+        showToast('✅ ' + (e.name + ' ' + (t('guestUnblocked') || 'unblocked successfully')),'success');
+    }
 }
 function updMaint(i,s){
 maintenance[i].status=s;
@@ -2913,16 +2842,17 @@ save('maintenance',maintenance[i],'maintenance_upd');
 renderMaintenance();
 showToast('✅ Updated','success');
 }
-function delMaint(i){
-if(confirm('Delete?')){
-const id = maintenance[i]._id;
-const m = maintenance[i];
-maintenance.splice(i,1);
-if(isOnline && id) apiCall('DELETE', `/maintenance/${id}?hotelId=${HID}`);
-if(socket?.connected) socket.emit('maintenance_upd',{hotelId:HID, collection:'maintenance', data:m, clientId, syncToken: Date.now(), action: 'delete'});
-renderMaintenance();
-showToast('✅ Deleted','success');
-}
+
+async function delMaint(i){
+    if(confirm('Delete?')){
+        const id = maintenance[i]._id;
+        const m = maintenance[i];
+        maintenance.splice(i,1);
+        if(isOnline && id) await apiCall('DELETE', `/maintenance/${id}?hotelId=${HID}`);
+        if(socket?.connected) socket.emit('maintenance_upd',{hotelId:HID, collection:'maintenance', data:m, clientId, syncToken: Date.now(), action: 'delete'});
+        renderMaintenance();
+        showToast('✅ Deleted','success');
+    }
 }
 function addPts(id,pts){
 const g=guests.find(x=>x._id===id);
@@ -2949,16 +2879,17 @@ save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast('✅ Rating updated','success');
 }
-function delStaff(i){
-if(confirm('Remove staff?')){
-const id = staff[i]._id;
-const s = staff[i];
-staff.splice(i,1);
-if(isOnline && id) apiCall('DELETE', `/staff/${id}?hotelId=${HID}`);
-if(socket?.connected) socket.emit('staff_upd',{hotelId:HID, collection:'staff', data:s, clientId, syncToken: Date.now(), action: 'delete'});
-renderStaff();
-showToast('✅ ' + (t('staffDeleted') || 'Staff member deleted successfully'),'success');
-}
+
+async function delStaff(i){
+    if(confirm('Remove staff?')){
+        const id = staff[i]._id;
+        const s = staff[i];
+        staff.splice(i,1);
+        if(isOnline && id) await apiCall('DELETE', `/staff/${id}?hotelId=${HID}`);
+        if(socket?.connected) socket.emit('staff_upd',{hotelId:HID, collection:'staff', data:s, clientId, syncToken: Date.now(), action: 'delete'});
+        renderStaff();
+        showToast('✅ ' + (t('staffDeleted') || 'Staff member deleted successfully'),'success');
+    }
 }
 function openStaffModal(){openModal('staffModal');}
 function addStaff(e){
@@ -3041,14 +2972,15 @@ out.innerHTML=html;
 }
 function exportReport(){const t=document.getElementById('rptType')?.value||'report';const d=t==='occupancy'?rooms:t==='guests'?guests:requests;const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d),t);XLSX.writeFile(wb,`${t}-${Date.now()}.xlsx`);showToast('✅ Exported!','success')}
 function exportLogs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(logs),'Logs');XLSX.writeFile(wb,`logs-${Date.now()}.xlsx`);showToast('✅ Logs exported','success')}
-function clearLogs(){
-if(confirm('Clear all logs?')){
-logs=[];
-if(isOnline) apiCall('DELETE', `/logs?hotelId=${HID}`);
-if(socket?.connected) socket.emit('data_upd',{hotelId:HID, collection:'logs', data:[], clientId, syncToken: Date.now()});
-renderLogs();
-showToast('✅ Logs cleared','success');
-}
+
+async function clearLogs(){
+    if(confirm('Clear all logs?')){
+        logs=[];
+        if(isOnline) await apiCall('DELETE', `/logs?hotelId=${HID}`);
+        if(socket?.connected) socket.emit('data_upd',{hotelId:HID, collection:'logs', data:[], clientId, syncToken: Date.now()});
+        renderLogs();
+        showToast('✅ Logs cleared','success');
+    }
 }
 function openAddCurrencyModal(){
 openModal('infoModal');
@@ -3066,39 +2998,41 @@ document.getElementById('infoModalBody').innerHTML = `
 </form>
 `;
 }
-function addNewCurrency(e){
-e.preventDefault();
-const code=document.getElementById('newCurCode').value.toUpperCase();
-const symbol=document.getElementById('newCurSymbol').value;
-const rate=parseFloat(document.getElementById('newCurRate').value);
-const flag=document.getElementById('newCurFlag').value||'';
-if(!code||!symbol||isNaN(rate)){showToast('Fill all fields','error');return}
-if(CURRENCIES[code]){showToast('Currency already exists','error');return}
-CURRENCIES[code]={symbol,rate,flag,custom:true};
-saveUIPrefs();
-saveToMongo('config', { ...HotelCfg, currencies: CURRENCIES });
-if(isOnline && socket?.connected){
-socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
+
+async function addNewCurrency(e){
+    e.preventDefault();
+    const code=document.getElementById('newCurCode').value.toUpperCase();
+    const symbol=document.getElementById('newCurSymbol').value;
+    const rate=parseFloat(document.getElementById('newCurRate').value);
+    const flag=document.getElementById('newCurFlag').value||'';
+    if(!code||!symbol||isNaN(rate)){showToast('Fill all fields','error');return}
+    if(CURRENCIES[code]){showToast('Currency already exists','error');return}
+    CURRENCIES[code]={symbol,rate,flag,custom:true};
+    saveUIPrefs();
+    const success = await saveToMongo('config', { ...HotelCfg, currencies: CURRENCIES });
+    if(success && isOnline && socket?.connected){
+        socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
+    }
+    closeModal('infoModal');
+    applyCfg();
+    showToast(`✅ ${code} added!`,'success');
+    addLog('Add Currency',code);
 }
-closeModal('infoModal');
-applyCfg();
-showToast(`✅ ${code} added!`,'success');
-addLog('Add Currency',code);
-}
-function deleteCurrency(code){
-if(!CURRENCIES[code]?.custom){showToast('Cannot delete built-in currency','error');return}
-if(confirm(`Delete ${code}?`)){
-delete CURRENCIES[code];
-if(HotelCfg.currency===code) HotelCfg.currency='USD';
-saveUIPrefs();
-saveToMongo('config', { ...HotelCfg, currencies: CURRENCIES });
-if(isOnline && socket?.connected){
-socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
-}
-applyCfg();
-showToast(`${code} deleted`,'success');
-addLog('Delete Currency',code);
-}
+
+async function deleteCurrency(code){
+    if(!CURRENCIES[code]?.custom){showToast('Cannot delete built-in currency','error');return}
+    if(confirm(`Delete ${code}?`)){
+        delete CURRENCIES[code];
+        if(HotelCfg.currency===code) HotelCfg.currency='USD';
+        saveUIPrefs();
+        const success = await saveToMongo('config', { ...HotelCfg, currencies: CURRENCIES });
+        if(success && isOnline && socket?.connected){
+            socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
+        }
+        applyCfg();
+        showToast(`${code} deleted`,'success');
+        addLog('Delete Currency',code);
+    }
 }
 function editCurrencyRates(){
 const rates = Object.entries(CURRENCIES).map(([code, data]) =>
@@ -3118,40 +3052,42 @@ document.getElementById('infoModalBody').innerHTML = `
 <button class="btn-primary" style="width:100%" onclick="saveCurrencyRates()">💾 Save Rates</button>
 `;
 }
-function saveCurrencyRates(){
-Object.keys(CURRENCIES).forEach(code => {
-const input = document.getElementById(`rate-${code}`);
-if(input && !isNaN(parseFloat(input.value))){
-CURRENCIES[code].rate = parseFloat(input.value);
+
+async function saveCurrencyRates(){
+    Object.keys(CURRENCIES).forEach(code => {
+        const input = document.getElementById(`rate-${code}`);
+        if(input && !isNaN(parseFloat(input.value))){
+            CURRENCIES[code].rate = parseFloat(input.value);
+        }
+    });
+    saveUIPrefs();
+    const success = await saveToMongo('config', { ...HotelCfg, currencies: CURRENCIES });
+    if(success && isOnline && socket?.connected){
+        socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
+    }
+    closeModal('infoModal');
+    applyCfg();
+    showToast('💱 Exchange rates updated','success');
+    addLog('Currency Update', 'Exchange rates modified');
 }
-});
-saveUIPrefs();
-saveToMongo('config', { ...HotelCfg, currencies: CURRENCIES });
-if(isOnline && socket?.connected){
-socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
-}
-closeModal('infoModal');
-applyCfg();
-showToast('💱 Exchange rates updated','success');
-addLog('Currency Update', 'Exchange rates modified');
-}
-function saveCfg(field){
-if(field==='name') HotelCfg.name=document.getElementById('cfgName')?.value||HotelCfg.name;
-else if(field==='currency') {
-HotelCfg.currency=document.getElementById('cfgCurrency')?.value||HotelCfg.currency;
-showToast(`✅ Currency changed to ${HotelCfg.currency}`,'success');
-}
-else if(field==='wifi') HotelCfg.wifi=document.getElementById('cfgWifi')?.value||HotelCfg.wifi;
-else if(field==='transport'){
-HotelCfg.airportPrice=parseInt(document.getElementById('cfgAirport')?.value)||115;
-HotelCfg.localPrice=parseInt(document.getElementById('cfgLocal')?.value)||60;
-}
-saveUIPrefs();
-saveToMongo('config', HotelCfg);
-if(socket?.connected) socket.emit('cfg_upd',{hotelId:HID,...HotelCfg, syncToken:Date.now()});
-applyCfg();
-showToast('⚙️ ' + (t('settingsSaved') || 'Settings saved successfully'),'success');
-addLog('Config Update',field);
+
+async function saveCfg(field){
+    if(field==='name') HotelCfg.name=document.getElementById('cfgName')?.value||HotelCfg.name;
+    else if(field==='currency') {
+        HotelCfg.currency=document.getElementById('cfgCurrency')?.value||HotelCfg.currency;
+        showToast(`✅ Currency changed to ${HotelCfg.currency}`,'success');
+    }
+    else if(field==='wifi') HotelCfg.wifi=document.getElementById('cfgWifi')?.value||HotelCfg.wifi;
+    else if(field==='transport'){
+        HotelCfg.airportPrice=parseInt(document.getElementById('cfgAirport')?.value)||115;
+        HotelCfg.localPrice=parseInt(document.getElementById('cfgLocal')?.value)||60;
+    }
+    saveUIPrefs();
+    const success = await saveToMongo('config', HotelCfg);
+    if(success && socket?.connected) socket.emit('cfg_upd',{hotelId:HID,...HotelCfg, syncToken:Date.now()});
+    applyCfg();
+    showToast('⚙️ ' + (t('settingsSaved') || 'Settings saved successfully'),'success');
+    addLog('Config Update',field);
 }
 function genAllQR(){
 const grid=document.getElementById('qrGrid');if(!grid)return;
@@ -3306,19 +3242,20 @@ showToast('✅ Booking updated','success');
 addLog('Edit Booking',`${b.guestName}`);
 }
 }
-function deleteBooking(id){
-if(confirm('Delete this booking?')){
-const idx=bookings.findIndex(b=>b._id===id);
-if(idx>-1){
-const b=bookings[idx];
-bookings.splice(idx,1);
-if(isOnline) apiCall('DELETE', `/bookings/${id}?hotelId=${HID}`);
-if(socket?.connected) socket.emit('booking_upd',{hotelId:HID, collection:'bookings', data:b, clientId, syncToken: Date.now(), action: 'delete'});
-renderAdminBookings();renderGuestBookings();
-showToast('✅ Booking deleted','success');
-addLog('Delete Booking',`${b.guestName}`);
-}
-}
+
+async function deleteBooking(id){
+    if(confirm('Delete this booking?')){
+        const idx=bookings.findIndex(b=>b._id===id);
+        if(idx>-1){
+            const b=bookings[idx];
+            bookings.splice(idx,1);
+            if(isOnline) await apiCall('DELETE', `/bookings/${id}?hotelId=${HID}`);
+            if(socket?.connected) socket.emit('booking_upd',{hotelId:HID, collection:'bookings', data:b, clientId, syncToken: Date.now(), action: 'delete'});
+            renderAdminBookings();renderGuestBookings();
+            showToast('✅ Booking deleted','success');
+            addLog('Delete Booking',`${b.guestName}`);
+        }
+    }
 }
 function exportBookings(){
 const wb=XLSX.utils.book_new();
