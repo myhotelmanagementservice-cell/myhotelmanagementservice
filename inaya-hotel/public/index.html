@@ -17,12 +17,12 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html{height:100%}
-body{margin:0;padding:0;margin:0;padding:0;
+body{margin:0;padding:0;
 font-family:'DM Sans','Noto Sans Devanagari','Noto Naskh Arabic',system-ui,sans-serif;
 background:var(--bg);color:var(--fg);
 min-height:100dvh;width:100vw;overflow-x:hidden;
-padding-bottom:70px;transition:background .25s,color .25s,filter .2s;
-font-size:16px;line-height:1.5;margin:0;padding:0;
+transition:background .25s,color .25s,filter .2s;
+font-size:16px;line-height:1.5;
 }
 :root{
 --p1:#6c63ff;--p2:#a78bfa;--p3:#7c3aed;
@@ -70,7 +70,6 @@ gap:4px;width:100%;margin-bottom:4px;
 }
 @supports(padding-bottom:env(safe-area-inset-bottom)){
 #toolbar{padding-bottom:calc(12px + env(safe-area-inset-bottom))!important}
-body{margin:0;padding:0;margin:0;padding:0;padding-bottom:calc(120px + env(safe-area-inset-bottom))}
 }
 .tb-btn{
 flex: 1 1 auto;
@@ -140,6 +139,9 @@ select.inp{cursor:pointer}
 #loginPage{
 min-height:100dvh;width:100vw;display:flex;flex-direction:column;align-items:center;justify-content:center;
 background:var(--header);padding:0;margin:0;position:relative;
+padding-bottom: 150px; /* ✅ FIX: Ensure content is not hidden by toolbar */
+box-sizing: border-box;
+overflow-y: auto;
 }
 .login-card{
 width:100%;max-width:100vw;background:var(--card);border-radius:0;
@@ -166,11 +168,6 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .login-tabs{display:flex;gap:10px;margin-bottom:20px}
 .login-tab{flex:1;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--card2);color:var(--fg);border:1.5px solid var(--border);transition:all .15s}
 .login-tab.active{background:var(--p1);color:#fff;border-color:var(--p1)}
-.conn-status{display:flex;align-items:center;gap:6px;font-size:13px;padding:6px 12px;border-radius:20px;background:var(--card2);margin-bottom:14px;justify-content:center}
-.conn-dot{width:8px;height:8px;border-radius:50%;background:#9ca3af}
-.conn-dot.connected{background:#10b981;animation:pulse 2s infinite}
-.conn-dot.connecting{background:#f59e0b;animation:blink .8s infinite}
-.conn-dot.error{background:#ef4444}
 .login-clock{font-size:13px;color:var(--fg);opacity:.7;text-align:center;margin-top:10px;font-family:'DM Mono',monospace}
 .guest-nav{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px}
 .gnav-btn{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s;font-size:12px;font-weight:600;color:var(--fg);font-family:inherit}
@@ -238,8 +235,17 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .page-wrap{padding:8px}
 .tb-btn{padding:4px 6px;font-size:9px;min-width:26px}
 #toolbar{gap:3px;padding:10px 8px!important}
-body{margin:0;padding:0;margin:0;padding:0;padding-bottom:120px}
 }
+/* ✅ FIX: Add padding to dashboards to prevent content hiding behind toolbar */
+#adminDash, #guestDash {
+  padding-bottom: 150px;
+}
+@media(max-width:480px){
+  #adminDash, #guestDash {
+    padding-bottom: 160px;
+  }
+}
+
 [dir="rtl"] .req-card{border-left:none;border-right:4px solid var(--p1)}
 [dir="rtl"] .req-card.emergency{border-right-color:#ef4444}
 [lang="ar"]{font-family:'Noto Naskh Arabic','DM Sans',sans-serif}
@@ -349,10 +355,7 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:120px}
 <div class="login-logo">👑</div>
 <div class="login-h" id="loginHotelName">Crown Plaza Hotel</div>
 <div class="login-sub" data-i18n="welcomeSubtitle">Complete Management System</div>
-<div class="conn-status" style="justify-content:center">
-<div class="conn-dot connecting" id="loginConnDot"></div>
-<span id="loginConnTxt" data-i18n="connecting">Connecting to server…</span>
-</div>
+<!-- ✅ FIX: Removed "Connecting to server..." status -->
 <div id="loginClock" class="login-clock"></div>
 <div class="login-tabs">
 <button class="login-tab active" id="guestTabBtn" onclick="switchLogin('guest')" data-i18n="guestTab">🏨 Guest</button>
@@ -420,7 +423,6 @@ const SOCKET_URL = window.location.origin;
 const urlParams = new URLSearchParams(location.search);
 let HID = urlParams.get('hotel') || localStorage.getItem('hotel_hid') || 'default';
 if (urlParams.get('hotel')) localStorage.setItem('hotel_hid', HID);
-
 const T = {
 en:{
 hotelName:'Crown Plaza Hotel',welcomeSubtitle:'Complete Management System',connecting:'Connecting to server…',hotelIdLbl:'Hotel ID',enterHotelId:'Enter Hotel ID',
@@ -783,6 +785,36 @@ const ROLES = [
 {key:'security',icon:'🛡️',label:'roleSecurity'},
 {key:'it_support',icon:'💻',label:'roleIT'}
 ];
+
+// ✅ FIX: Caching functions for page refresh stability
+function cacheData(key, data) {
+  try {
+    localStorage.setItem(`h_${HID}_${key}`, JSON.stringify(data));
+  } catch(e) { console.warn('Cache save error', e); }
+}
+
+function getCachedData(key) {
+  try {
+    const d = localStorage.getItem(`h_${HID}_${key}`);
+    return d ? JSON.parse(d) : null;
+  } catch(e) { return null; }
+}
+
+function updateCache() {
+  cacheData('rooms', rooms);
+  cacheData('guests', guests);
+  cacheData('food', food);
+  cacheData('inventory', inventory);
+  cacheData('requests', requests);
+  cacheData('blacklist', blacklist);
+  cacheData('maintenance', maintenance);
+  cacheData('reviews', reviews);
+  cacheData('staff', staff);
+  cacheData('logs', logs);
+  cacheData('bookings', bookings);
+  cacheData('config', HotelCfg);
+}
+
 function generateDefaultRooms() {
 const types = ['Standard', 'Deluxe', 'Suite'];
 const basePricesSAR = { Standard: 371, Deluxe: 484, Suite: 746 };
@@ -920,12 +952,11 @@ localStorage.setItem('hotel_dark', dark ? '1' : '0');
 localStorage.setItem('hotel_theme', theme);
 localStorage.setItem(`h_${HID}_queue`, JSON.stringify(offlineQueue));
 }
+
+// ✅ FIX: saveToMongo now returns boolean and handles its own error queuing
 async function saveToMongo(collection, data) {
 if (!isOnline) {
-offlineQueue.push({collection, data, timestamp: Date.now()});
-updateNetBadge('queued');
-saveUIPrefs();
-return;
+return false;
 }
 try {
 if (Array.isArray(data)) {
@@ -951,12 +982,16 @@ if (res && res._id) data._id = res._id;
 await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
 }
 }
+return true;
 } catch (e) {
 console.warn(`saveToMongo error for ${collection}:`, e);
 offlineQueue.push({collection, data, timestamp: Date.now()});
 saveUIPrefs();
+return false;
 }
 }
+
+// ✅ FIX: loadAllData now caches data and loads from cache if API fails
 async function loadAllData() {
 try {
 const [r, g, f, inv, req, bl, maint, rev, st, lg, bk, cfg] = await Promise.all([
@@ -973,21 +1008,52 @@ apiCall('GET', `/logs?hotelId=${HID}`),
 apiCall('GET', `/bookings?hotelId=${HID}`),
 apiCall('GET', `/config?hotelId=${HID}`)
 ]);
-if(r && Array.isArray(r)) rooms = r; else rooms = generateDefaultRooms();
-if(g && Array.isArray(g)) guests = g; else guests = [];
-if(f && Array.isArray(f)) food = f; else food = generateDefaultFood();
-if(inv && Array.isArray(inv)) inventory = inv; else inventory = generateDefaultInventory();
-if(req && Array.isArray(req)) requests = req; else requests = [];
-if(bl && Array.isArray(bl)) blacklist = bl; else blacklist = [];
-if(maint && Array.isArray(maint)) maintenance = maint; else maintenance = [];
-if(rev && Array.isArray(rev)) reviews = rev; else reviews = [];
-if(st && Array.isArray(st)) staff = st; else staff = [];
-if(lg && Array.isArray(lg)) logs = lg; else logs = [];
-if(bk && Array.isArray(bk)) bookings = bk; else bookings = [];
+
+if(r && Array.isArray(r)) { rooms = r; cacheData('rooms', r); } 
+else { rooms = getCachedData('rooms') || generateDefaultRooms(); }
+
+if(g && Array.isArray(g)) { guests = g; cacheData('guests', g); }
+else { guests = getCachedData('guests') || []; }
+
+if(f && Array.isArray(f)) { food = f; cacheData('food', f); }
+else { food = getCachedData('food') || generateDefaultFood(); }
+
+if(inv && Array.isArray(inv)) { inventory = inv; cacheData('inventory', inv); }
+else { inventory = getCachedData('inventory') || generateDefaultInventory(); }
+
+if(req && Array.isArray(req)) { requests = req; cacheData('requests', req); }
+else { requests = getCachedData('requests') || []; }
+
+if(bl && Array.isArray(bl)) { blacklist = bl; cacheData('blacklist', bl); }
+else { blacklist = getCachedData('blacklist') || []; }
+
+if(maint && Array.isArray(maint)) { maintenance = maint; cacheData('maintenance', maint); }
+else { maintenance = getCachedData('maintenance') || []; }
+
+if(rev && Array.isArray(rev)) { reviews = rev; cacheData('reviews', rev); }
+else { reviews = getCachedData('reviews') || []; }
+
+if(st && Array.isArray(st)) { staff = st; cacheData('staff', st); }
+else { staff = getCachedData('staff') || []; }
+
+if(lg && Array.isArray(lg)) { logs = lg; cacheData('logs', lg); }
+else { logs = getCachedData('logs') || []; }
+
+if(bk && Array.isArray(bk)) { bookings = bk; cacheData('bookings', bk); }
+else { bookings = getCachedData('bookings') || []; }
+
 if(cfg && typeof cfg === 'object') {
 Object.assign(HotelCfg, cfg);
 if(cfg.currencies) Object.assign(CURRENCIES, cfg.currencies);
+cacheData('config', cfg);
+} else {
+const cachedCfg = getCachedData('config');
+if(cachedCfg) {
+  Object.assign(HotelCfg, cachedCfg);
+  if(cachedCfg.currencies) Object.assign(CURRENCIES, cachedCfg.currencies);
 }
+}
+
 lang = localStorage.getItem('hotel_lang') || 'en';
 dark = localStorage.getItem('hotel_dark') === '1';
 theme = localStorage.getItem('hotel_theme') || 'default';
@@ -995,29 +1061,47 @@ const queue = JSON.parse(localStorage.getItem(`h_${HID}_queue`) || '[]');
 if(queue.length) offlineQueue.push(...queue);
 applyCfg();
 renderAll();
+updateCache();
 } catch (e) {
 console.warn('loadAllData error', e);
-rooms = generateDefaultRooms();
-food = generateDefaultFood();
-inventory = generateDefaultInventory();
+rooms = getCachedData('rooms') || generateDefaultRooms();
+food = getCachedData('food') || generateDefaultFood();
+inventory = getCachedData('inventory') || generateDefaultInventory();
+guests = getCachedData('guests') || [];
+requests = getCachedData('requests') || [];
+blacklist = getCachedData('blacklist') || [];
+maintenance = getCachedData('maintenance') || [];
+reviews = getCachedData('reviews') || [];
+staff = getCachedData('staff') || [];
+logs = getCachedData('logs') || [];
+bookings = getCachedData('bookings') || [];
+const cachedCfg = getCachedData('config');
+if(cachedCfg) {
+  Object.assign(HotelCfg, cachedCfg);
+  if(cachedCfg.currencies) Object.assign(CURRENCIES, cachedCfg.currencies);
+}
 renderAll();
 }
 }
-function save(collection, data, event='data_upd'){
+
+// ✅ FIX: save is now async and awaits DB save before emitting socket event
+async function save(collection, data, event='data_upd'){
 if(Array.isArray(data)){
 data = data.map(item => ({...item, _version: (item._version||0)+1, updatedAt: new Date().toISOString()}));
 }else{
 data = {...data, _version: (data._version||0)+1, updatedAt: new Date().toISOString()};
 }
-saveToMongo(collection, data);
-if(isOnline && socket?.connected){
-socket.emit(event,{hotelId:HID, collection, data, clientId, syncToken: Date.now()});
-}else{
-offlineQueue.push({collection, data, event, timestamp: Date.now()});
-updateNetBadge('queued');
-saveUIPrefs();
+const success = await saveToMongo(collection, data);
+if(success){
+  if(isOnline && socket?.connected){
+    socket.emit(event,{hotelId:HID, collection, data, clientId, syncToken: Date.now()});
+  }
+  updateCache();
+} else {
+  updateNetBadge('queued');
 }
 }
+
 function safeMerge(target, source, collection){
 if(!source || !target) return target;
 if(Array.isArray(source) && Array.isArray(target)){
@@ -1048,15 +1132,22 @@ setSockStatus('connected');
 updateNetBadge('online');
 socket.emit('join_hotel', HID);
 showToast('🔗 Connected to Server','socket');
+
+// ✅ FIX: Offline queue sync now awaits DB save
 if(offlineQueue.length){
 showToast(`🔄 Syncing ${offlineQueue.length} pending actions...`,'socket');
-offlineQueue.forEach(item => {
-socket.emit(item.event, {hotelId:HID, collection:item.collection, data:item.data, clientId, syncToken: item.timestamp});
-});
+const queueCopy = [...offlineQueue];
 offlineQueue.length = 0;
 saveUIPrefs();
+queueCopy.forEach(async (item) => {
+  const success = await saveToMongo(item.collection, item.data);
+  if(success && socket?.connected){
+    socket.emit(item.event, {hotelId:HID, collection:item.collection, data:item.data, clientId, syncToken: item.timestamp});
+  }
+});
 updateNetBadge('online');
 }
+
 syncBack();
 });
 socket.on('disconnect',()=>{setSockStatus('disconnected');updateNetBadge('offline')});
@@ -1088,6 +1179,7 @@ if(data.staff) renderStaff();
 if(data.logs) renderLogs();
 if(data.bookings) {renderGuestBookings(); renderAdminBookings();}
 showToast('🔄 Data synced from Server','socket');
+updateCache();
 });
 socket.on('cfg_upd',(cfg)=>{
 if(cfg.syncToken && processedEvents.has(cfg.syncToken)) return;
@@ -1098,6 +1190,7 @@ Object.assign(CURRENCIES, cfg.currencies);
 Object.assign(HotelCfg, cfg);
 applyCfg();
 showToast('⚙️ Config updated from Server','socket');
+updateCache();
 });
 socket.on('currency_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1107,6 +1200,7 @@ if(payload.currencies) {
 Object.assign(CURRENCIES, payload.currencies);
 applyCfg();
 showToast('💱 Currency rates updated from Server','socket');
+updateCache();
 }
 });
 socket.on('req_new',(payload)=>{
@@ -1117,6 +1211,7 @@ const req = payload.data;
 if(!requests.find(r=>r._id===req._id)) requests.unshift(req);
 renderRequests(); updateAdminStats();
 if(currentUser?.type==='admin') showToast(`📋 New request: ${req.guestName}`,'socket');
+updateCache();
 });
 socket.on('req_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1135,6 +1230,7 @@ if(currentUser?.type==='guest') {
 renderGuestHistory();
 if(req.adminReply) showToast('👑 ' + (t('replyReceived') || 'You have a new reply from Admin'), 'success');
 }
+updateCache();
 });
 socket.on('room_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1149,6 +1245,7 @@ if(idx>-1) rooms[idx]=safeMerge(rooms[idx], room, 'rooms');
 else rooms.push(room);
 }
 renderRooms(); updateAdminStats();
+updateCache();
 });
 socket.on('inventory_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1163,6 +1260,7 @@ if(idx>-1) inventory[idx]=safeMerge(inventory[idx], item, 'inventory');
 else inventory.push(item);
 }
 renderInventory(); renderGuestInv();
+updateCache();
 });
 socket.on('food_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1181,6 +1279,7 @@ else food.push(f);
 renderFood();
 renderGuestFood();
 showToast('🍽️ ' + (t('menuUpdatedLive') || 'Menu updated live!'),'socket');
+updateCache();
 });
 socket.on('review_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1189,6 +1288,7 @@ if(payload.clientId === clientId) return;
 const rev = payload.data;
 if(!reviews.find(r=>r._id===rev._id)) reviews.unshift(rev);
 renderReviews();
+updateCache();
 });
 socket.on('booking_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1198,6 +1298,7 @@ const booking = payload.data;
 if(!bookings.find(b=>b._id===booking._id)) bookings.unshift(booking);
 renderGuestBookings(); renderAdminBookings();
 if(currentUser?.type==='admin') showToast(`📅 New booking: ${booking.guestName}`,'socket');
+updateCache();
 });
 socket.on('booking_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1212,6 +1313,7 @@ if(idx>-1) bookings[idx]=safeMerge(bookings[idx], booking, 'bookings');
 else bookings.unshift(booking);
 }
 renderGuestBookings(); renderAdminBookings();
+updateCache();
 });
 socket.on('staff_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1226,6 +1328,7 @@ if(idx>-1) staff[idx]=safeMerge(staff[idx], s, 'staff');
 else staff.push(s);
 }
 renderStaff();
+updateCache();
 });
 socket.on('guest_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1240,6 +1343,7 @@ if(idx>-1) guests[idx]=safeMerge(guests[idx], g, 'guests');
 else guests.push(g);
 }
 renderGuests(); renderLoyalty(); updateGuestStats();
+updateCache();
 });
 socket.on('blacklist_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1254,6 +1358,7 @@ if(idx>-1) blacklist[idx]=safeMerge(blacklist[idx], b, 'blacklist');
 else blacklist.push(b);
 }
 renderBlacklist();
+updateCache();
 });
 socket.on('maintenance_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1268,6 +1373,7 @@ if(idx>-1) maintenance[idx]=safeMerge(maintenance[idx], m, 'maintenance');
 else maintenance.push(m);
 }
 renderMaintenance();
+updateCache();
 });
 socket.on('logs_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1280,6 +1386,7 @@ logs = [];
 if(!logs.find(x=>x._id===l._id)) logs.unshift(l);
 }
 renderLogs();
+updateCache();
 });
 }catch(e){
 console.warn('Socket unavailable, offline mode');
@@ -1287,32 +1394,36 @@ setSockStatus('error');
 updateNetBadge('offline');
 }
 }
+
+// ✅ FIX: syncBack now caches data
 async function syncBack(){
 if(!isOnline) return;
 const [r,g,f,inv,req,bl,maint,rev,st,lg,bk,cfg] = await Promise.all([
 apiCall('GET',`/rooms?hotelId=${HID}`),apiCall('GET',`/guests?hotelId=${HID}`),apiCall('GET',`/food?hotelId=${HID}`),
 apiCall('GET',`/inventory?hotelId=${HID}`),apiCall('GET',`/requests?hotelId=${HID}`),apiCall('GET',`/blacklist?hotelId=${HID}`),
-apiCall('GET',`/maintenance?hotelId=${HID}`),apiCall('GET',`/reviews?hotelId=${HID}`),apiCall('GET',`/staff?hotelId=${HID}`),apiCall('GET',`/logs?hotelId=${HID}`),apiCall('GET',`/bookings?hotelId=${HID}`),
+apiCall('GET',`/maintenance?hotelId=${HID}`),apiCall('GET',`/reviews?hotelId=${HID}`),apiCall('GET',`/staff?hotelId=${HID}`),apiCall('GET',`/logs?hotelId=${HID}`),
+apiCall('GET',`/bookings?hotelId=${HID}`),
 apiCall('GET',`/config?hotelId=${HID}`)
 ]);
-if(r) rooms = safeMerge(rooms, r, 'rooms');
-if(g) guests = safeMerge(guests, g, 'guests');
-if(f) food = safeMerge(food, f, 'food');
-if(inv) inventory = safeMerge(inventory, inv, 'inventory');
-if(req) requests = safeMerge(requests, req, 'requests');
-if(bl) blacklist = safeMerge(blacklist, bl, 'blacklist');
-if(maint) maintenance = safeMerge(maintenance, maint, 'maintenance');
-if(rev) reviews = safeMerge(reviews, rev, 'reviews');
-if(st) staff = safeMerge(staff, st, 'staff');
-if(lg) logs = safeMerge(logs, lg, 'logs');
-if(bk) bookings = safeMerge(bookings, bk, 'bookings');
-if(cfg) {Object.assign(HotelCfg,cfg); applyCfg();}
+if(r) { rooms = safeMerge(rooms, r, 'rooms'); cacheData('rooms', rooms); }
+if(g) { guests = safeMerge(guests, g, 'guests'); cacheData('guests', guests); }
+if(f) { food = safeMerge(food, f, 'food'); cacheData('food', food); }
+if(inv) { inventory = safeMerge(inventory, inv, 'inventory'); cacheData('inventory', inventory); }
+if(req) { requests = safeMerge(requests, req, 'requests'); cacheData('requests', requests); }
+if(bl) { blacklist = safeMerge(blacklist, bl, 'blacklist'); cacheData('blacklist', blacklist); }
+if(maint) { maintenance = safeMerge(maintenance, maint, 'maintenance'); cacheData('maintenance', maintenance); }
+if(rev) { reviews = safeMerge(reviews, rev, 'reviews'); cacheData('reviews', reviews); }
+if(st) { staff = safeMerge(staff, st, 'staff'); cacheData('staff', staff); }
+if(lg) { logs = safeMerge(logs, lg, 'logs'); cacheData('logs', logs); }
+if(bk) { bookings = safeMerge(bookings, bk, 'bookings'); cacheData('bookings', bookings); }
+if(cfg) {Object.assign(HotelCfg,cfg); applyCfg(); cacheData('config', cfg);}
 renderAll();
 if(!rooms.length) loadAllData();
 }
+
+// ✅ FIX: Removed references to loginConnDot and loginConnTxt
 function setSockStatus(s){
 const dot=document.getElementById('sockDot'), txt=document.getElementById('sockTxt');
-const loginDot=document.getElementById('loginConnDot'), loginTxt=document.getElementById('loginConnTxt');
 const map={
 connected:{cls:'connected', text: t('serverConnected')||'Live'},
 disconnected:{cls:'error', text: t('serverOffline')||'Offline'},
@@ -1320,14 +1431,13 @@ connecting:{cls:'connecting', text: t('serverConnecting')||'Connecting…'},
 error:{cls:'error', text: t('serverOffline')||'Offline'}
 };
 const m=map[s]||map.disconnected;
-[dot,loginDot].forEach(el=>{if(el){el.className=(el.id==='loginConnDot'?'conn-dot ':'sock-dot ')+m.cls}});
+if(dot) dot.className='sock-dot '+m.cls;
 if(txt) txt.textContent=m.text;
-if(loginTxt) {
-loginTxt.textContent = s === 'connected' ? (t('serverConnected')||'Connected') : m.text;
-}
+
 const sockEl=document.getElementById('sockStatus');
 if(sockEl) sockEl.style.display=s==='connected'?'none':'flex';
 }
+
 function updateNetBadge(status){
 const loginBadge=document.getElementById('loginNetBadge');
 if(!loginBadge) return;
