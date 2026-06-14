@@ -12,7 +12,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<!-- ✅ FIX: Use backend-served socket.io instead of CDN to avoid timeout -->
 <script src="/socket.io/socket.io.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -21,7 +20,7 @@ body{margin:0;padding:0;margin:0;padding:0;
 font-family:'DM Sans','Noto Sans Devanagari','Noto Naskh Arabic',system-ui,sans-serif;
 background:var(--bg);color:var(--fg);
 min-height:100dvh;width:100vw;overflow-x:hidden;
-padding-bottom:70px;transition:background .25s,color .25s,filter .2s;
+padding-bottom:160px;transition:background .25s,color .25s,filter .2s;
 font-size:16px;line-height:1.5;margin:0;padding:0;
 }
 :root{
@@ -50,54 +49,76 @@ body.theme-forest{--p1:#10b981;--p2:#34d399;--p3:#059669;--header:linear-gradien
 body.theme-ocean{--p1:#06b6d4;--p2:#3b82f6;--p3:#0e7490;--header:linear-gradient(135deg,#06b6d4,#3b82f6);--toolbar-bg:rgba(6,182,212,.97)}
 body.theme-royal{--p1:#ec4899;--p2:#8b5cf6;--p3:#be185d;--header:linear-gradient(135deg,#ec4899,#8b5cf6);--toolbar-bg:rgba(236,72,153,.97)}
 body.high-contrast{filter:contrast(1.4) saturate(1.3)}
-#toolbar{width:100%!important;left:0!important;right:0!important;margin:0!important;
-position:fixed!important;bottom:0!important;left:0!important;right:0!important;
+
+/* ✅ ISSUE #1 FIX: Toolbar restructured into 3 rows */
+#toolbar{
+width:100%!important;left:0!important;right:0!important;margin:0!important;
+position:fixed!important;bottom:0!important;
 width:100vw!important;background:var(--toolbar-bg)!important;
 backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-border-top:none!important;padding:18px 14px!important;
-display:flex!important;flex-wrap:wrap;justify-content:center;align-items:center;
-gap:4px;z-index:99999!important;box-shadow:0 -4px 24px rgba(0,0,0,.18)!important;
-transform:translateZ(0)!important;will-change:auto!important;contain:layout style;
+border-top:none!important;
+padding:6px 8px!important;
+display:flex!important;flex-direction:column!important;
+gap:4px;z-index:99999!important;
+box-shadow:0 -4px 24px rgba(0,0,0,.18)!important;
+transform:translateZ(0)!important;
 }
+.toolbar-row{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+align-items:center;
+gap:4px;
+width:100%;
+}
+.toolbar-row .tb-btn{
+flex:1 1 0;
+min-width:0;
+max-width:20%;
+}
+.toolbar-row-bottom .tb-btn,
+.toolbar-row-bottom .tb-slider-wrap{
+flex:1 1 0;
+min-width:0;
+max-width:25%;
+}
+.tb-slider-wrap{
+display:flex;align-items:center;gap:3px;
+background:rgba(255,255,255,.15);
+padding:3px 7px;border-radius:8px;
+}
+
 @media(max-width:640px){
 #toolbar{width:100%!important;left:0!important;right:0!important;margin:0!important}
 }
 @supports(padding-bottom:env(safe-area-inset-bottom)){
-#toolbar{padding-bottom:calc(18px + env(safe-area-inset-bottom))!important}
-body{margin:0;padding:0;margin:0;padding:0;padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+#toolbar{padding-bottom:calc(6px + env(safe-area-inset-bottom))!important}
+body{margin:0;padding:0;margin:0;padding:0;padding-bottom:calc(160px + env(safe-area-inset-bottom))}
 }
 .tb-btn{
-flex: 1 1 auto;
 text-align: center;
-padding:10px 14px;border-radius:8px;border:none;
-background:rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:600;
-cursor:pointer;white-space:nowrap;min-width:32px;transition:background .15s,transform .1s;
+padding:8px 6px;border-radius:8px;border:none;
+background:rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:600;
+cursor:pointer;white-space:nowrap;transition:background .15s,transform .1s;
 font-family:inherit;
 }
 .tb-btn:hover{background:rgba(255,255,255,.35);transform:translateY(-1px)}
 .tb-btn.active{background:rgba(255,255,255,.45);box-shadow:0 2px 8px rgba(0,0,0,.2)}
-.tb-slider{width:60px;height:5px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.35);border-radius:2px;cursor:pointer}
+.tb-slider{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.35);border-radius:2px;cursor:pointer}
 .tb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#fff;border-radius:50%}
 #themeDD{
-position:fixed;bottom:96px;right:12px;background:var(--card);
+position:fixed;bottom:170px;right:12px;background:var(--card);
 border:1px solid var(--border);padding:10px;border-radius:12px;
 box-shadow:0 8px 32px rgba(0,0,0,.2);z-index:100000;display:none;min-width:160px;
 }
 #themeDD.show{display:block}
 .th-dot{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;display:inline-block;margin:2px;transition:transform .15s,border-color .15s}
 .th-dot:hover,.th-dot.active{transform:scale(1.1);border-color:var(--p1)}
-#netBadge{
-position:fixed;top:10px;right:10px;z-index:50000;
-padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
-pointer-events:none;display:none;transition:all .2s;
-}
-#netBadge.online{display:block;background:#10b981;color:#fff;box-shadow:0 2px 8px rgba(16,185,129,.3)}
-#netBadge.offline{display:block;background:#ef4444;color:#fff;box-shadow:0 2px 8px rgba(239,68,68,.3)}
-#netBadge.reconnecting{display:block;background:#f59e0b;color:#fff;animation:pulse 1.5s infinite}
-#netBadge.queued{display:block;background:#f59e0b;color:#fff;animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ✅ ISSUE #2 FIX: #netBadge removed from top-right, only login page indicator remains */
+
 #sockStatus{
-position:fixed;bottom:106px;left:8px;z-index:10000;
+position:fixed;bottom:170px;left:8px;z-index:10000;
 background:var(--card);border:1px solid var(--border);
 border-radius:20px;padding:3px 8px;font-size:10px;font-weight:600;
 display:flex;align-items:center;gap:4px;box-shadow:var(--shadow);
@@ -167,7 +188,7 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .login-h{font-size:24px;font-weight:700;color:var(--fg);text-align:center;margin-bottom:6px}
 .login-sub{font-size:14px;color:var(--p2);text-align:center;margin-bottom:20px}
 .login-tabs{display:flex;gap:10px;margin-bottom:20px}
-.login-tab{flex:1;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--card2);color:var(--fg);border:1.5px solid var(--border);transition:all .15s}
+.login-tab{flex:1;padding:8px;border-radius:12px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--card2);color:var(--fg);border:1.5px solid var(--border);transition:all .15s}
 .login-tab.active{background:var(--p1);color:#fff;border-color:var(--p1)}
 .conn-status{display:flex;align-items:center;gap:6px;font-size:13px;padding:6px 12px;border-radius:20px;background:var(--card2);margin-bottom:14px;justify-content:center}
 .conn-dot{width:8px;height:8px;border-radius:50%;background:#9ca3af}
@@ -179,7 +200,7 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .gnav-btn{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s;font-size:12px;font-weight:600;color:var(--fg);font-family:inherit}
 .gnav-btn:hover,.gnav-btn.active{background:var(--p1);color:#fff;border-color:var(--p1)}
 .gnav-icon{font-size:18px;display:block;margin-bottom:2px}
-.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:12px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;box-shadow:var(--shadow)}
 .stat-val{font-size:24px;font-weight:700;color:var(--p1)}
 .stat-lbl{font-size:12px;color:var(--fg);opacity:.6;margin-top:2px}
@@ -239,11 +260,9 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .guest-nav{grid-template-columns:repeat(3,1fr)}
 .form-2{grid-template-columns:1fr}
 .page-wrap{padding:8px}
-.tb-btn{padding:4px 6px;font-size:9px;min-width:26px}
-flex: 1 1 auto;
-text-align: center;
-#toolbar{gap:3px;padding:12px 8px!important}
-body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
+.tb-btn{padding:6px 4px;font-size:10px}
+#toolbar{gap:3px;padding:4px 4px!important}
+body{margin:0;padding:0;margin:0;padding:0;padding-bottom:160px}
 }
 [dir="rtl"] .req-card{border-left:none;border-right:4px solid var(--p1)}
 [dir="rtl"] .req-card.emergency{border-right-color:#ef4444}
@@ -309,28 +328,39 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 </style>
 </head>
 <body>
-<div id="netBadge">🟢 Online</div>
+<!-- ✅ ISSUE #2 FIX: Removed #netBadge from top-right corner -->
 <div id="sockStatus"><span class="sock-dot connecting" id="sockDot"></span><span id="sockTxt">Connecting…</span></div>
+
+<!-- ✅ ISSUE #1 FIX: Toolbar restructured into 3 rows -->
 <div id="toolbar">
+<!-- Row 1: 5 buttons -->
+<div class="toolbar-row">
 <button class="tb-btn active" onclick="setLang('en')" id="lb-en">🇬 EN</button>
 <button class="tb-btn" onclick="setLang('hi')" id="lb-hi">🇮 हि</button>
 <button class="tb-btn" onclick="setLang('ar')" id="lb-ar">🇸🇦 ع</button>
 <button class="tb-btn" onclick="toggleOnlineMode()" id="onlineBtn" title="Toggle Online/Offline">🟢 Online</button>
-<!-- ✅ FIX ISSUE 1: Added 🔆 icon and ensured toggleContrast works -->
 <button class="tb-btn" onclick="toggleContrast()" title="Toggle High Contrast">🔆</button>
+</div>
+<!-- Row 2: 5 buttons -->
+<div class="toolbar-row">
 <button class="tb-btn" onclick="adjustFont(-1)" title="Decrease Font">A-</button>
 <button class="tb-btn" onclick="adjustFont(0)" title="Reset Font">A</button>
 <button class="tb-btn" onclick="adjustFont(1)" title="Increase Font">A+</button>
 <button class="tb-btn" onclick="toggleDark()" id="darkBtn">🌙</button>
 <button class="tb-btn" onclick="toggleThemeDD()" title="Theme">🎨</button>
-<span style="display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.15);padding:3px 7px;border-radius:8px">
+</div>
+<!-- Row 3: 4 controls (untouched existing row) -->
+<div class="toolbar-row toolbar-row-bottom">
+<div class="tb-slider-wrap">
 <span style="font-size:9px">☀</span>
 <input type="range" class="tb-slider" id="brightSlider" min=".5" max="1.5" step=".05" value="1" oninput="setBrightness(this.value)">
-</span>
+</div>
 <button class="tb-btn" onclick="reqNotif()" id="notifBtn">🔔</button>
 <button class="tb-btn" onclick="haptic()">📳</button>
 <button class="tb-btn" onclick="speakWelcome()" title="Voice Welcome">🔊</button>
 </div>
+</div>
+
 <div id="themeDD">
 <div style="font-size:10px;font-weight:700;margin-bottom:6px;color:var(--fg)" data-i18n="selectTheme">Theme</div>
 <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center">
@@ -350,7 +380,6 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 <div class="login-sub" data-i18n="welcomeSubtitle">Complete Management System</div>
 <div class="conn-status" style="justify-content:center">
 <div class="conn-dot connecting" id="loginConnDot"></div>
-<!-- ✅ FIX ISSUE 4: Will be updated dynamically to "Connected" or "Live" -->
 <span id="loginConnTxt" data-i18n="connecting">Connecting to server…</span>
 </div>
 <div id="loginClock" class="login-clock"></div>
@@ -369,8 +398,7 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 <div class="form-row"><label class="lbl" data-i18n="password">Password</label><input class="inp" id="adminPassIn" type="password" data-i18n-ph="enterPassword" placeholder="Enter password" required></div>
 <button class="btn-primary" style="width:100%;padding:11px" type="submit" data-i18n="loginAdmin">🔐 Login as Admin</button>
 </form>
-<!-- ✅ FIX ISSUE 3: Hidden Hotel ID text -->
-<div style="text-align:center;margin-top:10px;font-size:10px;opacity:.5" id="tenantLabel" hidden></div>
+<div style="text-align:center;margin-top:10px;font-size:10px;opacity:.5" id="tenantLabel"></div>
 </div>
 </div>
 <div id="rolePage" class="hidden" style="min-height:100dvh;background:var(--header);display:flex;align-items:center;justify-content:center;padding:12px">
@@ -415,16 +443,13 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:70px}
 </div>
 <div id="modals"></div>
 <script>
-// ✅ FIX: Dynamic API/SOCKET URLs based on current origin (Multi-device sync)
 const API_BASE = window.API_BASE || (window.location.origin + '/api');
-const SOCKET_URL = window.location.origin; // ✅ Dynamic socket URL for multi-device
+const SOCKET_URL = window.location.origin;
 const urlParams = new URLSearchParams(location.search);
 let HID = urlParams.get('hotel') || localStorage.getItem('hotel_hid') || 'default';
 if (urlParams.get('hotel')) localStorage.setItem('hotel_hid', HID);
-// ✅ FIX ISSUE 3: Removed tenantLabel text setting
-// document.getElementById('tenantLabel').textContent = `Hotel ID: ${HID}`;
+document.getElementById('tenantLabel').textContent = `Hotel ID: ${HID}`;
 
-// ✅ FIX ISSUE 6: Added comprehensive translation keys for all toast notifications
 const T = {
 en:{
 hotelName:'Crown Plaza Hotel',welcomeSubtitle:'Complete Management System',connecting:'Connecting to server…',hotelIdLbl:'Hotel ID',enterHotelId:'Enter Hotel ID',
@@ -486,7 +511,7 @@ usd:'USD',sar:'SAR',inr:'INR',aed:'AED',kwd:'KWD',
 quickCheckin:'🚀 Quick Check-in',quickCheckout:'🚪 Quick Checkout',newRequest:'📝 New Request',viewReports:'📈 View Reports',
 reply:'💬 Reply',replySent:'Reply sent!',noReply:'No reply yet',
 contrast:'🔆 Contrast',fontSize:'🔤 Font',notifications:'🔔 Notify',haptic:'📳 Haptic',voice:'🔊 Voice',
-notifGranted:'Notifications enabled',notifDenied:'Notifications blocked - Please allow in browser settings',notifPending:'Permission pending',notifNotSupported:'Notifications not supported',notifRequesting:'Requesting permission...',
+notifGranted:'Notifications enabled',notifDenied:'Notifications blocked',notifPending:'Permission pending',notifNotSupported:'Notifications not supported',notifRequesting:'Requesting...',
 adminLogin:'Administrator login',enterPassword:'Enter password',
 addStaff:'+ Add Staff',staffName:'Staff Name',staffRole:'Role',department:'Department',
 joinDate:'Join Date',shift:'Shift',morning:'Morning',evening:'Evening',night:'Night',
@@ -494,26 +519,26 @@ markPresent:'✓ Present',markAbsent:'✗ Absent',applyLeave:'Apply Leave',
 approve:'Approve',reject:'Reject',leaveReason:'Leave Reason',
 tasksCompleted:'Tasks',performance:'Performance',online:'Online',offline:'Offline',
 onLeave:'On Leave',onDuty:'On Duty',
-bookRoom:'📅 Book Room',selectRoom:'Select Room',checkIn:'Check-in',checkOut:'Check-out',numGuests:'Number of Guests',totalPrice:'Total Price',nights:'night(s)',bookingConfirmed:'Booking confirmed! Booking ID:',myBookings:'My Bookings',bookingStatus:'Status',pending:'Pending',confirmed:'Confirmed',checkedIn:'Checked-in',checkedOut:'Checked-out',cancelled:'Cancelled',requestSubmitted:'Request submitted',orderPlaced:'Order placed successfully',bookingConfirmedMsg:'Booking confirmed',itemAdded:'Item added successfully',changesSaved:'Changes saved',welcomeMsg:'Welcome to Complete Hotel Management System',
-notifRequestTitle:'Request Submitted',notifRequestBody:'Your request has been submitted successfully!',
-notifOrderTitle:'Order Placed',notifOrderBody:'Your food order has been placed successfully!',
-notifBookingTitle:'Booking Confirmed',notifBookingBody:'Your booking has been confirmed!',
-notifInventoryTitle:'Item Requested',notifInventoryBody:'Your item request has been submitted!',
-notifCabTitle:'Cab Booked',notifCabBody:'Your cab has been booked successfully!',
+bookRoom:'📅 Book Room',selectRoom:'Select Room',checkIn:'Check-in',checkOut:'Check-out',numGuests:'Number of Guests',totalPrice:'Total Price',nights:'night(s)',bookingConfirmed:'Booking confirmed!',myBookings:'My Bookings',bookingStatus:'Status',pending:'Pending',confirmed:'Confirmed',checkedIn:'Checked-in',checkedOut:'Checked-out',cancelled:'Cancelled',requestSubmitted:'Request submitted',orderPlaced:'Order placed',bookingConfirmedMsg:'Booking confirmed',itemAdded:'Item added',changesSaved:'Changes saved',welcomeMsg:'Welcome to Crown Plaza',
+notifRequestTitle:'Request',notifRequestBody:'Submitted!',
+notifOrderTitle:'Order',notifOrderBody:'Placed!',
+notifBookingTitle:'Booking',notifBookingBody:'Confirmed!',
+notifInventoryTitle:'Item',notifInventoryBody:'Requested!',
+notifCabTitle:'Cab',notifCabBody:'Booked!',
 highContrastOn:'🔆 High contrast ON',highContrastOff:'🔆 High contrast OFF',
-fontDecreased:'Font decreased',fontIncreased:'Font increased',fontReset:'Font reset to 16px',
+fontDecreased:'Font decreased',fontIncreased:'Font increased',fontReset:'Font reset',
 serverConnected:'Connected',serverConnecting:'Connecting…',serverOffline:'Offline',
-adminReply:'Admin Reply',replySentToGuest:'Reply sent to guest',replyReceived:'You have a new reply from Admin',
-reqSubmitted:'Request submitted successfully',orderPlacedToast:'Order placed successfully',
-bookingConfirmedToast:'Booking confirmed',roomBooked:'Room booked successfully',invRequested:'Request sent for ',
-roomAdded:'Room added successfully',roomUpdated:'Room updated successfully',roomDeleted:'Room deleted successfully',
-guestAdded:'Guest added successfully',guestUpdated:'Guest updated successfully',guestDeleted:'Guest deleted successfully',
-foodAdded:'Food item added successfully',foodUpdated:'Food item updated successfully',foodDeleted:'Food item deleted successfully',
-invAdded:'Inventory item added successfully',invUpdated:'Inventory item updated successfully',invDeleted:'Inventory item deleted successfully',
-reqStatusUpdated:'Request status updated to ',settingsSaved:'Settings saved successfully',
-staffAdded:'Staff member added successfully',staffUpdated:'Staff member updated successfully',staffDeleted:'Staff member deleted successfully',
-guestBlocked:'Guest blocked successfully',guestUnblocked:'Guest unblocked successfully',
-menuUpdatedLive:'Menu updated live!'
+adminReply:'Admin Reply',replySentToGuest:'Reply sent',replyReceived:'New reply from Admin',
+reqSubmitted:'Request submitted',orderPlacedToast:'Order placed',
+bookingConfirmedToast:'Booking confirmed',roomBooked:'Room booked',invRequested:'Request sent for ',
+roomAdded:'Room added',roomUpdated:'Room updated',roomDeleted:'Room deleted',
+guestAdded:'Guest added',guestUpdated:'Guest updated',guestDeleted:'Guest deleted',
+foodAdded:'Food added',foodUpdated:'Food updated',foodDeleted:'Food deleted',
+invAdded:'Inventory added',invUpdated:'Inventory updated',invDeleted:'Inventory deleted',
+reqStatusUpdated:'Status updated to ',settingsSaved:'Settings saved',
+staffAdded:'Staff added',staffUpdated:'Staff updated',staffDeleted:'Staff deleted',
+guestBlocked:'Guest blocked',guestUnblocked:'Guest unblocked',
+menuUpdatedLive:'Menu updated!'
 },
 hi:{
 hotelName:'क्राउन प्लाज़ा होटल',welcomeSubtitle:'संपूर्ण प्रबंधन प्रणाली',connecting:'सर्वर से जुड़ रहे हैं…',hotelIdLbl:'होटल आईडी',enterHotelId:'होटल आईडी दर्ज करें',
@@ -529,174 +554,174 @@ tabBlacklist:'🚫 ब्लैकलिस्ट',tabReports:'📈 रिपो
 tabQR:'📷 QR कोड',tabMaintenance:'🔧 रखरखाव',tabLoyalty:'🏆 लॉयल्टी',
 tabStaff:'👔 स्टाफ',tabLogs:'📝 लॉग',tabBookings:'📅 बुकिंग',
 myRequests:'अनुरोध',pending:'लंबित',completed:'पूर्ण',
-addRoom:'+ कमरा जोड़ें',addGuest:'+ अतिथि जोड़ें',addDish:'+ व्यंजन जोड़ें',addItem:'+ आइटम जोड़ें',
-addTask:'+ कार्य जोड़ें',blockGuest:'+ ब्लॉक करें',
-save:'सहेजें',cancel:'रद्द',confirm:'पुष्टि करें',delete:'हटाएं',edit:'संपादित',
-selectTheme:'थीम',selectDepartment:'विभाग चुनें',selectService:'सेवा चुनें',
+addRoom:'+ कमरा',addGuest:'+ अतिथि',addDish:'+ व्यंजन',addItem:'+ आइटम',
+addTask:'+ कार्य',blockGuest:'+ ब्लॉक',
+save:'सहेजें',cancel:'रद्द',confirm:'पुष्टि',delete:'हटाएं',edit:'संपादित',
+selectTheme:'थीम',selectDepartment:'विभाग',selectService:'सेवा',
 normal:'🟢 सामान्य',urgent:'⚠️ तत्काल',emergency_:'🚨 आपातकाल',
 describeIssue:'समस्या बताएं…',submitRequest:'अनुरोध भेजें',
-yourCart:'आपका कार्ट',placeOrder:'🛒 ऑर्डर करें',
-requestMore:'और चाहिए',bookNow:'📅 बुक करें',
+yourCart:'कार्ट',placeOrder:'🛒 ऑर्डर',
+requestMore:'और चाहिए',bookNow:'📅 बुक',
 wifi:'📶 वाईफाई',localTime:'🌍 स्थानीय समय',checkoutTime:'🕐 चेकआउट',
-copy:'कॉपी',myPoints:'⭐ मेरे अंक',rateNow:'रेट करें',
+copy:'कॉपी',myPoints:'⭐ मेरे अंक',rateNow:'रेट',
 loyaltyBenefits:'100 अंक = छूट | 500 अंक = मुफ्त रात',
 wakeUp:'⏰ वेकअप',dnd:'🔕 डीएनडी',localGuide:'🗺️ गाइड',emergency:'📞 आपातकाल',
-rateStay:'⭐ प्रवास रेट करें',overall:'समग्र',service:'सेवा',cleanliness:'स्वच्छता',
-shareExp:'अनुभव साझा करें…',submitReview:'समीक्षा दें',
-hotelNameLbl:'होटल का नाम',currencyLbl:'मुद्रा',wifiLbl:'वाईफाई पासवर्ड',
-airportPrice:'एयरपोर्ट कीमत',localPrice:'लोकल कैब प्रति घंटा',
-reportType:'रिपोर्ट प्रकार',generate:'🔄 बनाएं',exportBtn:'📥 निर्यात',
+rateStay:'⭐ रेट',overall:'समग्र',service:'सेवा',cleanliness:'स्वच्छता',
+shareExp:'अनुभव…',submitReview:'समीक्षा',
+hotelNameLbl:'होटल नाम',currencyLbl:'मुद्रा',wifiLbl:'वाईफाई',
+airportPrice:'एयरपोर्ट',localPrice:'लोकल कैब',
+reportType:'रिपोर्ट',generate:'🔄 बनाएं',exportBtn:'📥 निर्यात',
 roomNum:'कमरा #',roomType:'प्रकार',price:'कीमत',status:'स्थिति',guest:'अतिथि',actions:'कार्य',
 typeStd:'स्टैंडर्ड',typeDlx:'डिलक्स',typeSte:'सूट',typePres:'प्रेसिडेंशियल',
 vacant:'रिक्त',occupied:'भरा',cleaning:'सफाई',maintenance:'रखरखाव',
 deptHK:'🧹 हाउसकीपिंग',deptMaint:'🔧 रखरखाव',deptRest:'🍽️ रेस्टोरेंट',
 deptLaundry:'🧺 लॉन्ड्री',deptIT:'💻 आईटी',deptSec:'🛡️ सुरक्षा',deptTransport:'🚗 परिवहन',
-reqTab:'अनुरोध',foodTab:'भोजन',invTab:'स्टॉक',cabTab:'कैब',histTab:'इतिहास',infoTab:'जानकारी',bookTab:'कमरा बुक',
-foodMenu:'🍕 भोजन मेनू',invItems:'📦 सामान',transport:'🚗 परिवहन',myHistory:'📋 इतिहास',hotelInfo:'ℹ️ होटल जानकारी',
-exportXLS:'📥 एक्सपोर्ट',clearLogs:'🗑️ साफ करें',filterAll:'सभी',filterOpen:'खुले',filterDone:'पूर्ण',filterEmerg:'🚨 आपातकाल',
+reqTab:'अनुरोध',foodTab:'भोजन',invTab:'स्टॉक',cabTab:'कैब',histTab:'इतिहास',infoTab:'जानकारी',bookTab:'बुक',
+foodMenu:'🍕 मेनू',invItems:'📦 सामान',transport:'🚗 परिवहन',myHistory:'📋 इतिहास',hotelInfo:'ℹ️ जानकारी',
+exportXLS:'📥 एक्सपोर्ट',clearLogs:'🗑️ साफ',filterAll:'सभी',filterOpen:'खुले',filterDone:'पूर्ण',filterEmerg:'🚨 आपात',
 item:'आइटम',category:'श्रेणी',stock:'स्टॉक',unit:'इकाई',minAlert:'न्यूनतम',assigned:'नियुक्त',scheduled:'निर्धारित',
-task:'कार्य',area:'कमरा/क्षेत्र',priority:'प्राथमिकता',
+task:'कार्य',area:'कमरा',priority:'प्राथमिकता',
 nameLbl:'नाम',room:'कमरा',points:'अंक',reason:'कारण',date:'तारीख',
 low:'🟢 कम',medium:'🟡 मध्यम',high:'🔴 अधिक',
-airportTx:'✈️ एयरपोर्ट',localCab:'🚕 लोकल कैब',
+airportTx:'✈️ एयरपोर्ट',localCab:'🚕 लोकल',
 unblock:'✅ अनब्लॉक',block:'🚫 ब्लॉक',
-generating:'QR बना रहे हैं…',genAll:'🔄 सभी बनाएं',download:'⬇️ डाउनलोड',
-online:'🟢 ऑनलाइन',offline:'📴 ऑफलाइन',reconnecting:'🔄 पुनः जुड़ रहा…',
-svcRoomCleaning:'कमरा सफाई',svcExtraTowels:'अतिरिक्त तौलिए',svcBedMaking:'बिस्तर बनाना',svcMiniBar:'मिनी बार रिस्टॉक',svcLaundryPickup:'लॉन्ड्री पिकअप',
-svcACRepair:'एसी मरम्मत',svcPlumbing:'प्लंबिंग',svcElectrical:'बिजली',svcTVInternet:'टीवी/इंटरनेट',svcFurnitureFix:'फर्नीचर फिक्स',
-svcRoomService:'रूम सर्विस',svcTableBooking:'टेबल बुकिंग',svcSpecialDiet:'विशेष आहार',svcComplaint:'शिकायत',svcCompliment:'प्रशंसा',
-svcWashFold:'धोना और मोड़ना',svcDryClean:'ड्राई क्लीनिंग',svcIroning:'इस्त्री',svcExpress:'एक्सप्रेस सर्विस',svcPickupReq:'पिकअप अनुरोध',
-svcWiFiIssue:'वाईफाई समस्या',svcTVProblem:'टीवी समस्या',svcPhoneIssue:'फोन समस्या',svcDeviceSetup:'डिवाइस सेटअप',svcPassReset:'पासवर्ड रीसेट',
-svcLostKey:'खोई चाबी',svcSuspicious:'संदिग्ध गतिविधि',svcSafeDeposit:'सेफ डिपॉज़िट',svcEscort:'एस्कॉर्ट अनुरोध',
-svcAirport:'एयरपोर्ट ट्रांसफर',svcLocalCab:'लोकल कैब',svcCarRental:'कार किराया',svcBikeRental:'बाइक किराया',svcShuttle:'शटल सर्विस',
-weather:'🌤️ मौसम',currency:'💱 मुद्रा',quickActions:'⚡ त्वरित कार्य',analytics:'📊 त्वरित आँकड़े',
+generating:'QR बना रहे…',genAll:'🔄 सभी',download:'⬇️ डाउनलोड',
+online:'🟢 ऑनलाइन',offline:'📴 ऑफलाइन',reconnecting:'🔄 जुड़ रहा…',
+svcRoomCleaning:'कमरा सफाई',svcExtraTowels:'तौलिए',svcBedMaking:'बिस्तर',svcMiniBar:'मिनी बार',svcLaundryPickup:'लॉन्ड्री',
+svcACRepair:'एसी',svcPlumbing:'प्लंबिंग',svcElectrical:'बिजली',svcTVInternet:'टीवी',svcFurnitureFix:'फर्नीचर',
+svcRoomService:'रूम सर्विस',svcTableBooking:'टेबल',svcSpecialDiet:'आहार',svcComplaint:'शिकायत',svcCompliment:'प्रशंसा',
+svcWashFold:'धोना',svcDryClean:'ड्राई क्लीन',svcIroning:'इस्त्री',svcExpress:'एक्सप्रेस',svcPickupReq:'पिकअप',
+svcWiFiIssue:'वाईफाई',svcTVProblem:'टीवी',svcPhoneIssue:'फोन',svcDeviceSetup:'सेटअप',svcPassReset:'पासवर्ड',
+svcLostKey:'चाबी',svcSuspicious:'संदिग्ध',svcSafeDeposit:'सेफ',svcEscort:'एस्कॉर्ट',
+svcAirport:'एयरपोर्ट',svcLocalCab:'लोकल कैब',svcCarRental:'कार',svcBikeRental:'बाइक',svcShuttle:'शटल',
+weather:'🌤️ मौसम',currency:'💱 मुद्रा',quickActions:'⚡ त्वरित',analytics:'📊 आँकड़े',
 temp:'तापमान',humidity:'आर्द्रता',wind:'हवा',
 usd:'USD',sar:'SAR',inr:'INR',aed:'AED',kwd:'KWD',
-quickCheckin:'🚀 त्वरित चेक-इन',quickCheckout:'🚪 त्वरित चेक-आउट',newRequest:'📝 नया अनुरोध',viewReports:'📈 रिपोर्ट देखें',
-reply:'💬 जवाब',replySent:'जवाब भेज दिया!',noReply:'अभी तक कोई जवाब नहीं',
+quickCheckin:'🚀 चेक-इन',quickCheckout:'🚪 चेक-आउट',newRequest:'📝 नया',viewReports:'📈 रिपोर्ट',
+reply:'💬 जवाब',replySent:'जवाब भेजा!',noReply:'कोई जवाब नहीं',
 contrast:'🔆 कंट्रास्ट',fontSize:'🔤 फ़ॉन्ट',notifications:'🔔 सूचना',haptic:'📳 कंपन',voice:'🔊 आवाज़',
-notifGranted:'सूचनाएं सक्षम',notifDenied:'सूचनाएं अवरुद्ध - कृपया ब्राउज़र सेटिंग्स में अनुमति दें',notifPending:'अनुमति लंबित',notifNotSupported:'सूचनाएं समर्थित नहीं',notifRequesting:'अनुमति का अनुरोध कर रहा है...',
-adminLogin:'व्यवस्थापक लॉगिन',enterPassword:'पासवर्ड डालें',
-addStaff:'+ स्टाफ जोड़ें',staffName:'स्टाफ नाम',staffRole:'भूमिका',department:'विभाग',
-joinDate:'ज्वाइनिंग तिथि',shift:'शिफ्ट',morning:'सुबह',evening:'शाम',night:'रात',
-markPresent:'✓ उपस्थित',markAbsent:'✗ अनुपस्थित',applyLeave:'छुट्टी आवेदन',
-approve:'स्वीकार',reject:'अस्वीकार',leaveReason:'छुट्टी का कारण',
+notifGranted:'सूचनाएं सक्षम',notifDenied:'सूचनाएं अवरुद्ध',notifPending:'अनुमति लंबित',notifNotSupported:'समर्थित नहीं',notifRequesting:'अनुरोध...',
+adminLogin:'व्यवस्थापक',enterPassword:'पासवर्ड',
+addStaff:'+ स्टाफ',staffName:'नाम',staffRole:'भूमिका',department:'विभाग',
+joinDate:'तिथि',shift:'शिफ्ट',morning:'सुबह',evening:'शाम',night:'रात',
+markPresent:'✓ उपस्थित',markAbsent:'✗ अनुपस्थित',applyLeave:'छुट्टी',
+approve:'स्वीकार',reject:'अस्वीकार',leaveReason:'कारण',
 tasksCompleted:'कार्य',performance:'प्रदर्शन',online:'ऑनलाइन',offline:'ऑफलाइन',
-onLeave:'छुट्टी पर',onDuty:'ड्यूटी पर',
-bookRoom:'📅 कमरा बुक करें',selectRoom:'कमरा चुनें',checkIn:'चेक-इन',checkOut:'चेक-आउट',numGuests:'अतिथियों की संख्या',totalPrice:'कुल कीमत',nights:'रात(ें)',bookingConfirmed:'बुकिंग कन्फर्म! बुकिंग आईडी:',myBookings:'मेरी बुकिंग',bookingStatus:'स्थिति',pending:'लंबित',confirmed:'कन्फर्म',checkedIn:'चेक-इन',checkedOut:'चेक-आउट',cancelled:'रद्द',requestSubmitted:'अनुरोध सबमिट किया गया',orderPlaced:'ऑर्डर सफलतापूर्वक रखा गया',bookingConfirmedMsg:'बुकिंग पुष्टि हुई',itemAdded:'आइटम सफलतापूर्वक जोड़ा गया',changesSaved:'बदलाव सेव हो गए',welcomeMsg:'कम्पलीट होटल मैनेजमेंट सिस्टम में आपका स्वागत है',
-notifRequestTitle:'अनुरोध सबमिट हुआ',notifRequestBody:'आपका अनुरोध सफलतापूर्वक सबमिट हो गया है!',
-notifOrderTitle:'ऑर्डर रखा गया',notifOrderBody:'आपका भोजन ऑर्डर सफलतापूर्वक रखा गया है!',
-notifBookingTitle:'बुकिंग कन्फर्म',notifBookingBody:'आपकी बुकिंग कन्फर्म हो गई है!',
-notifInventoryTitle:'आइटम अनुरोधित',notifInventoryBody:'आपका आइटम अनुरोध सबमिट हो गया है!',
-notifCabTitle:'कैब बुक हुई',notifCabBody:'आपकी कैब सफलतापूर्वक बुक हो गई है!',
-highContrastOn:'🔆 हाई कंट्रास्ट चालू',highContrastOff:'🔆 हाई कंट्रास्ट बंद',
-fontDecreased:'फ़ॉन्ट कम किया गया',fontIncreased:'फ़ॉन्ट बढ़ाया गया',fontReset:'फ़ॉन्ट 16px पर रीसेट',
-serverConnected:'कनेक्टेड',serverConnecting:'कनेक्ट हो रहा है…',serverOffline:'ऑफलाइन',
-adminReply:'एडमिन जवाब',replySentToGuest:'अतिथि को जवाब भेज दिया गया',replyReceived:'आपको एडमिन से एक नया जवाब मिला है',
-reqSubmitted:'अनुरोध सफलतापूर्वक सबमिट किया गया',orderPlacedToast:'ऑर्डर सफलतापूर्वक रखा गया',
-bookingConfirmedToast:'बुकिंग कन्फर्म',roomBooked:'कमरा सफलतापूर्वक बुक किया गया',invRequested:'के लिए अनुरोध भेजा गया: ',
-roomAdded:'कमरा सफलतापूर्वक जोड़ा गया',roomUpdated:'कमरा सफलतापूर्वक अपडेट किया गया',roomDeleted:'कमरा सफलतापूर्वक हटाया गया',
-guestAdded:'अतिथि सफलतापूर्वक जोड़ा गया',guestUpdated:'अतिथि सफलतापूर्वक अपडेट किया गया',guestDeleted:'अतिथि सफलतापूर्वक हटाया गया',
-foodAdded:'भोजन आइटम सफलतापूर्वक जोड़ा गया',foodUpdated:'भोजन आइटम सफलतापूर्वक अपडेट किया गया',foodDeleted:'भोजन आइटम सफलतापूर्वक हटाया गया',
-invAdded:'इन्वेंटरी आइटम सफलतापूर्वक जोड़ा गया',invUpdated:'इन्वेंटरी आइटम सफलतापूर्वक अपडेट किया गया',invDeleted:'इन्वेंटरी आइटम सफलतापूर्वक हटाया गया',
-reqStatusUpdated:'अनुरोध स्थिति अपडेट की गई: ',settingsSaved:'सेटिंग्स सफलतापूर्वक सेव की गईं',
-staffAdded:'स्टाफ सदस्य सफलतापूर्वक जोड़ा गया',staffUpdated:'स्टाफ सदस्य सफलतापूर्वक अपडेट किया गया',staffDeleted:'स्टाफ सदस्य सफलतापूर्वक हटाया गया',
-guestBlocked:'अतिथि सफलतापूर्वक ब्लॉक किया गया',guestUnblocked:'अतिथि सफलतापूर्वक अनब्लॉक किया गया',
-menuUpdatedLive:'मेनू लाइव अपडेट हुआ!'
+onLeave:'छुट्टी',onDuty:'ड्यूटी',
+bookRoom:'📅 बुक',selectRoom:'कमरा',checkIn:'चेक-इन',checkOut:'चेक-आउट',numGuests:'अतिथि',totalPrice:'कीमत',nights:'रात',bookingConfirmed:'कन्फर्म',myBookings:'बुकिंग',bookingStatus:'स्थिति',pending:'लंबित',confirmed:'कन्फर्म',checkedIn:'चेक-इन',checkedOut:'चेक-आउट',cancelled:'रद्द',requestSubmitted:'सबमिट',orderPlaced:'ऑर्डर',bookingConfirmedMsg:'पुष्टि',itemAdded:'जोड़ा',changesSaved:'सेव',welcomeMsg:'स्वागत',
+notifRequestTitle:'अनुरोध',notifRequestBody:'सबमिट!',
+notifOrderTitle:'ऑर्डर',notifOrderBody:'रखा!',
+notifBookingTitle:'बुकिंग',notifBookingBody:'कन्फर्म!',
+notifInventoryTitle:'आइटम',notifInventoryBody:'अनुरोध!',
+notifCabTitle:'कैब',notifCabBody:'बुक!',
+highContrastOn:'🔆 कंट्रास्ट चालू',highContrastOff:'🔆 कंट्रास्ट बंद',
+fontDecreased:'फ़ॉन्ट कम',fontIncreased:'फ़ॉन्ट बढ़ा',fontReset:'फ़ॉन्ट रीसेट',
+serverConnected:'कनेक्टेड',serverConnecting:'कनेक्ट…',serverOffline:'ऑफलाइन',
+adminReply:'एडमिन',replySentToGuest:'जवाब भेजा',replyReceived:'नया जवाब',
+reqSubmitted:'सबमिट',orderPlacedToast:'ऑर्डर',
+bookingConfirmedToast:'कन्फर्म',roomBooked:'बुक',invRequested:'अनुरोध: ',
+roomAdded:'कमरा जोड़ा',roomUpdated:'कमरा अपडेट',roomDeleted:'कमरा हटाया',
+guestAdded:'अतिथि जोड़ा',guestUpdated:'अतिथि अपडेट',guestDeleted:'अतिथि हटाया',
+foodAdded:'भोजन जोड़ा',foodUpdated:'भोजन अपडेट',foodDeleted:'भोजन हटाया',
+invAdded:'इन्वेंटरी जोड़ा',invUpdated:'इन्वेंटरी अपडेट',invDeleted:'इन्वेंटरी हटाया',
+reqStatusUpdated:'स्थिति: ',settingsSaved:'सेटिंग्स सेव',
+staffAdded:'स्टाफ जोड़ा',staffUpdated:'स्टाफ अपडेट',staffDeleted:'स्टाफ हटाया',
+guestBlocked:'ब्लॉक',guestUnblocked:'अनब्लॉक',
+menuUpdatedLive:'मेनू अपडेट!'
 },
 ar:{
-hotelName:'فندق كراون بلازا',welcomeSubtitle:'نظام الإدارة الكامل',connecting:'جارٍ الاتصال…',hotelIdLbl:'معرف الفندق',enterHotelId:'أدخل معرف الفندق',
+hotelName:'فندق كراون بلازا',welcomeSubtitle:'نظام الإدارة الكامل',connecting:'جارٍ الاتصال…',hotelIdLbl:'معرف الفندق',enterHotelId:'أدخل المعرف',
 guestTab:'🏨 ضيف',adminTab:'👑 مسؤول',yourName:'اسمك',enterName:'أدخل اسمك',
-roomNumber:'رقم الغرفة',loginGuest:'🔐 دخول كضيف',emailAddress:'البريد الإلكتروني',password:'كلمة المرور',
+roomNumber:'رقم الغرفة',loginGuest:'🔐 دخول كضيف',emailAddress:'البريد',password:'كلمة المرور',
 loginAdmin:'🔐 دخول كمسؤول',back:'← رجوع',selectRole:'👑 اختر دورك',logout:'خروج',
-roleSuperAdmin:'المسؤول الرئيسي',roleFrontDesk:'الاستقبال',roleHousekeeping:'التدبير',
+roleSuperAdmin:'المسؤول',roleFrontDesk:'الاستقبال',roleHousekeeping:'التدبير',
 roleMaintenance:'الصيانة',roleRestaurant:'المطعم',roleLaundry:'الغسيل',
-roleSecurity:'الأمن',roleIT:'تقنية المعلومات',
-tabOverview:'📊 نظرة عامة',tabRooms:'🏨 الغرف',tabGuests:'👥 الضيوف',tabFood:'🍽️ الطعام',
+roleSecurity:'الأمن',roleIT:'تقنية',
+tabOverview:'📊 نظرة',tabRooms:'🏨 الغرف',tabGuests:'👥 الضيوف',tabFood:'🍽️ الطعام',
 tabInventory:'📦 المخزون',tabRequests:'📋 الطلبات',tabSettings:'⚙️ الإعدادات',
-tabBlacklist:'🚫 القائمة السوداء',tabReports:'📈 التقارير',tabReviews:'⭐ التقييمات',
-tabQR:'📷 رموز QR',tabMaintenance:'🔧 الصيانة',tabLoyalty:'🏆 الولاء',
+tabBlacklist:'🚫 القائمة',tabReports:'📈 التقارير',tabReviews:'⭐ التقييمات',
+tabQR:'📷 QR',tabMaintenance:'🔧 الصيانة',tabLoyalty:'🏆 الولاء',
 tabStaff:'👔 الموظفون',tabLogs:'📝 السجلات',tabBookings:'📅 الحجوزات',
 myRequests:'الطلبات',pending:'معلقة',completed:'مكتمل',
-addRoom:'+ إضافة غرفة',addGuest:'+ إضافة ضيف',addDish:'+ إضافة طبق',addItem:'+ إضافة عنصر',
-addTask:'+ إضافة مهمة',blockGuest:'+ حظر',
+addRoom:'+ غرفة',addGuest:'+ ضيف',addDish:'+ طبق',addItem:'+ عنصر',
+addTask:'+ مهمة',blockGuest:'+ حظر',
 save:'حفظ',cancel:'إلغاء',confirm:'تأكيد',delete:'حذف',edit:'تعديل',
-selectTheme:'السمة',selectDepartment:'اختر القسم',selectService:'اختر الخدمة',
+selectTheme:'السمة',selectDepartment:'القسم',selectService:'الخدمة',
 normal:'🟢 عادي',urgent:'⚠️ عاجل',emergency_:'🚨 طارئ',
-describeIssue:'صف مشكلتك…',submitRequest:'إرسال الطلب',
-yourCart:'سلتك',placeOrder:'🛒 تقديم الطلب',
-requestMore:'طلب المزيد',bookNow:'📅 احجز الآن',
-wifi:'📶 WiFi',localTime:'🌍 الوقت المحلي',checkoutTime:'🕐 المغادرة',
-copy:'نسخ',myPoints:'⭐ نقاطي',rateNow:'قيّم الآن',
-loyaltyBenefits:'100 نقطة = خصم | 500 نقطة = ليلة مجانية',
+describeIssue:'صف المشكلة…',submitRequest:'إرسال',
+yourCart:'السلة',placeOrder:'🛒 تقديم',
+requestMore:'المزيد',bookNow:'📅 احجز',
+wifi:'📶 WiFi',localTime:'🌍 الوقت',checkoutTime:'🕐 المغادرة',
+copy:'نسخ',myPoints:'⭐ نقاطي',rateNow:'قيّم',
+loyaltyBenefits:'100 نقطة = خصم | 500 = ليلة مجانية',
 wakeUp:'⏰ إيقاظ',dnd:'🔕 لا إزعاج',localGuide:'🗺️ دليل',emergency:'📞 طوارئ',
-rateStay:'⭐ قيّم إقامتك',overall:'عام',service:'الخدمة',cleanliness:'النظافة',
-shareExp:'شارك تجربتك…',submitReview:'إرسال التقييم',
-hotelNameLbl:'اسم الفندق',currencyLbl:'العملة',wifiLbl:'كلمة مرور WiFi',
-airportPrice:'سعر المطار',localPrice:'تاكسي في الساعة',
-reportType:'نوع التقرير',generate:'🔄 توليد',exportBtn:'📥 تصدير',
+rateStay:'⭐ قيّم',overall:'عام',service:'الخدمة',cleanliness:'النظافة',
+shareExp:'شارك…',submitReview:'إرسال',
+hotelNameLbl:'الاسم',currencyLbl:'العملة',wifiLbl:'WiFi',
+airportPrice:'المطار',localPrice:'تاكسي',
+reportType:'التقرير',generate:'🔄 توليد',exportBtn:'📥 تصدير',
 roomNum:'غرفة #',roomType:'النوع',price:'السعر',status:'الحالة',guest:'الضيف',actions:'الإجراءات',
 typeStd:'قياسي',typeDlx:'ديلوكس',typeSte:'جناح',typePres:'رئاسي',
 vacant:'شاغر',occupied:'مشغول',cleaning:'تنظيف',maintenance:'صيانة',
 deptHK:'🧹 التدبير',deptMaint:'🔧 الصيانة',deptRest:'🍽️ المطعم',
-deptLaundry:'🧺 الغسيل',deptIT:'💻 تقنية المعلومات',deptSec:'🛡️ الأمن',deptTransport:'🚗 النقل',
-reqTab:'طلب',foodTab:'طعام',invTab:'المخزون',cabTab:'سيارة',histTab:'السجل',infoTab:'معلومات',bookTab:'حجز غرفة',
-foodMenu:'🍕 قائمة الطعام',invItems:'📦 عناصر',transport:'🚗 النقل',myHistory:'📋 سجلاتي',hotelInfo:'ℹ️ معلومات الفندق',
+deptLaundry:'🧺 الغسيل',deptIT:'💻 تقنية',deptSec:'🛡️ الأمن',deptTransport:'🚗 النقل',
+reqTab:'طلب',foodTab:'طعام',invTab:'المخزون',cabTab:'سيارة',histTab:'السجل',infoTab:'معلومات',bookTab:'حجز',
+foodMenu:'🍕 القائمة',invItems:'📦 عناصر',transport:'🚗 النقل',myHistory:'📋 سجلاتي',hotelInfo:'ℹ️ معلومات',
 exportXLS:'📥 تصدير',clearLogs:'🗑️ مسح',filterAll:'الكل',filterOpen:'مفتوحة',filterDone:'مكتملة',filterEmerg:'🚨 طارئ',
-item:'العنصر',category:'الفئة',stock:'المخزون',unit:'الوحدة',minAlert:'الحد الأدنى',assigned:'المكلف',scheduled:'المجدول',
-task:'المهمة',area:'الغرفة/المنطقة',priority:'الأولوية',
+item:'العنصر',category:'الفئة',stock:'المخزون',unit:'الوحدة',minAlert:'الحد',assigned:'المكلف',scheduled:'المجدول',
+task:'المهمة',area:'الغرفة',priority:'الأولوية',
 nameLbl:'الاسم',room:'الغرفة',points:'النقاط',reason:'السبب',date:'التاريخ',
 low:'🟢 منخفض',medium:'🟡 متوسط',high:'🔴 عالي',
-airportTx:'✈️ نقل المطار',localCab:'🚕 تاكسي محلي',
-unblock:'✅ إلغاء الحظر',block:'🚫 حظر',
-generating:'جارٍ إنشاء QR…',genAll:'🔄 إنشاء الكل',download:'⬇️ تنزيل',
-online:'🟢 متصل',offline:'📴 غير متصل',reconnecting:'🔄 إعادة الاتصال…',
-svcRoomCleaning:'تنظيف الغرفة',svcExtraTowels:'مناشف إضافية',svcBedMaking:'ترتيب السرير',svcMiniBar:'تجديد الميني بار',svcLaundryPickup:'استلام الغسيل',
-svcACRepair:'إصلاح المكيف',svcPlumbing:'السباكة',svcElectrical:'الكهرباء',svcTVInternet:'التلفاز/الإنترنت',svcFurnitureFix:'إصلاح الأثاث',
-svcRoomService:'خدمة الغرف',svcTableBooking:'حجز طاولة',svcSpecialDiet:'نظام غذائي خاص',svcComplaint:'شكوى',svcCompliment:'إطراء',
-svcWashFold:'غسيل وكي',svcDryClean:'تنظيف جاف',svcIroning:'كي الملابس',svcExpress:'خدمة سريعة',svcPickupReq:'طلب استلام',
-svcWiFiIssue:'مشكلة الواي فاي',svcTVProblem:'مشكلة التلفاز',svcPhoneIssue:'مشكلة الهاتف',svcDeviceSetup:'إعداد الجهاز',svcPassReset:'إعادة تعيين كلمة المرور',
-svcLostKey:'مفتاح مفقود',svcSuspicious:'نشاط مشبوه',svcSafeDeposit:'إيداع آمن',svcEscort:'طلب مرافقة',
-svcAirport:'نقل المطار',svcLocalCab:'تاكسي محلي',svcCarRental:'تأجير سيارة',svcBikeRental:'تأجير دراجة',svcShuttle:'خدمة النقل',
-weather:'🌤️ الطقس',currency:'💱 العملة',quickActions:'⚡ إجراءات سريعة',analytics:'📊 إحصائيات سريعة',
-temp:'درجة الحرارة',humidity:'الرطوبة',wind:'الرياح',
+airportTx:'✈️ المطار',localCab:'🚕 تاكسي',
+unblock:'✅ إلغاء',block:'🚫 حظر',
+generating:'جارٍ…',genAll:'🔄 الكل',download:'⬇️ تنزيل',
+online:'🟢 متصل',offline:'📴 غير متصل',reconnecting:'🔄 إعادة…',
+svcRoomCleaning:'تنظيف',svcExtraTowels:'مناشف',svcBedMaking:'سرير',svcMiniBar:'ميني بار',svcLaundryPickup:'غسيل',
+svcACRepair:'مكيف',svcPlumbing:'سباكة',svcElectrical:'كهرباء',svcTVInternet:'تلفاز',svcFurnitureFix:'أثاث',
+svcRoomService:'خدمة',svcTableBooking:'طاولة',svcSpecialDiet:'حمية',svcComplaint:'شكوى',svcCompliment:'إطراء',
+svcWashFold:'غسيل',svcDryClean:'جاف',svcIroning:'كي',svcExpress:'سريع',svcPickupReq:'استلام',
+svcWiFiIssue:'واي فاي',svcTVProblem:'تلفاز',svcPhoneIssue:'هاتف',svcDeviceSetup:'إعداد',svcPassReset:'كلمة مرور',
+svcLostKey:'مفتاح',svcSuspicious:'مشبوه',svcSafeDeposit:'آمن',svcEscort:'مرافقة',
+svcAirport:'مطار',svcLocalCab:'تاكسي',svcCarRental:'سيارة',svcBikeRental:'دراجة',svcShuttle:'نقل',
+weather:'🌤️ الطقس',currency:'💱 العملة',quickActions:'⚡ سريع',analytics:'📊 إحصائيات',
+temp:'الحرارة',humidity:'الرطوبة',wind:'الرياح',
 usd:'USD',sar:'SAR',inr:'INR',aed:'AED',kwd:'KWD',
-quickCheckin:'🚀 تسجيل وصول سريع',quickCheckout:'🚪 تسجيل مغادرة سريع',newRequest:'📝 طلب جديد',viewReports:'📈 عرض التقارير',
-reply:'💬 رد',replySent:'تم إرسال الرد!',noReply:'لا يوجد رد حتى الآن',
+quickCheckin:'🚀 وصول',quickCheckout:'🚪 مغادرة',newRequest:'📝 جديد',viewReports:'📈 تقارير',
+reply:'💬 رد',replySent:'أرسل!',noReply:'لا رد',
 contrast:'🔆 تباين',fontSize:'🔤 خط',notifications:'🔔 إشعارات',haptic:'📳 اهتزاز',voice:'🔊 صوت',
-notifGranted:'تم تمكين الإشعارات',notifDenied:'الإشعارات محظورة - يرجى السماح في إعدادات المتصفح',notifPending:'الانتظار على الإذن',notifNotSupported:'الإشعارات غير مدعومة',notifRequesting:'جارٍ طلب الإذن...',
-adminLogin:'تسجيل دخول المسؤول',enterPassword:'أدخل كلمة المرور',
-addStaff:'+ إضافة موظف',staffName:'اسم الموظف',staffRole:'الدور',department:'القسم',
-joinDate:'تاريخ الانضمام',shift:'الوردية',morning:'صباح',evening:'مساء',night:'ليل',
-markPresent:'✓ حاضر',markAbsent:'✗ غائب',applyLeave:'طلب إجازة',
-approve:'موافقة',reject:'رفض',leaveReason:'سبب الإجازة',
+notifGranted:'مفعل',notifDenied:'محظور',notifPending:'انتظار',notifNotSupported:'غير مدعوم',notifRequesting:'طلب...',
+adminLogin:'مسؤول',enterPassword:'كلمة المرور',
+addStaff:'+ موظف',staffName:'الاسم',staffRole:'الدور',department:'القسم',
+joinDate:'التاريخ',shift:'الوردية',morning:'صباح',evening:'مساء',night:'ليل',
+markPresent:'✓ حاضر',markAbsent:'✗ غائب',applyLeave:'إجازة',
+approve:'موافقة',reject:'رفض',leaveReason:'السبب',
 tasksCompleted:'المهام',performance:'الأداء',online:'متصل',offline:'غير متصل',
-onLeave:'في إجازة',onDuty:'في الخدمة',
-bookRoom:'📅 حجز غرفة',selectRoom:'اختر الغرفة',checkIn:'تسجيل الوصول',checkOut:'تسجيل المغادرة',numGuests:'عدد الضيوف',totalPrice:'السعر الإجمالي',nights:'ليلة(ليالي)',bookingConfirmed:'تم تأكيد الحجز! معرف الحجز:',myBookings:'حجوزاتي',bookingStatus:'الحالة',pending:'معلق',confirmed:'مؤكد',checkedIn:'تم تسجيل الوصول',checkedOut:'تم تسجيل المغادرة',cancelled:'ملغي',requestSubmitted:'تم إرسال الطلب',orderPlaced:'تم وضع الطلب بنجاح',bookingConfirmedMsg:'تم تأكيد الحجز',itemAdded:'تمت إضافة العنصر بنجاح',changesSaved:'تم حفظ التغييرات',welcomeMsg:'مرحبا بكم في نظام إدارة الفنادق الكامل',
-notifRequestTitle:'تم إرسال الطلب',notifRequestBody:'تم إرسال طلبك بنجاح!',
-notifOrderTitle:'تم تقديم الطلب',notifOrderBody:'تم تقديم طلب الطعام بنجاح!',
-notifBookingTitle:'تم تأكيد الحجز',notifBookingBody:'تم تأكيد حجزك بنجاح!',
-notifInventoryTitle:'تم طلب العنصر',notifInventoryBody:'تم إرسال طلب العنصر بنجاح!',
-notifCabTitle:'تم حجز السيارة',notifCabBody:'تم حجز سيارتك بنجاح!',
-highContrastOn:'🔆 تباين عالي مفعل',highContrastOff:'🔆 تباين عالي معطل',
-fontDecreased:'تم تقليل الخط',fontIncreased:'تم زيادة الخط',fontReset:'تم إعادة تعيين الخط إلى 16px',
-serverConnected:'متصل',serverConnecting:'جارٍ الاتصال…',serverOffline:'غير متصل',
-adminReply:'رد المسؤول',replySentToGuest:'تم إرسال الرد إلى الضيف',replyReceived:'لديك رد جديد من المسؤول',
-reqSubmitted:'تم إرسال الطلب بنجاح',orderPlacedToast:'تم تقديم الطلب بنجاح',
-bookingConfirmedToast:'تم تأكيد الحجز',roomBooked:'تم حجز الغرفة بنجاح',invRequested:'تم إرسال طلب لـ ',
-roomAdded:'تمت إضافة الغرفة بنجاح',roomUpdated:'تم تحديث الغرفة بنجاح',roomDeleted:'تم حذف الغرفة بنجاح',
-guestAdded:'تمت إضافة الضيف بنجاح',guestUpdated:'تم تحديث الضيف بنجاح',guestDeleted:'تم حذف الضيف بنجاح',
-foodAdded:'تمت إضافة عنصر الطعام بنجاح',foodUpdated:'تم تحديث عنصر الطعام بنجاح',foodDeleted:'تم حذف عنصر الطعام بنجاح',
-invAdded:'تمت إضافة عنصر المخزون بنجاح',invUpdated:'تم تحديث عنصر المخزون بنجاح',invDeleted:'تم حذف عنصر المخزون بنجاح',
-reqStatusUpdated:'تم تحديث حالة الطلب إلى ',settingsSaved:'تم حفظ الإعدادات بنجاح',
-staffAdded:'تمت إضافة عضو الطاقم بنجاح',staffUpdated:'تم تحديث عضو الطاقم بنجاح',staffDeleted:'تم حذف عضو الطاقم بنجاح',
-guestBlocked:'تم حظر الضيف بنجاح',guestUnblocked:'تم إلغاء حظر الضيف بنجاح',
-menuUpdatedLive:'تم تحديث القائمة مباشرة!'
+onLeave:'إجازة',onDuty:'خدمة',
+bookRoom:'📅 حجز',selectRoom:'اختر',checkIn:'وصول',checkOut:'مغادرة',numGuests:'الضيوف',totalPrice:'السعر',nights:'ليالي',bookingConfirmed:'مؤكد',myBookings:'حجوزاتي',bookingStatus:'الحالة',pending:'معلق',confirmed:'مؤكد',checkedIn:'وصول',checkedOut:'مغادرة',cancelled:'ملغي',requestSubmitted:'أرسل',orderPlaced:'وضع',bookingConfirmedMsg:'مؤكد',itemAdded:'أضيف',changesSaved:'حفظ',welcomeMsg:'مرحبا',
+notifRequestTitle:'طلب',notifRequestBody:'أرسل!',
+notifOrderTitle:'طلب',notifOrderBody:'وضع!',
+notifBookingTitle:'حجز',notifBookingBody:'مؤكد!',
+notifInventoryTitle:'عنصر',notifInventoryBody:'طلب!',
+notifCabTitle:'سيارة',notifCabBody:'حجز!',
+highContrastOn:'🔆 تباين مفعل',highContrastOff:'🔆 تباين معطل',
+fontDecreased:'خط أقل',fontIncreased:'خط أكثر',fontReset:'خط إعادة',
+serverConnected:'متصل',serverConnecting:'اتصال…',serverOffline:'غير متصل',
+adminReply:'رد',replySentToGuest:'أرسل',replyReceived:'رد جديد',
+reqSubmitted:'أرسل',orderPlacedToast:'وضع',
+bookingConfirmedToast:'مؤكد',roomBooked:'حجز',invRequested:'طلب: ',
+roomAdded:'غرفة أضيفت',roomUpdated:'غرفة حدثت',roomDeleted:'غرفة حذفت',
+guestAdded:'ضيف أضيف',guestUpdated:'ضيف حدث',guestDeleted:'ضيف حذف',
+foodAdded:'طعام أضيف',foodUpdated:'طعام حدث',foodDeleted:'طعام حذف',
+invAdded:'مخزون أضيف',invUpdated:'مخزون حدث',invDeleted:'مخزون حذف',
+reqStatusUpdated:'حالة: ',settingsSaved:'إعدادات حفظت',
+staffAdded:'موظف أضيف',staffUpdated:'موظف حدث',staffDeleted:'موظف حذف',
+guestBlocked:'حظر',guestUnblocked:'إلغاء حظر',
+menuUpdatedLive:'قائمة حدثت!'
 }};
+
 function t(k){return T[lang]?.[k] || T.en[k] || k}
-// Global state
+
 let lang='en', dark=false, fontSize=16, brightness=1, theme='default', highContrast=false;
-// ✅ Currency System Setup - Now supports custom currencies with multi-device sync
 const CURRENCIES = {
 INR: { symbol: '₹', rate: 83.50, flag: '🇮🇳', custom: false },
 SAR: { symbol: '﷼', rate: 3.75, flag: '🇸🇦', custom: false },
@@ -705,18 +730,8 @@ USD: { symbol: '$', rate: 1.00, flag: '🇺🇸', custom: false },
 KWD: { symbol: 'د.ك', rate: 0.31, flag: '🇰🇼', custom: false }
 };
 let currentUser=null;
-let HotelCfg={
-name:'Crown Plaza Hotel',
-currency:'SAR',
-wifi:'CrownPlaza@2024',
-airportPrice:115,
-localPrice:60
-};
-// Base price in SAR (used for conversion logic)
-const BASE_PRICE_SAR = {
-airport: 115,
-local: 60
-};
+let HotelCfg={name:'Crown Plaza Hotel',currency:'SAR',wifi:'CrownPlaza@2024',airportPrice:115,localPrice:60};
+const BASE_PRICE_SAR = {airport: 115, local: 60};
 let rooms=[], guests=[], food=[], inventory=[], requests=[], blacklist=[], maintenance=[], reviews=[], loyalty=[], staff=[], logs=[], bookings=[];
 let cart=[], ratingData={overall:0,service:0,clean:0};
 let deptChart=null, occChart=null;
@@ -725,65 +740,21 @@ let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let notificationPermission = 'default';
 let voicesLoaded = false;
 let socket=null;
-// ✅ MULTI-DEVICE FIX: Unique clientId for each device/tab
 const clientId = 'client_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-// ✅ MULTI-DEVICE FIX: Track processed events to prevent duplicates
 const processedEvents = new Set();
 let lastSyncToken = null;
-// ✅ MULTI-DEVICE FIX: Offline queue for actions when disconnected
 const offlineQueue = [];
-// Services mapping
+
 const SERVICES = {
-'Housekeeping':[
-{key:'Room Cleaning',en:'Room Cleaning',hi:'कमरा सफाई',ar:'تنظيف الغرفة'},
-{key:'Extra Towels',en:'Extra Towels',hi:'अतिरिक्त तौलिए',ar:'مناشف إضافية'},
-{key:'Bed Making',en:'Bed Making',hi:'बिस्तर बनाना',ar:'ترتيب السرير'},
-{key:'Mini Bar Restock',en:'Mini Bar Restock',hi:'मिनी बार रिस्टॉक',ar:'تجديد الميني بار'},
-{key:'Laundry Pickup',en:'Laundry Pickup',hi:'लॉन्ड्री पिकअप',ar:'استلام الغسيل'}
-],
-'Maintenance':[
-{key:'AC Repair',en:'AC Repair',hi:'एसी मरम्मत',ar:'إصلاح المكيف'},
-{key:'Plumbing',en:'Plumbing',hi:'प्लंबिंग',ar:'السباكة'},
-{key:'Electrical',en:'Electrical',hi:'बिजली',ar:'الكهرباء'},
-{key:'TV/Internet',en:'TV/Internet',hi:'टीवी/इंटरनेट',ar:'التلفاز/الإنترنت'},
-{key:'Furniture Fix',en:'Furniture Fix',hi:'फर्नीचर फिक्स',ar:'إصلاح الأثاث'}
-],
-'Restaurant':[
-{key:'Room Service',en:'Room Service',hi:'रूम सर्विस',ar:'خدمة الغرف'},
-{key:'Table Booking',en:'Table Booking',hi:'टेबल बुकिंग',ar:'حجز طاولة'},
-{key:'Special Diet',en:'Special Diet',hi:'विशेष आहार',ar:'نظام غذائي خاص'},
-{key:'Complaint',en:'Complaint',hi:'शिकायत',ar:'شكوى'},
-{key:'Compliment',en:'Compliment',hi:'प्रशंसा',ar:'إطراء'}
-],
-'Laundry':[
-{key:'Wash & Fold',en:'Wash & Fold',hi:'धोना और मोड़ना',ar:'غسيل وكي'},
-{key:'Dry Cleaning',en:'Dry Cleaning',hi:'ड्राई क्लीनिंग',ar:'تنظيف جاف'},
-{key:'Ironing',en:'Ironing',hi:'इस्त्री',ar:'كي الملابس'},
-{key:'Express Service',en:'Express Service',hi:'एक्सप्रेस सर्विस',ar:'خدمة سريعة'},
-{key:'Pickup Request',en:'Pickup Request',hi:'पिकअप अनुरोध',ar:'طلب استلام'}
-],
-'IT':[
-{key:'WiFi Issue',en:'WiFi Issue',hi:'वाईफाई समस्या',ar:'مشكلة الواي فاي'},
-{key:'TV Problem',en:'TV Problem',hi:'टीवी समस्या',ar:'مشكلة التلفاز'},
-{key:'Phone Issue',en:'Phone Issue',hi:'फोन समस्या',ar:'مشكلة الهاتف'},
-{key:'Device Setup',en:'Device Setup',hi:'डिवाइस सेटअप',ar:'إعداد الجهاز'},
-{key:'Password Reset',en:'Password Reset',hi:'पासवर्ड रीसेट',ar:'إعادة تعيين كلمة المرور'}
-],
-'Security':[
-{key:'Lost Key',en:'Lost Key',hi:'खोई चाबी',ar:'مفتاح مفقود'},
-{key:'Suspicious Activity',en:'Suspicious Activity',hi:'संदिग्ध गतिविधि',ar:'نشاط مشبوه'},
-{key:'Safe Deposit',en:'Safe Deposit',hi:'सेफ डिपॉज़िट',ar:'إيداع آمن'},
-{key:'Escort Request',en:'Escort Request',hi:'एस्कॉर्ट अनुरोध',ar:'طلب مرافقة'},
-{key:'Emergency',en:'Emergency',hi:'आपातकाल',ar:'طارئ'}
-],
-'Transport':[
-{key:'Airport Transfer',en:'Airport Transfer',hi:'एयरपोर्ट ट्रांसफर',ar:'نقل المطار'},
-{key:'Local Cab',en:'Local Cab',hi:'लोकल कैब',ar:'تاكسي محلي'},
-{key:'Car Rental',en:'Car Rental',hi:'कार किराया',ar:'تأجير سيارة'},
-{key:'Bike Rental',en:'Bike Rental',hi:'बाइक किराया',ar:'تأجير دراجة'},
-{key:'Shuttle Service',en:'Shuttle Service',hi:'शटल सर्विस',ar:'خدمة النقل'}
-]
+'Housekeeping':[{key:'Room Cleaning',en:'Room Cleaning',hi:'कमरा सफाई',ar:'تنظيف الغرفة'},{key:'Extra Towels',en:'Extra Towels',hi:'अतिरिक्त तौलिए',ar:'مناشف إضافية'},{key:'Bed Making',en:'Bed Making',hi:'बिस्तर बनाना',ar:'ترتيب السرير'},{key:'Mini Bar Restock',en:'Mini Bar Restock',hi:'मिनी बार',ar:'تجديد الميني بار'},{key:'Laundry Pickup',en:'Laundry Pickup',hi:'लॉन्ड्री',ar:'استلام الغسيل'}],
+'Maintenance':[{key:'AC Repair',en:'AC Repair',hi:'एसी',ar:'إصلاح المكيف'},{key:'Plumbing',en:'Plumbing',hi:'प्लंबिंग',ar:'السباكة'},{key:'Electrical',en:'Electrical',hi:'बिजली',ar:'الكهرباء'},{key:'TV/Internet',en:'TV/Internet',hi:'टीवी',ar:'التلفاز'},{key:'Furniture Fix',en:'Furniture Fix',hi:'फर्नीचर',ar:'إصلاح الأثاث'}],
+'Restaurant':[{key:'Room Service',en:'Room Service',hi:'रूम सर्विस',ar:'خدمة الغرف'},{key:'Table Booking',en:'Table Booking',hi:'टेबल',ar:'حجز طاولة'},{key:'Special Diet',en:'Special Diet',hi:'आहार',ar:'نظام غذائي'},{key:'Complaint',en:'Complaint',hi:'शिकायत',ar:'شكوى'},{key:'Compliment',en:'Compliment',hi:'प्रशंसा',ar:'إطراء'}],
+'Laundry':[{key:'Wash & Fold',en:'Wash & Fold',hi:'धोना',ar:'غسيل'},{key:'Dry Cleaning',en:'Dry Cleaning',hi:'ड्राई क्लीन',ar:'تنظيف جاف'},{key:'Ironing',en:'Ironing',hi:'इस्त्री',ar:'كي'},{key:'Express Service',en:'Express Service',hi:'एक्सप्रेस',ar:'سريع'},{key:'Pickup Request',en:'Pickup Request',hi:'पिकअप',ar:'استلام'}],
+'IT':[{key:'WiFi Issue',en:'WiFi Issue',hi:'वाईफाई',ar:'واي فاي'},{key:'TV Problem',en:'TV Problem',hi:'टीवी',ar:'تلفاز'},{key:'Phone Issue',en:'Phone Issue',hi:'फोन',ar:'هاتف'},{key:'Device Setup',en:'Device Setup',hi:'सेटअप',ar:'إعداد'},{key:'Password Reset',en:'Password Reset',hi:'पासवर्ड',ar:'كلمة مرور'}],
+'Security':[{key:'Lost Key',en:'Lost Key',hi:'चाबी',ar:'مفتاح'},{key:'Suspicious Activity',en:'Suspicious Activity',hi:'संदिग्ध',ar:'مشبوه'},{key:'Safe Deposit',en:'Safe Deposit',hi:'सेफ',ar:'آمن'},{key:'Escort Request',en:'Escort Request',hi:'एस्कॉर्ट',ar:'مرافقة'},{key:'Emergency',en:'Emergency',hi:'आपातकाल',ar:'طارئ'}],
+'Transport':[{key:'Airport Transfer',en:'Airport Transfer',hi:'एयरपोर्ट',ar:'نقل المطار'},{key:'Local Cab',en:'Local Cab',hi:'लोकल कैब',ar:'تاكسي'},{key:'Car Rental',en:'Car Rental',hi:'कार',ar:'سيارة'},{key:'Bike Rental',en:'Bike Rental',hi:'बाइक',ar:'دراجة'},{key:'Shuttle Service',en:'Shuttle Service',hi:'शटल',ar:'نقل'}]
 };
+
 const ROLES = [
 {key:'super_admin',icon:'👑',label:'roleSuperAdmin'},
 {key:'front_desk',icon:'🛎️',label:'roleFrontDesk'},
@@ -794,29 +765,18 @@ const ROLES = [
 {key:'security',icon:'🛡️',label:'roleSecurity'},
 {key:'it_support',icon:'💻',label:'roleIT'}
 ];
-// SECTION 1: 50 ROOMS (101 to 150)
+
 function generateDefaultRooms() {
 const types = ['Standard', 'Deluxe', 'Suite'];
 const basePricesSAR = { Standard: 371, Deluxe: 484, Suite: 746 };
 const rooms = [];
 for (let i = 101; i <= 150; i++) {
 const type = types[(i - 101) % 3];
-rooms.push({
-_id: `r_${i}`,
-number: i,
-type: type,
-basePriceSAR: basePricesSAR[type],
-status: 'Vacant',
-guestName: '',
-hotelId: HID,
-createdAt: new Date().toISOString(),
-updatedAt: new Date().toISOString(),
-_version: 1
-});
+rooms.push({_id: `r_${i}`,number: i,type: type,basePriceSAR: basePricesSAR[type],status: 'Vacant',guestName: '',hotelId: HID,createdAt: new Date().toISOString(),updatedAt: new Date().toISOString(),_version: 1});
 }
 return rooms;
 }
-// SECTION 2: 25 INVENTORY ITEMS
+
 function generateDefaultInventory() {
 return [
 { _id: 'inv_1', name: 'Towels', category: 'Amenities', stock: 150, unit: 'pcs', min: 50, hotelId: HID, _version: 1 },
@@ -826,14 +786,14 @@ return [
 { _id: 'inv_5', name: 'Soap', category: 'Amenities', stock: 300, unit: 'bars', min: 100, hotelId: HID, _version: 1 },
 { _id: 'inv_6', name: 'Slippers', category: 'Amenities', stock: 100, unit: 'pairs', min: 30, hotelId: HID, _version: 1 },
 { _id: 'inv_7', name: 'Bathrobe', category: 'Linen', stock: 40, unit: 'pcs', min: 10, hotelId: HID, _version: 1 },
-{ _id: 'inv_8', name: 'Qibla Direction Card', category: 'Religious', stock: 50, unit: 'cards', min: 10, hotelId: HID, _version: 1 },
+{ _id: 'inv_8', name: 'Qibla Card', category: 'Religious', stock: 50, unit: 'cards', min: 10, hotelId: HID, _version: 1 },
 { _id: 'inv_9', name: 'Prayer Mat', category: 'Religious', stock: 50, unit: 'pcs', min: 10, hotelId: HID, _version: 1 },
 { _id: 'inv_10', name: 'Miswak', category: 'Religious', stock: 100, unit: 'sticks', min: 20, hotelId: HID, _version: 1 },
 { _id: 'inv_11', name: 'ZamZam Water', category: 'Beverage', stock: 200, unit: 'bottles', min: 50, hotelId: HID, _version: 1 },
 { _id: 'inv_12', name: 'Dates Box', category: 'Food', stock: 150, unit: 'boxes', min: 30, hotelId: HID, _version: 1 },
 { _id: 'inv_13', name: 'Arabic Coffee Set', category: 'Amenities', stock: 30, unit: 'sets', min: 5, hotelId: HID, _version: 1 },
 { _id: 'inv_14', name: 'Oud Perfume', category: 'Amenities', stock: 40, unit: 'bottles', min: 10, hotelId: HID, _version: 1 },
-{ _id: 'inv_15', name: 'Bakhoor Incense', category: 'Amenities', stock: 50, unit: 'boxes', min: 10, hotelId: HID, _version: 1 },
+{ _id: 'inv_15', name: 'Bakhoor', category: 'Amenities', stock: 50, unit: 'boxes', min: 10, hotelId: HID, _version: 1 },
 { _id: 'inv_16', name: 'Thobe', category: 'Clothing', stock: 30, unit: 'pcs', min: 5, hotelId: HID, _version: 1 },
 { _id: 'inv_17', name: 'Abaya', category: 'Clothing', stock: 30, unit: 'pcs', min: 5, hotelId: HID, _version: 1 },
 { _id: 'inv_18', name: 'Kandura', category: 'Clothing', stock: 30, unit: 'pcs', min: 5, hotelId: HID, _version: 1 },
@@ -846,7 +806,7 @@ return [
 { _id: 'inv_25', name: 'Hair Dryer', category: 'Equipment', stock: 25, unit: 'pcs', min: 5, hotelId: HID, _version: 1 }
 ];
 }
-// SECTION 3: 25 FOOD ITEMS (SAR PRICES)
+
 function generateDefaultFood() {
 return [
 { _id: 'f_1', name: 'Burger', price: 45, basePriceSAR: 45, category: 'Main Course', emoji: '🍔', hotelId: HID, _version: 1 },
@@ -867,7 +827,7 @@ return [
 { _id: 'f_16', name: 'Arabic Coffee', price: 19, basePriceSAR: 19, category: 'Beverage', emoji: '☕', hotelId: HID, _version: 1 },
 { _id: 'f_17', name: 'Saudi Tea', price: 15, basePriceSAR: 15, category: 'Beverage', emoji: '🍵', hotelId: HID, _version: 1 },
 { _id: 'f_18', name: 'Jallab', price: 23, basePriceSAR: 23, category: 'Beverage', emoji: '🥤', hotelId: HID, _version: 1 },
-{ _id: 'f_19', name: 'Tamarind Drink', price: 19, basePriceSAR: 19, category: 'Beverage', emoji: '🧃', hotelId: HID, _version: 1 },
+{ _id: 'f_19', name: 'Tamarind', price: 19, basePriceSAR: 19, category: 'Beverage', emoji: '🧃', hotelId: HID, _version: 1 },
 { _id: 'f_20', name: 'Lab Ban', price: 15, basePriceSAR: 15, category: 'Beverage', emoji: '🥛', hotelId: HID, _version: 1 },
 { _id: 'f_21', name: 'Camel Milk', price: 30, basePriceSAR: 30, category: 'Beverage', emoji: '🐫', hotelId: HID, _version: 1 },
 { _id: 'f_22', name: 'Dates', price: 26, basePriceSAR: 26, category: 'Appetizer', emoji: '🌴', hotelId: HID, _version: 1 },
@@ -876,56 +836,34 @@ return [
 { _id: 'f_25', name: 'Sambousek', price: 34, basePriceSAR: 34, category: 'Appetizer', emoji: '🥟', hotelId: HID, _version: 1 }
 ];
 }
-// SECTION 4: CURRENCY CONVERSION
+
 function convertPrice(baseSARPrice) {
 const targetRate = CURRENCIES[HotelCfg.currency]?.rate || 3.75;
-const baseRate = 3.75;
 return (baseSARPrice / 3.75) * targetRate;
 }
 function formatPrice(baseSARPrice) {
 const converted = convertPrice(baseSARPrice);
 const symbol = CURRENCIES[HotelCfg.currency]?.symbol || '﷼';
-const formattedNum = Number(converted.toFixed(2));
-return `${symbol}${formattedNum}`;
+return `${symbol}${Number(converted.toFixed(2))}`;
 }
 
-// ✅ FIX ISSUE 1 & 6: Session Management & API Calls
-function saveSession() {
-    if(currentUser) {
-        sessionStorage.setItem('hotel_session', JSON.stringify(currentUser));
-        if(currentUser.token) sessionStorage.setItem('hotel_token', currentUser.token);
-    } else {
-        sessionStorage.removeItem('hotel_session');
-        sessionStorage.removeItem('hotel_token');
-    }
-}
-
-// ✅ FIX ISSUE 6: API Calls with Auth Headers & SESSION_EXPIRED handling
+// ✅ ISSUE #5 FIX: All data saved to MongoDB via API
 async function apiCall(method, path, body=null, retries=3){
 if(!isOnline) return null;
-const token = localStorage.getItem('hotel_token');
+const token = localStorage.getItem(`h_${HID}_token`);
 const opts={method, headers:{'Content-Type':'application/json','x-hotel-id':HID,'x-client-id':clientId}};
 if(token) opts.headers['Authorization'] = `Bearer ${token}`;
 if(body) opts.body=JSON.stringify(body);
 for(let i=0; i<retries; i++){
 try{
 const r=await fetch(API_BASE+path, opts);
+const contentType = r.headers.get('content-type');
+if(contentType && !contentType.includes('application/json')){
 const text = await r.text();
-let data;
-try { data = JSON.parse(text); } catch(e) { 
 if(text.startsWith('<!DOCTYPE') || text.startsWith('<html')) return null;
-throw new Error('Invalid JSON'); 
 }
-
-// ✅ FIX ISSUE 6: Handle SESSION_EXPIRED
-if(data && data.code === 'SESSION_EXPIRED') {
-    alert("Session expired. Please login again.");
-    logout();
-    return null;
-}
-
 if(!r.ok) throw new Error(r.statusText);
-return data;
+return await r.json();
 }catch(e){
 if(i===retries-1){
 console.warn(`API error for ${path}:`,e.message);
@@ -937,15 +875,38 @@ await new Promise(res=>setTimeout(res, 1000*(i+1)));
 return null;
 }
 
-// ✅ FIX: Save UI Preferences to LocalStorage (Session is now in sessionStorage)
+// ✅ ISSUE #4 FIX: Save page state + UI prefs to localStorage
 function saveUIPrefs() {
 localStorage.setItem('hotel_lang', lang);
 localStorage.setItem('hotel_dark', dark ? '1' : '0');
 localStorage.setItem('hotel_theme', theme);
 localStorage.setItem(`h_${HID}_queue`, JSON.stringify(offlineQueue));
+if(currentUser) localStorage.setItem(`h_${HID}_session`, JSON.stringify(currentUser));
+else localStorage.removeItem(`h_${HID}_session`);
+// ✅ ISSUE #4 FIX: Save current page/tab state
+const currentPage = getCurrentPage();
+localStorage.setItem(`h_${HID}_pageState`, JSON.stringify({
+currentPage: currentPage,
+timestamp: Date.now()
+}));
 }
 
-// ✅ NEW: Save Data to MongoDB via API
+// ✅ ISSUE #4 FIX: Get current page state
+function getCurrentPage() {
+if(!document.getElementById('loginPage').classList.contains('hidden')) return 'login';
+if(!document.getElementById('rolePage').classList.contains('hidden')) return 'role';
+if(!document.getElementById('adminDash').classList.contains('hidden')) {
+const activeTab = document.querySelector('.tab-btn.active');
+return 'admin_' + (activeTab?.dataset?.tab || 'overview');
+}
+if(!document.getElementById('guestDash').classList.contains('hidden')) {
+const activeBtn = document.querySelector('.gnav-btn.active');
+return 'guest_' + (activeBtn?.id?.replace('gn-','') || 'reqTab');
+}
+return 'login';
+}
+
+// ✅ ISSUE #5 FIX: Save data to MongoDB
 async function saveToMongo(collection, data) {
 if (!isOnline) {
 offlineQueue.push({collection, data, timestamp: Date.now()});
@@ -984,7 +945,7 @@ saveUIPrefs();
 }
 }
 
-// ✅ NEW: Load All Data from MongoDB via API
+// ✅ ISSUE #5 FIX: Load all data from MongoDB
 async function loadAllData() {
 try {
 const [r, g, f, inv, req, bl, maint, rev, st, lg, bk, cfg] = await Promise.all([
@@ -1016,7 +977,6 @@ if(cfg && typeof cfg === 'object') {
 Object.assign(HotelCfg, cfg);
 if(cfg.currencies) Object.assign(CURRENCIES, cfg.currencies);
 }
-// Load UI prefs from LocalStorage
 lang = localStorage.getItem('hotel_lang') || 'en';
 dark = localStorage.getItem('hotel_dark') === '1';
 theme = localStorage.getItem('hotel_theme') || 'default';
@@ -1033,17 +993,13 @@ renderAll();
 }
 }
 
-// ✅ MULTI-DEVICE FIX: Save with versioning, broadcasting, and offline queue
 function save(collection, data, event='data_upd'){
-// Add version and timestamp for conflict resolution
 if(Array.isArray(data)){
 data = data.map(item => ({...item, _version: (item._version||0)+1, updatedAt: new Date().toISOString()}));
 }else{
 data = {...data, _version: (data._version||0)+1, updatedAt: new Date().toISOString()};
 }
-// ✅ CONVERTED: Save to MongoDB instead of LocalStorage
 saveToMongo(collection, data);
-// Queue for offline or send immediately if online
 if(isOnline && socket?.connected){
 socket.emit(event,{hotelId:HID, collection, data, clientId, syncToken: Date.now()});
 }else{
@@ -1053,7 +1009,6 @@ saveUIPrefs();
 }
 }
 
-// ✅ MULTI-DEVICE FIX: Safe merge to prevent race conditions
 function safeMerge(target, source, collection){
 if(!source || !target) return target;
 if(Array.isArray(source) && Array.isArray(target)){
@@ -1072,10 +1027,8 @@ return {...target, ...source};
 return target;
 }
 
-// ✅ MULTI-DEVICE FIX: Enhanced Socket.IO with room management and deduplication
 function initSocket(){
 try{
-// ✅ FIX: Use dynamic socket URL
 socket = io(SOCKET_URL, {
 transports:['websocket','polling'],
 auth:{hotelId:HID, clientId},
@@ -1085,12 +1038,10 @@ reconnectionDelayMax:5000
 socket.on('connect',()=>{
 setSockStatus('connected');
 updateNetBadge('online');
-// ✅ MULTI-DEVICE FIX: Join hotel-specific room
 socket.emit('join_hotel', HID);
-showToast('🔗 Connected to Server','socket');
-// ✅ MULTI-DEVICE FIX: Process offline queue on reconnect
+showToast('🔗 Connected','socket');
 if(offlineQueue.length){
-showToast(`🔄 Syncing ${offlineQueue.length} pending actions...`,'socket');
+showToast(`🔄 Syncing ${offlineQueue.length}...`,'socket');
 offlineQueue.forEach(item => {
 socket.emit(item.event, {hotelId:HID, collection:item.collection, data:item.data, clientId, syncToken: item.timestamp});
 });
@@ -1103,8 +1054,6 @@ syncBack();
 socket.on('disconnect',()=>{setSockStatus('disconnected');updateNetBadge('offline')});
 socket.on('connect_error',()=>{setSockStatus('error');updateNetBadge('offline')});
 socket.on('reconnecting',()=>{setSockStatus('connecting');updateNetBadge('reconnecting')});
-
-// ✅ MULTI-DEVICE FIX: Event deduplication with syncToken
 socket.on('sync_all', (data)=>{
 if(data.syncToken && processedEvents.has(data.syncToken)) return;
 if(data.syncToken) processedEvents.add(data.syncToken);
@@ -1119,8 +1068,6 @@ if(data.reviews) reviews = safeMerge(reviews, data.reviews, 'reviews');
 if(data.staff) staff = safeMerge(staff, data.staff, 'staff');
 if(data.logs) logs = safeMerge(logs, data.logs, 'logs');
 if(data.bookings) bookings = safeMerge(bookings, data.bookings, 'bookings');
-
-// ✅ MULTI-DEVICE FIX: Targeted re-renders instead of full renderAll
 if(data.rooms) renderRooms();
 if(data.guests) renderGuests();
 if(data.food) {renderFood(); renderGuestFood();}
@@ -1132,20 +1079,16 @@ if(data.reviews) renderReviews();
 if(data.staff) renderStaff();
 if(data.logs) renderLogs();
 if(data.bookings) {renderGuestBookings(); renderAdminBookings();}
-showToast('🔄 Data synced from Server','socket');
+showToast('🔄 Synced','socket');
 });
-
 socket.on('cfg_upd',(cfg)=>{
 if(cfg.syncToken && processedEvents.has(cfg.syncToken)) return;
 if(cfg.syncToken) processedEvents.add(cfg.syncToken);
-if(cfg.currencies) {
-Object.assign(CURRENCIES, cfg.currencies);
-}
+if(cfg.currencies) Object.assign(CURRENCIES, cfg.currencies);
 Object.assign(HotelCfg, cfg);
 applyCfg();
-showToast('⚙️ Config updated from Server','socket');
+showToast('⚙️ Config updated','socket');
 });
-
 socket.on('currency_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1153,10 +1096,9 @@ if(payload.clientId === clientId) return;
 if(payload.currencies) {
 Object.assign(CURRENCIES, payload.currencies);
 applyCfg();
-showToast('💱 Currency rates updated from Server','socket');
+showToast('💱 Rates updated','socket');
 }
 });
-
 socket.on('req_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1164,67 +1106,48 @@ if(payload.clientId === clientId) return;
 const req = payload.data;
 if(!requests.find(r=>r._id===req._id)) requests.unshift(req);
 renderRequests(); updateAdminStats();
-if(currentUser?.type==='admin') showToast(`📋 New request: ${req.guestName}`,'socket');
+if(currentUser?.type==='admin') showToast(`📋 New: ${req.guestName}`,'socket');
 });
-
-// ✅ FIX: Handle action === 'delete' for real-time sync
 socket.on('req_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const req = payload.data;
-if(payload.action === 'delete') {
-requests = requests.filter(x => x._id !== req._id);
-} else {
 const idx = requests.findIndex(r=>r._id===req._id);
 if(idx>-1) requests[idx]=safeMerge(requests[idx], req, 'requests');
 else requests.unshift(req);
-}
 renderRequests(); updateGuestStats();
 if(currentUser?.type==='guest') {
 renderGuestHistory();
-if(req.adminReply) showToast('👑 ' + (t('replyReceived') || 'You have a new reply from Admin'), 'success');
+if(req.adminReply) showToast('👑 Reply received','success');
 }
 });
-
 socket.on('room_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const room = payload.data;
-if(payload.action === 'delete') {
-rooms = rooms.filter(x => x._id !== room._id);
-} else {
 const idx=rooms.findIndex(r=>r._id===room._id);
 if(idx>-1) rooms[idx]=safeMerge(rooms[idx], room, 'rooms');
 else rooms.push(room);
-}
 renderRooms(); updateAdminStats();
 });
-
 socket.on('inventory_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const item = payload.data;
-if(payload.action === 'delete') {
-inventory = inventory.filter(x => x._id !== item._id);
-} else {
 const idx=inventory.findIndex(i=>i._id===item._id);
 if(idx>-1) inventory[idx]=safeMerge(inventory[idx], item, 'inventory');
 else inventory.push(item);
-}
 renderInventory(); renderGuestInv();
 });
-
 socket.on('food_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const f = payload.data;
-if(payload.action === 'delete') {
-food = food.filter(x => x._id !== f._id);
-} else if(Array.isArray(f)) {
+if(Array.isArray(f)) {
 food = safeMerge(food, f, 'food');
 } else {
 const idx=food.findIndex(x=>x._id===f._id);
@@ -1233,9 +1156,8 @@ else food.push(f);
 }
 renderFood();
 renderGuestFood();
-showToast('🍽️ ' + (t('menuUpdatedLive') || 'Menu updated live!'),'socket');
+showToast('🍽️ Menu updated','socket');
 });
-
 socket.on('review_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1244,7 +1166,6 @@ const rev = payload.data;
 if(!reviews.find(r=>r._id===rev._id)) reviews.unshift(rev);
 renderReviews();
 });
-
 socket.on('booking_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1252,106 +1173,35 @@ if(payload.clientId === clientId) return;
 const booking = payload.data;
 if(!bookings.find(b=>b._id===booking._id)) bookings.unshift(booking);
 renderGuestBookings(); renderAdminBookings();
-if(currentUser?.type==='admin') showToast(`📅 New booking: ${booking.guestName}`,'socket');
+if(currentUser?.type==='admin') showToast(`📅 New: ${booking.guestName}`,'socket');
 });
-
 socket.on('booking_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const booking = payload.data;
-if(payload.action === 'delete') {
-bookings = bookings.filter(x => x._id !== booking._id);
-} else {
 const idx = bookings.findIndex(b=>b._id===booking._id);
 if(idx>-1) bookings[idx]=safeMerge(bookings[idx], booking, 'bookings');
 else bookings.unshift(booking);
-}
 renderGuestBookings(); renderAdminBookings();
 });
-
 socket.on('staff_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const s = payload.data;
-if(payload.action === 'delete') {
-staff = staff.filter(x => x._id !== s._id);
-} else {
 const idx=staff.findIndex(x=>x._id===s._id);
 if(idx>-1) staff[idx]=safeMerge(staff[idx], s, 'staff');
 else staff.push(s);
-}
 renderStaff();
 });
-
-// ✅ NEW: Real-time listeners for missing modules
-socket.on('guest_upd',(payload)=>{
-if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
-if(payload.syncToken) processedEvents.add(payload.syncToken);
-if(payload.clientId === clientId) return;
-const g = payload.data;
-if(payload.action === 'delete') {
-guests = guests.filter(x => x._id !== g._id);
-} else {
-const idx=guests.findIndex(x=>x._id===g._id);
-if(idx>-1) guests[idx]=safeMerge(guests[idx], g, 'guests');
-else guests.push(g);
-}
-renderGuests(); renderLoyalty(); updateGuestStats();
-});
-
-socket.on('blacklist_upd',(payload)=>{
-if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
-if(payload.syncToken) processedEvents.add(payload.syncToken);
-if(payload.clientId === clientId) return;
-const b = payload.data;
-if(payload.action === 'delete') {
-blacklist = blacklist.filter(x => x._id !== b._id);
-} else {
-const idx=blacklist.findIndex(x=>x._id===b._id);
-if(idx>-1) blacklist[idx]=safeMerge(blacklist[idx], b, 'blacklist');
-else blacklist.push(b);
-}
-renderBlacklist();
-});
-
-socket.on('maintenance_upd',(payload)=>{
-if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
-if(payload.syncToken) processedEvents.add(payload.syncToken);
-if(payload.clientId === clientId) return;
-const m = payload.data;
-if(payload.action === 'delete') {
-maintenance = maintenance.filter(x => x._id !== m._id);
-} else {
-const idx=maintenance.findIndex(x=>x._id===m._id);
-if(idx>-1) maintenance[idx]=safeMerge(maintenance[idx], m, 'maintenance');
-else maintenance.push(m);
-}
-renderMaintenance();
-});
-
-socket.on('logs_upd',(payload)=>{
-if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
-if(payload.syncToken) processedEvents.add(payload.syncToken);
-if(payload.clientId === clientId) return;
-const l = payload.data;
-if(payload.action === 'delete') {
-logs = [];
-} else {
-if(!logs.find(x=>x._id===l._id)) logs.unshift(l);
-}
-renderLogs();
-});
-
 }catch(e){
-console.warn('Socket unavailable, offline mode');
+console.warn('Socket unavailable');
 setSockStatus('error');
 updateNetBadge('offline');
 }
 }
 
-// ✅ MULTI-DEVICE FIX: Background sync with versioning
 async function syncBack(){
 if(!isOnline) return;
 const [r,g,f,inv,req,bl,maint,rev,st,lg,bk,cfg] = await Promise.all([
@@ -1376,7 +1226,6 @@ renderAll();
 if(!rooms.length) loadAllData();
 }
 
-// ✅ FIX ISSUE 4: Properly update login page connection status
 function setSockStatus(s){
 const dot=document.getElementById('sockDot'), txt=document.getElementById('sockTxt');
 const loginDot=document.getElementById('loginConnDot'), loginTxt=document.getElementById('loginConnTxt');
@@ -1389,21 +1238,17 @@ error:{cls:'error', text: t('serverOffline')||'Offline'}
 const m=map[s]||map.disconnected;
 [dot,loginDot].forEach(el=>{if(el){el.className=(el.id==='loginConnDot'?'conn-dot ':'sock-dot ')+m.cls}});
 if(txt) txt.textContent=m.text;
-if(loginTxt) {
-loginTxt.textContent = s === 'connected' ? (t('serverConnected')||'Connected') : m.text;
-}
+if(loginTxt) loginTxt.textContent = s === 'connected' ? (t('serverConnected')||'Connected') : m.text;
 const sockEl=document.getElementById('sockStatus');
 if(sockEl) sockEl.style.display=s==='connected'?'none':'flex';
 }
 
 function updateNetBadge(status){
-const badge=document.getElementById('netBadge');
 const loginBadge=document.getElementById('loginNetBadge');
-if(!badge && !loginBadge) return;
+if(!loginBadge) return;
 const className=status==='online'?'online':status==='offline'?'offline':status==='reconnecting'?'reconnecting':'queued';
 const text=status==='online'?t('online'):status==='offline'?t('offline'):status==='reconnecting'?t('reconnecting'):'📴 Queued';
-if(badge){badge.className='';badge.classList.add(className);badge.textContent=text}
-if(loginBadge){loginBadge.className='';loginBadge.classList.add(className);loginBadge.textContent=text}
+loginBadge.className='';loginBadge.classList.add(className);loginBadge.textContent=text;
 }
 
 function toggleOnlineMode(){
@@ -1413,16 +1258,15 @@ if(isOnline){
 btn.innerHTML='🟢 Online';btn.title='Click to go offline';
 updateNetBadge('online');
 if(socket && !socket.connected) socket.connect();
-showToast('🌐 Online mode enabled','success');
+showToast('🌐 Online','success');
 }else{
 btn.innerHTML='📴 Offline';btn.title='Click to go online';
 updateNetBadge('offline');
 if(socket && socket.connected) socket.disconnect();
-showToast('📴 Offline mode - using localStorage','warning');
+showToast('📴 Offline','warning');
 }
 }
 
-// SECTION 8: LANGUAGE CHANGE - INSTANT
 function setLang(l){
 lang=l;
 document.documentElement.lang=l;
@@ -1434,10 +1278,7 @@ saveUIPrefs();
 ['lb-en','lb-hi','lb-ar'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
 document.getElementById(`lb-${l}`)?.classList.add('active');
 applyI18n();
-// Instant UI Rebuild
-if(document.getElementById('adminDash') && !document.getElementById('adminDash').classList.contains('hidden')) {
-buildAdminTabs();
-}
+if(document.getElementById('adminDash') && !document.getElementById('adminDash').classList.contains('hidden')) buildAdminTabs();
 if(document.getElementById('guestDash') && !document.getElementById('guestDash').classList.contains('hidden')) {
 buildGuestPanes();
 showGuestTab('reqTab');
@@ -1464,9 +1305,9 @@ document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
 saveUIPrefs();
 }
 
-// ✅ FIX ISSUE 2: Font Size Buttons actually change the font size now
+// ✅ ISSUE #3 FIX: Font size controls fully functional
 function adjustFont(d){
-let currentSize = parseInt(document.body.style.fontSize) || 16;
+let currentSize = parseInt(localStorage.getItem('hotel_fontSize')) || 16;
 if(d === 0) {
 currentSize = 16;
 } else if (d === -1) {
@@ -1474,28 +1315,34 @@ currentSize = Math.max(12, currentSize - 2);
 } else if (d === 1) {
 currentSize = Math.min(24, currentSize + 2);
 }
+fontSize = currentSize;
+// Apply to html and body
 document.documentElement.style.fontSize = currentSize + 'px';
 document.body.style.fontSize = currentSize + 'px';
+// Save to localStorage for persistence
+localStorage.setItem('hotel_fontSize', currentSize);
 let msg = '';
-if(d === 0) msg = t('fontReset') || 'Font reset to 16px';
+if(d === 0) msg = t('fontReset') || 'Font reset';
 else if(d === -1) msg = (t('fontDecreased') || 'Font decreased') + `: ${currentSize}px`;
 else if(d === 1) msg = (t('fontIncreased') || 'Font increased') + `: ${currentSize}px`;
 showToast(msg, 'success');
 }
 
+// ✅ ISSUE #3 FIX: Brightness toggle fully functional
 function setBrightness(v){
 brightness=parseFloat(v);
 document.body.style.filter=`brightness(${v})`;
 const slider=document.getElementById('brightSlider');
 if(slider) slider.value=v;
+// Save to localStorage for persistence
+localStorage.setItem('hotel_brightness', brightness);
 }
 
-// ✅ FIX ISSUE 1: Brightness Circle Button toggles high contrast
 function toggleContrast(){
 highContrast=!highContrast;
 document.body.classList.toggle('high-contrast',highContrast);
-console.log(highContrast ? 'High contrast ON' : 'High contrast OFF');
-showToast(highContrast ? (t('highContrastOn')||'🔆 High contrast ON') : (t('highContrastOff')||'🔆 High contrast OFF'), 'success');
+localStorage.setItem('hotel_contrast', highContrast ? '1' : '0');
+showToast(highContrast ? (t('highContrastOn')||'🔆 ON') : (t('highContrastOff')||'🔆 OFF'), 'success');
 }
 
 function setTheme(th){
@@ -1513,74 +1360,37 @@ document.getElementById('themeDD').classList.remove('show');
 
 function toggleThemeDD(){document.getElementById('themeDD').classList.toggle('show')}
 
-// ✅ FIX ISSUE 3: Notification Button properly requests and handles permissions
 function reqNotif(){
-if(!('Notification' in window)){
-showToast(t('notifNotSupported'),'error');
-return;
-}
-if(Notification.permission === 'granted'){
-showToast(t('notifGranted'),'success');
-new Notification('Hotel OS',{body: t('welcomeSubtitle')});
-return;
-}
-if(Notification.permission === 'denied'){
-showToast((t('notifDenied')||'Notifications blocked') + ' - Please allow in browser settings','warning');
-return;
-}
-showToast(t('notifRequesting')||'Requesting permission...','warning');
+if(!('Notification' in window)){showToast(t('notifNotSupported'),'error');return}
+if(Notification.permission === 'granted'){showToast(t('notifGranted'),'success');new Notification('Hotel OS',{body: t('welcomeSubtitle')});return}
+if(Notification.permission === 'denied'){showToast(t('notifDenied'),'warning');return}
+showToast(t('notifRequesting'),'warning');
 Notification.requestPermission().then(p=>{
 notificationPermission=p;
-if(p==='granted'){
-showToast(t('notifGranted'),'success');
-new Notification('Hotel OS',{body: t('welcomeSubtitle')});
-}else if(p==='denied'){
-showToast((t('notifDenied')||'Notifications blocked') + ' - Please allow in browser settings','warning');
-}else{
-showToast(t('notifPending')||'Permission pending','warning');
-}
+if(p==='granted'){showToast(t('notifGranted'),'success');new Notification('Hotel OS',{body: t('welcomeSubtitle')})}
+else if(p==='denied'){showToast(t('notifDenied'),'warning')}
+else{showToast(t('notifPending'),'warning')}
 });
 }
 
 function haptic(){
-if(navigator.vibrate){
-navigator.vibrate([50,50,50]);
-showToast('📳 '+t('haptic'),'success');
-}else{
-showToast('📳 Haptic not supported','warning');
-}
+if(navigator.vibrate){navigator.vibrate([50,50,50]);showToast('📳 '+t('haptic'),'success')}
+else{showToast('📳 Not supported','warning')}
 }
 
-// ✅ NEW: Browser Notification Helper for Guest Actions
 function sendGuestNotification(titleKey, bodyKey) {
 const title = t(titleKey);
 const body = t(bodyKey);
 showToast(`🔔 ${body}`, 'success');
 if ('Notification' in window && Notification.permission === 'granted') {
 try {
-const notif = new Notification(`👑 ${title}`, {
-body: body,
-icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="80" font-size="80">👑</text></svg>',
-badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="80" font-size="80">👑</text></svg>',
-tag: 'guest-action-' + Date.now(),
-requireInteraction: false,
-silent: false
-});
+const notif = new Notification(`👑 ${title}`, {body: body, tag: 'guest-action-' + Date.now()});
 setTimeout(() => notif.close(), 5000);
-} catch(e) {
-console.warn('Notification error:', e);
+} catch(e) {}
 }
-} else if ('Notification' in window && Notification.permission === 'default') {
-Notification.requestPermission().then(p => {
-notificationPermission = p;
-});
-}
-if (navigator.vibrate) {
-navigator.vibrate([100, 50, 100]);
-}
+if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 }
 
-// SECTION 6: VOICE SPEECH - COMPLETE FIX
 function speakText(text) {
 if(!('speechSynthesis' in window)) return;
 const utterance=new SpeechSynthesisUtterance(text);
@@ -1594,27 +1404,21 @@ if(preferred) utterance.voice=preferred;
 window.speechSynthesis.cancel();
 window.speechSynthesis.speak(utterance);
 }
-
 function speakWelcome(){speakText(t('welcomeMsg'));}
 function speakRequestSubmitted(){speakText(t('requestSubmitted'));}
 function speakOrderPlaced(){speakText(t('orderPlaced'));}
 function speakBookingConfirmed(){speakText(t('bookingConfirmedMsg'));}
 function speakItemAdded(){speakText(t('itemAdded'));}
-
-if('speechSynthesis' in window){
-window.speechSynthesis.onvoiceschanged=()=>{voicesLoaded=true;};
-}
+if('speechSynthesis' in window){window.speechSynthesis.onvoiceschanged=()=>{voicesLoaded=true;};}
 
 function loadUIPrefs(){
 lang=localStorage.getItem('hotel_lang')||'en';
 dark=localStorage.getItem('hotel_dark')==='1';
 theme=localStorage.getItem('hotel_theme')||'default';
-localStorage.removeItem('hotel_contrast');
-localStorage.removeItem('hotel_font');
-localStorage.removeItem('hotel_bright');
-highContrast = false;
-fontSize = 16;
-brightness = 1;
+// ✅ ISSUE #3 FIX: Load font size and brightness from localStorage
+fontSize = parseInt(localStorage.getItem('hotel_fontSize')) || 16;
+brightness = parseFloat(localStorage.getItem('hotel_brightness')) || 1;
+highContrast = localStorage.getItem('hotel_contrast') === '1';
 document.body.classList.toggle('dark',dark);
 document.body.classList.toggle('high-contrast',highContrast);
 document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
@@ -1642,22 +1446,16 @@ renderBookRoomRooms();
 if(document.getElementById('cabType')){
 const cabSelect=document.getElementById('cabType');
 cabSelect.innerHTML=`
-<option value="airport" data-i18n="airportTx">✈️ Airport Transfer - ${formatPrice(HotelCfg.airportPrice)}</option>
-<option value="local" data-i18n="localCab">🚕 Local Cab - ${formatPrice(HotelCfg.localPrice)}/hr</option>
+<option value="airport" data-i18n="airportTx">✈️ Airport - ${formatPrice(HotelCfg.airportPrice)}</option>
+<option value="local" data-i18n="localCab">🚕 Local - ${formatPrice(HotelCfg.localPrice)}/hr</option>
 `;
 }
-// ✅ FIX ISSUE 4: Update cab price display on config change
-updateCabPrice();
 }
 
 function updateLoginClock(){
 const now=new Date();
 const locale=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
-const options={
-weekday:'long',month:'long',day:'numeric',
-hour:'2-digit',minute:'2-digit',second:'2-digit',
-timeZone:userTimezone
-};
+const options={weekday:'long',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:userTimezone};
 const timeStr=now.toLocaleString(locale,options);
 const loginClock=document.getElementById('loginClock');
 if(loginClock) loginClock.textContent=timeStr;
@@ -1666,17 +1464,12 @@ if(loginClock) loginClock.textContent=timeStr;
 function tickClock(){
 const now=new Date();
 const locale=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
-const options={
-weekday:'short',month:'short',day:'numeric',
-hour:'2-digit',minute:'2-digit',second:'2-digit',
-timeZone:userTimezone
-};
+const options={weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:userTimezone};
 const timeStr=now.toLocaleString(locale,options);
 ['aClock','gClock'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=timeStr});
 const gLT=document.getElementById('gLocalTime');if(gLT)gLT.textContent=now.toLocaleTimeString(locale,{timeZone:userTimezone});
 updateLoginClock();
 }
-
 setInterval(tickClock,1000);
 
 function showToast(msg,type=''){
@@ -1694,15 +1487,14 @@ document.getElementById('guestTabBtn').classList.toggle('active',type==='guest')
 document.getElementById('adminTabBtn').classList.toggle('active',type==='admin');
 }
 
-// ✅ FIX ISSUE 1 & 5: Guest Login with sessionStorage
 async function guestLogin(e){
 e.preventDefault();
 const name=document.getElementById('guestNameIn').value.trim();
 const room=document.getElementById('guestRoomIn').value.trim();
 if(!name||!room){showToast('Fill all fields','error');return}
-if(blacklist.find(b=>b.name.toLowerCase()===name.toLowerCase())){showToast('❌ Access denied','error');return}
+if(blacklist.find(b=>b.name.toLowerCase()===name.toLowerCase())){showToast('❌ Denied','error');return}
 currentUser={type:'guest',name,room,points:0};
-saveSession(); // ✅ Save to sessionStorage
+saveUIPrefs();
 showPage('guestDash');
 document.getElementById('gInfo').textContent=`👤 ${name} | #${room}`;
 updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
@@ -1712,28 +1504,23 @@ speakWelcome();
 if(isOnline && socket?.connected) socket.emit('guest_join',{hotelId:HID,name,room, clientId});
 }
 
-// ✅ FIX ISSUE 1 & 5: Admin Login with sessionStorage
 async function adminLogin(e){
 e.preventDefault();
 const hotelId = document.getElementById('adminHotelIdIn').value.trim();
 const email=document.getElementById('adminEmailIn').value.trim();
 const pass=document.getElementById('adminPassIn').value;
-
-// Mock credentials check
 if(hotelId === 'HOTEL001' && email === 'admin@crownplaza.com' && pass === 'admin123') {
-    const mockToken = 'mock_jwt_' + Math.random().toString(36).substring(2) + Date.now();
-    currentUser={type:'admin', email, role:'super_admin', token:mockToken, hotelId:hotelId};
-    saveSession(); // ✅ Save to sessionStorage
-    buildRolePage();
-    showPage('rolePage');
-    speakWelcome();
-    showToast('✅ Login successful!','success');
-    if(isOnline && socket?.connected){
-        socket.emit('admin_join',{hotelId:hotelId,email:email,clientId});
-    }
-    return;
+const mockToken = 'mock_jwt_' + Math.random().toString(36).substring(2) + Date.now();
+currentUser={type:'admin', email, role:'super_admin', token:mockToken, hotelId:hotelId};
+localStorage.setItem(`h_${HID}_token`, mockToken);
+saveUIPrefs();
+buildRolePage();
+showPage('rolePage');
+speakWelcome();
+showToast('✅ Login!','success');
+if(isOnline && socket?.connected) socket.emit('admin_join',{hotelId:hotelId,email:email,clientId});
+return;
 }
-
 showToast('🔄 Logging in...','info');
 try{
 const response=await fetch(API_BASE+'/admin/login',{
@@ -1744,20 +1531,19 @@ body:JSON.stringify({email:email,password:pass,hotelId:hotelId})
 const data=await response.json();
 if(response.ok && data.success && data.token){
 currentUser={type:'admin',email:data.user.email,role:data.user.role,token:data.token,hotelId:data.hotelId};
-saveSession(); // ✅ Save to sessionStorage
+localStorage.setItem(`h_${HID}_token`, data.token);
+saveUIPrefs();
 buildRolePage();
 showPage('rolePage');
 speakWelcome();
-showToast('✅ Login successful!','success');
-if(isOnline && socket?.connected){
-socket.emit('admin_join',{hotelId:data.hotelId,email:email,clientId});
-}
+showToast('✅ Login!','success');
+if(isOnline && socket?.connected) socket.emit('admin_join',{hotelId:data.hotelId,email:email,clientId});
 }else{
-showToast('❌ '+(data.error||'Invalid credentials'),'error');
+showToast('❌ '+(data.error||'Invalid'),'error');
 }
 }catch(error){
 console.error('Login error:',error);
-showToast('❌ Login failed: '+error.message,'error');
+showToast('❌ Failed: '+error.message,'error');
 }
 }
 
@@ -1770,7 +1556,7 @@ g.innerHTML=ROLES.map(r=>`<button class="role-card" onclick="loginAsRole('${r.ke
 
 function loginAsRole(role){
 currentUser.role=role;
-saveSession();
+saveUIPrefs();
 const rName=ROLES.find(r=>r.key===role)?.label||'Admin';
 document.getElementById('aRole').textContent=t(rName);
 showPage('adminDash');
@@ -1782,34 +1568,24 @@ showToast(`Logged in as ${t(rName)}`,'success');
 
 function backToLogin(){showPage('loginPage')}
 
-// ✅ FIX ISSUE 2: Clear form fields and session on logout
 function logout(){
 if(socket?.connected) socket.emit('leave_hotel', HID);
 currentUser=null;
-sessionStorage.clear(); // ✅ Clear sessionStorage
 localStorage.removeItem(`h_${HID}_session`);
 localStorage.removeItem(`h_${HID}_token`);
-
-// ✅ FIX ISSUE 2: Clear form fields
-['adminEmailIn', 'adminPassIn', 'adminHotelIdIn', 'guestNameIn', 'guestRoomIn'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.value = '';
-});
-
+localStorage.removeItem(`h_${HID}_pageState`);
 cart=[];
 showPage('loginPage');
 showToast('Logged out','success');
 }
 
-// ✅ FIX ISSUE 5: Refresh stability with sessionStorage & tab restoration
+// ✅ ISSUE #4 FIX: Restore page state on refresh
 async function checkSession(){
-const s = sessionStorage.getItem('hotel_session');
+const s=localStorage.getItem(`h_${HID}_session`);
 if(!s) return;
 try{
 currentUser = JSON.parse(s);
 if(!currentUser) return;
-const savedTab = sessionStorage.getItem('currentTab');
-
 if(currentUser.type==='admin'){
 buildAdminTabs();
 showPage('adminDash');
@@ -1817,8 +1593,11 @@ const rName=ROLES.find(r=>r.key===currentUser.role)?.label||'Admin';
 document.getElementById('aRole').textContent=t(rName);
 renderAll();
 updateAdminStats();
-if(savedTab && !savedTab.startsWith('guest_')) {
-showAdminTab(savedTab);
+// ✅ ISSUE #4 FIX: Restore last admin tab
+const pageState = JSON.parse(localStorage.getItem(`h_${HID}_pageState`) || '{}');
+if(pageState.currentPage && pageState.currentPage.startsWith('admin_')) {
+const tabId = pageState.currentPage.replace('admin_', '');
+showAdminTab(tabId);
 } else {
 showAdminTab('overview');
 }
@@ -1830,16 +1609,19 @@ renderGuestFood();
 renderGuestInv();
 renderGuestHistory();
 renderGuestBookings();
-if(savedTab && savedTab.startsWith('guest_')) {
-showGuestTab(savedTab.replace('guest_', ''));
+// ✅ ISSUE #4 FIX: Restore last guest tab
+const pageState = JSON.parse(localStorage.getItem(`h_${HID}_pageState`) || '{}');
+if(pageState.currentPage && pageState.currentPage.startsWith('guest_')) {
+const tabId = pageState.currentPage.replace('guest_', '');
+showGuestTab(tabId);
 } else {
 showGuestTab('reqTab');
 }
 }
-showToast("✅ Session restored — Welcome back!", 'success');
+showToast("✅ Restored!", 'success');
 }catch(e){
 console.warn('Session restore error:',e);
-sessionStorage.removeItem('hotel_session');
+localStorage.removeItem(`h_${HID}_session`);
 }
 if(isOnline && socket?.connected){
 socket.emit('guest_join', {hotelId:HID, name: currentUser?.name, room: currentUser?.room, clientId});
@@ -1857,6 +1639,8 @@ el.classList.add('hidden');
 el.style.display = 'none';
 }
 });
+// ✅ ISSUE #4 FIX: Save page state when page changes
+saveUIPrefs();
 }
 
 const ADMIN_TABS=[
@@ -1972,7 +1756,7 @@ case 'requests': return `
 <button class="btn-ghost" style="font-size:10px;padding:4px 10px;border-color:#ef4444;color:#ef4444" onclick="renderRequests('emergency')">🚨 Emergency</button>
 </div>
 <div class="card-sm" style="margin-bottom:10px">
-<h4 style="font-size:12px;margin-bottom:8px;color:var(--p1)" data-i18n="newRequest">📝 New Request (Admin)</h4>
+<h4 style="font-size:12px;margin-bottom:8px;color:var(--p1)" data-i18n="newRequest">📝 New Request</h4>
 <form onsubmit="submitAdminReq(event)">
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
 <select class="inp" id="adminDept" onchange="updateAdminServices()" required>
@@ -2006,24 +1790,24 @@ case 'settings': return `
 ${Object.keys(CURRENCIES).map(code => `<option value="${code}" ${HotelCfg.currency===code?'selected':''}>${CURRENCIES[code].flag||''} ${code}</option>`).join('')}
 </select>
 <button class="btn-primary" onclick="saveCfg('currency')" data-i18n="save">Apply</button>
-<button class="btn-ghost" onclick="editCurrencyRates()" title="Edit exchange rates">✏️</button>
-<button class="btn-ghost" onclick="openAddCurrencyModal()" title="Add new currency">➕</button>
+<button class="btn-ghost" onclick="editCurrencyRates()">✏️</button>
+<button class="btn-ghost" onclick="openAddCurrencyModal()">➕</button>
 </div></div>
 <div class="form-row"><label class="lbl" data-i18n="wifiLbl">WiFi Password</label>
 <div style="display:flex;gap:6px"><input class="inp" id="cfgWifi" value="${HotelCfg.wifi}"><button class="btn-primary" onclick="saveCfg('wifi')" data-i18n="save">Save</button></div></div>
-<div class="form-row"><label class="lbl" data-i18n="airportPrice">Airport Transfer Price</label>
+<div class="form-row"><label class="lbl" data-i18n="airportPrice">Airport Price</label>
 <div style="display:flex;gap:6px"><input class="inp" id="cfgAirport" type="number" value="${HotelCfg.airportPrice}" style="width:100px"><button class="btn-primary" onclick="saveCfg('transport')" data-i18n="save">Save</button></div></div>
 <div class="form-row"><label class="lbl" data-i18n="localPrice">Local Cab /hr</label>
 <div style="display:flex;gap:6px"><input class="inp" id="cfgLocal" type="number" value="${HotelCfg.localPrice}" style="width:100px"><button class="btn-primary" onclick="saveCfg('transport')" data-i18n="save">Save</button></div></div>
 <div style="background:var(--card2);border-radius:8px;padding:10px;font-size:13px;color:var(--fg);opacity:.7;margin-top:10px">
-🏢 Hotel ID: <strong>${HID}</strong> | Settings sync live to all devices via Socket.IO & MongoDB
+🏢 Hotel ID: <strong>${HID}</strong>
 </div>
 </div>`;
 case 'blacklist': return `
 <div class="card">
 <div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)">🚫 Blacklist</h3>
-<button class="btn-primary" style="background:#ef4444" onclick="openModal('blacklistModal')" data-i18n="blockGuest">+ Block Guest</button>
+<button class="btn-primary" style="background:#ef4444" onclick="openModal('blacklistModal')" data-i18n="blockGuest">+ Block</button>
 </div>
 <div class="tbl-wrap"><table class="tbl"><thead><tr>
 <th data-i18n="nameLbl">Name</th><th data-i18n="room">Room</th><th data-i18n="reason">Reason</th><th data-i18n="date">Date</th><th data-i18n="actions">Actions</th>
@@ -2050,7 +1834,7 @@ case 'reviews': return `
 <div class="card">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px" data-i18n="tabReviews">⭐ Reviews</h3>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;margin-bottom:12px">
-<div class="stat-card"><div class="stat-val" id="avgR" style="color:#f59e0b">—</div><div class="stat-lbl">Avg Rating</div></div>
+<div class="stat-card"><div class="stat-val" id="avgR" style="color:#f59e0b">—</div><div class="stat-lbl">Avg</div></div>
 <div class="stat-card"><div class="stat-val" id="totR">0</div><div class="stat-lbl">Total</div></div>
 <div class="stat-card"><div class="stat-val" id="recR" style="color:#10b981">—%</div><div class="stat-lbl">Recommend</div></div>
 </div>
@@ -2059,7 +1843,7 @@ case 'reviews': return `
 case 'qrcodes': return `
 <div class="card">
 <div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-<h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabQR">📷 QR Codes</h3>
+<h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabQR">📷 QR</h3>
 <button class="btn-primary" onclick="genAllQR()" data-i18n="genAll">Generate All</button>
 </div>
 <div id="qrGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px"></div>
@@ -2068,7 +1852,7 @@ case 'maintenance': return `
 <div class="card">
 <div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabMaintenance">🔧 Maintenance</h3>
-<button class="btn-primary" onclick="openModal('maintModal')" data-i18n="addTask">+ Add Task</button>
+<button class="btn-primary" onclick="openModal('maintModal')" data-i18n="addTask">+ Add</button>
 </div>
 <div class="tbl-wrap"><table class="tbl"><thead><tr>
 <th data-i18n="task">Task</th><th data-i18n="area">Area</th><th data-i18n="scheduled">Scheduled</th><th data-i18n="assigned">Assigned</th><th data-i18n="status">Status</th><th data-i18n="actions">Actions</th>
@@ -2076,7 +1860,7 @@ case 'maintenance': return `
 </div>`;
 case 'loyalty': return `
 <div class="card">
-<h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px" data-i18n="tabLoyalty">🏆 Loyalty Points</h3>
+<h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px" data-i18n="tabLoyalty">🏆 Loyalty</h3>
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:12px">
 <div class="stat-card"><div class="stat-val" id="totPts">0</div><div class="stat-lbl">Issued</div></div>
 <div class="stat-card"><div class="stat-val" id="redPts" style="color:#10b981">0</div><div class="stat-lbl">Redeemed</div></div>
@@ -2090,14 +1874,14 @@ case 'staff': return `
 <div class="card">
 <div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabStaff">👔 Staff</h3>
-<button class="btn-primary" onclick="openModal('staffModal')" data-i18n="addStaff">+ Add Staff</button>
+<button class="btn-primary" onclick="openModal('staffModal')" data-i18n="addStaff">+ Add</button>
 </div>
 <div class="staff-grid" id="staffGrid"></div>
 </div>`;
 case 'logs': return `
 <div class="card">
 <div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-<h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabLogs">📝 Activity Logs</h3>
+<h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabLogs">📝 Logs</h3>
 <div style="display:flex;gap:6px">
 <button class="btn-primary" style="background:#10b981" onclick="exportLogs()" data-i18n="exportXLS">Export</button>
 <button class="btn-primary" style="background:#ef4444" onclick="clearLogs()" data-i18n="clearLogs">Clear</button>
@@ -2131,7 +1915,6 @@ default: return '';
 }
 }
 
-// ✅ FIX ISSUE 5: Save current tab to sessionStorage
 function showAdminTab(id){
 document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
 document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.id===`atab-${id}`));
@@ -2139,7 +1922,8 @@ if(id==='overview') setTimeout(initCharts,200);
 if(id==='requests') updateAdminServices();
 if(id==='staff') renderStaff();
 if(id==='bookings') renderAdminBookings();
-sessionStorage.setItem('currentTab', id);
+// ✅ ISSUE #4 FIX: Save current tab
+saveUIPrefs();
 }
 
 function renderAll(){
@@ -2151,7 +1935,6 @@ updateAdminStats();updateGuestStats();
 renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
 }
 
-// ✅ MULTI-DEVICE FIX: Targeted DOM updates with data-id
 function renderRooms(){
 const tbody=document.getElementById('roomsTbody');if(!tbody)return;
 tbody.innerHTML=rooms.map(r=>`
@@ -2165,7 +1948,7 @@ tbody.innerHTML=rooms.map(r=>`
 <button class="tbl-action" onclick="editRoom('${r._id}')" title="${t('edit')}">✏️</button>
 <button class="tbl-action" onclick="delRoom('${r._id}')" title="${t('delete')}">🗑️</button>
 </td>
-</tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--p2);padding:12px">No rooms</td></tr>';
+</tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:12px">No rooms</td></tr>';
 }
 
 function renderGuests(){
@@ -2193,8 +1976,8 @@ el.innerHTML=food.map(f=>`
 <div style="font-weight:700;color:var(--p1)">${formatPrice(f.basePriceSAR)}</div>
 </div>
 <div style="display:flex;gap:4px">
-<button class="tbl-action" onclick="editFood('${f._id}')" title="${t('edit')}">✏️</button>
-<button class="tbl-action" onclick="delFood('${f._id}')" title="${t('delete')}">🗑️</button>
+<button class="tbl-action" onclick="editFood('${f._id}')">✏️</button>
+<button class="tbl-action" onclick="delFood('${f._id}')">🗑️</button>
 </div>
 </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No dishes</p>';
 }
@@ -2207,7 +1990,7 @@ tbody.innerHTML=inventory.map(i=>`
 <td>${i.category}</td>
 <td class="${i.stock<=i.min?'low-stock':''}">${i.stock} ${i.unit}${i.stock<=i.min?' ⚠️':''}</td>
 <td>
-<button class="tbl-action" onclick="editInventory('${i._id}')" title="${t('edit')}">✏️</button>
+<button class="tbl-action" onclick="editInventory('${i._id}')">✏️</button>
 <button class="tbl-action" onclick="adjStock('${i._id}',10)">➕</button>
 <button class="tbl-action" onclick="adjStock('${i._id}',-10)">➖</button>
 <button class="tbl-action" onclick="delInv('${i._id}')">🗑️</button>
@@ -2267,7 +2050,7 @@ e.preventDefault();
 const dept=document.getElementById('adminDept')?.value;
 const svc=document.getElementById('adminService')?.value;
 const desc=document.getElementById('adminDesc')?.value||'';
-if(!dept||!svc){showToast('Select department & service','error');return}
+if(!dept||!svc){showToast('Select dept & service','error');return}
 const req={_id:'req_'+Date.now(),_isNew:true,guestName:'Admin',roomNumber:'N/A',department:dept,description:`${svc}: ${desc}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID, _version:1};
 requests.unshift(req);
 save('requests',req,'req_new');
@@ -2277,36 +2060,19 @@ showToast('✅ '+t('reqSubmitted'),'success');
 addLog('Admin Request',`${dept} - ${svc}`);
 }
 
-// ✅ FIX ISSUE 5: Admin Reply to Guest working with timestamp and toast
 function sendAdminReply(reqId){
 const input=document.getElementById(`adminReply-${reqId}`);
 if(!input) return;
 const reply=input.value.trim();
-if(!reply){showToast('Enter a reply','error');return}
+if(!reply){showToast('Enter reply','error');return}
 const req=requests.find(r=>r._id===reqId);
 if(req){
 req.adminReply=reply;
 req.adminReplyTime=new Date().toISOString();
 save('requests',req,'req_upd');
 renderRequests();
-showToast('✅ ' + (t('replySentToGuest') || 'Reply sent to guest'),'success');
-addLog('Admin Reply',`To ${req.guestName}: ${reply}`);
-}
-}
-
-function sendReply(reqId){
-const input=document.getElementById(`reply-${reqId}`);
-if(!input) return;
-const reply=input.value.trim();
-if(!reply){showToast('Enter a reply','error');return}
-const req=requests.find(r=>r._id===reqId);
-if(req){
-req.reply=reply;
-req.replyTime=new Date().toISOString();
-save('requests',req,'req_upd');
-renderRequests();
-showToast(t('replySent'),'success');
-addLog('Reply Sent',`To ${req.guestName}: ${reply}`);
+showToast('✅ Reply sent','success');
+addLog('Admin Reply',`To ${req.guestName}`);
 }
 }
 
@@ -2319,7 +2085,7 @@ tbody.innerHTML=blacklist.map((b,i)=>`
 <td style="font-size:11px">${b.reason}</td>
 <td style="font-size:10px">${new Date(b.date||Date.now()).toLocaleDateString()}</td>
 <td><button class="tbl-action" style="color:#10b981" onclick="unblockGuest(${i})">${t('unblock')}</button></td>
-</tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:12px;opacity:.5">No blocked guests</td></tr>';
+</tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:12px;opacity:.5">None</td></tr>';
 }
 
 function renderMaintenance(){
@@ -2335,7 +2101,7 @@ tbody.innerHTML=maintenance.map((m,i)=>`
 <button class="tbl-action" style="color:#10b981" onclick="updMaint(${i},'completed')">✅</button>
 <button class="tbl-action" onclick="delMaint(${i})">🗑️</button>
 </td>
-</tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:12px;opacity:.5">No tasks</td></tr>';
+</tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:12px;opacity:.5">None</td></tr>';
 }
 
 function renderReviews(){
@@ -2353,11 +2119,10 @@ el.innerHTML=reviews.slice(0,10).map(r=>`
 <strong>${r.guest}</strong> — Room ${r.room}
 <div style="color:#f59e0b">${'★'.repeat(r.overall||0)}${'☆'.repeat(5-(r.overall||0))}</div>
 <p style="font-size:13px;margin-top:3px">${r.comment||'No comment'}</p>
-<small style="opacity:.5;font-size:10px">Service: ${r.service||'—'}★ | Clean: ${r.cleanliness||'—'}★</small>
 </div>
-<button class="btn-ghost" style="font-size:10px;padding:3px 8px;align-self:flex-start" onclick="replyRev('${r.guest}')">💬</button>
+<button class="btn-ghost" style="font-size:10px;padding:3px 8px" onclick="replyRev('${r.guest}')">💬</button>
 </div>
-</div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No reviews yet</p>';
+</div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No reviews</p>';
 }
 
 function renderLoyalty(){
@@ -2375,7 +2140,7 @@ tbody.innerHTML=guests.filter(g=>(g.points||0)>0).map((g,i)=>`
 <button class="tbl-action" style="color:#10b981" onclick="addPts('${g._id}',10)">➕10</button>
 <button class="tbl-action" style="color:var(--p1)" onclick="redeemPts('${g._id}',50)">🎁</button>
 </td>
-</tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px;opacity:.5">No members</td></tr>';
+</tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px;opacity:.5">None</td></tr>';
 }
 
 function renderStaff(){
@@ -2495,19 +2260,19 @@ panes.innerHTML=`
 <div class="form-row">
 <label class="lbl" data-i18n="selectDepartment">Department</label>
 <select class="inp" id="gDept" onchange="updateServices()" required>
-<option value="" data-i18n="selectDepartment">Select Department</option>
+<option value="" data-i18n="selectDepartment">Select</option>
 <option value="Housekeeping" data-i18n="deptHK">🧹 Housekeeping</option>
 <option value="Maintenance" data-i18n="deptMaint">🔧 Maintenance</option>
 <option value="Restaurant" data-i18n="deptRest">🍽️ Restaurant</option>
 <option value="Laundry" data-i18n="deptLaundry">🧺 Laundry</option>
-<option value="IT" data-i18n="deptIT">💻 IT Support</option>
+<option value="IT" data-i18n="deptIT">💻 IT</option>
 <option value="Security" data-i18n="deptSec">🛡️ Security</option>
 <option value="Transport" data-i18n="deptTransport">🚗 Transport</option>
 </select>
 </div>
 <div class="form-row">
 <label class="lbl" data-i18n="selectService">Service</label>
-<select class="inp" id="gService" required><option value="" data-i18n="selectService">Select Service</option></select>
+<select class="inp" id="gService" required><option value="" data-i18n="selectService">Select</option></select>
 </div>
 <div class="form-row">
 <label class="lbl" data-i18n="priority">Priority</label>
@@ -2518,13 +2283,13 @@ panes.innerHTML=`
 </select>
 </div>
 <div class="form-row">
-<textarea class="inp" id="gDesc" rows="2" data-i18n-ph="describeIssue" placeholder="Describe your issue…"></textarea>
+<textarea class="inp" id="gDesc" rows="2" data-i18n-ph="describeIssue" placeholder="Describe…"></textarea>
 </div>
-<button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="submitRequest">Submit Request</button>
+<button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="submitRequest">Submit</button>
 </form>
 </div>
 <div class="card hidden" id="gp-foodTab">
-<h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="foodMenu">🍕 Food Menu</h3>
+<h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="foodMenu">🍕 Food</h3>
 <div class="food-grid" id="gFoodGrid"></div>
 <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">
 <div style="display:flex;justify-content:center;align-items:center;margin-bottom:8px">
@@ -2536,35 +2301,30 @@ panes.innerHTML=`
 </div>
 </div>
 <div class="card hidden" id="gp-invTab">
-<h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="invItems">📦 Available Items</h3>
+<h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="invItems">📦 Items</h3>
 <div class="inv-grid" id="gInvGrid"></div>
-<p style="text-align:center;font-size:13px;opacity:.5;margin-top:10px">💡 Items delivered within 10 minutes</p>
+<p style="text-align:center;font-size:13px;opacity:.5;margin-top:10px">💡 Delivered in 10 min</p>
 </div>
 <div class="card hidden" id="gp-cabTab">
 <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="transport">🚗 Transport</h3>
 <form onsubmit="bookCab(event)">
 <div class="form-row">
 <label class="lbl">Type</label>
-<select class="inp" id="cabType" onchange="updateCabPrice()">
-<option value="airport" data-i18n="airportTx">✈️ Airport Transfer - ${formatPrice(HotelCfg.airportPrice)}</option>
-<option value="local" data-i18n="localCab">🚕 Local Cab - ${formatPrice(HotelCfg.localPrice)}/hr</option>
+<select class="inp" id="cabType">
+<option value="airport" data-i18n="airportTx">✈️ Airport - ${formatPrice(HotelCfg.airportPrice)}</option>
+<option value="local" data-i18n="localCab">🚕 Local - ${formatPrice(HotelCfg.localPrice)}/hr</option>
 </select>
 </div>
-<!-- ✅ FIX ISSUE 4: Cab Price Display -->
-<div class="form-row">
-<label class="lbl">💰 Price</label>
-<div id="cabPriceDisplay" style="font-size:16px;font-weight:700;color:var(--p1);padding:8px;background:var(--card2);border-radius:8px">${formatPrice(HotelCfg.airportPrice)}</div>
-</div>
-<div class="form-row"><label class="lbl" data-i18n="scheduled">Date & Time</label><input class="inp" id="cabTime" type="datetime-local"></div>
-<button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="bookNow">📅 Book Now</button>
+<div class="form-row"><label class="lbl" data-i18n="scheduled">Time</label><input class="inp" id="cabTime" type="datetime-local"></div>
+<button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="bookNow">📅 Book</button>
 </form>
 </div>
 <div class="card hidden" id="gp-histTab">
-<h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="myHistory">📋 My History</h3>
+<h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="myHistory">📋 History</h3>
 <div id="gHistList"></div>
 </div>
 <div class="card hidden" id="gp-infoTab">
-<h3 style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--fg)" data-i18n="hotelInfo">ℹ️ Hotel Info</h3>
+<h3 style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--fg)" data-i18n="hotelInfo">ℹ️ Info</h3>
 <div class="card-sm" style="margin-bottom:8px">
 <div style="display:flex;justify-content:center;padding:4px 0;font-size:12px;align-items:center">
 <span data-i18n="wifi">📶 WiFi</span>
@@ -2573,7 +2333,7 @@ panes.innerHTML=`
 <button class="btn-ghost" style="padding:2px 6px;font-size:10px" onclick="copyWifi()" data-i18n="copy">Copy</button>
 </div>
 </div>
-<div style="display:flex;justify-content:center;padding:4px 0;font-size:12px"><span data-i18n="localTime">🌍 Local Time</span><span id="gLocalTime" style="font-family:'DM Mono',monospace;font-size:11px"></span></div>
+<div style="display:flex;justify-content:center;padding:4px 0;font-size:12px"><span data-i18n="localTime">🌍 Time</span><span id="gLocalTime" style="font-family:'DM Mono',monospace;font-size:11px"></span></div>
 <div style="display:flex;justify-content:center;padding:4px 0;font-size:12px"><span>🍽️ Restaurant</span><span>7AM–10PM</span></div>
 <div style="display:flex;justify-content:center;padding:4px 0;font-size:12px"><span>💪 Gym</span><span>6AM–10PM</span></div>
 <div style="display:flex;justify-content:center;padding:4px 0;font-size:12px"><span data-i18n="checkoutTime">🕐 Checkout</span><span>11:00 AM</span></div>
@@ -2581,29 +2341,26 @@ panes.innerHTML=`
 <div class="weather-card" style="margin-bottom:8px" id="guestWeatherCard">
 <div class="weather-icon" id="weatherIcon">🌤️</div>
 <div class="weather-temp" id="gWeatherTemp">28°C</div>
-<div class="weather-desc" data-i18n="weather" id="gWeatherDesc">Weather in ${userTimezone.split('/')[1]||'Your City'}</div>
-<div style="font-size:10px;opacity:.7;margin-top:4px" id="guestWeatherUpdateTime">Updated just now</div>
+<div class="weather-desc" data-i18n="weather" id="gWeatherDesc">Weather</div>
+<div style="font-size:10px;opacity:.7;margin-top:4px" id="guestWeatherUpdateTime">Updated</div>
 </div>
 <div class="currency-card" style="margin-bottom:8px">
-<div style="font-weight:600;margin-bottom:4px" data-i18n="currency">Quick Currency</div>
-<div class="currency-row"><span>1 ${CURRENCIES[HotelCfg.currency]?.symbol}</span><span>= ${CURRENCIES[HotelCfg.currency]?.symbol}1.00</span></div>
+<div style="font-weight:600;margin-bottom:4px" data-i18n="currency">Currency</div>
 <div class="currency-row"><span>1 USD</span><span>= ${CURRENCIES.USD.symbol}1.00</span></div>
 <div class="currency-row"><span>1 USD</span><span>= ${CURRENCIES.SAR.symbol}3.75</span></div>
 <div class="currency-row"><span>1 USD</span><span>= ${CURRENCIES.INR.symbol}83.50</span></div>
-<div class="currency-row"><span>1 USD</span><span>= ${CURRENCIES.AED.symbol}3.67</span></div>
-<div class="currency-row"><span>1 USD</span><span>= ${CURRENCIES.KWD.symbol}0.31</span></div>
 </div>
 <div class="card-sm" style="background:var(--card2);margin-bottom:8px">
 <div style="display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px">
-<div><div style="font-weight:700;font-size:13px" data-i18n="myPoints">⭐ My Points</div><div id="gPtsDisplay" style="font-size:24px;font-weight:700;color:#f59e0b">0</div></div>
-<button class="btn-primary" onclick="openRatingModal()" data-i18n="rateNow">Rate Now ⭐</button>
+<div><div style="font-weight:700;font-size:13px" data-i18n="myPoints">⭐ Points</div><div id="gPtsDisplay" style="font-size:24px;font-weight:700;color:#f59e0b">0</div></div>
+<button class="btn-primary" onclick="openRatingModal()" data-i18n="rateNow">Rate ⭐</button>
 </div>
-<p style="font-size:13px;opacity:.6;margin-top:6px" data-i18n="loyaltyBenefits">100 pts = 10 off | 500 pts = Free Night</p>
+<p style="font-size:13px;opacity:.6;margin-top:6px" data-i18n="loyaltyBenefits">100 pts = 10 off</p>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🚑 First Aid','<p>🩸 Bleeding: Apply pressure</p><p>🔥 Burn: Cool water</p><p>💔 Cardiac: Call 102</p>')"><div style="font-size:22px">🚑</div><div style="font-size:13px;font-weight:600">First Aid</div></button>
-<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🗺️ Evacuation','<p>🚪 Exit stairs at corridor ends</p><p>🅿️ Assembly: Main Parking</p><p style=color:#ef4444>⚠️ No elevators in emergency</p>')"><div style="font-size:22px">🗺️</div><div style="font-size:13px;font-weight:600">Evacuation</div></button>
-<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('📞 Emergency','<p>🚓 Police: 100</p><p>🚑 Ambulance: 102</p><p>🔥 Fire: 101</p><p>🏨 Security: Ext. 0</p>')"><div style="font-size:22px">📞</div><div style="font-size:13px;font-weight:600">Emergency</div></button>
+<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🚑 First Aid','<p>🩸 Apply pressure</p><p>🔥 Cool water</p><p>💔 Call 102</p>')"><div style="font-size:22px">🚑</div><div style="font-size:13px;font-weight:600">First Aid</div></button>
+<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🗺️ Evacuation','<p>🚪 Exit stairs</p><p>🅿️ Main Parking</p>')"><div style="font-size:22px">🗺️</div><div style="font-size:13px;font-weight:600">Evacuation</div></button>
+<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('📞 Emergency','<p>🚓 Police: 100</p><p>🚑 Ambulance: 102</p><p>🔥 Fire: 101</p>')"><div style="font-size:22px">📞</div><div style="font-size:13px;font-weight:600">Emergency</div></button>
 <button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="showConcierge()"><div style="font-size:22px">🤖</div><div style="font-size:13px;font-weight:600">Concierge</div></button>
 </div>
 </div>
@@ -2611,7 +2368,7 @@ panes.innerHTML=`
 <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="bookRoom">📅 Book Room</h3>
 <form onsubmit="bookRoom(event)">
 <div class="form-row">
-<label class="lbl" data-i18n="selectRoom">Select Room</label>
+<label class="lbl" data-i18n="selectRoom">Room</label>
 <select class="inp" id="bookRoomSelect" required>
 <option value="">${t('selectRoom')}</option>
 </select>
@@ -2621,16 +2378,16 @@ panes.innerHTML=`
 <div class="form-row"><label class="lbl" data-i18n="checkOut">Check-out</label><input class="inp" id="bookCheckOut" type="date" required onchange="calcBookingPrice()"></div>
 </div>
 <div class="form-row">
-<label class="lbl" data-i18n="numGuests">Number of Guests</label>
+<label class="lbl" data-i18n="numGuests">Guests</label>
 <select class="inp" id="bookNumGuests" onchange="calcBookingPrice()">
 ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}">${n}</option>`).join('')}
 </select>
 </div>
 <div class="form-row">
-<label class="lbl" data-i18n="totalPrice">Total Price</label>
+<label class="lbl" data-i18n="totalPrice">Total</label>
 <div id="bookingTotalPrice" style="font-size:18px;font-weight:700;color:var(--p1);padding:8px;background:var(--card2);border-radius:8px">0</div>
 </div>
-<button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="bookNow">📅 Book Now</button>
+<button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="bookNow">📅 Book</button>
 </form>
 <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
 <h4 style="font-size:13px;font-weight:600;margin-bottom:8px" data-i18n="myBookings">My Bookings</h4>
@@ -2639,7 +2396,6 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}">${n}</option>`).join('')}
 </div>`;
 }
 
-// ✅ FIX ISSUE 5: Save current guest tab to sessionStorage
 function showGuestTab(id){
 GUEST_TABS.forEach(tb=>{
 const p=document.getElementById(`gp-${tb.id}`);
@@ -2651,7 +2407,8 @@ if(id==='foodTab') renderGuestFood();
 if(id==='invTab') renderGuestInv();
 if(id==='histTab') renderGuestHistory();
 if(id==='bookTab') {renderGuestBookings();renderBookRoomRooms();}
-sessionStorage.setItem('currentTab', 'guest_' + id);
+// ✅ ISSUE #4 FIX: Save current tab
+saveUIPrefs();
 }
 
 function updateServices(){
@@ -2674,16 +2431,16 @@ const dept=document.getElementById('gDept')?.value;
 const svc=document.getElementById('gService')?.value;
 const prio=document.getElementById('gPriority')?.value||'normal';
 const desc=document.getElementById('gDesc')?.value||'';
-if(!dept||!svc){showToast('Select department & service','error');return}
+if(!dept||!svc){showToast('Select dept & service','error');return}
 const req={_id:'req_'+Date.now(),_isNew:true,guestName:currentUser.name,roomNumber:currentUser.room,department:dept,description:`${svc}: ${desc}`,priority:prio,status:'open',createdAt:new Date().toISOString(),hotelId:HID, _version:1};
 requests.unshift(req);
 save('requests',req,'req_new');
 renderRequests();updateGuestStats();renderGuestHistory();
 e.target.reset();updateServices();
-showToast('✅ ' + (t('reqSubmitted') || 'Request submitted successfully'), 'success');
+showToast('✅ ' + (t('reqSubmitted') || 'Submitted'), 'success');
 speakRequestSubmitted();
 addLog('New Request',`${currentUser.name} - ${dept}`);
-if(prio==='emergency') showToast('🚨 Emergency alert sent to staff!','error');
+if(prio==='emergency') showToast('🚨 Emergency!','error');
 }
 
 function renderGuestFood(){
@@ -2694,7 +2451,7 @@ el.innerHTML=food.map(f=>`
 <div class="food-name">${f.name}</div>
 <div class="food-cat">${f.category}</div>
 <div class="food-price">${formatPrice(f.basePriceSAR)}</div>
-</div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No items available</p>';
+</div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
 }
 
 function renderGuestInv(){
@@ -2708,7 +2465,6 @@ el.innerHTML=inventory.map(i=>`
 </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
 }
 
-// ✅ FIX ISSUE 5: Guest History now shows Admin Reply with timestamp
 function renderGuestHistory(){
 const el=document.getElementById('gHistList');if(!el||!currentUser)return;
 const myReqs=requests.filter(r=>r.guestName===currentUser.name&&r.roomNumber==currentUser.room);
@@ -2719,11 +2475,11 @@ el.innerHTML=myReqs.map(r=>`
 <strong style="font-size:12px">${r.department}</strong>
 <div style="font-size:13px;opacity:.6;margin-top:2px">${r.description}</div>
 <div style="font-size:11px;opacity:.7;margin-top:4px;font-weight:600">📅 ${new Date(r.createdAt||Date.now()).toLocaleString()}</div>
-${r.adminReply ? `<div class="admin-reply" style="margin-top:8px;padding:8px;background:var(--card2);border-radius:6px;border-left:3px solid var(--p1)"><strong style="font-size:11px;color:var(--p1)">👑 ${t('adminReply')||'Admin Reply'}:</strong><div style="font-size:12px;margin-top:2px">${r.adminReply}</div><div style="font-size:10px;opacity:.6;margin-top:2px">🕒 ${new Date(r.adminReplyTime||Date.now()).toLocaleString()}</div></div>` : ''}
+${r.adminReply ? `<div class="admin-reply" style="margin-top:8px;padding:8px;background:var(--card2);border-radius:6px;border-left:3px solid var(--p1)"><strong style="font-size:11px;color:var(--p1)">👑 ${t('adminReply')||'Reply'}:</strong><div style="font-size:12px;margin-top:2px">${r.adminReply}</div></div>` : ''}
 </div>
 <span class="badge badge-${r.status}">${r.status}</span>
 </div>
-</div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No requests yet</p>';
+</div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No requests</p>';
 }
 
 function updateGuestStats(){
@@ -2749,27 +2505,27 @@ const totSAR=cart.reduce((s,i)=>s+i.basePrice,0);
 if(totEl)totEl.textContent=formatPrice(totSAR);
 cartEl.innerHTML=cart.map(i=>`<div style="display:flex;justify-content:center;padding:2px 0"><span>${i.name}</span><span>${formatPrice(i.basePrice)}</span></div>`).join('');
 }
-showToast(`${name} added to cart 🛒`,'success');
+showToast(`${name} added 🛒`,'success');
 }
 
 function placeOrder(){
-if(!cart.length){showToast('Cart is empty','error');return}
+if(!cart.length){showToast('Cart empty','error');return}
 const req={_id:'req_'+Date.now(),_isNew:true,guestName:currentUser.name,roomNumber:currentUser.room,department:'Restaurant',description:`Food: ${cart.map(i=>i.name).join(', ')}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID, _version:1};
 requests.unshift(req);save('requests',req,'req_new');
 cart=[];
 const cEl=document.getElementById('cartItems'),tEl=document.getElementById('cartTotal');
 if(cEl)cEl.innerHTML='';if(tEl)tEl.textContent='0';
 renderRequests();updateGuestStats();renderGuestHistory();
-showToast('🍽️ ' + (t('orderPlacedToast') || 'Order placed successfully'), 'success');
+showToast('🍽️ ' + (t('orderPlacedToast') || 'Placed'), 'success');
 speakOrderPlaced();
 sendGuestNotification('notifOrderTitle', 'notifOrderBody');
 }
 
 function reqInvItem(name){
-const req={_id:'req_'+Date.now(),_isNew:true,guestName:currentUser.name,roomNumber:currentUser.room,department:'Housekeeping',description:`Item Request: ${name}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID, _version:1};
+const req={_id:'req_'+Date.now(),_isNew:true,guestName:currentUser.name,roomNumber:currentUser.room,department:'Housekeeping',description:`Item: ${name}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID, _version:1};
 requests.unshift(req);save('requests',req,'req_new');
 renderRequests();updateGuestStats();
-showToast('📦 ' + (t('invRequested') || 'Request sent for ') + name,'success');
+showToast('📦 ' + (t('invRequested') || 'Sent') + name,'success');
 speakRequestSubmitted();
 sendGuestNotification('notifInventoryTitle', 'notifInventoryBody');
 }
@@ -2779,16 +2535,16 @@ e.preventDefault();
 const type=document.getElementById('cabType')?.value;
 const time=document.getElementById('cabTime')?.value;
 const priceSAR=type==='airport'?HotelCfg.airportPrice:HotelCfg.localPrice;
-const req={_id:'req_'+Date.now(),_isNew:true,guestName:currentUser.name,roomNumber:currentUser.room,department:'Transport',description:`${type==='airport'?'Airport Transfer':'Local Cab'} at ${time||'ASAP'} — ${formatPrice(priceSAR)}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID, _version:1};
+const req={_id:'req_'+Date.now(),_isNew:true,guestName:currentUser.name,roomNumber:currentUser.room,department:'Transport',description:`${type==='airport'?'Airport':'Local'} at ${time||'ASAP'} — ${formatPrice(priceSAR)}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID, _version:1};
 requests.unshift(req);save('requests',req,'req_new');
 renderRequests();updateGuestStats();
 e.target.reset();
-showToast('🚗 ' + (t('bookingConfirmedToast') || 'Booking confirmed') + '!','success');
+showToast('🚗 ' + (t('bookingConfirmedToast') || 'Booked') + '!','success');
 speakBookingConfirmed();
 sendGuestNotification('notifCabTitle', 'notifCabBody');
 }
 
-function copyWifi(){navigator.clipboard.writeText(HotelCfg.wifi).then(()=>showToast('📶 WiFi copied!','success'))}
+function copyWifi(){navigator.clipboard.writeText(HotelCfg.wifi).then(()=>showToast('📶 Copied!','success'))}
 
 function updReqStatus(id,status){
 const req=requests.find(r=>r._id===id);
@@ -2796,7 +2552,7 @@ if(req){
 req.status=status;req.updatedAt=new Date().toISOString();
 save('requests',req,'req_upd');
 renderRequests();updateGuestStats();renderGuestHistory();
-showToast('✅ ' + (t('reqStatusUpdated') || 'Request status updated to ') + status,'success');
+showToast('✅ ' + (t('reqStatusUpdated') || 'Updated') + status,'success');
 }
 }
 
@@ -2819,7 +2575,7 @@ rooms=rooms.filter(r=>r._id!==id);
 if(isOnline) apiCall('DELETE', `/rooms/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('room_upd',{hotelId:HID, collection:'rooms', data:room, clientId, syncToken: Date.now(), action: 'delete'});
 renderRooms();updateAdminStats();
-showToast('✅ ' + (t('roomDeleted') || 'Room deleted successfully'), 'success');
+showToast('✅ ' + (t('roomDeleted') || 'Deleted'), 'success');
 }
 }
 
@@ -2842,15 +2598,13 @@ const idx=rooms.findIndex(r=>r._id===editId);
 if(idx>-1){
 rooms[idx]={...rooms[idx],...roomData, _version:(rooms[idx]._version||0)+1, updatedAt:new Date().toISOString()};
 save('rooms',rooms[idx],'room_upd');
-showToast('✅ ' + (t('roomUpdated') || 'Room updated successfully'),'success');
+showToast('✅ ' + (t('roomUpdated') || 'Updated'),'success');
 addLog('Edit Room','#'+rooms[idx].number);
-}else{
-showToast('Room not found','error');
 }
 }else{
 const room={_id:'r_'+Date.now(),_isNew:true,...roomData, _version:1, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()};
 rooms.push(room);save('rooms',room,'room_upd');
-showToast('✅ ' + (t('roomAdded') || 'Room added successfully'),'success');
+showToast('✅ ' + (t('roomAdded') || 'Added'),'success');
 speakItemAdded();
 addLog('Add Room','#'+room.number);
 }
@@ -2859,7 +2613,7 @@ if(document.getElementById('roomModal').dataset) delete document.getElementById(
 renderRooms();updateAdminStats();
 }
 
-function editGuest(id){const g=guests.find(x=>x._id===id);if(!g)return;alert('Edit: '+g.name+' (connect backend for full edit)');}
+function editGuest(id){const g=guests.find(x=>x._id===id);if(!g)return;alert('Edit: '+g.name);}
 
 function toggleBlock(id){
 const g=guests.find(x=>x._id===id);
@@ -2867,7 +2621,7 @@ if(g){
 g.status=g.status==='blocked'?'active':'blocked';
 save('guests',g,'guest_upd');
 renderGuests();
-showToast('✅ ' + (g.status==='blocked' ? (t('guestBlocked')||'Guest blocked successfully') : (t('guestUnblocked')||'Guest unblocked successfully')),'success');
+showToast('✅ ' + (g.status==='blocked' ? (t('guestBlocked')||'Blocked') : (t('guestUnblocked')||'Unblocked')),'success');
 }
 }
 
@@ -2878,7 +2632,7 @@ guests=guests.filter(g=>g._id!==id);
 if(isOnline) apiCall('DELETE', `/guests/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('guest_upd',{hotelId:HID, collection:'guests', data:guest, clientId, syncToken: Date.now(), action: 'delete'});
 renderGuests();
-showToast('✅ ' + (t('guestDeleted') || 'Guest deleted successfully'), 'success');
+showToast('✅ ' + (t('guestDeleted') || 'Deleted'), 'success');
 }
 }
 
@@ -2901,14 +2655,12 @@ const idx=food.findIndex(f=>f._id===editId);
 if(idx>-1){
 food[idx]={...food[idx],...dishData, _version:(food[idx]._version||0)+1, updatedAt:new Date().toISOString()};
 save('food',food[idx],'food_upd');
-showToast('✅ ' + (t('foodUpdated') || 'Food item updated successfully'),'success');
-}else{
-showToast('Dish not found','error');
+showToast('✅ ' + (t('foodUpdated') || 'Updated'),'success');
 }
 }else{
 const dish={_id:'f_'+Date.now(),_isNew:true,...dishData, _version:1, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()};
 food.push(dish);save('food',dish,'food_upd');
-showToast('✅ ' + (t('foodAdded') || 'Food item added successfully'),'success');
+showToast('✅ ' + (t('foodAdded') || 'Added'),'success');
 speakItemAdded();
 }
 closeModal('foodModal');
@@ -2923,7 +2675,7 @@ food=food.filter(f=>f._id!==id);
 if(isOnline) apiCall('DELETE', `/food/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('food_upd',{hotelId:HID, collection:'food', data:foodItem, clientId, syncToken: Date.now(), action: 'delete'});
 renderFood();renderGuestFood();
-showToast('✅ ' + (t('foodDeleted') || 'Food item deleted successfully'), 'success');
+showToast('✅ ' + (t('foodDeleted') || 'Deleted'), 'success');
 }
 }
 
@@ -2933,7 +2685,7 @@ if(i){
 i.stock=Math.max(0,i.stock+delta);
 save('inventory',i,'inventory_upd');
 renderInventory();renderGuestInv();
-if(i.stock<=i.min) showToast('⚠️ Low stock: '+i.name,'warning');
+if(i.stock<=i.min) showToast('⚠️ Low: '+i.name,'warning');
 }
 }
 
@@ -2957,7 +2709,7 @@ inventory=inventory.filter(i=>i._id!==id);
 if(isOnline) apiCall('DELETE', `/inventory/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('inventory_upd',{hotelId:HID, collection:'inventory', data:invItem, clientId, syncToken: Date.now(), action: 'delete'});
 renderInventory();renderGuestInv();
-showToast('✅ ' + (t('invDeleted') || 'Inventory item deleted successfully'), 'success');
+showToast('✅ ' + (t('invDeleted') || 'Deleted'), 'success');
 }
 }
 
@@ -2968,7 +2720,7 @@ blacklist.splice(idx,1);
 if(isOnline && e._id) apiCall('DELETE', `/blacklist/${e._id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('blacklist_upd',{hotelId:HID, collection:'blacklist', data:e, clientId, syncToken: Date.now(), action: 'delete'});
 renderBlacklist();
-showToast('✅ ' + (e.name + ' ' + (t('guestUnblocked') || 'unblocked successfully')),'success');
+showToast('✅ ' + e.name + ' unblocked','success');
 }
 }
 
@@ -3007,27 +2759,19 @@ if(g&&(g.points||0)>=pts){
 g.points-=pts;
 save('guests',g,'guest_upd');
 renderLoyalty();
-showToast(`✅ ${pts} pts redeemed`,'success');
-}else showToast('Not enough points','error');
-}
-
-function rateStaff(i){
-staff[i].rating=parseFloat(Math.min(5,staff[i].rating+0.1).toFixed(1));
-staff[i].tasks=(staff[i].tasks||0)+1;
-save('staff',staff[i],'staff_upd');
-renderStaff();
-showToast('✅ Rating updated','success');
+showToast(`✅ ${pts} redeemed`,'success');
+}else showToast('Not enough','error');
 }
 
 function delStaff(i){
-if(confirm('Remove staff?')){
+if(confirm('Remove?')){
 const id = staff[i]._id;
 const s = staff[i];
 staff.splice(i,1);
 if(isOnline && id) apiCall('DELETE', `/staff/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('staff_upd',{hotelId:HID, collection:'staff', data:s, clientId, syncToken: Date.now(), action: 'delete'});
 renderStaff();
-showToast('✅ ' + (t('staffDeleted') || 'Staff member deleted successfully'),'success');
+showToast('✅ ' + (t('staffDeleted') || 'Deleted'),'success');
 }
 }
 
@@ -3039,13 +2783,13 @@ const name=document.getElementById('mSName')?.value;
 const role=document.getElementById('mSRole')?.value;
 const dept=document.getElementById('mSDept')?.value;
 const joinDate=document.getElementById('mSJoin')?.value;
-if(!name||!role){showToast('Fill required fields','error');return}
+if(!name||!role){showToast('Fill fields','error');return}
 const s={_id:'s_'+Date.now(),_isNew:true,name,role,department:dept||'General',joinDate:joinDate||new Date().toISOString().split('T')[0],status:'online',shift:'morning',rating:5.0,tasks:0,attendance:'present',leaveRequest:null,hotelId:HID, _version:1};
 staff.push(s);
 save('staff',s,'staff_new');
 closeModal('staffModal');
 renderStaff();
-showToast('✅ ' + (t('staffAdded') || 'Staff member added successfully'),'success');
+showToast('✅ ' + (t('staffAdded') || 'Added'),'success');
 speakItemAdded();
 addLog('Add Staff',name);
 }
@@ -3054,37 +2798,37 @@ function updateStaffStatus(i,status){
 staff[i].status=status;
 save('staff',staff[i],'staff_upd');
 renderStaff();
-showToast(`✅ ${staff[i].name} status updated`,'success');
+showToast(`✅ ${staff[i].name} updated`,'success');
 }
 
 function markAttendance(i,val){
 staff[i].attendance=val;
 save('staff',staff[i],'staff_upd');
 renderStaff();
-showToast(`✅ Attendance: ${val}`,'success');
+showToast(`✅ ${val}`,'success');
 }
 
 function editStaff(i){
 const s=staff[i];
-const newName=prompt('Edit Name:',s.name);
-const newRole=prompt('Edit Role:',s.role);
+const newName=prompt('Name:',s.name);
+const newRole=prompt('Role:',s.role);
 if(newName&&newRole){
 staff[i].name=newName;
 staff[i].role=newRole;
 save('staff',staff[i],'staff_upd');
 renderStaff();
-showToast('✅ ' + (t('staffUpdated') || 'Staff member updated successfully'),'success');
+showToast('✅ ' + (t('staffUpdated') || 'Updated'),'success');
 }
 }
 
 function applyLeave(i){
 const reason=prompt(t('leaveReason')+':');
-const date=prompt('Date (YYYY-MM-DD):',new Date().toISOString().split('T')[0]);
+const date=prompt('Date:',new Date().toISOString().split('T')[0]);
 if(reason&&date){
 staff[i].leaveRequest={reason,date,status:'pending'};
 save('staff',staff[i],'staff_upd');
 renderStaff();
-showToast('✅ Leave request submitted','success');
+showToast('✅ Submitted','success');
 }
 }
 
@@ -3094,7 +2838,7 @@ staff[i].leaveRequest.status='approved';
 staff[i].status='on-leave';
 save('staff',staff[i],'staff_upd');
 renderStaff();
-showToast('✅ Leave approved','success');
+showToast('✅ Approved','success');
 }
 }
 
@@ -3103,46 +2847,45 @@ if(staff[i].leaveRequest){
 staff[i].leaveRequest=null;
 save('staff',staff[i],'staff_upd');
 renderStaff();
-showToast('✅ Leave rejected','success');
+showToast('✅ Rejected','success');
 }
 }
 
-function replyRev(g){const r=prompt(`Reply to ${g}:`);if(r)showToast('✅ Reply sent','success')}
+function replyRev(g){const r=prompt(`Reply to ${g}:`);if(r)showToast('✅ Sent','success')}
 
 function genReport(){
 const t=document.getElementById('rptType')?.value;
 const out=document.getElementById('rptOut');if(!out)return;
 let html='';
 if(t==='occupancy'){const occ=rooms.filter(r=>r.status==='Occupied').length,tot=rooms.length||1;html=`<p>🏨 Total: <b>${tot}</b></p><p>🟢 Occupied: <b>${occ}</b> (${Math.round(occ/tot*100)}%)</p><p>🔴 Vacant: <b>${tot-occ}</b></p>`}
-else if(t==='revenue'){const fr=requests.filter(r=>r.department==='Restaurant').length*15;html=`<p>🍽️ Food Revenue: <b>${HotelCfg.currency}${fr}</b></p><p>💰 Rooms: <b>${HotelCfg.currency}${rooms.filter(r=>r.status==='Occupied').length*100}</b></p>`}
+else if(t==='revenue'){const fr=requests.filter(r=>r.department==='Restaurant').length*15;html=`<p>🍽️ Food: <b>${HotelCfg.currency}${fr}</b></p><p>💰 Rooms: <b>${HotelCfg.currency}${rooms.filter(r=>r.status==='Occupied').length*100}</b></p>`}
 else if(t==='requests'){const bd={};requests.forEach(r=>{bd[r.department]=(bd[r.department]||0)+1});html=Object.entries(bd).map(([d,c])=>`<p>📋 ${d}: <b>${c}</b></p>`).join('')||'<p>No data</p>'}
 else{html=`<p>👥 Total: <b>${guests.length}</b></p><p>✅ Active: <b>${guests.filter(g=>g.status==='active').length}</b></p><p>🚫 Blocked: <b>${guests.filter(g=>g.status==='blocked').length}</b></p>`}
 out.innerHTML=html;
 }
 
 function exportReport(){const t=document.getElementById('rptType')?.value||'report';const d=t==='occupancy'?rooms:t==='guests'?guests:requests;const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d),t);XLSX.writeFile(wb,`${t}-${Date.now()}.xlsx`);showToast('✅ Exported!','success')}
-
-function exportLogs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(logs),'Logs');XLSX.writeFile(wb,`logs-${Date.now()}.xlsx`);showToast('✅ Logs exported','success')}
+function exportLogs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(logs),'Logs');XLSX.writeFile(wb,`logs-${Date.now()}.xlsx`);showToast('✅ Exported','success')}
 
 function clearLogs(){
-if(confirm('Clear all logs?')){
+if(confirm('Clear?')){
 logs=[];
 if(isOnline) apiCall('DELETE', `/logs?hotelId=${HID}`);
 if(socket?.connected) socket.emit('data_upd',{hotelId:HID, collection:'logs', data:[], clientId, syncToken: Date.now()});
 renderLogs();
-showToast('✅ Logs cleared','success');
+showToast('✅ Cleared','success');
 }
 }
 
 function openAddCurrencyModal(){
 openModal('infoModal');
-document.getElementById('infoModalTitle').textContent = '➕ Add New Currency';
+document.getElementById('infoModalTitle').textContent = '➕ Add Currency';
 document.getElementById('infoModalBody').innerHTML = `
 <form onsubmit="addNewCurrency(event)">
-<div class="form-row"><label class="lbl">Currency Code (e.g., EUR)</label><input class="inp" id="newCurCode" maxlength="3" required placeholder="EUR"></div>
-<div class="form-row"><label class="lbl">Symbol (e.g., €)</label><input class="inp" id="newCurSymbol" required placeholder="€"></div>
-<div class="form-row"><label class="lbl">Rate per 1 USD</label><input class="inp" id="newCurRate" type="number" step="0.01" required placeholder="0.95"></div>
-<div class="form-row"><label class="lbl">Flag Emoji</label><input class="inp" id="newCurFlag" placeholder="🇪🇺"></div>
+<div class="form-row"><label class="lbl">Code</label><input class="inp" id="newCurCode" maxlength="3" required placeholder="EUR"></div>
+<div class="form-row"><label class="lbl">Symbol</label><input class="inp" id="newCurSymbol" required placeholder="€"></div>
+<div class="form-row"><label class="lbl">Rate per 1 USD</label><input class="inp" id="newCurRate" type="number" step="0.01" required></div>
+<div class="form-row"><label class="lbl">Flag</label><input class="inp" id="newCurFlag" placeholder="🇪🇺"></div>
 <div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit">💾 Save</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('infoModal')">Cancel</button>
@@ -3157,14 +2900,12 @@ const code=document.getElementById('newCurCode').value.toUpperCase();
 const symbol=document.getElementById('newCurSymbol').value;
 const rate=parseFloat(document.getElementById('newCurRate').value);
 const flag=document.getElementById('newCurFlag').value||'';
-if(!code||!symbol||isNaN(rate)){showToast('Fill all fields','error');return}
-if(CURRENCIES[code]){showToast('Currency already exists','error');return}
+if(!code||!symbol||isNaN(rate)){showToast('Fill fields','error');return}
+if(CURRENCIES[code]){showToast('Exists','error');return}
 CURRENCIES[code]={symbol,rate,flag,custom:true};
 saveUIPrefs();
 saveToMongo('config', { ...HotelCfg, currencies: CURRENCIES });
-if(isOnline && socket?.connected){
-socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
-}
+if(isOnline && socket?.connected) socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
 closeModal('infoModal');
 applyCfg();
 showToast(`✅ ${code} added!`,'success');
@@ -3172,15 +2913,13 @@ addLog('Add Currency',code);
 }
 
 function deleteCurrency(code){
-if(!CURRENCIES[code]?.custom){showToast('Cannot delete built-in currency','error');return}
+if(!CURRENCIES[code]?.custom){showToast('Built-in','error');return}
 if(confirm(`Delete ${code}?`)){
 delete CURRENCIES[code];
 if(HotelCfg.currency===code) HotelCfg.currency='USD';
 saveUIPrefs();
 saveToMongo('config', { ...HotelCfg, currencies: CURRENCIES });
-if(isOnline && socket?.connected){
-socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
-}
+if(isOnline && socket?.connected) socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
 applyCfg();
 showToast(`${code} deleted`,'success');
 addLog('Delete Currency',code);
@@ -3190,45 +2929,40 @@ addLog('Delete Currency',code);
 function editCurrencyRates(){
 const rates = Object.entries(CURRENCIES).map(([code, data]) =>
 `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
-<span>${data.flag||''} ${code}${data.custom?' <span style="color:#f59e0b;font-size:10px">(custom)</span>':''}</span>
+<span>${data.flag||''} ${code}${data.custom?' (custom)':''}</span>
 <div style="display:flex;gap:4px;align-items:center">
 <input type="number" step="0.01" value="${data.rate}" style="width:80px;padding:4px;border:1px solid var(--border);border-radius:4px" id="rate-${code}">
-<span style="font-size:12px">per 1 USD</span>
-${data.custom?`<button class="tbl-action" style="color:#ef4444" onclick="deleteCurrency('${code}')" title="Delete">🗑️</button>`:''}
+${data.custom?`<button class="tbl-action" style="color:#ef4444" onclick="deleteCurrency('${code}')">🗑️</button>`:''}
 </div>
 </div>`
 ).join('');
 openModal('infoModal');
-document.getElementById('infoModalTitle').textContent = '✏️ Edit Exchange Rates';
+document.getElementById('infoModalTitle').textContent = '✏️ Rates';
 document.getElementById('infoModalBody').innerHTML = `
 <div style="margin-bottom:12px;max-height:300px;overflow-y:auto">${rates}</div>
-<button class="btn-primary" style="width:100%" onclick="saveCurrencyRates()">💾 Save Rates</button>
+<button class="btn-primary" style="width:100%" onclick="saveCurrencyRates()">💾 Save</button>
 `;
 }
 
 function saveCurrencyRates(){
 Object.keys(CURRENCIES).forEach(code => {
 const input = document.getElementById(`rate-${code}`);
-if(input && !isNaN(parseFloat(input.value))){
-CURRENCIES[code].rate = parseFloat(input.value);
-}
+if(input && !isNaN(parseFloat(input.value))) CURRENCIES[code].rate = parseFloat(input.value);
 });
 saveUIPrefs();
 saveToMongo('config', { ...HotelCfg, currencies: CURRENCIES });
-if(isOnline && socket?.connected){
-socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
-}
+if(isOnline && socket?.connected) socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
 closeModal('infoModal');
 applyCfg();
-showToast('💱 Exchange rates updated','success');
-addLog('Currency Update', 'Exchange rates modified');
+showToast('💱 Updated','success');
+addLog('Currency Update', 'Rates');
 }
 
 function saveCfg(field){
 if(field==='name') HotelCfg.name=document.getElementById('cfgName')?.value||HotelCfg.name;
 else if(field==='currency') {
 HotelCfg.currency=document.getElementById('cfgCurrency')?.value||HotelCfg.currency;
-showToast(`✅ Currency changed to ${HotelCfg.currency}`,'success');
+showToast(`✅ ${HotelCfg.currency}`,'success');
 }
 else if(field==='wifi') HotelCfg.wifi=document.getElementById('cfgWifi')?.value||HotelCfg.wifi;
 else if(field==='transport'){
@@ -3239,8 +2973,8 @@ saveUIPrefs();
 saveToMongo('config', HotelCfg);
 if(socket?.connected) socket.emit('cfg_upd',{hotelId:HID,...HotelCfg, syncToken:Date.now()});
 applyCfg();
-showToast('⚙️ ' + (t('settingsSaved') || 'Settings saved successfully'),'success');
-addLog('Config Update',field);
+showToast('⚙️ ' + (t('settingsSaved') || 'Saved'),'success');
+addLog('Config',field);
 }
 
 function genAllQR(){
@@ -3253,7 +2987,7 @@ div.innerHTML=`<div id="qr_${room.number}"></div><div style="font-size:10px;font
 grid.appendChild(div);
 try{new QRCode(document.getElementById(`qr_${room.number}`),{text:`${location.origin}?hotel=${HID}&room=${room.number}`,width:80,height:80,correctLevel:QRCode.CorrectLevel.H})}catch(e){}
 });
-showToast('✅ QR codes generated!','success');
+showToast('✅ Generated!','success');
 }
 
 function renderBookRoomRooms(){
@@ -3293,9 +3027,9 @@ const roomId=document.getElementById('bookRoomSelect')?.value;
 const checkIn=document.getElementById('bookCheckIn')?.value;
 const checkOut=document.getElementById('bookCheckOut')?.value;
 const numGuests=parseInt(document.getElementById('bookNumGuests')?.value)||1;
-if(!roomId||!checkIn||!checkOut){showToast('Fill all fields','error');return}
+if(!roomId||!checkIn||!checkOut){showToast('Fill fields','error');return}
 const room=rooms.find(r=>r._id===roomId);
-if(!room){showToast('Room not found','error');return}
+if(!room){showToast('Not found','error');return}
 const inDate=new Date(checkIn);
 const outDate=new Date(checkOut);
 const nights=Math.ceil((outDate-inDate)/(1000*60*60*24));
@@ -3307,7 +3041,7 @@ save('bookings',booking,'booking_new');
 renderGuestBookings();renderAdminBookings();
 e.target.reset();
 document.getElementById('bookingTotalPrice').textContent='0';
-showToast('📅 ' + (t('roomBooked') || 'Room booked successfully') + '!','success');
+showToast('📅 ' + (t('roomBooked') || 'Booked') + '!','success');
 speakBookingConfirmed();
 sendGuestNotification('notifBookingTitle', 'notifBookingBody');
 addLog('New Booking',`${currentUser.name} - Room ${room.number}`);
@@ -3326,11 +3060,10 @@ el.innerHTML=myBookings.map(b=>`
 <span class="booking-status ${b.status}">${t(b.status)}</span>
 </div>
 <div class="booking-meta">
-<span>👥 ${b.guests} guest(s)</span>
+<span>👥 ${b.guests}</span>
 <span class="booking-price">${formatPrice(b.totalPriceSAR)}</span>
 </div>
-<div style="font-size:10px;opacity:.5">ID: ${b._id}</div>
-</div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No bookings yet</p>';
+</div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No bookings</p>';
 }
 
 function renderAdminBookings(){
@@ -3352,7 +3085,7 @@ el.innerHTML=list.map(b=>`
 <span class="booking-status ${b.status}">${t(b.status)}</span>
 </div>
 <div class="booking-meta">
-<span>👥 ${b.guests} guest(s)</span>
+<span>👥 ${b.guests}</span>
 <span class="booking-price">${formatPrice(b.totalPriceSAR)}</span>
 </div>
 <div class="booking-actions">
@@ -3366,7 +3099,6 @@ el.innerHTML=list.map(b=>`
 <button class="booking-btn edit" onclick="editBooking('${b._id}')">✏️</button>
 <button class="booking-btn cancel" onclick="deleteBooking('${b._id}')">🗑️</button>
 </div>
-<div style="font-size:10px;opacity:.5;margin-top:4px">ID: ${b._id}</div>
 </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No bookings</p>';
 }
 
@@ -3377,16 +3109,16 @@ b.status=status;
 b.updatedAt=new Date().toISOString();
 save('bookings',b,'booking_upd');
 renderAdminBookings();renderGuestBookings();
-showToast('✅ Booking status updated','success');
+showToast('✅ Updated','success');
 addLog('Update Booking',`${b.guestName} - ${status}`);
 }
 }
 
 function editBooking(id){
 const b=bookings.find(x=>x._id===id);if(!b)return;
-const newGuests=prompt('Edit number of guests:',b.guests);
-const newCheckIn=prompt('Edit check-in (YYYY-MM-DD):',b.checkIn);
-const newCheckOut=prompt('Edit check-out (YYYY-MM-DD):',b.checkOut);
+const newGuests=prompt('Guests:',b.guests);
+const newCheckIn=prompt('Check-in:',b.checkIn);
+const newCheckOut=prompt('Check-out:',b.checkOut);
 if(newGuests&&newCheckIn&&newCheckOut){
 b.guests=parseInt(newGuests)||b.guests;
 b.checkIn=newCheckIn;
@@ -3399,13 +3131,13 @@ if(room&&nights>0) b.totalPriceSAR=room.basePriceSAR*nights;
 b.updatedAt=new Date().toISOString();
 save('bookings',b,'booking_upd');
 renderAdminBookings();renderGuestBookings();
-showToast('✅ Booking updated','success');
+showToast('✅ Updated','success');
 addLog('Edit Booking',`${b.guestName}`);
 }
 }
 
 function deleteBooking(id){
-if(confirm('Delete this booking?')){
+if(confirm('Delete?')){
 const idx=bookings.findIndex(b=>b._id===id);
 if(idx>-1){
 const b=bookings[idx];
@@ -3413,7 +3145,7 @@ bookings.splice(idx,1);
 if(isOnline) apiCall('DELETE', `/bookings/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('booking_upd',{hotelId:HID, collection:'bookings', data:b, clientId, syncToken: Date.now(), action: 'delete'});
 renderAdminBookings();renderGuestBookings();
-showToast('✅ Booking deleted','success');
+showToast('✅ Deleted','success');
 addLog('Delete Booking',`${b.guestName}`);
 }
 }
@@ -3423,7 +3155,7 @@ function exportBookings(){
 const wb=XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bookings),'Bookings');
 XLSX.writeFile(wb,`bookings-${Date.now()}.xlsx`);
-showToast('✅ Bookings exported!','success');
+showToast('✅ Exported!','success');
 }
 
 function buildModals(){
@@ -3433,7 +3165,7 @@ container.innerHTML=`
 <div class="modal-box">
 <div class="modal-h" data-i18n="addRoom">Add Room</div>
 <form onsubmit="addRoom(event)">
-<div class="form-row"><label class="lbl" data-i18n="roomNum">Room #</label><input class="inp" id="mRoomNum" type="number" required></div>
+<div class="form-row"><label class="lbl" data-i18n="roomNum">#</label><input class="inp" id="mRoomNum" type="number" required></div>
 <div class="form-2">
 <div class="form-row"><label class="lbl" data-i18n="roomType">Type</label>
 <select class="inp" id="mRoomType"><option>Standard</option><option>Deluxe</option><option>Suite</option><option>Presidential</option></select></div>
@@ -3459,7 +3191,7 @@ container.innerHTML=`
 </div>
 <div class="form-row"><label class="lbl">Check-in</label><input class="inp" id="mGCheckin" type="date"></div>
 <div class="form-row"><label class="lbl" data-i18n="status">Status</label>
-<select class="inp" id="mGStatus"><option value="active">✅ Active</option><option value="checked_out">🚪 Checked Out</option><option value="blocked">🚫 Blocked</option></select></div>
+<select class="inp" id="mGStatus"><option value="active">✅ Active</option><option value="checked_out">🚪 Out</option><option value="blocked">🚫 Blocked</option></select></div>
 <div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('guestModal')" data-i18n="cancel">Cancel</button>
@@ -3489,7 +3221,7 @@ container.innerHTML=`
 <div class="modal-box">
 <div class="modal-h" data-i18n="addItem">Add Item</div>
 <form onsubmit="addInvItem(event)">
-<div class="form-row"><label class="lbl" data-i18n="item">Item Name</label><input class="inp" id="mIName" required></div>
+<div class="form-row"><label class="lbl" data-i18n="item">Name</label><input class="inp" id="mIName" required></div>
 <div class="form-2">
 <div class="form-row"><label class="lbl" data-i18n="stock">Stock</label><input class="inp" id="mIQty" type="number" required></div>
 <div class="form-row"><label class="lbl" data-i18n="unit">Unit</label><input class="inp" id="mIUnit" placeholder="pcs"></div>
@@ -3497,7 +3229,7 @@ container.innerHTML=`
 <div class="form-2">
 <div class="form-row"><label class="lbl" data-i18n="category">Category</label>
 <select class="inp" id="mICat"><option>Amenities</option><option>Linen</option><option>Food</option><option>Maintenance</option><option>Other</option></select></div>
-<div class="form-row"><label class="lbl" data-i18n="minAlert">Min Alert</label><input class="inp" id="mIMin" type="number" value="10"></div>
+<div class="form-row"><label class="lbl" data-i18n="minAlert">Min</label><input class="inp" id="mIMin" type="number" value="10"></div>
 </div>
 <div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
@@ -3508,7 +3240,7 @@ container.innerHTML=`
 </div>
 <div class="modal-overlay" id="blacklistModal">
 <div class="modal-box">
-<div class="modal-h">🚫 Block Guest</div>
+<div class="modal-h">🚫 Block</div>
 <form onsubmit="addToBlacklist(event)">
 <div class="form-row"><label class="lbl" data-i18n="nameLbl">Name</label><input class="inp" id="mBName" required></div>
 <div class="form-row"><label class="lbl" data-i18n="room">Room</label><input class="inp" id="mBRoom"></div>
@@ -3525,12 +3257,12 @@ container.innerHTML=`
 <div class="modal-h" data-i18n="addTask">Add Task</div>
 <form onsubmit="addMaint(event)">
 <div class="form-row"><label class="lbl" data-i18n="task">Task</label><input class="inp" id="mMTask" required></div>
-<div class="form-row"><label class="lbl" data-i18n="area">Room/Area</label><input class="inp" id="mMRoom"></div>
+<div class="form-row"><label class="lbl" data-i18n="area">Area</label><input class="inp" id="mMRoom"></div>
 <div class="form-row"><label class="lbl" data-i18n="scheduled">Scheduled</label><input class="inp" id="mMDate" type="datetime-local" required></div>
 <div class="form-2">
-<div class="form-row"><label class="lbl" data-i18n="assigned">Assigned To</label><input class="inp" id="mMAssigned"></div>
+<div class="form-row"><label class="lbl" data-i18n="assigned">Assigned</label><input class="inp" id="mMAssigned"></div>
 <div class="form-row"><label class="lbl" data-i18n="priority">Priority</label>
-<select class="inp" id="mMPrio"><option value="low">🟢 Low</option><option value="medium" selected>🟡 Medium</option><option value="high">🔴 High</option></select></div>
+<select class="inp" id="mMPrio"><option value="low">🟢 Low</option><option value="medium" selected>🟡 Med</option><option value="high">🔴 High</option></select></div>
 </div>
 <div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
@@ -3546,12 +3278,12 @@ container.innerHTML=`
 <div class="form-row"><label class="lbl" data-i18n="staffName">Name</label><input class="inp" id="mSName" required></div>
 <div class="form-row"><label class="lbl" data-i18n="staffRole">Role</label><input class="inp" id="mSRole" required></div>
 <div class="form-2">
-<div class="form-row"><label class="lbl" data-i18n="department">Department</label>
+<div class="form-row"><label class="lbl" data-i18n="department">Dept</label>
 <select class="inp" id="mSDept">
 <option>Admin</option><option>Housekeeping</option><option>Maintenance</option>
 <option>Restaurant</option><option>Security</option><option>IT</option>
 </select></div>
-<div class="form-row"><label class="lbl" data-i18n="joinDate">Join Date</label><input class="inp" id="mSJoin" type="date"></div>
+<div class="form-row"><label class="lbl" data-i18n="joinDate">Date</label><input class="inp" id="mSJoin" type="date"></div>
 </div>
 <div class="form-2">
 <div class="form-row"><label class="lbl" data-i18n="shift">Shift</label>
@@ -3577,12 +3309,12 @@ container.innerHTML=`
 </div>
 <div class="modal-overlay" id="ratingModal">
 <div class="modal-box">
-<div class="modal-h" data-i18n="rateStay">⭐ Rate Your Stay</div>
+<div class="modal-h" data-i18n="rateStay">⭐ Rate</div>
 <div style="margin-bottom:10px"><label class="lbl" data-i18n="overall">Overall</label><div class="stars" id="starOverall"></div></div>
 <div style="margin-bottom:10px"><label class="lbl" data-i18n="service">Service</label><div class="stars" id="starService"></div></div>
-<div style="margin-bottom:10px"><label class="lbl" data-i18n="cleanliness">Cleanliness</label><div class="stars" id="starClean"></div></div>
-<div class="form-row"><textarea class="inp" id="ratingComment" rows="2" data-i18n-ph="shareExp" placeholder="Share your experience…"></textarea></div>
-<button class="btn-primary" style="width:100%;padding:10px;margin-top:8px" onclick="submitRating()" data-i18n="submitReview">Submit Review</button>
+<div style="margin-bottom:10px"><label class="lbl" data-i18n="cleanliness">Clean</label><div class="stars" id="starClean"></div></div>
+<div class="form-row"><textarea class="inp" id="ratingComment" rows="2" data-i18n-ph="shareExp" placeholder="Share…"></textarea></div>
+<button class="btn-primary" style="width:100%;padding:10px;margin-top:8px" onclick="submitRating()" data-i18n="submitReview">Submit</button>
 </div>
 </div>
 <div class="modal-overlay" id="infoModal">
@@ -3601,7 +3333,7 @@ function addGuest(e){
 e.preventDefault();
 const guest={_id:'g_'+Date.now(),_isNew:true,name:document.getElementById('mGName').value,room:document.getElementById('mGRoom').value,points:parseInt(document.getElementById('mGPts').value)||0,status:document.getElementById('mGStatus').value,checkin:document.getElementById('mGCheckin').value,hotelId:HID, _version:1};
 guests.push(guest);save('guests',guest,'guest_new');closeModal('guestModal');renderGuests();renderLoyalty();
-showToast('✅ ' + (t('guestAdded') || 'Guest added successfully'),'success');
+showToast('✅ ' + (t('guestAdded') || 'Added'),'success');
 speakItemAdded();
 }
 
@@ -3614,12 +3346,12 @@ const idx=inventory.findIndex(i=>i._id===editId);
 if(idx>-1){
 inventory[idx]={...inventory[idx],...itemData, _version:(inventory[idx]._version||0)+1, updatedAt:new Date().toISOString()};
 save('inventory',inventory[idx],'inventory_upd');
-showToast('✅ ' + (t('invUpdated') || 'Inventory item updated successfully'),'success');
+showToast('✅ ' + (t('invUpdated') || 'Updated'),'success');
 }
 }else{
 const item={_id:'i_'+Date.now(),_isNew:true,...itemData, _version:1, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()};
 inventory.push(item);save('inventory',item,'inventory_upd');
-showToast('✅ ' + (t('invAdded') || 'Inventory item added successfully'),'success');
+showToast('✅ ' + (t('invAdded') || 'Added'),'success');
 speakItemAdded();
 }
 closeModal('inventoryModal');
@@ -3630,13 +3362,13 @@ renderInventory();renderGuestInv();
 function addToBlacklist(e){
 e.preventDefault();
 const entry={_id:'bl_'+Date.now(),_isNew:true,name:document.getElementById('mBName').value,room:document.getElementById('mBRoom').value,reason:document.getElementById('mBReason').value,date:new Date().toISOString(),hotelId:HID, _version:1};
-blacklist.push(entry);save('blacklist',entry,'blacklist_new');closeModal('blacklistModal');renderBlacklist();showToast('✅ Guest blocked','error');addLog('Blacklist',entry.name);
+blacklist.push(entry);save('blacklist',entry,'blacklist_new');closeModal('blacklistModal');renderBlacklist();showToast('✅ Blocked','error');addLog('Blacklist',entry.name);
 }
 
 function addMaint(e){
 e.preventDefault();
 const task={_id:'m_'+Date.now(),_isNew:true,task:document.getElementById('mMTask').value,room:document.getElementById('mMRoom').value,scheduled:document.getElementById('mMDate').value,assigned:document.getElementById('mMAssigned').value,priority:document.getElementById('mMPrio').value,status:'pending',hotelId:HID, _version:1};
-maintenance.push(task);save('maintenance',task,'maintenance_new');closeModal('maintModal');renderMaintenance();showToast('✅ Task scheduled','success');
+maintenance.push(task);save('maintenance',task,'maintenance_new');closeModal('maintModal');renderMaintenance();showToast('✅ Scheduled','success');
 }
 
 function openRatingModal(){
@@ -3655,9 +3387,9 @@ ratingData[type]=val;
 }
 
 function submitRating(){
-if(!ratingData.overall){showToast('Please select a rating','error');return}
+if(!ratingData.overall){showToast('Select rating','error');return}
 const rev={_id:'rev_'+Date.now(),_isNew:true,guest:currentUser.name,room:currentUser.room,overall:ratingData.overall,service:ratingData.service||0,cleanliness:ratingData.clean||0,recommend:ratingData.overall>=3,comment:document.getElementById('ratingComment')?.value||'',date:new Date().toISOString(),hotelId:HID, _version:1};
-reviews.unshift(rev);save('reviews',rev,'review_new');closeModal('ratingModal');renderReviews();showToast('⭐ Thank you for rating!','success');ratingData={overall:0,service:0,clean:0};
+reviews.unshift(rev);save('reviews',rev,'review_new');closeModal('ratingModal');renderReviews();showToast('⭐ Thanks!','success');ratingData={overall:0,service:0,clean:0};
 }
 
 function infoModal(title,body){
@@ -3668,62 +3400,41 @@ openModal('infoModal');
 
 function showConcierge(){
 infoModal('🤖 Concierge',`
-<details style="background:var(--card2);border-radius:8px;padding:8px;margin-bottom:6px"><summary style="cursor:pointer;font-weight:600">WiFi password?</summary><p style="margin-top:4px;font-family:'DM Mono',monospace">${HotelCfg.wifi}</p></details>
-<details style="background:var(--card2);border-radius:8px;padding:8px;margin-bottom:6px"><summary style="cursor:pointer;font-weight:600">Checkout time?</summary><p style="margin-top:4px">11:00 AM</p></details>
-<details style="background:var(--card2);border-radius:8px;padding:8px"><summary style="cursor:pointer;font-weight:600">How to raise a request?</summary><p style="margin-top:4px">Go to the Request tab and select your department.</p></details>`);
+<details style="background:var(--card2);border-radius:8px;padding:8px;margin-bottom:6px"><summary style="cursor:pointer;font-weight:600">WiFi?</summary><p style="margin-top:4px;font-family:'DM Mono',monospace">${HotelCfg.wifi}</p></details>
+<details style="background:var(--card2);border-radius:8px;padding:8px;margin-bottom:6px"><summary style="cursor:pointer;font-weight:600">Checkout?</summary><p style="margin-top:4px">11:00 AM</p></details>
+<details style="background:var(--card2);border-radius:8px;padding:8px"><summary style="cursor:pointer;font-weight:600">Request?</summary><p style="margin-top:4px">Go to Request tab.</p></details>`);
 }
 
 document.addEventListener('click',e=>{
 if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
 if(!e.target.closest('#themeDD')&&!e.target.closest('[onclick*="toggleThemeDD"]')) document.getElementById('themeDD')?.classList.remove('show');
 });
-
 document.addEventListener('keydown',e=>{
 if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
 });
-
 window.addEventListener('online',()=>{
 if(!isOnline) return;
 updateNetBadge('online');
 if(socket) socket.connect();
-showToast('🌐 Back online','success');
+showToast('🌐 Online','success');
 });
-
 window.addEventListener('offline',()=>{
 updateNetBadge('offline');
-showToast('📴 Offline mode','warning');
+showToast('📴 Offline','warning');
 });
 
-function quickCheckin(){showToast('🚀 Quick Check-in opened','success');openModal('guestModal')}
-function quickCheckout(){showToast('🚪 Quick Checkout opened','success')}
-function newAdminRequest(){showAdminTab('requests');showToast('📝 New Request form opened','success')}
-function viewAdminReports(){showAdminTab('reports');showToast('📈 Reports opened','success')}
+function quickCheckin(){showToast('🚀 Check-in','success');openModal('guestModal')}
+function quickCheckout(){showToast('🚪 Checkout','success')}
+function newAdminRequest(){showAdminTab('requests');showToast('📝 New','success')}
+function viewAdminReports(){showAdminTab('reports');showToast('📈 Reports','success')}
 
-// ✅ FIX ISSUE 4: Cab Price Update Function
-function updateCabPrice() {
-    const type = document.getElementById('cabType')?.value;
-    const display = document.getElementById('cabPriceDisplay');
-    if(!display) return;
-    if(type === 'airport') {
-        display.textContent = formatPrice(HotelCfg.airportPrice);
-    } else {
-        display.textContent = formatPrice(HotelCfg.localPrice) + ' / hour';
-    }
-}
-
-// ✅ WEATHER UPDATE FIX: Live weather simulation with REAL-TIME updates every 30 seconds
 let weatherData = { temp: 28, desc: 'Sunny', icon: '🌤️', humidity: 45, wind: 12 };
 const weatherConditions = [
 { icon: '🌤️', desc: 'Sunny', descHi: 'धूप', descAr: 'مشمس', tempMin: 25, tempMax: 38 },
-{ icon: '☀️', desc: 'Clear Sky', descHi: 'साफ आसमान', descAr: 'سماء صافية', tempMin: 28, tempMax: 42 },
-{ icon: '⛅', desc: 'Partly Cloudy', descHi: 'आंशिक बादल', descAr: 'غائم جزئياً', tempMin: 22, tempMax: 32 },
-{ icon: '🌥️', desc: 'Mostly Cloudy', descHi: 'अधिक बादल', descAr: 'غائم في الغالب', tempMin: 20, tempMax: 28 },
-{ icon: '🌧️', desc: 'Light Rain', descHi: 'हल्की बारिश', descAr: 'مطر خفيف', tempMin: 18, tempMax: 25 },
-{ icon: '⛈️', desc: 'Thunderstorm', descHi: 'आंधी-तूफान', descAr: 'عاصفة رعدية', tempMin: 16, tempMax: 22 },
-{ icon: '🌫️', desc: 'Foggy', descHi: 'कोहरा', descAr: 'ضبابي', tempMin: 12, tempMax: 20 },
-{ icon: '🌙', desc: 'Clear Night', descHi: 'साफ रात', descAr: 'ليلة صافية', tempMin: 15, tempMax: 24 },
-{ icon: '🌦️', desc: 'Sun Showers', descHi: 'धूप-बारिश', descAr: 'أمطار شمسية', tempMin: 20, tempMax: 30 },
-{ icon: '💨', desc: 'Windy', descHi: 'हवा', descAr: 'عاصف', tempMin: 18, tempMax: 28 }
+{ icon: '☀️', desc: 'Clear', descHi: 'साफ', descAr: 'صافية', tempMin: 28, tempMax: 42 },
+{ icon: '⛅', desc: 'Cloudy', descHi: 'बादल', descAr: 'غائم', tempMin: 22, tempMax: 32 },
+{ icon: '🌧️', desc: 'Rain', descHi: 'बारिश', descAr: 'مطر', tempMin: 18, tempMax: 25 },
+{ icon: '🌫️', desc: 'Fog', descHi: 'कोहरा', descAr: 'ضباب', tempMin: 12, tempMax: 20 }
 ];
 
 function updateWeather(){
@@ -3731,23 +3442,9 @@ const condition = weatherConditions[Math.floor(Math.random() * weatherConditions
 const temp = condition.tempMin + Math.floor(Math.random() * (condition.tempMax - condition.tempMin));
 const humidity = 30 + Math.floor(Math.random() * 50);
 const wind = 5 + Math.floor(Math.random() * 25);
-weatherData = {
-temp: temp,
-desc: condition.desc,
-descHi: condition.descHi,
-descAr: condition.descAr,
-icon: condition.icon,
-humidity: humidity,
-wind: wind,
-updateTime: new Date()
-};
+weatherData = {temp, desc: condition.desc, descHi: condition.descHi, descAr: condition.descAr, icon: condition.icon, humidity, wind, updateTime: new Date()};
 const localizedDesc = lang === 'hi' ? condition.descHi : lang === 'ar' ? condition.descAr : condition.desc;
-const timeStr = weatherData.updateTime.toLocaleTimeString(lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'ar-SA', {
-hour: '2-digit',
-minute: '2-digit',
-timeZone: userTimezone
-});
-const adminCard = document.getElementById('adminWeatherCard');
+const timeStr = weatherData.updateTime.toLocaleTimeString(lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'ar-SA', {hour: '2-digit', minute: '2-digit', timeZone:userTimezone});
 const adminTemp = document.getElementById('weatherTemp');
 const adminDesc = document.getElementById('weatherDesc');
 const adminIcon = document.getElementById('weatherIcon');
@@ -3755,13 +3452,7 @@ const adminTime = document.getElementById('weatherUpdateTime');
 if(adminTemp) adminTemp.textContent = `${temp}°C`;
 if(adminDesc) adminDesc.textContent = localizedDesc;
 if(adminIcon) adminIcon.textContent = condition.icon;
-if(adminTime) adminTime.textContent = `🕐 Updated: ${timeStr}`;
-if(adminCard) {
-adminCard.classList.remove('weather-update-flash');
-void adminCard.offsetWidth;
-adminCard.classList.add('weather-update-flash');
-}
-const guestCard = document.getElementById('guestWeatherCard');
+if(adminTime) adminTime.textContent = `🕐 ${timeStr}`;
 const guestTemp = document.getElementById('gWeatherTemp');
 const guestDesc = document.getElementById('gWeatherDesc');
 const guestIcon = document.getElementById('weatherIcon');
@@ -3769,30 +3460,23 @@ const guestTime = document.getElementById('guestWeatherUpdateTime');
 if(guestTemp) guestTemp.textContent = `${temp}°C`;
 if(guestDesc) guestDesc.textContent = localizedDesc;
 if(guestIcon) guestIcon.textContent = condition.icon;
-if(guestTime) guestTime.textContent = `🕐 Updated: ${timeStr} | 💧 ${humidity}% | 💨 ${wind} km/h`;
-if(guestCard) {
-guestCard.classList.remove('weather-update-flash');
-void guestCard.offsetWidth;
-guestCard.classList.add('weather-update-flash');
-}
-console.log(`🌤️ Weather updated: ${temp}°C, ${localizedDesc}, Humidity: ${humidity}%, Wind: ${wind} km/h`);
+if(guestTime) guestTime.textContent = `🕐 ${timeStr}`;
 }
 
 setInterval(updateWeather, 30000);
 
-// ✅ MULTI-DEVICE FIX: Initialize with proper order and clientId
+// ✅ ISSUE #4 & #5 FIX: Initialize with data persistence
 async function init(){
 loadUIPrefs();
 buildModals();
 buildGuestPanes();
 buildRolePage();
-await loadAllData();
+await loadAllData(); // ✅ Load from MongoDB
 tickClock();
 initSocket();
-await checkSession(); // ✅ Check session on load
+await checkSession(); // ✅ Restore session
 renderAll();
 updateWeather();
-updateCabPrice(); // ✅ Initialize cab price
 const onlineBtn=document.getElementById('onlineBtn');
 if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
 setInterval(saveUIPrefs, 15000);
@@ -3805,12 +3489,12 @@ window.addEventListener('load', async () => {
 try {
 const test = await fetch(API_BASE + '/health', { method: 'GET', headers: { 'x-hotel-id': HID } });
 if(!test.ok) throw new Error('Health check failed');
-console.log('✅ Backend API is reachable');
+console.log('✅ Backend reachable');
 } catch(e) {
-console.warn('⚠️ Backend API not reachable. Using localStorage only.', e);
+console.warn('⚠️ Backend offline', e);
 isOnline = false;
 updateNetBadge('offline');
-showToast('⚠️ Backend not connected - using offline mode','warning');
+showToast('⚠️ Offline mode','warning');
 }
 });
 </script>
