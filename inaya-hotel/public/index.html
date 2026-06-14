@@ -16,12 +16,12 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html{height:100%}
-body{margin:0;padding:0;margin:0;padding:0;
+body{
 font-family:'DM Sans','Noto Sans Devanagari','Noto Naskh Arabic',system-ui,sans-serif;
 background:var(--bg);color:var(--fg);
 min-height:100dvh;width:100vw;overflow-x:hidden;
 padding-bottom:160px;transition:background .25s,color .25s,filter .2s;
-font-size:16px;line-height:1.5;margin:0;padding:0;
+font-size:16px;line-height:1.5;
 }
 :root{
 --p1:#6c63ff;--p2:#a78bfa;--p3:#7c3aed;
@@ -59,9 +59,8 @@ backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
 border-top:none!important;
 padding:6px 8px!important;
 display:flex!important;flex-direction:column!important;
-gap:4px;z-index:99999!important;
-box-shadow:0 -4px 24px rgba(0,0,0,.18)!important;
-transform:translateZ(0)!important;
+gap:4px;z-index:99999!important;box-shadow:0 -4px 24px rgba(0,0,0,.18)!important;
+transform:translateZ(0)!important;will-change:auto!important;contain:layout style;
 }
 .toolbar-row{
 display:flex;
@@ -76,16 +75,10 @@ flex:1 1 0;
 min-width:0;
 max-width:20%;
 }
-.toolbar-row-bottom .tb-btn,
-.toolbar-row-bottom .tb-slider-wrap{
+.toolbar-row-bottom .tb-btn{
 flex:1 1 0;
 min-width:0;
 max-width:25%;
-}
-.tb-slider-wrap{
-display:flex;align-items:center;gap:3px;
-background:rgba(255,255,255,.15);
-padding:3px 7px;border-radius:8px;
 }
 
 @media(max-width:640px){
@@ -93,7 +86,7 @@ padding:3px 7px;border-radius:8px;
 }
 @supports(padding-bottom:env(safe-area-inset-bottom)){
 #toolbar{padding-bottom:calc(6px + env(safe-area-inset-bottom))!important}
-body{margin:0;padding:0;margin:0;padding:0;padding-bottom:calc(160px + env(safe-area-inset-bottom))}
+body{padding-bottom:calc(160px + env(safe-area-inset-bottom))}
 }
 .tb-btn{
 text-align: center;
@@ -104,8 +97,6 @@ font-family:inherit;
 }
 .tb-btn:hover{background:rgba(255,255,255,.35);transform:translateY(-1px)}
 .tb-btn.active{background:rgba(255,255,255,.45);box-shadow:0 2px 8px rgba(0,0,0,.2)}
-.tb-slider{width:100%;height:5px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.35);border-radius:2px;cursor:pointer}
-.tb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#fff;border-radius:50%}
 #themeDD{
 position:fixed;bottom:170px;right:12px;background:var(--card);
 border:1px solid var(--border);padding:10px;border-radius:12px;
@@ -115,7 +106,7 @@ box-shadow:0 8px 32px rgba(0,0,0,.2);z-index:100000;display:none;min-width:160px
 .th-dot{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;display:inline-block;margin:2px;transition:transform .15s,border-color .15s}
 .th-dot:hover,.th-dot.active{transform:scale(1.1);border-color:var(--p1)}
 
-/* ✅ ISSUE #2 FIX: #netBadge removed from top-right, only login page indicator remains */
+/* ✅ ISSUE #2 FIX: #netBadge removed from top-right, only login page has badge */
 
 #sockStatus{
 position:fixed;bottom:170px;left:8px;z-index:10000;
@@ -260,9 +251,9 @@ padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
 .guest-nav{grid-template-columns:repeat(3,1fr)}
 .form-2{grid-template-columns:1fr}
 .page-wrap{padding:8px}
-.tb-btn{padding:6px 4px;font-size:10px}
+.tb-btn{padding:4px 6px;font-size:9px;min-width:26px}
 #toolbar{gap:3px;padding:4px 4px!important}
-body{margin:0;padding:0;margin:0;padding:0;padding-bottom:160px}
+body{padding-bottom:160px}
 }
 [dir="rtl"] .req-card{border-left:none;border-right:4px solid var(--p1)}
 [dir="rtl"] .req-card.emergency{border-right-color:#ef4444}
@@ -280,12 +271,6 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:160px}
 .quick-label{font-size:10px;font-weight:600}
 .currency-card{background:var(--card2);border-radius:10px;padding:10px}
 .currency-row{display:flex;justify-content:center;padding:4px 0;font-size:11px}
-.analytics-mini{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
-.analytics-item{background:var(--card2);border-radius:8px;padding:8px;text-align:center}
-.analytics-val{font-size:16px;font-weight:700;color:var(--p1)}
-.analytics-lbl{font-size:9px;opacity:.7}
-.reply-box{background:var(--card2);border-radius:8px;padding:8px;margin-top:6px}
-.reply-input{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--input-bg);color:var(--fg);font-size:11px}
 .admin-reply{background:var(--card2);border-radius:8px;padding:8px;margin-top:6px;border:1px dashed var(--p1)}
 .admin-reply-input{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--input-bg);color:var(--fg);font-size:13px;min-height:40px;resize:vertical}
 .staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
@@ -333,7 +318,7 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:160px}
 
 <!-- ✅ ISSUE #1 FIX: Toolbar restructured into 3 rows -->
 <div id="toolbar">
-<!-- Row 1: 5 buttons -->
+<!-- Row 1: 5 buttons - Languages + Online + Contrast -->
 <div class="toolbar-row">
 <button class="tb-btn active" onclick="setLang('en')" id="lb-en">🇬 EN</button>
 <button class="tb-btn" onclick="setLang('hi')" id="lb-hi">🇮 हि</button>
@@ -341,7 +326,7 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:160px}
 <button class="tb-btn" onclick="toggleOnlineMode()" id="onlineBtn" title="Toggle Online/Offline">🟢 Online</button>
 <button class="tb-btn" onclick="toggleContrast()" title="Toggle High Contrast">🔆</button>
 </div>
-<!-- Row 2: 5 buttons -->
+<!-- Row 2: 5 buttons - Font controls + Dark mode + Theme -->
 <div class="toolbar-row">
 <button class="tb-btn" onclick="adjustFont(-1)" title="Decrease Font">A-</button>
 <button class="tb-btn" onclick="adjustFont(0)" title="Reset Font">A</button>
@@ -349,12 +334,9 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:160px}
 <button class="tb-btn" onclick="toggleDark()" id="darkBtn">🌙</button>
 <button class="tb-btn" onclick="toggleThemeDD()" title="Theme">🎨</button>
 </div>
-<!-- Row 3: 4 controls (untouched existing row) -->
+<!-- Row 3: 4 items - Brightness toggle + Notifications + Haptic + Voice -->
 <div class="toolbar-row toolbar-row-bottom">
-<div class="tb-slider-wrap">
-<span style="font-size:9px">☀</span>
-<input type="range" class="tb-slider" id="brightSlider" min=".5" max="1.5" step=".05" value="1" oninput="setBrightness(this.value)">
-</div>
+<button class="tb-btn" onclick="toggleBrightness()" id="brightnessBtn" title="Toggle Brightness">☀</button>
 <button class="tb-btn" onclick="reqNotif()" id="notifBtn">🔔</button>
 <button class="tb-btn" onclick="haptic()">📳</button>
 <button class="tb-btn" onclick="speakWelcome()" title="Voice Welcome">🔊</button>
@@ -373,6 +355,7 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:160px}
 </div>
 <div id="loginPage">
 <div class="login-card">
+<!-- ✅ ISSUE #2 FIX: Login page badge stays (top-left inside login card) -->
 <div id="loginNetBadge" class="online">🟢 Online</div>
 <div id="toasts"></div>
 <div class="login-logo">👑</div>
@@ -443,6 +426,9 @@ body{margin:0;padding:0;margin:0;padding:0;padding-bottom:160px}
 </div>
 <div id="modals"></div>
 <script>
+// ================================================================
+// CONFIGURATION & CONSTANTS
+// ================================================================
 const API_BASE = window.API_BASE || (window.location.origin + '/api');
 const SOCKET_URL = window.location.origin;
 const urlParams = new URLSearchParams(location.search);
@@ -450,6 +436,9 @@ let HID = urlParams.get('hotel') || localStorage.getItem('hotel_hid') || 'defaul
 if (urlParams.get('hotel')) localStorage.setItem('hotel_hid', HID);
 document.getElementById('tenantLabel').textContent = `Hotel ID: ${HID}`;
 
+// ================================================================
+// TRANSLATIONS - Complete EN/HI/AR
+// ================================================================
 const T = {
 en:{
 hotelName:'Crown Plaza Hotel',welcomeSubtitle:'Complete Management System',connecting:'Connecting to server…',hotelIdLbl:'Hotel ID',enterHotelId:'Enter Hotel ID',
@@ -519,16 +508,16 @@ markPresent:'✓ Present',markAbsent:'✗ Absent',applyLeave:'Apply Leave',
 approve:'Approve',reject:'Reject',leaveReason:'Leave Reason',
 tasksCompleted:'Tasks',performance:'Performance',online:'Online',offline:'Offline',
 onLeave:'On Leave',onDuty:'On Duty',
-bookRoom:'📅 Book Room',selectRoom:'Select Room',checkIn:'Check-in',checkOut:'Check-out',numGuests:'Number of Guests',totalPrice:'Total Price',nights:'night(s)',bookingConfirmed:'Booking confirmed!',myBookings:'My Bookings',bookingStatus:'Status',pending:'Pending',confirmed:'Confirmed',checkedIn:'Checked-in',checkedOut:'Checked-out',cancelled:'Cancelled',requestSubmitted:'Request submitted',orderPlaced:'Order placed',bookingConfirmedMsg:'Booking confirmed',itemAdded:'Item added',changesSaved:'Changes saved',welcomeMsg:'Welcome to Crown Plaza',
-notifRequestTitle:'Request',notifRequestBody:'Submitted!',
-notifOrderTitle:'Order',notifOrderBody:'Placed!',
-notifBookingTitle:'Booking',notifBookingBody:'Confirmed!',
-notifInventoryTitle:'Item',notifInventoryBody:'Requested!',
-notifCabTitle:'Cab',notifCabBody:'Booked!',
+bookRoom:'📅 Book Room',selectRoom:'Select Room',checkIn:'Check-in',checkOut:'Check-out',numGuests:'Number of Guests',totalPrice:'Total Price',nights:'night(s)',bookingConfirmed:'Booking confirmed!',myBookings:'My Bookings',bookingStatus:'Status',pending:'Pending',confirmed:'Confirmed',checkedIn:'Checked-in',checkedOut:'Checked-out',cancelled:'Cancelled',requestSubmitted:'Request submitted',orderPlaced:'Order placed',bookingConfirmedMsg:'Booking confirmed',itemAdded:'Item added',changesSaved:'Changes saved',welcomeMsg:'Welcome to Crown Plaza Hotel',
+notifRequestTitle:'Request Submitted',notifRequestBody:'Your request has been submitted!',
+notifOrderTitle:'Order Placed',notifOrderBody:'Your food order has been placed!',
+notifBookingTitle:'Booking Confirmed',notifBookingBody:'Your booking has been confirmed!',
+notifInventoryTitle:'Item Requested',notifInventoryBody:'Your item request has been submitted!',
+notifCabTitle:'Cab Booked',notifCabBody:'Your cab has been booked!',
 highContrastOn:'🔆 High contrast ON',highContrastOff:'🔆 High contrast OFF',
-fontDecreased:'Font decreased',fontIncreased:'Font increased',fontReset:'Font reset',
+fontDecreased:'Font decreased',fontIncreased:'Font increased',fontReset:'Font reset to 16px',
 serverConnected:'Connected',serverConnecting:'Connecting…',serverOffline:'Offline',
-adminReply:'Admin Reply',replySentToGuest:'Reply sent',replyReceived:'New reply from Admin',
+adminReply:'Admin Reply',replySentToGuest:'Reply sent to guest',replyReceived:'You have a new reply from Admin',
 reqSubmitted:'Request submitted',orderPlacedToast:'Order placed',
 bookingConfirmedToast:'Booking confirmed',roomBooked:'Room booked',invRequested:'Request sent for ',
 roomAdded:'Room added',roomUpdated:'Room updated',roomDeleted:'Room deleted',
@@ -567,9 +556,9 @@ copy:'कॉपी',myPoints:'⭐ मेरे अंक',rateNow:'रेट',
 loyaltyBenefits:'100 अंक = छूट | 500 अंक = मुफ्त रात',
 wakeUp:'⏰ वेकअप',dnd:'🔕 डीएनडी',localGuide:'🗺️ गाइड',emergency:'📞 आपातकाल',
 rateStay:'⭐ रेट',overall:'समग्र',service:'सेवा',cleanliness:'स्वच्छता',
-shareExp:'अनुभव…',submitReview:'समीक्षा',
-hotelNameLbl:'होटल नाम',currencyLbl:'मुद्रा',wifiLbl:'वाईफाई',
-airportPrice:'एयरपोर्ट',localPrice:'लोकल कैब',
+shareExp:'अनुभव साझा करें…',submitReview:'समीक्षा दें',
+hotelNameLbl:'होटल नाम',currencyLbl:'मुद्रा',wifiLbl:'वाईफाई पासवर्ड',
+airportPrice:'एयरपोर्ट',localPrice:'लोकल कैब प्रति घंटा',
 reportType:'रिपोर्ट',generate:'🔄 बनाएं',exportBtn:'📥 निर्यात',
 roomNum:'कमरा #',roomType:'प्रकार',price:'कीमत',status:'स्थिति',guest:'अतिथि',actions:'कार्य',
 typeStd:'स्टैंडर्ड',typeDlx:'डिलक्स',typeSte:'सूट',typePres:'प्रेसिडेंशियल',
@@ -608,7 +597,7 @@ markPresent:'✓ उपस्थित',markAbsent:'✗ अनुपस्थि
 approve:'स्वीकार',reject:'अस्वीकार',leaveReason:'कारण',
 tasksCompleted:'कार्य',performance:'प्रदर्शन',online:'ऑनलाइन',offline:'ऑफलाइन',
 onLeave:'छुट्टी',onDuty:'ड्यूटी',
-bookRoom:'📅 बुक',selectRoom:'कमरा',checkIn:'चेक-इन',checkOut:'चेक-आउट',numGuests:'अतिथि',totalPrice:'कीमत',nights:'रात',bookingConfirmed:'कन्फर्म',myBookings:'बुकिंग',bookingStatus:'स्थिति',pending:'लंबित',confirmed:'कन्फर्म',checkedIn:'चेक-इन',checkedOut:'चेक-आउट',cancelled:'रद्द',requestSubmitted:'सबमिट',orderPlaced:'ऑर्डर',bookingConfirmedMsg:'पुष्टि',itemAdded:'जोड़ा',changesSaved:'सेव',welcomeMsg:'स्वागत',
+bookRoom:'📅 बुक',selectRoom:'कमरा',checkIn:'चेक-इन',checkOut:'चेक-आउट',numGuests:'अतिथि',totalPrice:'कीमत',nights:'रात',bookingConfirmed:'कन्फर्म',myBookings:'बुकिंग',bookingStatus:'स्थिति',pending:'लंबित',confirmed:'कन्फर्म',checkedIn:'चेक-इन',checkedOut:'चेक-आउट',cancelled:'रद्द',requestSubmitted:'सबमिट',orderPlaced:'ऑर्डर',bookingConfirmedMsg:'पुष्टि',itemAdded:'जोड़ा',changesSaved:'सेव',welcomeMsg:'क्राउन प्लाज़ा में स्वागत',
 notifRequestTitle:'अनुरोध',notifRequestBody:'सबमिट!',
 notifOrderTitle:'ऑर्डर',notifOrderBody:'रखा!',
 notifBookingTitle:'बुकिंग',notifBookingBody:'कन्फर्म!',
@@ -640,7 +629,7 @@ roleSecurity:'الأمن',roleIT:'تقنية',
 tabOverview:'📊 نظرة',tabRooms:'🏨 الغرف',tabGuests:'👥 الضيوف',tabFood:'🍽️ الطعام',
 tabInventory:'📦 المخزون',tabRequests:'📋 الطلبات',tabSettings:'⚙️ الإعدادات',
 tabBlacklist:'🚫 القائمة',tabReports:'📈 التقارير',tabReviews:'⭐ التقييمات',
-tabQR:'📷 QR',tabMaintenance:'🔧 الصيانة',tabLoyalty:'🏆 الولاء',
+tabQR:'📷 رموز',tabMaintenance:'🔧 الصيانة',tabLoyalty:'🏆 الولاء',
 tabStaff:'👔 الموظفون',tabLogs:'📝 السجلات',tabBookings:'📅 الحجوزات',
 myRequests:'الطلبات',pending:'معلقة',completed:'مكتمل',
 addRoom:'+ غرفة',addGuest:'+ ضيف',addDish:'+ طبق',addItem:'+ عنصر',
@@ -648,7 +637,7 @@ addTask:'+ مهمة',blockGuest:'+ حظر',
 save:'حفظ',cancel:'إلغاء',confirm:'تأكيد',delete:'حذف',edit:'تعديل',
 selectTheme:'السمة',selectDepartment:'القسم',selectService:'الخدمة',
 normal:'🟢 عادي',urgent:'⚠️ عاجل',emergency_:'🚨 طارئ',
-describeIssue:'صف المشكلة…',submitRequest:'إرسال',
+describeIssue:'صف مشكلتك…',submitRequest:'إرسال',
 yourCart:'السلة',placeOrder:'🛒 تقديم',
 requestMore:'المزيد',bookNow:'📅 احجز',
 wifi:'📶 WiFi',localTime:'🌍 الوقت',checkoutTime:'🕐 المغادرة',
@@ -656,9 +645,9 @@ copy:'نسخ',myPoints:'⭐ نقاطي',rateNow:'قيّم',
 loyaltyBenefits:'100 نقطة = خصم | 500 = ليلة مجانية',
 wakeUp:'⏰ إيقاظ',dnd:'🔕 لا إزعاج',localGuide:'🗺️ دليل',emergency:'📞 طوارئ',
 rateStay:'⭐ قيّم',overall:'عام',service:'الخدمة',cleanliness:'النظافة',
-shareExp:'شارك…',submitReview:'إرسال',
-hotelNameLbl:'الاسم',currencyLbl:'العملة',wifiLbl:'WiFi',
-airportPrice:'المطار',localPrice:'تاكسي',
+shareExp:'شارك تجربتك…',submitReview:'إرسال',
+hotelNameLbl:'اسم الفندق',currencyLbl:'العملة',wifiLbl:'كلمة مرور WiFi',
+airportPrice:'سعر المطار',localPrice:'تاكسي في الساعة',
 reportType:'التقرير',generate:'🔄 توليد',exportBtn:'📥 تصدير',
 roomNum:'غرفة #',roomType:'النوع',price:'السعر',status:'الحالة',guest:'الضيف',actions:'الإجراءات',
 typeStd:'قياسي',typeDlx:'ديلوكس',typeSte:'جناح',typePres:'رئاسي',
@@ -682,7 +671,7 @@ svcRoomService:'خدمة',svcTableBooking:'طاولة',svcSpecialDiet:'حمية'
 svcWashFold:'غسيل',svcDryClean:'جاف',svcIroning:'كي',svcExpress:'سريع',svcPickupReq:'استلام',
 svcWiFiIssue:'واي فاي',svcTVProblem:'تلفاز',svcPhoneIssue:'هاتف',svcDeviceSetup:'إعداد',svcPassReset:'كلمة مرور',
 svcLostKey:'مفتاح',svcSuspicious:'مشبوه',svcSafeDeposit:'آمن',svcEscort:'مرافقة',
-svcAirport:'مطار',svcLocalCab:'تاكسي',svcCarRental:'سيارة',svcBikeRental:'دراجة',svcShuttle:'نقل',
+svcAirport:'المطار',svcLocalCab:'تاكسي',svcCarRental:'سيارة',svcBikeRental:'دراجة',svcShuttle:'نقل',
 weather:'🌤️ الطقس',currency:'💱 العملة',quickActions:'⚡ سريع',analytics:'📊 إحصائيات',
 temp:'الحرارة',humidity:'الرطوبة',wind:'الرياح',
 usd:'USD',sar:'SAR',inr:'INR',aed:'AED',kwd:'KWD',
@@ -697,7 +686,7 @@ markPresent:'✓ حاضر',markAbsent:'✗ غائب',applyLeave:'إجازة',
 approve:'موافقة',reject:'رفض',leaveReason:'السبب',
 tasksCompleted:'المهام',performance:'الأداء',online:'متصل',offline:'غير متصل',
 onLeave:'إجازة',onDuty:'خدمة',
-bookRoom:'📅 حجز',selectRoom:'اختر',checkIn:'وصول',checkOut:'مغادرة',numGuests:'الضيوف',totalPrice:'السعر',nights:'ليالي',bookingConfirmed:'مؤكد',myBookings:'حجوزاتي',bookingStatus:'الحالة',pending:'معلق',confirmed:'مؤكد',checkedIn:'وصول',checkedOut:'مغادرة',cancelled:'ملغي',requestSubmitted:'أرسل',orderPlaced:'وضع',bookingConfirmedMsg:'مؤكد',itemAdded:'أضيف',changesSaved:'حفظ',welcomeMsg:'مرحبا',
+bookRoom:'📅 حجز',selectRoom:'اختر',checkIn:'وصول',checkOut:'مغادرة',numGuests:'الضيوف',totalPrice:'السعر',nights:'ليالي',bookingConfirmed:'مؤكد',myBookings:'حجوزاتي',bookingStatus:'الحالة',pending:'معلق',confirmed:'مؤكد',checkedIn:'وصول',checkedOut:'مغادرة',cancelled:'ملغي',requestSubmitted:'أرسل',orderPlaced:'وضع',bookingConfirmedMsg:'مؤكد',itemAdded:'أضيف',changesSaved:'حفظ',welcomeMsg:'مرحبا بك في كراون بلازا',
 notifRequestTitle:'طلب',notifRequestBody:'أرسل!',
 notifOrderTitle:'طلب',notifOrderBody:'وضع!',
 notifBookingTitle:'حجز',notifBookingBody:'مؤكد!',
@@ -721,6 +710,9 @@ menuUpdatedLive:'قائمة حدثت!'
 
 function t(k){return T[lang]?.[k] || T.en[k] || k}
 
+// ================================================================
+// GLOBAL STATE
+// ================================================================
 let lang='en', dark=false, fontSize=16, brightness=1, theme='default', highContrast=false;
 const CURRENCIES = {
 INR: { symbol: '₹', rate: 83.50, flag: '🇮🇳', custom: false },
@@ -745,14 +737,59 @@ const processedEvents = new Set();
 let lastSyncToken = null;
 const offlineQueue = [];
 
+// ================================================================
+// SERVICES & ROLES MAPPING
+// ================================================================
 const SERVICES = {
-'Housekeeping':[{key:'Room Cleaning',en:'Room Cleaning',hi:'कमरा सफाई',ar:'تنظيف الغرفة'},{key:'Extra Towels',en:'Extra Towels',hi:'अतिरिक्त तौलिए',ar:'مناشف إضافية'},{key:'Bed Making',en:'Bed Making',hi:'बिस्तर बनाना',ar:'ترتيب السرير'},{key:'Mini Bar Restock',en:'Mini Bar Restock',hi:'मिनी बार',ar:'تجديد الميني بار'},{key:'Laundry Pickup',en:'Laundry Pickup',hi:'लॉन्ड्री',ar:'استلام الغسيل'}],
-'Maintenance':[{key:'AC Repair',en:'AC Repair',hi:'एसी',ar:'إصلاح المكيف'},{key:'Plumbing',en:'Plumbing',hi:'प्लंबिंग',ar:'السباكة'},{key:'Electrical',en:'Electrical',hi:'बिजली',ar:'الكهرباء'},{key:'TV/Internet',en:'TV/Internet',hi:'टीवी',ar:'التلفاز'},{key:'Furniture Fix',en:'Furniture Fix',hi:'फर्नीचर',ar:'إصلاح الأثاث'}],
-'Restaurant':[{key:'Room Service',en:'Room Service',hi:'रूम सर्विस',ar:'خدمة الغرف'},{key:'Table Booking',en:'Table Booking',hi:'टेबल',ar:'حجز طاولة'},{key:'Special Diet',en:'Special Diet',hi:'आहार',ar:'نظام غذائي'},{key:'Complaint',en:'Complaint',hi:'शिकायत',ar:'شكوى'},{key:'Compliment',en:'Compliment',hi:'प्रशंसा',ar:'إطراء'}],
-'Laundry':[{key:'Wash & Fold',en:'Wash & Fold',hi:'धोना',ar:'غسيل'},{key:'Dry Cleaning',en:'Dry Cleaning',hi:'ड्राई क्लीन',ar:'تنظيف جاف'},{key:'Ironing',en:'Ironing',hi:'इस्त्री',ar:'كي'},{key:'Express Service',en:'Express Service',hi:'एक्सप्रेस',ar:'سريع'},{key:'Pickup Request',en:'Pickup Request',hi:'पिकअप',ar:'استلام'}],
-'IT':[{key:'WiFi Issue',en:'WiFi Issue',hi:'वाईफाई',ar:'واي فاي'},{key:'TV Problem',en:'TV Problem',hi:'टीवी',ar:'تلفاز'},{key:'Phone Issue',en:'Phone Issue',hi:'फोन',ar:'هاتف'},{key:'Device Setup',en:'Device Setup',hi:'सेटअप',ar:'إعداد'},{key:'Password Reset',en:'Password Reset',hi:'पासवर्ड',ar:'كلمة مرور'}],
-'Security':[{key:'Lost Key',en:'Lost Key',hi:'चाबी',ar:'مفتاح'},{key:'Suspicious Activity',en:'Suspicious Activity',hi:'संदिग्ध',ar:'مشبوه'},{key:'Safe Deposit',en:'Safe Deposit',hi:'सेफ',ar:'آمن'},{key:'Escort Request',en:'Escort Request',hi:'एस्कॉर्ट',ar:'مرافقة'},{key:'Emergency',en:'Emergency',hi:'आपातकाल',ar:'طارئ'}],
-'Transport':[{key:'Airport Transfer',en:'Airport Transfer',hi:'एयरपोर्ट',ar:'نقل المطار'},{key:'Local Cab',en:'Local Cab',hi:'लोकल कैब',ar:'تاكسي'},{key:'Car Rental',en:'Car Rental',hi:'कार',ar:'سيارة'},{key:'Bike Rental',en:'Bike Rental',hi:'बाइक',ar:'دراجة'},{key:'Shuttle Service',en:'Shuttle Service',hi:'शटल',ar:'نقل'}]
+'Housekeeping':[
+{key:'Room Cleaning',en:'Room Cleaning',hi:'कमरा सफाई',ar:'تنظيف الغرفة'},
+{key:'Extra Towels',en:'Extra Towels',hi:'अतिरिक्त तौलिए',ar:'مناشف إضافية'},
+{key:'Bed Making',en:'Bed Making',hi:'बिस्तर बनाना',ar:'ترتيب السرير'},
+{key:'Mini Bar Restock',en:'Mini Bar Restock',hi:'मिनी बार',ar:'تجديد الميني بار'},
+{key:'Laundry Pickup',en:'Laundry Pickup',hi:'लॉन्ड्री',ar:'استلام الغسيل'}
+],
+'Maintenance':[
+{key:'AC Repair',en:'AC Repair',hi:'एसी',ar:'إصلاح المكيف'},
+{key:'Plumbing',en:'Plumbing',hi:'प्लंबिंग',ar:'السباكة'},
+{key:'Electrical',en:'Electrical',hi:'बिजली',ar:'الكهرباء'},
+{key:'TV/Internet',en:'TV/Internet',hi:'टीवी',ar:'التلفاز'},
+{key:'Furniture Fix',en:'Furniture Fix',hi:'फर्नीचर',ar:'إصلاح الأثاث'}
+],
+'Restaurant':[
+{key:'Room Service',en:'Room Service',hi:'रूम सर्विस',ar:'خدمة الغرف'},
+{key:'Table Booking',en:'Table Booking',hi:'टेबल',ar:'حجز طاولة'},
+{key:'Special Diet',en:'Special Diet',hi:'आहार',ar:'نظام غذائي'},
+{key:'Complaint',en:'Complaint',hi:'शिकायत',ar:'شكوى'},
+{key:'Compliment',en:'Compliment',hi:'प्रशंसा',ar:'إطراء'}
+],
+'Laundry':[
+{key:'Wash & Fold',en:'Wash & Fold',hi:'धोना',ar:'غسيل'},
+{key:'Dry Cleaning',en:'Dry Cleaning',hi:'ड्राई क्लीन',ar:'تنظيف جاف'},
+{key:'Ironing',en:'Ironing',hi:'इस्त्री',ar:'كي'},
+{key:'Express Service',en:'Express Service',hi:'एक्सप्रेस',ar:'سريع'},
+{key:'Pickup Request',en:'Pickup Request',hi:'पिकअप',ar:'طلب استلام'}
+],
+'IT':[
+{key:'WiFi Issue',en:'WiFi Issue',hi:'वाईफाई',ar:'واي فاي'},
+{key:'TV Problem',en:'TV Problem',hi:'टीवी',ar:'تلفاز'},
+{key:'Phone Issue',en:'Phone Issue',hi:'फोन',ar:'هاتف'},
+{key:'Device Setup',en:'Device Setup',hi:'सेटअप',ar:'إعداد'},
+{key:'Password Reset',en:'Password Reset',hi:'पासवर्ड',ar:'كلمة مرور'}
+],
+'Security':[
+{key:'Lost Key',en:'Lost Key',hi:'चाबी',ar:'مفتاح'},
+{key:'Suspicious Activity',en:'Suspicious Activity',hi:'संदिग्ध',ar:'مشبوه'},
+{key:'Safe Deposit',en:'Safe Deposit',hi:'सेफ',ar:'آمن'},
+{key:'Escort Request',en:'Escort Request',hi:'एस्कॉर्ट',ar:'مرافقة'},
+{key:'Emergency',en:'Emergency',hi:'आपातकाल',ar:'طارئ'}
+],
+'Transport':[
+{key:'Airport Transfer',en:'Airport Transfer',hi:'एयरपोर्ट',ar:'نقل المطار'},
+{key:'Local Cab',en:'Local Cab',hi:'लोकल कैब',ar:'تاكسي'},
+{key:'Car Rental',en:'Car Rental',hi:'कार',ar:'سيارة'},
+{key:'Bike Rental',en:'Bike Rental',hi:'बाइक',ar:'دراجة'},
+{key:'Shuttle Service',en:'Shuttle Service',hi:'शटल',ar:'نقل'}
+]
 };
 
 const ROLES = [
@@ -766,13 +803,20 @@ const ROLES = [
 {key:'it_support',icon:'💻',label:'roleIT'}
 ];
 
+// ================================================================
+// DEFAULT DATA GENERATORS
+// ================================================================
 function generateDefaultRooms() {
 const types = ['Standard', 'Deluxe', 'Suite'];
 const basePricesSAR = { Standard: 371, Deluxe: 484, Suite: 746 };
 const rooms = [];
 for (let i = 101; i <= 150; i++) {
 const type = types[(i - 101) % 3];
-rooms.push({_id: `r_${i}`,number: i,type: type,basePriceSAR: basePricesSAR[type],status: 'Vacant',guestName: '',hotelId: HID,createdAt: new Date().toISOString(),updatedAt: new Date().toISOString(),_version: 1});
+rooms.push({
+_id: `r_${i}`, number: i, type: type,
+basePriceSAR: basePricesSAR[type], status: 'Vacant', guestName: '',
+hotelId: HID, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), _version: 1
+});
 }
 return rooms;
 }
@@ -837,6 +881,9 @@ return [
 ];
 }
 
+// ================================================================
+// CURRENCY CONVERSION
+// ================================================================
 function convertPrice(baseSARPrice) {
 const targetRate = CURRENCIES[HotelCfg.currency]?.rate || 3.75;
 return (baseSARPrice / 3.75) * targetRate;
@@ -847,7 +894,9 @@ const symbol = CURRENCIES[HotelCfg.currency]?.symbol || '﷼';
 return `${symbol}${Number(converted.toFixed(2))}`;
 }
 
-// ✅ ISSUE #5 FIX: All data saved to MongoDB via API
+// ================================================================
+// ✅ ISSUE #5 FIX: MONGODB PERSISTENCE - API CALLS
+// ================================================================
 async function apiCall(method, path, body=null, retries=3){
 if(!isOnline) return null;
 const token = localStorage.getItem(`h_${HID}_token`);
@@ -860,7 +909,10 @@ const r=await fetch(API_BASE+path, opts);
 const contentType = r.headers.get('content-type');
 if(contentType && !contentType.includes('application/json')){
 const text = await r.text();
-if(text.startsWith('<!DOCTYPE') || text.startsWith('<html')) return null;
+if(text.startsWith('<!DOCTYPE') || text.startsWith('<html')){
+console.warn(`API returned HTML for ${path}`);
+return null;
+}
 }
 if(!r.ok) throw new Error(r.statusText);
 return await r.json();
@@ -875,38 +927,39 @@ await new Promise(res=>setTimeout(res, 1000*(i+1)));
 return null;
 }
 
-// ✅ ISSUE #4 FIX: Save page state + UI prefs to localStorage
+// ================================================================
+// ✅ ISSUE #4 & #5 FIX: SAVE UI PREFS + SESSION + TAB TO LOCALSTORAGE
+// ================================================================
 function saveUIPrefs() {
 localStorage.setItem('hotel_lang', lang);
 localStorage.setItem('hotel_dark', dark ? '1' : '0');
 localStorage.setItem('hotel_theme', theme);
 localStorage.setItem(`h_${HID}_queue`, JSON.stringify(offlineQueue));
-if(currentUser) localStorage.setItem(`h_${HID}_session`, JSON.stringify(currentUser));
-else localStorage.removeItem(`h_${HID}_session`);
+if(currentUser) {
+localStorage.setItem(`h_${HID}_session`, JSON.stringify(currentUser));
+} else {
+localStorage.removeItem(`h_${HID}_session`);
+}
+}
+
 // ✅ ISSUE #4 FIX: Save current page/tab state
-const currentPage = getCurrentPage();
-localStorage.setItem(`h_${HID}_pageState`, JSON.stringify({
-currentPage: currentPage,
-timestamp: Date.now()
-}));
-}
-
-// ✅ ISSUE #4 FIX: Get current page state
-function getCurrentPage() {
-if(!document.getElementById('loginPage').classList.contains('hidden')) return 'login';
-if(!document.getElementById('rolePage').classList.contains('hidden')) return 'role';
-if(!document.getElementById('adminDash').classList.contains('hidden')) {
+function saveCurrentTab() {
+let currentPage = 'login';
+if(!document.getElementById('loginPage').classList.contains('hidden')) currentPage = 'login';
+else if(!document.getElementById('rolePage').classList.contains('hidden')) currentPage = 'role';
+else if(!document.getElementById('adminDash').classList.contains('hidden')) {
 const activeTab = document.querySelector('.tab-btn.active');
-return 'admin_' + (activeTab?.dataset?.tab || 'overview');
-}
-if(!document.getElementById('guestDash').classList.contains('hidden')) {
+currentPage = 'admin_' + (activeTab?.dataset?.tab || 'overview');
+} else if(!document.getElementById('guestDash').classList.contains('hidden')) {
 const activeBtn = document.querySelector('.gnav-btn.active');
-return 'guest_' + (activeBtn?.id?.replace('gn-','') || 'reqTab');
+currentPage = 'guest_' + (activeBtn?.id?.replace('gn-','') || 'reqTab');
 }
-return 'login';
+localStorage.setItem(`h_${HID}_currentTab`, currentPage);
 }
 
-// ✅ ISSUE #5 FIX: Save data to MongoDB
+// ================================================================
+// ✅ ISSUE #5 FIX: SAVE DATA TO MONGODB
+// ================================================================
 async function saveToMongo(collection, data) {
 if (!isOnline) {
 offlineQueue.push({collection, data, timestamp: Date.now()});
@@ -945,7 +998,9 @@ saveUIPrefs();
 }
 }
 
-// ✅ ISSUE #5 FIX: Load all data from MongoDB
+// ================================================================
+// ✅ ISSUE #5 FIX: LOAD ALL DATA FROM MONGODB
+// ================================================================
 async function loadAllData() {
 try {
 const [r, g, f, inv, req, bl, maint, rev, st, lg, bk, cfg] = await Promise.all([
@@ -993,6 +1048,9 @@ renderAll();
 }
 }
 
+// ================================================================
+// SAVE WITH VERSIONING + BROADCASTING
+// ================================================================
 function save(collection, data, event='data_upd'){
 if(Array.isArray(data)){
 data = data.map(item => ({...item, _version: (item._version||0)+1, updatedAt: new Date().toISOString()}));
@@ -1009,6 +1067,9 @@ saveUIPrefs();
 }
 }
 
+// ================================================================
+// SAFE MERGE FOR MULTI-DEVICE SYNC
+// ================================================================
 function safeMerge(target, source, collection){
 if(!source || !target) return target;
 if(Array.isArray(source) && Array.isArray(target)){
@@ -1027,6 +1088,9 @@ return {...target, ...source};
 return target;
 }
 
+// ================================================================
+// SOCKET.IO INITIALIZATION
+// ================================================================
 function initSocket(){
 try{
 socket = io(SOCKET_URL, {
@@ -1113,13 +1177,17 @@ if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const req = payload.data;
+if(payload.action === 'delete') {
+requests = requests.filter(x => x._id !== req._id);
+} else {
 const idx = requests.findIndex(r=>r._id===req._id);
 if(idx>-1) requests[idx]=safeMerge(requests[idx], req, 'requests');
 else requests.unshift(req);
+}
 renderRequests(); updateGuestStats();
 if(currentUser?.type==='guest') {
 renderGuestHistory();
-if(req.adminReply) showToast('👑 Reply received','success');
+if(req.adminReply) showToast('👑 ' + (t('replyReceived') || 'New reply'), 'success');
 }
 });
 socket.on('room_upd',(payload)=>{
@@ -1127,9 +1195,13 @@ if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const room = payload.data;
+if(payload.action === 'delete') {
+rooms = rooms.filter(x => x._id !== room._id);
+} else {
 const idx=rooms.findIndex(r=>r._id===room._id);
 if(idx>-1) rooms[idx]=safeMerge(rooms[idx], room, 'rooms');
 else rooms.push(room);
+}
 renderRooms(); updateAdminStats();
 });
 socket.on('inventory_upd',(payload)=>{
@@ -1137,9 +1209,13 @@ if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const item = payload.data;
+if(payload.action === 'delete') {
+inventory = inventory.filter(x => x._id !== item._id);
+} else {
 const idx=inventory.findIndex(i=>i._id===item._id);
 if(idx>-1) inventory[idx]=safeMerge(inventory[idx], item, 'inventory');
 else inventory.push(item);
+}
 renderInventory(); renderGuestInv();
 });
 socket.on('food_upd',(payload)=>{
@@ -1147,7 +1223,9 @@ if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const f = payload.data;
-if(Array.isArray(f)) {
+if(payload.action === 'delete') {
+food = food.filter(x => x._id !== f._id);
+} else if(Array.isArray(f)) {
 food = safeMerge(food, f, 'food');
 } else {
 const idx=food.findIndex(x=>x._id===f._id);
@@ -1156,7 +1234,7 @@ else food.push(f);
 }
 renderFood();
 renderGuestFood();
-showToast('🍽️ Menu updated','socket');
+showToast('🍽️ ' + (t('menuUpdatedLive') || 'Menu updated'),'socket');
 });
 socket.on('review_new',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -1180,9 +1258,13 @@ if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const booking = payload.data;
+if(payload.action === 'delete') {
+bookings = bookings.filter(x => x._id !== booking._id);
+} else {
 const idx = bookings.findIndex(b=>b._id===booking._id);
 if(idx>-1) bookings[idx]=safeMerge(bookings[idx], booking, 'bookings');
 else bookings.unshift(booking);
+}
 renderGuestBookings(); renderAdminBookings();
 });
 socket.on('staff_upd',(payload)=>{
@@ -1190,9 +1272,13 @@ if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
 if(payload.clientId === clientId) return;
 const s = payload.data;
+if(payload.action === 'delete') {
+staff = staff.filter(x => x._id !== s._id);
+} else {
 const idx=staff.findIndex(x=>x._id===s._id);
 if(idx>-1) staff[idx]=safeMerge(staff[idx], s, 'staff');
 else staff.push(s);
+}
 renderStaff();
 });
 }catch(e){
@@ -1202,6 +1288,9 @@ updateNetBadge('offline');
 }
 }
 
+// ================================================================
+// BACKGROUND SYNC
+// ================================================================
 async function syncBack(){
 if(!isOnline) return;
 const [r,g,f,inv,req,bl,maint,rev,st,lg,bk,cfg] = await Promise.all([
@@ -1226,6 +1315,9 @@ renderAll();
 if(!rooms.length) loadAllData();
 }
 
+// ================================================================
+// SOCKET STATUS & NET BADGE
+// ================================================================
 function setSockStatus(s){
 const dot=document.getElementById('sockDot'), txt=document.getElementById('sockTxt');
 const loginDot=document.getElementById('loginConnDot'), loginTxt=document.getElementById('loginConnTxt');
@@ -1251,6 +1343,9 @@ const text=status==='online'?t('online'):status==='offline'?t('offline'):status=
 loginBadge.className='';loginBadge.classList.add(className);loginBadge.textContent=text;
 }
 
+// ================================================================
+// ✅ ISSUE #3 FIX: TOGGLE ONLINE/OFFLINE + BRIGHTNESS TOGGLE
+// ================================================================
 function toggleOnlineMode(){
 isOnline=!isOnline;
 const btn=document.getElementById('onlineBtn');
@@ -1267,6 +1362,27 @@ showToast('📴 Offline','warning');
 }
 }
 
+// ✅ ISSUE #3 FIX: Brightness toggle button (replaces slider)
+function toggleBrightness() {
+const btn = document.getElementById('brightnessBtn');
+if (brightness === 1) {
+brightness = 1.3;
+btn.innerHTML = '🔆';
+} else if (brightness === 1.3) {
+brightness = 0.7;
+btn.innerHTML = '🌑';
+} else {
+brightness = 1;
+btn.innerHTML = '☀';
+}
+document.body.style.filter = `brightness(${brightness})`;
+localStorage.setItem('hotel_brightness', brightness);
+showToast(`☀ Brightness: ${Math.round(brightness*100)}%`, 'success');
+}
+
+// ================================================================
+// LANGUAGE CHANGE
+// ================================================================
 function setLang(l){
 lang=l;
 document.documentElement.lang=l;
@@ -1305,7 +1421,9 @@ document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
 saveUIPrefs();
 }
 
-// ✅ ISSUE #3 FIX: Font size controls fully functional
+// ================================================================
+// ✅ ISSUE #3 FIX: FONT SIZE BUTTONS - FULLY FUNCTIONAL
+// ================================================================
 function adjustFont(d){
 let currentSize = parseInt(localStorage.getItem('hotel_fontSize')) || 16;
 if(d === 0) {
@@ -1316,26 +1434,15 @@ currentSize = Math.max(12, currentSize - 2);
 currentSize = Math.min(24, currentSize + 2);
 }
 fontSize = currentSize;
-// Apply to html and body
+// Apply to both html and body
 document.documentElement.style.fontSize = currentSize + 'px';
 document.body.style.fontSize = currentSize + 'px';
-// Save to localStorage for persistence
 localStorage.setItem('hotel_fontSize', currentSize);
 let msg = '';
 if(d === 0) msg = t('fontReset') || 'Font reset';
 else if(d === -1) msg = (t('fontDecreased') || 'Font decreased') + `: ${currentSize}px`;
 else if(d === 1) msg = (t('fontIncreased') || 'Font increased') + `: ${currentSize}px`;
 showToast(msg, 'success');
-}
-
-// ✅ ISSUE #3 FIX: Brightness toggle fully functional
-function setBrightness(v){
-brightness=parseFloat(v);
-document.body.style.filter=`brightness(${v})`;
-const slider=document.getElementById('brightSlider');
-if(slider) slider.value=v;
-// Save to localStorage for persistence
-localStorage.setItem('hotel_brightness', brightness);
 }
 
 function toggleContrast(){
@@ -1391,6 +1498,9 @@ setTimeout(() => notif.close(), 5000);
 if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 }
 
+// ================================================================
+// VOICE SPEECH
+// ================================================================
 function speakText(text) {
 if(!('speechSynthesis' in window)) return;
 const utterance=new SpeechSynthesisUtterance(text);
@@ -1411,22 +1521,28 @@ function speakBookingConfirmed(){speakText(t('bookingConfirmedMsg'));}
 function speakItemAdded(){speakText(t('itemAdded'));}
 if('speechSynthesis' in window){window.speechSynthesis.onvoiceschanged=()=>{voicesLoaded=true;};}
 
+// ================================================================
+// LOAD UI PREFS
+// ================================================================
 function loadUIPrefs(){
 lang=localStorage.getItem('hotel_lang')||'en';
 dark=localStorage.getItem('hotel_dark')==='1';
 theme=localStorage.getItem('hotel_theme')||'default';
-// ✅ ISSUE #3 FIX: Load font size and brightness from localStorage
+highContrast = localStorage.getItem('hotel_contrast') === '1';
 fontSize = parseInt(localStorage.getItem('hotel_fontSize')) || 16;
 brightness = parseFloat(localStorage.getItem('hotel_brightness')) || 1;
-highContrast = localStorage.getItem('hotel_contrast') === '1';
 document.body.classList.toggle('dark',dark);
 document.body.classList.toggle('high-contrast',highContrast);
 document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
-const slider=document.getElementById('brightSlider');
-if(slider) slider.value=brightness;
-setBrightness(brightness);
 document.documentElement.style.fontSize = fontSize + 'px';
 document.body.style.fontSize = fontSize + 'px';
+document.body.style.filter = `brightness(${brightness})`;
+const bBtn = document.getElementById('brightnessBtn');
+if(bBtn) {
+if(brightness === 1) bBtn.innerHTML = '☀';
+else if(brightness === 1.3) bBtn.innerHTML = '🔆';
+else bBtn.innerHTML = '🌑';
+}
 setTheme(theme);
 setLang(lang);
 }
@@ -1487,6 +1603,9 @@ document.getElementById('guestTabBtn').classList.toggle('active',type==='guest')
 document.getElementById('adminTabBtn').classList.toggle('active',type==='admin');
 }
 
+// ================================================================
+// GUEST LOGIN
+// ================================================================
 async function guestLogin(e){
 e.preventDefault();
 const name=document.getElementById('guestNameIn').value.trim();
@@ -1495,6 +1614,7 @@ if(!name||!room){showToast('Fill all fields','error');return}
 if(blacklist.find(b=>b.name.toLowerCase()===name.toLowerCase())){showToast('❌ Denied','error');return}
 currentUser={type:'guest',name,room,points:0};
 saveUIPrefs();
+saveCurrentTab();
 showPage('guestDash');
 document.getElementById('gInfo').textContent=`👤 ${name} | #${room}`;
 updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
@@ -1504,6 +1624,9 @@ speakWelcome();
 if(isOnline && socket?.connected) socket.emit('guest_join',{hotelId:HID,name,room, clientId});
 }
 
+// ================================================================
+// ADMIN LOGIN
+// ================================================================
 async function adminLogin(e){
 e.preventDefault();
 const hotelId = document.getElementById('adminHotelIdIn').value.trim();
@@ -1514,6 +1637,7 @@ const mockToken = 'mock_jwt_' + Math.random().toString(36).substring(2) + Date.n
 currentUser={type:'admin', email, role:'super_admin', token:mockToken, hotelId:hotelId};
 localStorage.setItem(`h_${HID}_token`, mockToken);
 saveUIPrefs();
+saveCurrentTab();
 buildRolePage();
 showPage('rolePage');
 speakWelcome();
@@ -1533,6 +1657,7 @@ if(response.ok && data.success && data.token){
 currentUser={type:'admin',email:data.user.email,role:data.user.role,token:data.token,hotelId:data.hotelId};
 localStorage.setItem(`h_${HID}_token`, data.token);
 saveUIPrefs();
+saveCurrentTab();
 buildRolePage();
 showPage('rolePage');
 speakWelcome();
@@ -1557,6 +1682,7 @@ g.innerHTML=ROLES.map(r=>`<button class="role-card" onclick="loginAsRole('${r.ke
 function loginAsRole(role){
 currentUser.role=role;
 saveUIPrefs();
+saveCurrentTab();
 const rName=ROLES.find(r=>r.key===role)?.label||'Admin';
 document.getElementById('aRole').textContent=t(rName);
 showPage('adminDash');
@@ -1573,19 +1699,24 @@ if(socket?.connected) socket.emit('leave_hotel', HID);
 currentUser=null;
 localStorage.removeItem(`h_${HID}_session`);
 localStorage.removeItem(`h_${HID}_token`);
-localStorage.removeItem(`h_${HID}_pageState`);
+localStorage.removeItem(`h_${HID}_currentTab`);
+saveUIPrefs();
 cart=[];
 showPage('loginPage');
 showToast('Logged out','success');
 }
 
-// ✅ ISSUE #4 FIX: Restore page state on refresh
+// ================================================================
+// ✅ ISSUE #4 FIX: CHECK SESSION & RESTORE PAGE/TAB ON LOAD
+// ================================================================
 async function checkSession(){
 const s=localStorage.getItem(`h_${HID}_session`);
 if(!s) return;
 try{
 currentUser = JSON.parse(s);
 if(!currentUser) return;
+const savedTab = localStorage.getItem(`h_${HID}_currentTab`) || 'login';
+
 if(currentUser.type==='admin'){
 buildAdminTabs();
 showPage('adminDash');
@@ -1593,10 +1724,9 @@ const rName=ROLES.find(r=>r.key===currentUser.role)?.label||'Admin';
 document.getElementById('aRole').textContent=t(rName);
 renderAll();
 updateAdminStats();
-// ✅ ISSUE #4 FIX: Restore last admin tab
-const pageState = JSON.parse(localStorage.getItem(`h_${HID}_pageState`) || '{}');
-if(pageState.currentPage && pageState.currentPage.startsWith('admin_')) {
-const tabId = pageState.currentPage.replace('admin_', '');
+// ✅ Restore last admin tab
+if(savedTab.startsWith('admin_')) {
+const tabId = savedTab.replace('admin_', '');
 showAdminTab(tabId);
 } else {
 showAdminTab('overview');
@@ -1609,16 +1739,14 @@ renderGuestFood();
 renderGuestInv();
 renderGuestHistory();
 renderGuestBookings();
-// ✅ ISSUE #4 FIX: Restore last guest tab
-const pageState = JSON.parse(localStorage.getItem(`h_${HID}_pageState`) || '{}');
-if(pageState.currentPage && pageState.currentPage.startsWith('guest_')) {
-const tabId = pageState.currentPage.replace('guest_', '');
+// ✅ Restore last guest tab
+if(savedTab.startsWith('guest_')) {
+const tabId = savedTab.replace('guest_', '');
 showGuestTab(tabId);
 } else {
 showGuestTab('reqTab');
 }
 }
-showToast("✅ Restored!", 'success');
 }catch(e){
 console.warn('Session restore error:',e);
 localStorage.removeItem(`h_${HID}_session`);
@@ -1639,10 +1767,13 @@ el.classList.add('hidden');
 el.style.display = 'none';
 }
 });
-// ✅ ISSUE #4 FIX: Save page state when page changes
-saveUIPrefs();
+// ✅ ISSUE #4 FIX: Save current page state
+saveCurrentTab();
 }
 
+// ================================================================
+// ADMIN TABS
+// ================================================================
 const ADMIN_TABS=[
 {id:'overview',label:'tabOverview'},
 {id:'rooms',label:'tabRooms'},
@@ -1688,7 +1819,7 @@ case 'overview': return `
 <div class="weather-icon" id="weatherIcon">🌤️</div>
 <div class="weather-temp" id="weatherTemp">28°C</div>
 <div class="weather-desc" data-i18n="weather" id="weatherDesc">Weather</div>
-<div style="font-size:10px;opacity:.7;margin-top:4px" id="weatherUpdateTime">Updated just now</div>
+<div style="font-size:10px;opacity:.7;margin-top:4px" id="weatherUpdateTime">Updated</div>
 </div>
 <div class="currency-card">
 <div style="font-weight:600;margin-bottom:4px" data-i18n="currency">Currency</div>
@@ -1728,7 +1859,7 @@ case 'guests': return `
 case 'food': return `
 <div class="card">
 <div style="display:flex;justify-content:center;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-<h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabFood">🍽️ Food Menu</h3>
+<h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabFood">🍽️ Food</h3>
 <button class="btn-primary" onclick="openModal('foodModal')" data-i18n="addDish">+ Add Dish</button>
 </div>
 <div id="foodAdminList"></div>
@@ -1765,14 +1896,14 @@ case 'requests': return `
 <option value="Maintenance" data-i18n="deptMaint">🔧 Maintenance</option>
 <option value="Restaurant" data-i18n="deptRest">🍽️ Restaurant</option>
 <option value="Laundry" data-i18n="deptLaundry">🧺 Laundry</option>
-<option value="IT" data-i18n="deptIT">💻 IT Support</option>
+<option value="IT" data-i18n="deptIT">💻 IT</option>
 <option value="Security" data-i18n="deptSec">🛡️ Security</option>
 <option value="Transport" data-i18n="deptTransport">🚗 Transport</option>
 </select>
 <select class="inp" id="adminService" required><option value="" data-i18n="selectService">Select Service</option></select>
 </div>
 <div style="margin-top:6px">
-<textarea class="inp" id="adminDesc" rows="2" data-i18n-ph="describeIssue" placeholder="Describe issue…"></textarea>
+<textarea class="inp" id="adminDesc" rows="2" data-i18n-ph="describeIssue" placeholder="Describe…"></textarea>
 </div>
 <button class="btn-primary" style="margin-top:6px;padding:6px 12px;font-size:10px" type="submit" data-i18n="submitRequest">Submit</button>
 </form>
@@ -1793,11 +1924,11 @@ ${Object.keys(CURRENCIES).map(code => `<option value="${code}" ${HotelCfg.curren
 <button class="btn-ghost" onclick="editCurrencyRates()">✏️</button>
 <button class="btn-ghost" onclick="openAddCurrencyModal()">➕</button>
 </div></div>
-<div class="form-row"><label class="lbl" data-i18n="wifiLbl">WiFi Password</label>
+<div class="form-row"><label class="lbl" data-i18n="wifiLbl">WiFi</label>
 <div style="display:flex;gap:6px"><input class="inp" id="cfgWifi" value="${HotelCfg.wifi}"><button class="btn-primary" onclick="saveCfg('wifi')" data-i18n="save">Save</button></div></div>
-<div class="form-row"><label class="lbl" data-i18n="airportPrice">Airport Price</label>
+<div class="form-row"><label class="lbl" data-i18n="airportPrice">Airport</label>
 <div style="display:flex;gap:6px"><input class="inp" id="cfgAirport" type="number" value="${HotelCfg.airportPrice}" style="width:100px"><button class="btn-primary" onclick="saveCfg('transport')" data-i18n="save">Save</button></div></div>
-<div class="form-row"><label class="lbl" data-i18n="localPrice">Local Cab /hr</label>
+<div class="form-row"><label class="lbl" data-i18n="localPrice">Local /hr</label>
 <div style="display:flex;gap:6px"><input class="inp" id="cfgLocal" type="number" value="${HotelCfg.localPrice}" style="width:100px"><button class="btn-primary" onclick="saveCfg('transport')" data-i18n="save">Save</button></div></div>
 <div style="background:var(--card2);border-radius:8px;padding:10px;font-size:13px;color:var(--fg);opacity:.7;margin-top:10px">
 🏢 Hotel ID: <strong>${HID}</strong>
@@ -1923,7 +2054,7 @@ if(id==='requests') updateAdminServices();
 if(id==='staff') renderStaff();
 if(id==='bookings') renderAdminBookings();
 // ✅ ISSUE #4 FIX: Save current tab
-saveUIPrefs();
+saveCurrentTab();
 }
 
 function renderAll(){
@@ -2071,8 +2202,8 @@ req.adminReply=reply;
 req.adminReplyTime=new Date().toISOString();
 save('requests',req,'req_upd');
 renderRequests();
-showToast('✅ Reply sent','success');
-addLog('Admin Reply',`To ${req.guestName}`);
+showToast('✅ ' + (t('replySentToGuest') || 'Reply sent'),'success');
+addLog('Admin Reply',`To ${req.guestName}: ${reply}`);
 }
 }
 
@@ -2236,6 +2367,9 @@ occChart=new Chart(oCtx,{type:'bar',data:{labels:['W1','W2','W3','W4'],datasets:
 }
 }
 
+// ================================================================
+// GUEST TABS
+// ================================================================
 const GUEST_TABS=[
 {id:'reqTab',icon:'📝',label:'reqTab'},
 {id:'foodTab',icon:'🍕',label:'foodTab'},
@@ -2349,17 +2483,19 @@ panes.innerHTML=`
 <div class="currency-row"><span>1 USD</span><span>= ${CURRENCIES.USD.symbol}1.00</span></div>
 <div class="currency-row"><span>1 USD</span><span>= ${CURRENCIES.SAR.symbol}3.75</span></div>
 <div class="currency-row"><span>1 USD</span><span>= ${CURRENCIES.INR.symbol}83.50</span></div>
+<div class="currency-row"><span>1 USD</span><span>= ${CURRENCIES.AED.symbol}3.67</span></div>
+<div class="currency-row"><span>1 USD</span><span>= ${CURRENCIES.KWD.symbol}0.31</span></div>
 </div>
 <div class="card-sm" style="background:var(--card2);margin-bottom:8px">
 <div style="display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px">
 <div><div style="font-weight:700;font-size:13px" data-i18n="myPoints">⭐ Points</div><div id="gPtsDisplay" style="font-size:24px;font-weight:700;color:#f59e0b">0</div></div>
 <button class="btn-primary" onclick="openRatingModal()" data-i18n="rateNow">Rate ⭐</button>
 </div>
-<p style="font-size:13px;opacity:.6;margin-top:6px" data-i18n="loyaltyBenefits">100 pts = 10 off</p>
+<p style="font-size:13px;opacity:.6;margin-top:6px" data-i18n="loyaltyBenefits">100 pts = 10 off | 500 pts = Free Night</p>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🚑 First Aid','<p>🩸 Apply pressure</p><p>🔥 Cool water</p><p>💔 Call 102</p>')"><div style="font-size:22px">🚑</div><div style="font-size:13px;font-weight:600">First Aid</div></button>
-<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🗺️ Evacuation','<p>🚪 Exit stairs</p><p>🅿️ Main Parking</p>')"><div style="font-size:22px">🗺️</div><div style="font-size:13px;font-weight:600">Evacuation</div></button>
+<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🚑 First Aid','<p>🩸 Bleeding: Apply pressure</p><p>🔥 Burn: Cool water</p><p>💔 Cardiac: Call 102</p>')"><div style="font-size:22px">🚑</div><div style="font-size:13px;font-weight:600">First Aid</div></button>
+<button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🗺️ Evacuation','<p>🚪 Exit stairs</p><p>🅿️ Assembly: Parking</p>')"><div style="font-size:22px">🗺️</div><div style="font-size:13px;font-weight:600">Evacuation</div></button>
 <button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('📞 Emergency','<p>🚓 Police: 100</p><p>🚑 Ambulance: 102</p><p>🔥 Fire: 101</p>')"><div style="font-size:22px">📞</div><div style="font-size:13px;font-weight:600">Emergency</div></button>
 <button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="showConcierge()"><div style="font-size:22px">🤖</div><div style="font-size:13px;font-weight:600">Concierge</div></button>
 </div>
@@ -2407,8 +2543,8 @@ if(id==='foodTab') renderGuestFood();
 if(id==='invTab') renderGuestInv();
 if(id==='histTab') renderGuestHistory();
 if(id==='bookTab') {renderGuestBookings();renderBookRoomRooms();}
-// ✅ ISSUE #4 FIX: Save current tab
-saveUIPrefs();
+// ✅ ISSUE #4 FIX: Save current guest tab
+saveCurrentTab();
 }
 
 function updateServices(){
@@ -2475,7 +2611,7 @@ el.innerHTML=myReqs.map(r=>`
 <strong style="font-size:12px">${r.department}</strong>
 <div style="font-size:13px;opacity:.6;margin-top:2px">${r.description}</div>
 <div style="font-size:11px;opacity:.7;margin-top:4px;font-weight:600">📅 ${new Date(r.createdAt||Date.now()).toLocaleString()}</div>
-${r.adminReply ? `<div class="admin-reply" style="margin-top:8px;padding:8px;background:var(--card2);border-radius:6px;border-left:3px solid var(--p1)"><strong style="font-size:11px;color:var(--p1)">👑 ${t('adminReply')||'Reply'}:</strong><div style="font-size:12px;margin-top:2px">${r.adminReply}</div></div>` : ''}
+${r.adminReply ? `<div class="admin-reply" style="margin-top:8px;padding:8px;background:var(--card2);border-radius:6px;border-left:3px solid var(--p1)"><strong style="font-size:11px;color:var(--p1)">👑 ${t('adminReply')||'Reply'}:</strong><div style="font-size:12px;margin-top:2px">${r.adminReply}</div><div style="font-size:10px;opacity:.6;margin-top:2px">🕒 ${new Date(r.adminReplyTime||Date.now()).toLocaleString()}</div></div>` : ''}
 </div>
 <span class="badge badge-${r.status}">${r.status}</span>
 </div>
@@ -2866,7 +3002,6 @@ out.innerHTML=html;
 
 function exportReport(){const t=document.getElementById('rptType')?.value||'report';const d=t==='occupancy'?rooms:t==='guests'?guests:requests;const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d),t);XLSX.writeFile(wb,`${t}-${Date.now()}.xlsx`);showToast('✅ Exported!','success')}
 function exportLogs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(logs),'Logs');XLSX.writeFile(wb,`logs-${Date.now()}.xlsx`);showToast('✅ Exported','success')}
-
 function clearLogs(){
 if(confirm('Clear?')){
 logs=[];
@@ -2974,7 +3109,7 @@ saveToMongo('config', HotelCfg);
 if(socket?.connected) socket.emit('cfg_upd',{hotelId:HID,...HotelCfg, syncToken:Date.now()});
 applyCfg();
 showToast('⚙️ ' + (t('settingsSaved') || 'Saved'),'success');
-addLog('Config',field);
+addLog('Config Update',field);
 }
 
 function genAllQR(){
@@ -3158,6 +3293,9 @@ XLSX.writeFile(wb,`bookings-${Date.now()}.xlsx`);
 showToast('✅ Exported!','success');
 }
 
+// ================================================================
+// BUILD MODALS
+// ================================================================
 function buildModals(){
 const container=document.getElementById('modals');
 container.innerHTML=`
@@ -3412,6 +3550,7 @@ if(!e.target.closest('#themeDD')&&!e.target.closest('[onclick*="toggleThemeDD"]'
 document.addEventListener('keydown',e=>{
 if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
 });
+
 window.addEventListener('online',()=>{
 if(!isOnline) return;
 updateNetBadge('online');
@@ -3425,16 +3564,24 @@ showToast('📴 Offline','warning');
 
 function quickCheckin(){showToast('🚀 Check-in','success');openModal('guestModal')}
 function quickCheckout(){showToast('🚪 Checkout','success')}
-function newAdminRequest(){showAdminTab('requests');showToast('📝 New','success')}
+function newAdminRequest(){showAdminTab('requests');showToast('📝 New Request','success')}
 function viewAdminReports(){showAdminTab('reports');showToast('📈 Reports','success')}
 
+// ================================================================
+// WEATHER SIMULATION
+// ================================================================
 let weatherData = { temp: 28, desc: 'Sunny', icon: '🌤️', humidity: 45, wind: 12 };
 const weatherConditions = [
 { icon: '🌤️', desc: 'Sunny', descHi: 'धूप', descAr: 'مشمس', tempMin: 25, tempMax: 38 },
 { icon: '☀️', desc: 'Clear', descHi: 'साफ', descAr: 'صافية', tempMin: 28, tempMax: 42 },
 { icon: '⛅', desc: 'Cloudy', descHi: 'बादल', descAr: 'غائم', tempMin: 22, tempMax: 32 },
+{ icon: '🌥️', desc: 'Mostly Cloudy', descHi: 'अधिक बादल', descAr: 'غائم', tempMin: 20, tempMax: 28 },
 { icon: '🌧️', desc: 'Rain', descHi: 'बारिश', descAr: 'مطر', tempMin: 18, tempMax: 25 },
-{ icon: '🌫️', desc: 'Fog', descHi: 'कोहरा', descAr: 'ضباب', tempMin: 12, tempMax: 20 }
+{ icon: '⛈️', desc: 'Storm', descHi: 'तूफान', descAr: 'عاصفة', tempMin: 16, tempMax: 22 },
+{ icon: '🌫️', desc: 'Foggy', descHi: 'कोहरा', descAr: 'ضباب', tempMin: 12, tempMax: 20 },
+{ icon: '🌙', desc: 'Night', descHi: 'रात', descAr: 'ليل', tempMin: 15, tempMax: 24 },
+{ icon: '🌦️', desc: 'Showers', descHi: 'बारिश', descAr: 'أمطار', tempMin: 20, tempMax: 30 },
+{ icon: '💨', desc: 'Windy', descHi: 'हवा', descAr: 'عاصف', tempMin: 18, tempMax: 28 }
 ];
 
 function updateWeather(){
@@ -3442,9 +3589,10 @@ const condition = weatherConditions[Math.floor(Math.random() * weatherConditions
 const temp = condition.tempMin + Math.floor(Math.random() * (condition.tempMax - condition.tempMin));
 const humidity = 30 + Math.floor(Math.random() * 50);
 const wind = 5 + Math.floor(Math.random() * 25);
-weatherData = {temp, desc: condition.desc, descHi: condition.descHi, descAr: condition.descAr, icon: condition.icon, humidity, wind, updateTime: new Date()};
+weatherData = { temp, desc: condition.desc, descHi: condition.descHi, descAr: condition.descAr, icon: condition.icon, humidity, wind, updateTime: new Date() };
 const localizedDesc = lang === 'hi' ? condition.descHi : lang === 'ar' ? condition.descAr : condition.desc;
-const timeStr = weatherData.updateTime.toLocaleTimeString(lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'ar-SA', {hour: '2-digit', minute: '2-digit', timeZone:userTimezone});
+const timeStr = weatherData.updateTime.toLocaleTimeString(lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'ar-SA', { hour: '2-digit', minute: '2-digit', timeZone: userTimezone });
+
 const adminTemp = document.getElementById('weatherTemp');
 const adminDesc = document.getElementById('weatherDesc');
 const adminIcon = document.getElementById('weatherIcon');
@@ -3453,6 +3601,9 @@ if(adminTemp) adminTemp.textContent = `${temp}°C`;
 if(adminDesc) adminDesc.textContent = localizedDesc;
 if(adminIcon) adminIcon.textContent = condition.icon;
 if(adminTime) adminTime.textContent = `🕐 ${timeStr}`;
+const adminCard = document.getElementById('adminWeatherCard');
+if(adminCard) { adminCard.classList.remove('weather-update-flash'); void adminCard.offsetWidth; adminCard.classList.add('weather-update-flash'); }
+
 const guestTemp = document.getElementById('gWeatherTemp');
 const guestDesc = document.getElementById('gWeatherDesc');
 const guestIcon = document.getElementById('weatherIcon');
@@ -3460,12 +3611,16 @@ const guestTime = document.getElementById('guestWeatherUpdateTime');
 if(guestTemp) guestTemp.textContent = `${temp}°C`;
 if(guestDesc) guestDesc.textContent = localizedDesc;
 if(guestIcon) guestIcon.textContent = condition.icon;
-if(guestTime) guestTime.textContent = `🕐 ${timeStr}`;
+if(guestTime) guestTime.textContent = `🕐 ${timeStr} | 💧 ${humidity}% | 💨 ${wind} km/h`;
+const guestCard = document.getElementById('guestWeatherCard');
+if(guestCard) { guestCard.classList.remove('weather-update-flash'); void guestCard.offsetWidth; guestCard.classList.add('weather-update-flash'); }
 }
 
 setInterval(updateWeather, 30000);
 
-// ✅ ISSUE #4 & #5 FIX: Initialize with data persistence
+// ================================================================
+// ✅ ISSUE #4 & #5 FIX: INIT - LOAD DATA, RESTORE SESSION & TAB
+// ================================================================
 async function init(){
 loadUIPrefs();
 buildModals();
@@ -3474,7 +3629,7 @@ buildRolePage();
 await loadAllData(); // ✅ Load from MongoDB
 tickClock();
 initSocket();
-await checkSession(); // ✅ Restore session
+await checkSession(); // ✅ Restore session & tab
 renderAll();
 updateWeather();
 const onlineBtn=document.getElementById('onlineBtn');
