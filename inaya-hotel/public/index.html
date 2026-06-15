@@ -701,7 +701,6 @@ KWD: { symbol: 'د.ك', rate: 0.31, flag: '🇰🇼', custom: false }
 };
 let currentUser=null;
 let HotelCfg={
-_id: null,
 name:'Crown Plaza Hotel',
 currency:'SAR',
 wifi:'CrownPlaza@2024',
@@ -921,6 +920,7 @@ localStorage.removeItem('hotel_token');
 }
 }
 // ✅ FIX: Retrieve token from localStorage if not in sessionStorage
+// ✅ CRITICAL FIX: Handle empty responses correctly to prevent JSON parse errors on DELETE
 async function apiCall(method, path, body=null, retries=3){
 if(!isOnline) return null;
 const token = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token') || localStorage.getItem(`h_${HID}_token`);
@@ -931,6 +931,13 @@ for(let i=0; i<retries; i++){
 try{
 const r=await fetch(API_BASE+path, opts);
 const text = await r.text();
+if(!r.ok) throw new Error(r.statusText);
+
+// ✅ FIX: Handle empty response (common for DELETE operations)
+if(!text || text.trim() === '') {
+return { success: true };
+}
+
 let data;
 try { data = JSON.parse(text); } catch(e) {
 if(text.startsWith('<!DOCTYPE') || text.startsWith('<html')) return null;
@@ -941,7 +948,6 @@ alert("Session expired. Please login again.");
 logout();
 return null;
 }
-if(!r.ok) throw new Error(r.statusText);
 return data;
 }catch(e){
 if(i===retries-1){
@@ -953,13 +959,22 @@ await new Promise(res=>setTimeout(res, 1000*(i+1)));
 }
 return null;
 }
+
+// ✅ CRITICAL FIX: Helper function for DELETE operations to ensure persistence
+async function apiDelete(collection, id=null) {
+if(!isOnline) return false;
+const path = id ? `/${collection}/${id}?hotelId=${HID}` : `/${collection}?hotelId=${HID}`;
+const res = await apiCall('DELETE', path);
+return !!res;
+}
+
 function saveUIPrefs() {
 localStorage.setItem('hotel_lang', lang);
 localStorage.setItem('hotel_dark', dark ? '1' : '0');
 localStorage.setItem('hotel_theme', theme);
 localStorage.setItem(`h_${HID}_queue`, JSON.stringify(offlineQueue));
 }
-// ✅ CRITICAL FIX: saveToMongo now updates the original object's _id IN-PLACE
+// ✅ CRITICAL FIX: saveToMongo now correctly detects API failures and throws errors
 async function saveToMongo(collection, data) {
 if (!isOnline) {
 return false;
@@ -972,12 +987,14 @@ const payload = { ...item };
 delete payload._isNew;
 if (isNew || !payload._id) {
 const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-if (res && res._id) {
-item._id = res._id; // ✅ UPDATE ORIGINAL OBJECT IN-PLACE
+if (!res) throw new Error('POST failed');
+if (res._id) {
+item._id = res._id;
 delete item._isNew;
 }
 } else {
-await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
+const res = await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
+if (!res) throw new Error('PUT failed');
 delete item._isNew;
 }
 }));
@@ -987,12 +1004,14 @@ const payload = { ...data };
 delete payload._isNew;
 if (isNew || !payload._id) {
 const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-if (res && res._id) {
-data._id = res._id; // ✅ UPDATE ORIGINAL OBJECT IN-PLACE
+if (!res) throw new Error('POST failed');
+if (res._id) {
+data._id = res._id;
 delete data._isNew;
 }
 } else {
-await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
+const res = await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
+if (!res) throw new Error('PUT failed');
 delete data._isNew;
 }
 }
@@ -1042,15 +1061,12 @@ else { logs = getCachedData('logs') || []; }
 if(bk && Array.isArray(bk)) { bookings = bk; cacheData('bookings', bk); }
 else { bookings = getCachedData('bookings') || []; }
 if(cfg && typeof cfg === 'object') {
-// ✅ CRITICAL FIX: Preserve _id from MongoDB
-if(cfg._id) HotelCfg._id = cfg._id;
 Object.assign(HotelCfg, cfg);
 if(cfg.currencies) Object.assign(CURRENCIES, cfg.currencies);
-cacheData('config', HotelCfg);
+cacheData('config', cfg);
 } else {
 const cachedCfg = getCachedData('config');
 if(cachedCfg) {
-if(cachedCfg._id) HotelCfg._id = cachedCfg._id;
 Object.assign(HotelCfg, cachedCfg);
 if(cachedCfg.currencies) Object.assign(CURRENCIES, cachedCfg.currencies);
 }
@@ -1078,14 +1094,13 @@ logs = getCachedData('logs') || [];
 bookings = getCachedData('bookings') || [];
 const cachedCfg = getCachedData('config');
 if(cachedCfg) {
-if(cachedCfg._id) HotelCfg._id = cachedCfg._id;
 Object.assign(HotelCfg, cachedCfg);
 if(cachedCfg.currencies) Object.assign(CURRENCIES, cachedCfg.currencies);
 }
 renderAll();
 }
 }
-// ✅ CRITICAL FIX: save() now updates object in-place instead of spreading
+// ✅ FIX: save() now updates object in-place instead of spreading
 async function save(collection, data, event='data_upd'){
 if(Array.isArray(data)){
 data.forEach(item => {
@@ -1138,16 +1153,21 @@ setSockStatus('connected');
 updateNetBadge('online');
 socket.emit('join_hotel', HID);
 showToast('🔗 Connected to Server','socket');
-// ✅ FIX: Offline queue sync now awaits DB save
+// ✅ CRITICAL FIX: Offline queue sync now correctly handles DELETE operations
 if(offlineQueue.length){
 showToast(`🔄 Syncing ${offlineQueue.length} pending actions...`,'socket');
 const queueCopy = [...offlineQueue];
 offlineQueue.length = 0;
 saveUIPrefs();
 queueCopy.forEach(async (item) => {
-const success = await saveToMongo(item.collection, item.data);
+let success = false;
+if(item.action === 'delete') {
+success = await apiDelete(item.collection, item.data._id);
+} else {
+success = await saveToMongo(item.collection, item.data);
+}
 if(success && socket?.connected){
-socket.emit(item.event, {hotelId:HID, collection:item.collection, data:item.data, clientId, syncToken: item.timestamp});
+socket.emit(item.event, {hotelId:HID, collection:item.collection, data:item.data, clientId, syncToken: item.timestamp, action: item.action});
 }
 });
 updateNetBadge('online');
@@ -1185,19 +1205,15 @@ if(data.bookings) {renderGuestBookings(); renderAdminBookings();}
 showToast('🔄 Data synced from Server','socket');
 updateCache();
 });
-// ✅ CRITICAL FIX: cfg_upd now calls applyI18n() so Hotel Name updates on guest devices
 socket.on('cfg_upd',(cfg)=>{
 if(cfg.syncToken && processedEvents.has(cfg.syncToken)) return;
 if(cfg.syncToken) processedEvents.add(cfg.syncToken);
 if(cfg.currencies) {
 Object.assign(CURRENCIES, cfg.currencies);
 }
-// ✅ Preserve _id from MongoDB
-if(cfg._id) HotelCfg._id = cfg._id;
 Object.assign(HotelCfg, cfg);
 applyCfg();
-applyI18n(); // ✅ CRITICAL: Update hotel name on all devices
-showToast('⚙️ Settings updated live!','socket');
+showToast('⚙️ Config updated from Server','socket');
 updateCache();
 });
 socket.on('currency_upd',(payload)=>{
@@ -1338,7 +1354,6 @@ else staff.push(s);
 renderStaff();
 updateCache();
 });
-// ✅ CRITICAL FIX: guest_upd now properly syncs block status across all devices
 socket.on('guest_upd',(payload)=>{
 if(payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if(payload.syncToken) processedEvents.add(payload.syncToken);
@@ -1352,11 +1367,6 @@ if(idx>-1) guests[idx]=safeMerge(guests[idx], g, 'guests');
 else guests.push(g);
 }
 renderGuests(); renderLoyalty(); updateGuestStats();
-// ✅ CRITICAL: If current user is blocked, show alert and logout
-if(currentUser?.type==='guest' && g.name===currentUser.name && g.status==='blocked'){
-showToast('❌ Your account has been blocked by admin!','error');
-setTimeout(()=>logout(), 2000);
-}
 updateCache();
 });
 socket.on('blacklist_upd',(payload)=>{
@@ -1429,10 +1439,7 @@ if(rev) { reviews = safeMerge(reviews, rev, 'reviews'); cacheData('reviews', rev
 if(st) { staff = safeMerge(staff, st, 'staff'); cacheData('staff', staff); }
 if(lg) { logs = safeMerge(logs, lg, 'logs'); cacheData('logs', logs); }
 if(bk) { bookings = safeMerge(bookings, bk, 'bookings'); cacheData('bookings', bookings); }
-if(cfg) {
-if(cfg._id) HotelCfg._id = cfg._id;
-Object.assign(HotelCfg,cfg); applyCfg(); applyI18n(); cacheData('config', cfg);
-}
+if(cfg) {Object.assign(HotelCfg,cfg); applyCfg(); cacheData('config', cfg);}
 renderAll();
 if(!rooms.length) loadAllData();
 }
@@ -1719,23 +1726,13 @@ document.getElementById('adminLoginForm').classList.toggle('hidden',type!=='admi
 document.getElementById('guestTabBtn').classList.toggle('active',type==='guest');
 document.getElementById('adminTabBtn').classList.toggle('active',type==='admin');
 }
-// ✅ CRITICAL FIX: guestLogin now checks blacklist from MongoDB and awaits loadAllData
+// ✅ FIX: Added await checkHealth() and await loadAllData() after login
 async function guestLogin(e){
 e.preventDefault();
 const name=document.getElementById('guestNameIn').value.trim();
 const room=document.getElementById('guestRoomIn').value.trim();
 if(!name||!room){showToast('Fill all fields','error');return}
-// ✅ CRITICAL: Check blacklist from MongoDB data
-if(blacklist.find(b=>b.name.toLowerCase()===name.toLowerCase())){
-showToast('❌ Access denied - You are blocked!','error');
-return;
-}
-// ✅ CRITICAL: Check if guest is already in guests list with blocked status
-const existingGuest = guests.find(g => g.name.toLowerCase()===name.toLowerCase() && g.room==room);
-if(existingGuest && existingGuest.status === 'blocked'){
-showToast('❌ Access denied - Your account is blocked!','error');
-return;
-}
+if(blacklist.find(b=>b.name.toLowerCase()===name.toLowerCase())){showToast('❌ Access denied','error');return}
 currentUser={type:'guest',name,room,points:0};
 saveSession();
 await checkHealth(); // FIX: Re-check backend connectivity with auth
@@ -1748,7 +1745,7 @@ showToast(`Welcome, ${name}! 🌟`,'success');
 speakWelcome();
 if(isOnline && socket?.connected) socket.emit('guest_join',{hotelId:HID,name,room, clientId});
 }
-// ✅ CRITICAL FIX: adminLogin now awaits loadAllData
+// ✅ FIX: Added await checkHealth() and await loadAllData() after login
 async function adminLogin(e){
 e.preventDefault();
 const hotelId = document.getElementById('adminHotelIdIn').value.trim();
@@ -1815,7 +1812,7 @@ showAdminTab('overview');
 showToast(`Logged in as ${t(rName)}`,'success');
 }
 function backToLogin(){showPage('loginPage')}
-// ✅ CRITICAL FIX: Clear token from localStorage on logout
+// ✅ FIX: Clear token from localStorage on logout
 function logout(){
 if(socket?.connected) socket.emit('leave_hotel', HID);
 currentUser=null;
@@ -1831,7 +1828,7 @@ cart=[];
 showPage('loginPage');
 showToast('Logged out','success');
 }
-// ✅ CRITICAL FIX: Retrieve session from localStorage if not in sessionStorage
+// ✅ FIX: Retrieve session from localStorage if not in sessionStorage
 async function checkSession(){
 const s = sessionStorage.getItem('hotel_session') || localStorage.getItem(`h_${HID}_session`);
 if(!s) return;
@@ -1852,13 +1849,6 @@ showAdminTab(savedTab);
 showAdminTab('overview');
 }
 }else if(currentUser.type==='guest'){
-// ✅ CRITICAL: Check if guest is blocked after session restore
-const existingGuest = guests.find(g => g.name===currentUser.name && g.room==currentUser.room);
-if(existingGuest && existingGuest.status === 'blocked'){
-showToast('❌ Your account has been blocked!','error');
-setTimeout(()=>logout(), 1500);
-return;
-}
 showPage('guestDash');
 document.getElementById('gInfo').textContent=`👤 ${currentUser.name} | #${currentUser.room}`;
 updateGuestStats();
@@ -2801,26 +2791,47 @@ renderRequests();updateGuestStats();renderGuestHistory();
 showToast('✅ ' + (t('reqStatusUpdated') || 'Request status updated to ') + status,'success');
 }
 }
-function delReq(id){
+
+// ✅ CRITICAL FIX: All delete functions now await API call to ensure MongoDB persistence
+async function delReq(id){
 if(confirm('Delete?')){
 const req = requests.find(r => r._id === id);
+if(isOnline) {
+const success = await apiDelete('requests', id);
+if(!success) {
+offlineQueue.push({collection: 'requests', data: req, event: 'req_upd', timestamp: Date.now(), action: 'delete'});
+saveUIPrefs();
+showToast('❌ Delete queued offline', 'warning');
+return;
+}
+}
 requests=requests.filter(r=>r._id!==id);
-if(isOnline) apiCall('DELETE', `/requests/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('req_upd',{hotelId:HID, collection:'requests', data:req, clientId, syncToken: Date.now(), action: 'delete'});
 renderRequests();updateAdminStats();
 }
 }
+
 function exportReqs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(requests),'Requests');XLSX.writeFile(wb,`requests-${Date.now()}.xlsx`);showToast('Exported!','success')}
-function delRoom(id){
+
+async function delRoom(id){
 if(confirm('Delete?')){
 const room = rooms.find(r => r._id === id);
+if(isOnline) {
+const success = await apiDelete('rooms', id);
+if(!success) {
+offlineQueue.push({collection: 'rooms', data: room, event: 'room_upd', timestamp: Date.now(), action: 'delete'});
+saveUIPrefs();
+showToast('❌ Delete queued offline', 'warning');
+return;
+}
+}
 rooms=rooms.filter(r=>r._id!==id);
-if(isOnline) apiCall('DELETE', `/rooms/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('room_upd',{hotelId:HID, collection:'rooms', data:room, clientId, syncToken: Date.now(), action: 'delete'});
 renderRooms();updateAdminStats();
 showToast('✅ ' + (t('roomDeleted') || 'Room deleted successfully'), 'success');
 }
 }
+
 function editRoom(id){
 const r=rooms.find(x=>x._id===id);if(!r)return;
 openModal('roomModal');
@@ -2856,45 +2867,71 @@ if(document.getElementById('roomModal').dataset) delete document.getElementById(
 renderRooms();updateAdminStats();
 }
 function editGuest(id){const g=guests.find(x=>x._id===id);if(!g)return;alert('Edit: '+g.name+' (connect backend for full edit)');}
-// ✅ CRITICAL FIX: toggleBlock now properly saves to MongoDB with _id
-function toggleBlock(id){
+
+// ✅ CRITICAL FIX: toggleBlock now syncs both guests and blacklist collections
+async function toggleBlock(id){
 const g=guests.find(x=>x._id===id);
 if(g){
 g.status=g.status==='blocked'?'active':'blocked';
-// ✅ CRITICAL: Also add/remove from blacklist for persistence
-if(g.status === 'blocked'){
-const existingBl = blacklist.find(b => b.name.toLowerCase() === g.name.toLowerCase());
-if(!existingBl){
-const blEntry = {_id:'bl_'+Date.now(),_isNew:true,name:g.name,room:g.room,reason:'Blocked by admin',date:new Date().toISOString(),hotelId:HID,_version:1};
+await save('guests',g,'guest_upd');
+
+if(g.status === 'blocked') {
+if(!blacklist.find(b => b.name.toLowerCase() === g.name.toLowerCase())) {
+const blEntry = {
+_id: 'bl_' + g._id,
+_isNew: true,
+name: g.name,
+room: g.room,
+reason: 'Blocked by Admin',
+date: new Date().toISOString(),
+hotelId: HID,
+_version: 1
+};
 blacklist.push(blEntry);
-save('blacklist', blEntry, 'blacklist_upd');
+await save('blacklist', blEntry, 'blacklist_upd');
 }
 } else {
 const blIdx = blacklist.findIndex(b => b.name.toLowerCase() === g.name.toLowerCase());
-if(blIdx > -1){
+if(blIdx > -1) {
 const blEntry = blacklist[blIdx];
 blacklist.splice(blIdx, 1);
-if(isOnline && blEntry._id) apiCall('DELETE', `/blacklist/${blEntry._id}?hotelId=${HID}`);
-if(socket?.connected) socket.emit('blacklist_upd',{hotelId:HID, collection:'blacklist', data:blEntry, clientId, syncToken: Date.now(), action: 'delete'});
+if(isOnline) {
+const success = await apiDelete('blacklist', blEntry._id);
+if(success && socket?.connected) {
+socket.emit('blacklist_upd',{hotelId:HID, collection:'blacklist', data:blEntry, clientId, syncToken: Date.now(), action: 'delete'});
+} else if(!success) {
+offlineQueue.push({collection: 'blacklist', data: blEntry, event: 'blacklist_upd', timestamp: Date.now(), action: 'delete'});
+saveUIPrefs();
 }
 }
-save('guests',g,'guest_upd');
+}
+}
+
 renderGuests();
 renderBlacklist();
 showToast('✅ ' + (g.status==='blocked' ? (t('guestBlocked')||'Guest blocked successfully') : (t('guestUnblocked')||'Guest unblocked successfully')),'success');
-addLog('Toggle Block',`${g.name} - ${g.status}`);
 }
 }
-function delGuest(id){
+
+async function delGuest(id){
 if(confirm('Delete?')){
 const guest = guests.find(g => g._id === id);
+if(isOnline) {
+const success = await apiDelete('guests', id);
+if(!success) {
+offlineQueue.push({collection: 'guests', data: guest, event: 'guest_upd', timestamp: Date.now(), action: 'delete'});
+saveUIPrefs();
+showToast('❌ Delete queued offline', 'warning');
+return;
+}
+}
 guests=guests.filter(g=>g._id!==id);
-if(isOnline) apiCall('DELETE', `/guests/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('guest_upd',{hotelId:HID, collection:'guests', data:guest, clientId, syncToken: Date.now(), action: 'delete'});
 renderGuests();
 showToast('✅ ' + (t('guestDeleted') || 'Guest deleted successfully'), 'success');
 }
 }
+
 function editFood(id){
 const f=food.find(x=>x._id===id);if(!f)return;
 openModal('foodModal');
@@ -2927,16 +2964,26 @@ closeModal('foodModal');
 if(document.getElementById('foodModal').dataset) delete document.getElementById('foodModal').dataset.editId;
 renderFood();renderGuestFood();
 }
-function delFood(id){
+
+async function delFood(id){
 if(confirm('Delete?')){
 const foodItem = food.find(f => f._id === id);
+if(isOnline) {
+const success = await apiDelete('food', id);
+if(!success) {
+offlineQueue.push({collection: 'food', data: foodItem, event: 'food_upd', timestamp: Date.now(), action: 'delete'});
+saveUIPrefs();
+showToast('❌ Delete queued offline', 'warning');
+return;
+}
+}
 food=food.filter(f=>f._id!==id);
-if(isOnline) apiCall('DELETE', `/food/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('food_upd',{hotelId:HID, collection:'food', data:foodItem, clientId, syncToken: Date.now(), action: 'delete'});
 renderFood();renderGuestFood();
 showToast('✅ ' + (t('foodDeleted') || 'Food item deleted successfully'), 'success');
 }
 }
+
 function adjStock(id,delta){
 const i=inventory.find(x=>x._id===id);
 if(i){
@@ -2958,51 +3005,81 @@ document.getElementById('mIMin').value=item.min||10;
 document.getElementById('inventoryModal').dataset.editId=id;
 showToast('✏️ Editing: '+item.name);
 }
-function delInv(id){
+
+async function delInv(id){
 if(confirm('Delete?')){
 const invItem = inventory.find(i => i._id === id);
+if(isOnline) {
+const success = await apiDelete('inventory', id);
+if(!success) {
+offlineQueue.push({collection: 'inventory', data: invItem, event: 'inventory_upd', timestamp: Date.now(), action: 'delete'});
+saveUIPrefs();
+showToast('❌ Delete queued offline', 'warning');
+return;
+}
+}
 inventory=inventory.filter(i=>i._id!==id);
-if(isOnline) apiCall('DELETE', `/inventory/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('inventory_upd',{hotelId:HID, collection:'inventory', data:invItem, clientId, syncToken: Date.now(), action: 'delete'});
 renderInventory();renderGuestInv();
 showToast('✅ ' + (t('invDeleted') || 'Inventory item deleted successfully'), 'success');
 }
 }
-function unblockGuest(idx){
+
+// ✅ CRITICAL FIX: unblockGuest now syncs both guests and blacklist collections
+async function unblockGuest(idx){
 if(confirm('Unblock?')){
 const e=blacklist[idx];
-// ✅ CRITICAL: Also unblock the guest in guests list
-const g = guests.find(g => g.name.toLowerCase() === e.name.toLowerCase());
-if(g && g.status === 'blocked'){
-g.status = 'active';
-save('guests', g, 'guest_upd');
+if(isOnline) {
+const success = await apiDelete('blacklist', e._id);
+if(!success) {
+offlineQueue.push({collection: 'blacklist', data: e, event: 'blacklist_upd', timestamp: Date.now(), action: 'delete'});
+saveUIPrefs();
+showToast('❌ Unblock queued offline', 'warning');
+return;
+}
 }
 blacklist.splice(idx,1);
-if(isOnline && e._id) apiCall('DELETE', `/blacklist/${e._id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('blacklist_upd',{hotelId:HID, collection:'blacklist', data:e, clientId, syncToken: Date.now(), action: 'delete'});
+
+const g = guests.find(x => x.name.toLowerCase() === e.name.toLowerCase());
+if(g && g.status === 'blocked') {
+g.status = 'active';
+await save('guests', g, 'guest_upd');
+}
+
 renderBlacklist();
 renderGuests();
 showToast('✅ ' + (e.name + ' ' + (t('guestUnblocked') || 'unblocked successfully')),'success');
-addLog('Unblock Guest', e.name);
 }
 }
+
 function updMaint(i,s){
 maintenance[i].status=s;
 save('maintenance',maintenance[i],'maintenance_upd');
 renderMaintenance();
 showToast('✅ Updated','success');
 }
-function delMaint(i){
+
+async function delMaint(i){
 if(confirm('Delete?')){
 const id = maintenance[i]._id;
 const m = maintenance[i];
+if(isOnline) {
+const success = await apiDelete('maintenance', id);
+if(!success) {
+offlineQueue.push({collection: 'maintenance', data: m, event: 'maintenance_upd', timestamp: Date.now(), action: 'delete'});
+saveUIPrefs();
+showToast('❌ Delete queued offline', 'warning');
+return;
+}
+}
 maintenance.splice(i,1);
-if(isOnline && id) apiCall('DELETE', `/maintenance/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('maintenance_upd',{hotelId:HID, collection:'maintenance', data:m, clientId, syncToken: Date.now(), action: 'delete'});
 renderMaintenance();
 showToast('✅ Deleted','success');
 }
 }
+
 function addPts(id,pts){
 const g=guests.find(x=>x._id===id);
 if(g){
@@ -3028,17 +3105,27 @@ save('staff',staff[i],'staff_upd');
 renderStaff();
 showToast('✅ Rating updated','success');
 }
-function delStaff(i){
+
+async function delStaff(i){
 if(confirm('Remove staff?')){
 const id = staff[i]._id;
 const s = staff[i];
+if(isOnline) {
+const success = await apiDelete('staff', id);
+if(!success) {
+offlineQueue.push({collection: 'staff', data: s, event: 'staff_upd', timestamp: Date.now(), action: 'delete'});
+saveUIPrefs();
+showToast('❌ Delete queued offline', 'warning');
+return;
+}
+}
 staff.splice(i,1);
-if(isOnline && id) apiCall('DELETE', `/staff/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('staff_upd',{hotelId:HID, collection:'staff', data:s, clientId, syncToken: Date.now(), action: 'delete'});
 renderStaff();
 showToast('✅ ' + (t('staffDeleted') || 'Staff member deleted successfully'),'success');
 }
 }
+
 function openStaffModal(){openModal('staffModal');}
 function addStaff(e){
 e.preventDefault();
@@ -3120,15 +3207,26 @@ out.innerHTML=html;
 }
 function exportReport(){const t=document.getElementById('rptType')?.value||'report';const d=t==='occupancy'?rooms:t==='guests'?guests:requests;const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d),t);XLSX.writeFile(wb,`${t}-${Date.now()}.xlsx`);showToast('✅ Exported!','success')}
 function exportLogs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(logs),'Logs');XLSX.writeFile(wb,`logs-${Date.now()}.xlsx`);showToast('✅ Logs exported','success')}
-function clearLogs(){
+
+// ✅ CRITICAL FIX: clearLogs now awaits API call
+async function clearLogs(){
 if(confirm('Clear all logs?')){
+if(isOnline) {
+const success = await apiDelete('logs');
+if(!success) {
+offlineQueue.push({collection: 'logs', data: [], event: 'logs_upd', timestamp: Date.now(), action: 'delete'});
+saveUIPrefs();
+showToast('❌ Clear logs queued offline', 'warning');
+return;
+}
+}
 logs=[];
-if(isOnline) apiCall('DELETE', `/logs?hotelId=${HID}`);
 if(socket?.connected) socket.emit('logs_upd',{hotelId:HID, collection:'logs', data:[], clientId, syncToken: Date.now(), action: 'delete'}); // ✅ FIX: Emit logs_upd
 renderLogs();
 showToast('✅ Logs cleared','success');
 }
 }
+
 function openAddCurrencyModal(){
 openModal('infoModal');
 document.getElementById('infoModalTitle').textContent = '➕ Add New Currency';
@@ -3145,7 +3243,9 @@ document.getElementById('infoModalBody').innerHTML = `
 </form>
 `;
 }
-function addNewCurrency(e){
+
+// ✅ CRITICAL FIX: addNewCurrency now uses save() for persistence
+async function addNewCurrency(e){
 e.preventDefault();
 const code=document.getElementById('newCurCode').value.toUpperCase();
 const symbol=document.getElementById('newCurSymbol').value;
@@ -3155,30 +3255,27 @@ if(!code||!symbol||isNaN(rate)){showToast('Fill all fields','error');return}
 if(CURRENCIES[code]){showToast('Currency already exists','error');return}
 CURRENCIES[code]={symbol,rate,flag,custom:true};
 saveUIPrefs();
-saveToMongo('config', { ...HotelCfg, currencies: CURRENCIES });
-if(isOnline && socket?.connected){
-socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
-}
+await save('config', { ...HotelCfg, currencies: CURRENCIES }, 'currency_upd');
 closeModal('infoModal');
 applyCfg();
 showToast(`✅ ${code} added!`,'success');
 addLog('Add Currency',code);
 }
-function deleteCurrency(code){
+
+// ✅ CRITICAL FIX: deleteCurrency now uses save() for persistence
+async function deleteCurrency(code){
 if(!CURRENCIES[code]?.custom){showToast('Cannot delete built-in currency','error');return}
 if(confirm(`Delete ${code}?`)){
 delete CURRENCIES[code];
 if(HotelCfg.currency===code) HotelCfg.currency='USD';
 saveUIPrefs();
-saveToMongo('config', { ...HotelCfg, currencies: CURRENCIES });
-if(isOnline && socket?.connected){
-socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
-}
+await save('config', { ...HotelCfg, currencies: CURRENCIES }, 'currency_upd');
 applyCfg();
 showToast(`${code} deleted`,'success');
 addLog('Delete Currency',code);
 }
 }
+
 function editCurrencyRates(){
 const rates = Object.entries(CURRENCIES).map(([code, data]) =>
 `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
@@ -3197,7 +3294,9 @@ document.getElementById('infoModalBody').innerHTML = `
 <button class="btn-primary" style="width:100%" onclick="saveCurrencyRates()">💾 Save Rates</button>
 `;
 }
-function saveCurrencyRates(){
+
+// ✅ CRITICAL FIX: saveCurrencyRates now uses save() for persistence
+async function saveCurrencyRates(){
 Object.keys(CURRENCIES).forEach(code => {
 const input = document.getElementById(`rate-${code}`);
 if(input && !isNaN(parseFloat(input.value))){
@@ -3205,17 +3304,15 @@ CURRENCIES[code].rate = parseFloat(input.value);
 }
 });
 saveUIPrefs();
-saveToMongo('config', { ...HotelCfg, currencies: CURRENCIES });
-if(isOnline && socket?.connected){
-socket.emit('currency_upd',{hotelId:HID, currencies:CURRENCIES, syncToken:Date.now(), clientId});
-}
+await save('config', { ...HotelCfg, currencies: CURRENCIES }, 'currency_upd');
 closeModal('infoModal');
 applyCfg();
 showToast('💱 Exchange rates updated','success');
 addLog('Currency Update', 'Exchange rates modified');
 }
-// ✅ CRITICAL FIX: saveCfg now properly saves to MongoDB with _id and syncs to all devices
-function saveCfg(field){
+
+// ✅ CRITICAL FIX: saveCfg now uses save() for persistence and real-time sync
+async function saveCfg(field){
 if(field==='name') HotelCfg.name=document.getElementById('cfgName')?.value||HotelCfg.name;
 else if(field==='currency') {
 HotelCfg.currency=document.getElementById('cfgCurrency')?.value||HotelCfg.currency;
@@ -3227,23 +3324,12 @@ HotelCfg.airportPrice=parseInt(document.getElementById('cfgAirport')?.value)||11
 HotelCfg.localPrice=parseInt(document.getElementById('cfgLocal')?.value)||60;
 }
 saveUIPrefs();
-// ✅ CRITICAL: Save config to MongoDB with _id preservation
-saveToMongo('config', HotelCfg).then(success => {
-if(success){
-if(socket?.connected){
-// ✅ CRITICAL: Emit cfg_upd to all devices
-socket.emit('cfg_upd',{hotelId:HID, ...HotelCfg, syncToken:Date.now(), clientId});
-}
+await save('config', HotelCfg, 'cfg_upd');
 applyCfg();
-applyI18n(); // ✅ CRITICAL: Update hotel name on this device too
-showToast('⚙️ ' + (t('settingsSaved') || 'Settings saved successfully') + ' - Synced to all devices!','success');
+showToast('⚙️ ' + (t('settingsSaved') || 'Settings saved successfully'),'success');
 addLog('Config Update',field);
-updateCache();
-} else {
-showToast('❌ Failed to save settings to database','error');
 }
-});
-}
+
 function genAllQR(){
 const grid=document.getElementById('qrGrid');if(!grid)return;
 grid.innerHTML='';
@@ -3397,13 +3483,23 @@ showToast('✅ Booking updated','success');
 addLog('Edit Booking',`${b.guestName}`);
 }
 }
-function deleteBooking(id){
+
+// ✅ CRITICAL FIX: deleteBooking now awaits API call
+async function deleteBooking(id){
 if(confirm('Delete this booking?')){
 const idx=bookings.findIndex(b=>b._id===id);
 if(idx>-1){
 const b=bookings[idx];
+if(isOnline) {
+const success = await apiDelete('bookings', id);
+if(!success) {
+offlineQueue.push({collection: 'bookings', data: b, event: 'booking_upd', timestamp: Date.now(), action: 'delete'});
+saveUIPrefs();
+showToast('❌ Delete queued offline', 'warning');
+return;
+}
+}
 bookings.splice(idx,1);
-if(isOnline) apiCall('DELETE', `/bookings/${id}?hotelId=${HID}`);
 if(socket?.connected) socket.emit('booking_upd',{hotelId:HID, collection:'bookings', data:b, clientId, syncToken: Date.now(), action: 'delete'});
 renderAdminBookings();renderGuestBookings();
 showToast('✅ Booking deleted','success');
@@ -3411,6 +3507,7 @@ addLog('Delete Booking',`${b.guestName}`);
 }
 }
 }
+
 function exportBookings(){
 const wb=XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bookings),'Bookings');
@@ -3615,21 +3712,31 @@ closeModal('inventoryModal');
 if(document.getElementById('inventoryModal').dataset) delete document.getElementById('inventoryModal').dataset.editId;
 renderInventory();renderGuestInv();
 }
-// ✅ CRITICAL FIX: addToBlacklist now also updates guest status in guests list
-function addToBlacklist(e){
+
+// ✅ CRITICAL FIX: addToBlacklist now syncs both guests and blacklist collections
+async function addToBlacklist(e){
 e.preventDefault();
-const entry={_id:'bl_'+Date.now(),_isNew:true,name:document.getElementById('mBName').value,room:document.getElementById('mBRoom').value,reason:document.getElementById('mBReason').value,date:new Date().toISOString(),hotelId:HID, _version:1};
+const name = document.getElementById('mBName').value;
+const room = document.getElementById('mBRoom').value;
+const reason = document.getElementById('mBReason').value;
+
+const entry={_id:'bl_'+Date.now(),_isNew:true,name,room,reason,date:new Date().toISOString(),hotelId:HID, _version:1};
 blacklist.push(entry);
-save('blacklist',entry,'blacklist_upd'); // ✅ FIX: Emit blacklist_upd instead of blacklist_new
-// ✅ CRITICAL: Also block the guest in guests list if exists
-const g = guests.find(g => g.name.toLowerCase() === entry.name.toLowerCase());
-if(g){
+await save('blacklist',entry,'blacklist_upd');
+
+const g = guests.find(x => x.name.toLowerCase() === name.toLowerCase());
+if(g && g.status !== 'blocked') {
 g.status = 'blocked';
-save('guests', g, 'guest_upd');
+await save('guests', g, 'guest_upd');
+}
+
+closeModal('blacklistModal');
+renderBlacklist();
 renderGuests();
+showToast('✅ Guest blocked','error');
+addLog('Blacklist',entry.name);
 }
-closeModal('blacklistModal');renderBlacklist();showToast('✅ Guest blocked','error');addLog('Blacklist',entry.name);
-}
+
 function addMaint(e){
 e.preventDefault();
 const task={_id:'m_'+Date.now(),_isNew:true,task:document.getElementById('mMTask').value,room:document.getElementById('mMRoom').value,scheduled:document.getElementById('mMDate').value,assigned:document.getElementById('mMAssigned').value,priority:document.getElementById('mMPrio').value,status:'pending',hotelId:HID, _version:1};
@@ -3747,44 +3854,56 @@ adminCard.classList.add('weather-update-flash');
 const guestCard = document.getElementById('guestWeatherCard');
 const guestTemp = document.getElementById('gWeatherTemp');
 const guestDesc = document.getElementById('gWeatherDesc');
-const guestIcon = document.getElementById
-  // ✅ FIX: New function to check backend health with proper authentication
-  async function checkHealth() {
-      try {
-          const token = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
-          const headers = { 'x-hotel-id': HID };
-          if(token) headers['Authorization'] = `Bearer ${token}`;
-          const test = await fetch(API_BASE + '/health', { method: 'GET', headers });
-          if(!test.ok) throw new Error('Health check failed');
-          isOnline = true;
-          updateNetBadge('online');
-          console.log('✅ Backend API is reachable');
-          return true;
-      } catch(e) {
-          console.warn('⚠️ Backend API not reachable.', e);
-          isOnline = false;
-          updateNetBadge('offline');
-          return false;
-      }
-  }
-
-  async function init(){
-      loadUIPrefs();
-      buildModals();
-      buildGuestPanes();
-      buildRolePage();
-      await loadAllData();
-      tickClock();
-      initSocket();
-      await checkSession();
-      renderAll();
-      updateWeather();
-      updateCabPrice();
-      const onlineBtn=document.getElementById('onlineBtn');
-      if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
-      setInterval(saveUIPrefs, 15000);
-      window.addEventListener('beforeunload', saveUIPrefs);
-  }
+const guestIcon = document.getElementById('weatherIcon');
+const guestTime = document.getElementById('guestWeatherUpdateTime');
+if(guestTemp) guestTemp.textContent = `${temp}°C`;
+if(guestDesc) guestDesc.textContent = localizedDesc;
+if(guestIcon) guestIcon.textContent = condition.icon;
+if(guestTime) guestTime.textContent = `🕐 Updated: ${timeStr} | 💧 ${humidity}% | 💨 ${wind} km/h`;
+if(guestCard) {
+guestCard.classList.remove('weather-update-flash');
+void guestCard.offsetWidth;
+guestCard.classList.add('weather-update-flash');
+}
+console.log(`🌤️ Weather updated: ${temp}°C, ${localizedDesc}, Humidity: ${humidity}%, Wind: ${wind} km/h`);
+}
+setInterval(updateWeather, 30000);
+// ✅ FIX: New function to check backend health with proper authentication
+async function checkHealth() {
+try {
+const token = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
+const headers = { 'x-hotel-id': HID };
+if(token) headers['Authorization'] = `Bearer ${token}`;
+const test = await fetch(API_BASE + '/health', { method: 'GET', headers });
+if(!test.ok) throw new Error('Health check failed');
+isOnline = true;
+updateNetBadge('online');
+console.log('✅ Backend API is reachable');
+return true;
+} catch(e) {
+console.warn('⚠️ Backend API not reachable.', e);
+isOnline = false;
+updateNetBadge('offline');
+return false;
+}
+}
+async function init(){
+loadUIPrefs();
+buildModals();
+buildGuestPanes();
+buildRolePage();
+await loadAllData();
+tickClock();
+initSocket();
+await checkSession();
+renderAll();
+updateWeather();
+updateCabPrice();
+const onlineBtn=document.getElementById('onlineBtn');
+if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
+setInterval(saveUIPrefs, 15000);
+window.addEventListener('beforeunload', saveUIPrefs);
+}
   init();
 
   // ✅ FIX: Use checkHealth() instead of direct fetch to handle auth correctly
