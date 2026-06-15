@@ -900,18 +900,29 @@ const symbol = CURRENCIES[HotelCfg.currency]?.symbol || '﷼';
 const formattedNum = Number(converted.toFixed(2));
 return `${symbol}${formattedNum}`;
 }
+// ✅ FIX: Save session to BOTH sessionStorage and localStorage for persistence
 function saveSession() {
 if(currentUser) {
-sessionStorage.setItem('hotel_session', JSON.stringify(currentUser));
-if(currentUser.token) sessionStorage.setItem('hotel_token', currentUser.token);
+const sessionStr = JSON.stringify(currentUser);
+sessionStorage.setItem('hotel_session', sessionStr);
+localStorage.setItem(`h_${HID}_session`, sessionStr); // PERSIST TO LOCALSTORAGE
+if(currentUser.token) {
+sessionStorage.setItem('hotel_token', currentUser.token);
+localStorage.setItem('hotel_token', currentUser.token); // PERSIST TO LOCALSTORAGE
+localStorage.setItem(`h_${HID}_token`, currentUser.token);
+}
 } else {
 sessionStorage.removeItem('hotel_session');
 sessionStorage.removeItem('hotel_token');
+localStorage.removeItem(`h_${HID}_session`);
+localStorage.removeItem(`h_${HID}_token`);
+localStorage.removeItem('hotel_token');
 }
 }
+// ✅ FIX: Retrieve token from localStorage if not in sessionStorage
 async function apiCall(method, path, body=null, retries=3){
 if(!isOnline) return null;
-const token = localStorage.getItem('hotel_token');
+const token = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token') || localStorage.getItem(`h_${HID}_token`);
 const opts={method, headers:{'Content-Type':'application/json','x-hotel-id':HID,'x-client-id':clientId}};
 if(token) opts.headers['Authorization'] = `Bearer ${token}`;
 if(body) opts.body=JSON.stringify(body);
@@ -947,7 +958,7 @@ localStorage.setItem('hotel_dark', dark ? '1' : '0');
 localStorage.setItem('hotel_theme', theme);
 localStorage.setItem(`h_${HID}_queue`, JSON.stringify(offlineQueue));
 }
-// ✅ FIX: saveToMongo now returns boolean and handles its own error queuing
+// ✅ FIX: saveToMongo now updates the original object's _id and removes _isNew
 async function saveToMongo(collection, data) {
 if (!isOnline) {
 return false;
@@ -960,9 +971,13 @@ const payload = { ...item };
 delete payload._isNew;
 if (isNew || !payload._id) {
 const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-if (res && res._id) item._id = res._id;
+if (res && res._id) {
+item._id = res._id; // UPDATE ORIGINAL OBJECT
+delete item._isNew;
+}
 } else {
 await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
+delete item._isNew;
 }
 }));
 } else {
@@ -971,9 +986,13 @@ const payload = { ...data };
 delete payload._isNew;
 if (isNew || !payload._id) {
 const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-if (res && res._id) data._id = res._id;
+if (res && res._id) {
+data._id = res._id; // UPDATE ORIGINAL OBJECT
+delete data._isNew;
+}
 } else {
 await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
+delete data._isNew;
 }
 }
 return true;
@@ -1061,12 +1080,16 @@ if(cachedCfg.currencies) Object.assign(CURRENCIES, cachedCfg.currencies);
 renderAll();
 }
 }
-// ✅ FIX: save is now async and awaits DB save before emitting socket event
+// ✅ FIX: save() now updates object in-place instead of spreading
 async function save(collection, data, event='data_upd'){
 if(Array.isArray(data)){
-data = data.map(item => ({...item, _version: (item._version||0)+1, updatedAt: new Date().toISOString()}));
+data.forEach(item => {
+item._version = (item._version||0)+1;
+item.updatedAt = new Date().toISOString();
+});
 }else{
-data = {...data, _version: (data._version||0)+1, updatedAt: new Date().toISOString()};
+data._version = (data._version||0)+1;
+data.updatedAt = new Date().toISOString();
 }
 const success = await saveToMongo(collection, data);
 if(success){
@@ -1678,6 +1701,7 @@ document.getElementById('adminLoginForm').classList.toggle('hidden',type!=='admi
 document.getElementById('guestTabBtn').classList.toggle('active',type==='guest');
 document.getElementById('adminTabBtn').classList.toggle('active',type==='admin');
 }
+// ✅ FIX: Added await checkHealth() and await loadAllData() after login
 async function guestLogin(e){
 e.preventDefault();
 const name=document.getElementById('guestNameIn').value.trim();
@@ -1686,6 +1710,8 @@ if(!name||!room){showToast('Fill all fields','error');return}
 if(blacklist.find(b=>b.name.toLowerCase()===name.toLowerCase())){showToast('❌ Access denied','error');return}
 currentUser={type:'guest',name,room,points:0};
 saveSession();
+await checkHealth(); // FIX: Re-check backend connectivity with auth
+await loadAllData(); // FIX: Fetch fresh data from MongoDB
 showPage('guestDash');
 document.getElementById('gInfo').textContent=`👤 ${name} | #${room}`;
 updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();renderGuestBookings();
@@ -1694,6 +1720,7 @@ showToast(`Welcome, ${name}! 🌟`,'success');
 speakWelcome();
 if(isOnline && socket?.connected) socket.emit('guest_join',{hotelId:HID,name,room, clientId});
 }
+// ✅ FIX: Added await checkHealth() and await loadAllData() after login
 async function adminLogin(e){
 e.preventDefault();
 const hotelId = document.getElementById('adminHotelIdIn').value.trim();
@@ -1703,6 +1730,8 @@ if(hotelId === 'HOTEL001' && email === 'admin@crownplaza.com' && pass === 'admin
 const mockToken = 'mock_jwt_' + Math.random().toString(36).substring(2) + Date.now();
 currentUser={type:'admin', email, role:'super_admin', token:mockToken, hotelId:hotelId};
 saveSession();
+await checkHealth(); // FIX: Re-check backend connectivity with auth
+await loadAllData(); // FIX: Fetch fresh data from MongoDB
 buildRolePage();
 showPage('rolePage');
 speakWelcome();
@@ -1723,6 +1752,8 @@ const data=await response.json();
 if(response.ok && data.success && data.token){
 currentUser={type:'admin',email:data.user.email,role:data.user.role,token:data.token,hotelId:data.hotelId};
 saveSession();
+await checkHealth(); // FIX: Re-check backend connectivity with auth
+await loadAllData(); // FIX: Fetch fresh data from MongoDB
 buildRolePage();
 showPage('rolePage');
 speakWelcome();
@@ -1756,12 +1787,14 @@ showAdminTab('overview');
 showToast(`Logged in as ${t(rName)}`,'success');
 }
 function backToLogin(){showPage('loginPage')}
+// ✅ FIX: Clear token from localStorage on logout
 function logout(){
 if(socket?.connected) socket.emit('leave_hotel', HID);
 currentUser=null;
 sessionStorage.clear();
 localStorage.removeItem(`h_${HID}_session`);
 localStorage.removeItem(`h_${HID}_token`);
+localStorage.removeItem('hotel_token'); // FIX: Clear from localStorage
 ['adminEmailIn', 'adminPassIn', 'adminHotelIdIn', 'guestNameIn', 'guestRoomIn'].forEach(id => {
 const el = document.getElementById(id);
 if(el) el.value = '';
@@ -1770,8 +1803,9 @@ cart=[];
 showPage('loginPage');
 showToast('Logged out','success');
 }
+// ✅ FIX: Retrieve session from localStorage if not in sessionStorage
 async function checkSession(){
-const s = sessionStorage.getItem('hotel_session');
+const s = sessionStorage.getItem('hotel_session') || localStorage.getItem(`h_${HID}_session`);
 if(!s) return;
 try{
 currentUser = JSON.parse(s);
@@ -2097,7 +2131,6 @@ default: return '';
 function showAdminTab(id){
 document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
 document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.id===`atab-${id}`));
-
 // ✅ FIX: Explicitly render data when switching tabs to ensure real-time updates are visible
 if(id==='overview') { updateAdminStats(); setTimeout(initCharts,200); }
 if(id==='rooms') renderRooms();
@@ -2112,7 +2145,6 @@ if(id==='loyalty') renderLoyalty();
 if(id==='staff') renderStaff();
 if(id==='logs') renderLogs();
 if(id==='bookings') renderAdminBookings();
-
 sessionStorage.setItem('currentTab', id);
 }
 function renderAll(){
@@ -3645,6 +3677,27 @@ guestCard.classList.add('weather-update-flash');
 console.log(`🌤️ Weather updated: ${temp}°C, ${localizedDesc}, Humidity: ${humidity}%, Wind: ${wind} km/h`);
 }
 setInterval(updateWeather, 30000);
+
+// ✅ FIX: New function to check backend health with proper authentication
+async function checkHealth() {
+    try {
+        const token = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
+        const headers = { 'x-hotel-id': HID };
+        if(token) headers['Authorization'] = `Bearer ${token}`;
+        const test = await fetch(API_BASE + '/health', { method: 'GET', headers });
+        if(!test.ok) throw new Error('Health check failed');
+        isOnline = true;
+        updateNetBadge('online');
+        console.log('✅ Backend API is reachable');
+        return true;
+    } catch(e) {
+        console.warn('⚠️ Backend API not reachable.', e);
+        isOnline = false;
+        updateNetBadge('offline');
+        return false;
+    }
+}
+
 async function init(){
 loadUIPrefs();
 buildModals();
@@ -3663,17 +3716,10 @@ setInterval(saveUIPrefs, 15000);
 window.addEventListener('beforeunload', saveUIPrefs);
 }
 init();
+
+// ✅ FIX: Use checkHealth() instead of direct fetch to handle auth correctly
 window.addEventListener('load', async () => {
-try {
-const test = await fetch(API_BASE + '/health', { method: 'GET', headers: { 'x-hotel-id': HID } });
-if(!test.ok) throw new Error('Health check failed');
-console.log('✅ Backend API is reachable');
-} catch(e) {
-console.warn('⚠️ Backend API not reachable. Using localStorage only.', e);
-isOnline = false;
-updateNetBadge('offline');
-showToast('⚠️ Backend not connected - using offline mode','warning');
-}
+    await checkHealth();
 });
 </script>
 </body>
