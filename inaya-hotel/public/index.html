@@ -1,130 +1,234 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#1a1a2e">
-<title>Crown Plaza — Hotel OS</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<!-- External CSS File Link -->
-<link rel="stylesheet" href="styles.css">
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<!-- ✅ FIX: Use backend-served socket.io instead of CDN to avoid timeout -->
-<script src="/socket.io/socket.io.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>Crown Plaza — Hotel OS</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Socket.IO (backend-served) -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <!-- ✅ External CSS -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<!-- ✅ ISSUE #2 FIX: Removed netBadge from top-right -->
-<div id="sockStatus"><span class="sock-dot connecting" id="sockDot"></span><span id="sockTxt">Connecting…</span></div>
-<!-- ✅ ISSUE #1 FIX: Toolbar split into 3 rows -->
-<div id="toolbar">
-<div class="toolbar-row">
-<button class="tb-btn active" onclick="setLang('en')" id="lb-en">🇬 EN</button>
-<button class="tb-btn" onclick="setLang('hi')" id="lb-hi">🇮 हि</button>
-<button class="tb-btn" onclick="setLang('ar')" id="lb-ar">🇸🇦 ع</button>
-<button class="tb-btn" onclick="toggleOnlineMode()" id="onlineBtn" title="Toggle Online/Offline">🟢 Online</button>
-<button class="tb-btn" onclick="toggleContrast()" title="Toggle High Contrast">🔆</button>
-</div>
-<div class="toolbar-row">
-<button class="tb-btn" onclick="adjustFont(-1)" title="Decrease Font">A-</button>
-<button class="tb-btn" onclick="adjustFont(0)" title="Reset Font">A</button>
-<button class="tb-btn" onclick="adjustFont(1)" title="Increase Font">A+</button>
-<button class="tb-btn" onclick="toggleDark()" id="darkBtn">🌙</button>
-<button class="tb-btn" onclick="toggleThemeDD()" title="Theme">🎨</button>
-</div>
-<div class="toolbar-row">
-<span style="display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.15);padding:3px 7px;border-radius:8px">
-<span style="font-size:9px">☀</span>
-<input type="range" class="tb-slider" id="brightSlider" min=".5" max="1.5" step=".05" value="1" oninput="setBrightness(this.value)">
-</span>
-<button class="tb-btn" onclick="reqNotif()" id="notifBtn">🔔</button>
-<button class="tb-btn" onclick="haptic()">📳</button>
-<button class="tb-btn" onclick="speakWelcome()" title="Voice Welcome">🔊</button>
-</div>
-</div>
-<div id="themeDD">
-<div style="font-size:10px;font-weight:700;margin-bottom:6px;color:var(--fg)" data-i18n="selectTheme">Theme</div>
-<div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center">
-<div class="th-dot active" style="background:linear-gradient(135deg,#6c63ff,#a78bfa)" onclick="setTheme('default')" title="Default"></div>
-<div class="th-dot" style="background:linear-gradient(135deg,#f59e0b,#ef4444)" onclick="setTheme('sunset')" title="Sunset"></div>
-<div class="th-dot" style="background:linear-gradient(135deg,#10b981,#059669)" onclick="setTheme('forest')" title="Forest"></div>
-<div class="th-dot" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)" onclick="setTheme('ocean')" title="Ocean"></div>
-<div class="th-dot" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)" onclick="setTheme('royal')" title="Royal"></div>
-</div>
-</div>
-<div id="loginPage">
-<div class="login-card">
-<div id="loginNetBadge" class="online">🟢 Online</div>
-<div id="toasts"></div>
-<div class="login-logo">👑</div>
-<div class="login-h" id="loginHotelName">Crown Plaza Hotel</div>
-<div class="login-sub" data-i18n="welcomeSubtitle">Complete Management System</div>
-<!-- ✅ FIX: Removed "Connecting to server..." status -->
-<div id="loginClock" class="login-clock"></div>
-<div class="login-tabs">
-<button class="login-tab active" id="guestTabBtn" onclick="switchLogin('guest')" data-i18n="guestTab">🏨 Guest</button>
-<button class="login-tab" id="adminTabBtn" onclick="switchLogin('admin')" data-i18n="adminTab">👑 Admin</button>
-</div>
-<form id="guestLoginForm" onsubmit="guestLogin(event)">
-<div class="form-row"><label class="lbl" data-i18n="yourName">Your Name</label><input class="inp" id="guestNameIn" data-i18n-ph="enterName" placeholder="Enter your name" required></div>
-<div class="form-row"><label class="lbl" data-i18n="roomNumber">Room Number</label><input class="inp" id="guestRoomIn" type="number" placeholder="e.g. 101" required></div>
-<button class="btn-primary" style="width:100%;padding:11px" type="submit" data-i18n="loginGuest">🔐 Login as Guest</button>
-</form>
-<form id="adminLoginForm" class="hidden" onsubmit="adminLogin(event)">
-<div class="form-row"><label class="lbl" data-i18n="hotelIdLbl">Hotel ID</label><input class="inp" id="adminHotelIdIn" type="text" data-i18n-ph="enterHotelId" placeholder="Enter Hotel ID" required></div>
-<div class="form-row"><label class="lbl" data-i18n="emailAddress">Email</label><input class="inp" id="adminEmailIn" type="email" data-i18n-ph="adminLogin" placeholder="Administrator login" required></div>
-<div class="form-row"><label class="lbl" data-i18n="password">Password</label><input class="inp" id="adminPassIn" type="password" data-i18n-ph="enterPassword" placeholder="Enter password" required></div>
-<button class="btn-primary" style="width:100%;padding:11px" type="submit" data-i18n="loginAdmin">🔐 Login as Admin</button>
-</form>
-<div style="text-align:center;margin-top:10px;font-size:10px;opacity:.5" id="tenantLabel" hidden></div>
-</div>
-</div>
-<div id="rolePage" class="hidden" style="min-height:100dvh;background:var(--header);display:flex;align-items:center;justify-content:center;padding:12px">
-<div class="card" style="width:100%;max-width:520px">
-<button onclick="backToLogin()" style="font-size:13px;color:var(--p1);background:none;border:none;cursor:pointer;margin-bottom:10px" data-i18n="back">← Back</button>
-<h2 style="font-size:18px;font-weight:700;text-align:center;margin-bottom:14px;color:var(--fg)" data-i18n="selectRole">👑 Select Your Role</h2>
-<div class="role-grid" id="roleGrid"></div>
-</div>
-</div>
-<div id="adminDash" class="hidden">
-<div class="header">
-<h1>👑 <span id="aHotelName">Crown Plaza</span> — <span id="aRole">Admin</span></h1>
-<div class="header-right">
-<span class="clock-badge" id="aClock"></span>
-<button class="logout-btn" onclick="logout()" data-i18n="logout">Logout</button>
-</div>
-</div>
-<div class="tabs-bar">
-<div class="tabs-bar-inner" id="adminTabsBar"></div>
-</div>
-<div class="page-wrap" id="adminTabsContent"></div>
-</div>
-<div id="guestDash" class="hidden">
-<div class="header">
-<h1>🏨 <span id="gHotelName">Crown Plaza</span></h1>
-<div class="header-right">
-<span class="clock-badge" id="gClock"></span>
-<span id="gInfo" class="clock-badge"></span>
-<span id="gPts" class="clock-badge">⭐ 0 pts</span>
-<button class="logout-btn" onclick="logout()" data-i18n="logout">Logout</button>
-</div>
-</div>
-<div class="page-wrap">
-<div class="stat-grid">
-<div class="stat-card"><div class="stat-val" id="gTotReq">0</div><div class="stat-lbl" data-i18n="myRequests">Requests</div></div>
-<div class="stat-card"><div class="stat-val" id="gPendReq" style="color:#f59e0b">0</div><div class="stat-lbl" data-i18n="pending">Pending</div></div>
-<div class="stat-card"><div class="stat-val" id="gDoneReq" style="color:#10b981">0</div><div class="stat-lbl" data-i18n="completed">Done</div></div>
-</div>
-<div class="guest-nav" id="guestNav"></div>
-<div id="guestPanes"></div>
-</div>
-</div>
-<div id="modals"></div>
-<!-- External JS File Link -->
-<script src="script.js"></script>
+
+  <!-- ========== SOCKET STATUS BADGE ========== -->
+  <div id="sockStatus">
+    <span class="sock-dot connecting" id="sockDot"></span>
+    <span id="sockTxt">Connecting…</span>
+  </div>
+
+  <!-- ========== BOTTOM TOOLBAR ========== -->
+  <div id="toolbar">
+
+    <!-- Row 1: Language + Online + Contrast -->
+    <div class="toolbar-row">
+      <button class="tb-btn active" onclick="setLang('en')" id="lb-en">🇬 EN</button>
+      <button class="tb-btn" onclick="setLang('hi')" id="lb-hi">🇮 हि</button>
+      <button class="tb-btn" onclick="setLang('ar')" id="lb-ar">🇸🇦 ع</button>
+      <button class="tb-btn" onclick="toggleOnlineMode()" id="onlineBtn" title="Toggle Online/Offline">🟢 Online</button>
+      <button class="tb-btn" onclick="toggleContrast()" title="Toggle High Contrast">🔆</button>
+    </div>
+
+    <!-- Row 2: Font + Dark + Theme -->
+    <div class="toolbar-row">
+      <button class="tb-btn" onclick="adjustFont(-1)" title="Decrease Font">A-</button>
+      <button class="tb-btn" onclick="adjustFont(0)" title="Reset Font">A</button>
+      <button class="tb-btn" onclick="adjustFont(1)" title="Increase Font">A+</button>
+      <button class="tb-btn" onclick="toggleDark()" id="darkBtn">🌙</button>
+      <button class="tb-btn" onclick="toggleThemeDD()" title="Theme">🎨</button>
+    </div>
+
+    <!-- Row 3: Brightness + Notifications + Haptic + Voice -->
+    <div class="toolbar-row">
+      <span style="display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.15);padding:3px 7px;border-radius:8px">
+        <span style="font-size:9px">☀</span>
+        <input type="range" class="tb-slider" id="brightSlider" min=".5" max="1.5" step=".05" value="1" oninput="setBrightness(this.value)">
+      </span>
+      <button class="tb-btn" onclick="reqNotif()" id="notifBtn">🔔</button>
+      <button class="tb-btn" onclick="haptic()">📳</button>
+      <button class="tb-btn" onclick="speakWelcome()" title="Voice Welcome">🔊</button>
+    </div>
+
+  </div>
+
+  <!-- ========== THEME DROPDOWN ========== -->
+  <div id="themeDD">
+    <div style="font-size:10px;font-weight:700;margin-bottom:6px;color:var(--fg)" data-i18n="selectTheme">Theme</div>
+    <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center">
+      <div class="th-dot active" style="background:linear-gradient(135deg,#6c63ff,#a78bfa)" onclick="setTheme('default')" title="Default"></div>
+      <div class="th-dot" style="background:linear-gradient(135deg,#f59e0b,#ef4444)" onclick="setTheme('sunset')" title="Sunset"></div>
+      <div class="th-dot" style="background:linear-gradient(135deg,#10b981,#059669)" onclick="setTheme('forest')" title="Forest"></div>
+      <div class="th-dot" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)" onclick="setTheme('ocean')" title="Ocean"></div>
+      <div class="th-dot" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)" onclick="setTheme('royal')" title="Royal"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================== -->
+  <!-- LOGIN PAGE -->
+  <!-- ========================================================== -->
+  <div id="loginPage">
+    <div class="login-card">
+
+      <!-- Network Badge -->
+      <div id="loginNetBadge" class="online">🟢 Online</div>
+
+      <!-- Toast Container (inside card) -->
+      <div id="toasts"></div>
+
+      <!-- Logo & Title -->
+      <div class="login-logo">👑</div>
+      <div class="login-h" id="loginHotelName">Crown Plaza Hotel</div>
+      <div class="login-sub" data-i18n="welcomeSubtitle">Complete Management System</div>
+
+      <!-- Clock -->
+      <div id="loginClock" class="login-clock"></div>
+
+      <!-- Login Tabs -->
+      <div class="login-tabs">
+        <button class="login-tab active" id="guestTabBtn" onclick="switchLogin('guest')" data-i18n="guestTab">🏨 Guest</button>
+        <button class="login-tab" id="adminTabBtn" onclick="switchLogin('admin')" data-i18n="adminTab">👑 Admin</button>
+      </div>
+
+      <!-- Guest Login Form -->
+      <form id="guestLoginForm" onsubmit="guestLogin(event)">
+        <div class="form-row">
+          <label class="lbl" data-i18n="yourName">Your Name</label>
+          <input class="inp" id="guestNameIn" data-i18n-ph="enterName" placeholder="Enter your name" required>
+        </div>
+        <div class="form-row">
+          <label class="lbl" data-i18n="roomNumber">Room Number</label>
+          <input class="inp" id="guestRoomIn" type="number" placeholder="e.g. 101" required>
+        </div>
+        <button class="btn-primary" style="width:100%;padding:11px" type="submit" data-i18n="loginGuest">🔐 Login as Guest</button>
+      </form>
+
+      <!-- Admin Login Form -->
+      <form id="adminLoginForm" class="hidden" onsubmit="adminLogin(event)">
+        <div class="form-row">
+          <label class="lbl" data-i18n="hotelIdLbl">Hotel ID</label>
+          <input class="inp" id="adminHotelIdIn" type="text" data-i18n-ph="enterHotelId" placeholder="Enter Hotel ID" required>
+        </div>
+        <div class="form-row">
+          <label class="lbl" data-i18n="emailAddress">Email</label>
+          <input class="inp" id="adminEmailIn" type="email" data-i18n-ph="adminLogin" placeholder="Administrator login" required>
+        </div>
+        <div class="form-row">
+          <label class="lbl" data-i18n="password">Password</label>
+          <input class="inp" id="adminPassIn" type="password" data-i18n-ph="enterPassword" placeholder="Enter password" required>
+        </div>
+        <button class="btn-primary" style="width:100%;padding:11px" type="submit" data-i18n="loginAdmin">🔐 Login as Admin</button>
+      </form>
+
+      <!-- Tenant Label -->
+      <div style="text-align:center;margin-top:10px;font-size:10px;opacity:.5" id="tenantLabel" hidden></div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================== -->
+  <!-- ROLE SELECTION PAGE -->
+  <!-- ========================================================== -->
+  <div id="rolePage" class="hidden" style="min-height:100dvh;background:var(--header);display:flex;align-items:center;justify-content:center;padding:12px">
+    <div class="card" style="width:100%;max-width:520px">
+      <button onclick="backToLogin()" style="font-size:13px;color:var(--p1);background:none;border:none;cursor:pointer;margin-bottom:10px" data-i18n="back">← Back</button>
+      <h2 style="font-size:18px;font-weight:700;text-align:center;margin-bottom:14px;color:var(--fg)" data-i18n="selectRole">👑 Select Your Role</h2>
+      <div class="role-grid" id="roleGrid"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================== -->
+  <!-- ADMIN DASHBOARD -->
+  <!-- ========================================================== -->
+  <div id="adminDash" class="hidden">
+
+    <!-- Header -->
+    <div class="header">
+      <h1>👑 <span id="aHotelName">Crown Plaza</span> — <span id="aRole">Admin</span></h1>
+      <div class="header-right">
+        <span class="clock-badge" id="aClock"></span>
+        <button class="logout-btn" onclick="logout()" data-i18n="logout">Logout</button>
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tabs-bar">
+      <div class="tabs-bar-inner" id="adminTabsBar"></div>
+    </div>
+
+    <!-- Tab Content Area -->
+    <div class="page-wrap" id="adminTabsContent"></div>
+
+  </div>
+
+  <!-- ========================================================== -->
+  <!-- GUEST DASHBOARD -->
+  <!-- ========================================================== -->
+  <div id="guestDash" class="hidden">
+
+    <!-- Header -->
+    <div class="header">
+      <h1>🏨 <span id="gHotelName">Crown Plaza</span></h1>
+      <div class="header-right">
+        <span class="clock-badge" id="gClock"></span>
+        <span id="gInfo" class="clock-badge"></span>
+        <span id="gPts" class="clock-badge">⭐ 0 pts</span>
+        <button class="logout-btn" onclick="logout()" data-i18n="logout">Logout</button>
+      </div>
+    </div>
+
+    <!-- Guest Content -->
+    <div class="page-wrap">
+
+      <!-- Stats -->
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="gTotReq">0</div>
+          <div class="stat-lbl" data-i18n="myRequests">Requests</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="gPendReq" style="color:#f59e0b">0</div>
+          <div class="stat-lbl" data-i18n="pending">Pending</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="gDoneReq" style="color:#10b981">0</div>
+          <div class="stat-lbl" data-i18n="completed">Done</div>
+        </div>
+      </div>
+
+      <!-- Guest Navigation -->
+      <div class="guest-nav" id="guestNav"></div>
+
+      <!-- Guest Tab Panes (injected by JS) -->
+      <div id="guestPanes"></div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================== -->
+  <!-- MODALS CONTAINER (injected by JS via buildModals()) -->
+  <!-- ========================================================== -->
+  <div id="modals"></div>
+
+  <!-- ✅ External JavaScript -->
+  <script src="script.js"></script>
+
 </body>
 </html>
