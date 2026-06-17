@@ -162,7 +162,8 @@ function scheduleReconnect() {
 // ✅ FIXED: Index creation with KEY PATTERN check
 async function createIndexes() {
   try {
-    const collections = ['rooms', 'guests', 'food', 'inventory', 'requests', 'blacklist', 'maintenance', 'reviews', 'loyalty', 'staff', 'logs', 'settings', 'tenants', 'bookings', 'users', 'sessions'];
+    // ✅ ADDED: announcements, policies, config collections
+    const collections = ['rooms', 'guests', 'food', 'inventory', 'requests', 'blacklist', 'maintenance', 'reviews', 'loyalty', 'staff', 'logs', 'settings', 'tenants', 'bookings', 'users', 'sessions', 'announcements', 'policies', 'config'];
 
     for (const col of collections) {
       const collection = db.collection(col);
@@ -208,6 +209,24 @@ async function createIndexes() {
       // ✅ NEW: Sessions index for TTL auto-cleanup
       if (col === 'sessions' && !indexExistsWithKeys({ lastActivity: 1 })) {
         await collection.createIndex({ lastActivity: 1 }, { expireAfterSeconds: Math.floor(IDLE_TIMEOUT_MS / 1000) + 3600 });
+      }
+      // ✅ NEW: Announcements indexes
+      if (col === 'announcements' && !indexExistsWithKeys({ category: 1, hotelId: 1 })) {
+        await collection.createIndex({ category: 1, hotelId: 1 }, { background: true });
+      }
+      if (col === 'announcements' && !indexExistsWithKeys({ isActive: 1, hotelId: 1 })) {
+        await collection.createIndex({ isActive: 1, hotelId: 1 }, { background: true });
+      }
+      // ✅ NEW: Policies indexes
+      if (col === 'policies' && !indexExistsWithKeys({ type: 1, hotelId: 1 })) {
+        await collection.createIndex({ type: 1, hotelId: 1 }, { background: true });
+      }
+      if (col === 'policies' && !indexExistsWithKeys({ isEnabled: 1, hotelId: 1 })) {
+        await collection.createIndex({ isEnabled: 1, hotelId: 1 }, { background: true });
+      }
+      // ✅ NEW: Config indexes
+      if (col === 'config' && !indexExistsWithKeys({ hotelId: 1 })) {
+        await collection.createIndex({ hotelId: 1 }, { unique: true, background: true });
       }
     }
     console.log('✅ All indexes verified/created successfully');
@@ -321,6 +340,10 @@ app.use('/api/inventory', checkSubscription);
 app.use('/api/requests', checkSubscription);
 app.use('/api/bookings', checkSubscription);
 app.use('/api/staff', checkSubscription);
+// ✅ NEW: Add subscription check for new routes
+app.use('/api/announcements', checkSubscription);
+app.use('/api/policies', checkSubscription);
+app.use('/api/config', checkSubscription);
 
 // ==================== AUTH UTILITIES ====================
 const generateToken = (payload, expiresIn = TOKEN_EXPIRY) => {
@@ -449,6 +472,10 @@ app.use('/api/maintenance', checkIdleTimeout);
 app.use('/api/reviews', checkIdleTimeout);
 app.use('/api/logs', checkIdleTimeout);
 app.use('/api/dashboard', checkIdleTimeout);
+// ✅ NEW: Add idle check for new routes
+app.use('/api/announcements', checkIdleTimeout);
+app.use('/api/policies', checkIdleTimeout);
+app.use('/api/config', checkIdleTimeout);
 
 // ✅ NEW: Periodic cleanup of stale in-memory sessions
 setInterval(() => {
@@ -504,6 +531,9 @@ io.on('connection', (socket) => {
   socket.on('booking_upd', (payload) => broadcastEvent('booking_upd', payload));
   socket.on('staff_upd', (payload) => broadcastEvent('staff_upd', payload));
   socket.on('review_new', (payload) => broadcastEvent('review_new', payload));
+  // ✅ NEW: Socket events for announcements and policies
+  socket.on('announcement_upd', (payload) => broadcastEvent('announcement_upd', payload));
+  socket.on('policy_upd', (payload) => broadcastEvent('policy_upd', payload));
 
   socket.on('leave_hotel', (hotelId) => {
     socket.leave(`hotel_${hotelId}`);
@@ -891,7 +921,11 @@ app.delete('/api/super/tenants/:hotelId', superAdminMiddleware, async (req, res)
       db.collection('logs').deleteMany({ hotelId }),
       db.collection('sessions').deleteMany({ hotelId }),
       db.collection('settings').deleteOne({ hotelId }),
-      db.collection('users').deleteMany({ hotelId })
+      db.collection('users').deleteMany({ hotelId }),
+      // ✅ NEW: Delete from new collections
+      db.collection('announcements').deleteMany({ hotelId }),
+      db.collection('policies').deleteMany({ hotelId }),
+      db.collection('config').deleteMany({ hotelId })
     ]);
 
     await db.collection('tenants').deleteOne({ hotelId });
@@ -2357,25 +2391,279 @@ app.put('/api/config', authMiddleware, async (req, res) => {
   }
 });
 
+// ==================== ANNOUNCEMENTS CRUD ====================
+app.get('/api/announcements', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    const announcements = await db.collection('announcements').find({ hotelId }).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, data: announcements, count: announcements.length });
+  } catch (error) {
+    console.error('Announcements fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/announcements', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { category, title, message, isActive } = req.body;
+
+    if (!category || !title || !message) {
+      return res.status(400).json({ success: false, error: 'category, title, and message are required' });
+    }
+
+    if (!dbConnected) {
+      const announcement = {
+        _id: 'ann_' + Date.now(),
+        hotelId,
+        category,
+        title,
+        message,
+        isActive: isActive !== undefined ? isActive : true,
+        _version: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      broadcast(hotelId, 'announcement_upd', announcement, req.clientId);
+      return res.status(201).json({ success: true, message: 'Announcement added (offline)', data: announcement });
+    }
+
+    const announcement = {
+      hotelId,
+      category,
+      title,
+      message,
+      isActive: isActive !== undefined ? isActive : true,
+      _version: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const result = await db.collection('announcements').insertOne(announcement);
+    announcement._id = result.insertedId;
+    broadcast(hotelId, 'announcement_upd', announcement, req.clientId);
+    res.status(201).json({ success: true, message: 'Announcement created', data: announcement });
+  } catch (error) {
+    console.error('Announcement create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/announcements/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    const { category, title, message, isActive } = req.body;
+
+    if (!dbConnected) {
+      const updated = {
+        _id: id,
+        hotelId,
+        category,
+        title,
+        message,
+        isActive,
+        updatedAt: new Date().toISOString()
+      };
+      broadcast(hotelId, 'announcement_upd', updated, req.clientId);
+      return res.json({ success: true, message: 'Announcement updated (offline)', data: updated });
+    }
+
+    const updateData = {
+      updatedAt: new Date().toISOString(),
+      ...(category && { category }),
+      ...(title && { title }),
+      ...(message && { message }),
+      ...(isActive !== undefined && { isActive })
+    };
+
+    const result = await db.collection('announcements').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Announcement not found' });
+    }
+
+    const updated = await db.collection('announcements').findOne({ _id: new ObjectId(id) });
+    broadcast(hotelId, 'announcement_upd', updated, req.clientId);
+    res.json({ success: true, message: 'Announcement updated', data: updated });
+  } catch (error) {
+    console.error('Announcement update error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/announcements/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+
+    if (!dbConnected) {
+      broadcast(hotelId, 'announcement_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+      return res.json({ success: true, message: 'Announcement deleted (offline)' });
+    }
+
+    const result = await db.collection('announcements').deleteOne({ _id: new ObjectId(id), hotelId });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Announcement not found' });
+    }
+
+    broadcast(hotelId, 'announcement_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+    res.json({ success: true, message: 'Announcement deleted' });
+  } catch (error) {
+    console.error('Announcement delete error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================== POLICIES CRUD ====================
+app.get('/api/policies', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    const policies = await db.collection('policies').find({ hotelId }).toArray();
+    res.json({ success: true, data: policies, count: policies.length });
+  } catch (error) {
+    console.error('Policies fetch error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/policies', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { type, content, isEnabled } = req.body;
+
+    if (!type || !content) {
+      return res.status(400).json({ success: false, error: 'type and content are required' });
+    }
+
+    if (!dbConnected) {
+      const policy = {
+        _id: 'pol_' + Date.now(),
+        hotelId,
+        type,
+        content,
+        isEnabled: isEnabled !== undefined ? isEnabled : true,
+        _version: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      broadcast(hotelId, 'policy_upd', policy, req.clientId);
+      return res.status(201).json({ success: true, message: 'Policy added (offline)', data: policy });
+    }
+
+    const policy = {
+      hotelId,
+      type,
+      content,
+      isEnabled: isEnabled !== undefined ? isEnabled : true,
+      _version: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const result = await db.collection('policies').insertOne(policy);
+    policy._id = result.insertedId;
+    broadcast(hotelId, 'policy_upd', policy, req.clientId);
+    res.status(201).json({ success: true, message: 'Policy created', data: policy });
+  } catch (error) {
+    console.error('Policy create error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/policies/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    const { type, content, isEnabled } = req.body;
+
+    if (!dbConnected) {
+      const updated = {
+        _id: id,
+        hotelId,
+        type,
+        content,
+        isEnabled,
+        updatedAt: new Date().toISOString()
+      };
+      broadcast(hotelId, 'policy_upd', updated, req.clientId);
+      return res.json({ success: true, message: 'Policy updated (offline)', data: updated });
+    }
+
+    const updateData = {
+      updatedAt: new Date().toISOString(),
+      ...(type && { type }),
+      ...(content && { content }),
+      ...(isEnabled !== undefined && { isEnabled })
+    };
+
+    const result = await db.collection('policies').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Policy not found' });
+    }
+
+    const updated = await db.collection('policies').findOne({ _id: new ObjectId(id) });
+    broadcast(hotelId, 'policy_upd', updated, req.clientId);
+    res.json({ success: true, message: 'Policy updated', data: updated });
+  } catch (error) {
+    console.error('Policy update error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/policies/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+
+    if (!dbConnected) {
+      broadcast(hotelId, 'policy_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+      return res.json({ success: true, message: 'Policy deleted (offline)' });
+    }
+
+    const result = await db.collection('policies').deleteOne({ _id: new ObjectId(id), hotelId });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Policy not found' });
+    }
+
+    broadcast(hotelId, 'policy_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+    res.json({ success: true, message: 'Policy deleted' });
+  } catch (error) {
+    console.error('Policy delete error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ==================== DASHBOARD STATS ====================
 app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected || !db) return res.status(503).json({ success: false, error: 'Database connecting...' });
 
-    const [rooms, bookings, requests, guests, food, inventory] = await Promise.all([
+    const [rooms, bookings, requests, guests, food, inventory, announcements, policies] = await Promise.all([
       db.collection('rooms').find({ hotelId }).toArray(),
       db.collection('bookings').find({ hotelId }).toArray(),
       db.collection('requests').find({ hotelId }).toArray(),
       db.collection('guests').find({ hotelId }).toArray(),
       db.collection('food').find({ hotelId }).toArray(),
-      db.collection('inventory').find({ hotelId }).toArray()
+      db.collection('inventory').find({ hotelId }).toArray(),
+      db.collection('announcements').find({ hotelId, isActive: true }).toArray(),
+      db.collection('policies').find({ hotelId, isEnabled: true }).toArray()
     ]);
 
     const totalRooms = rooms.length;
     const occupiedRooms = rooms.filter(r => r.status === 'Occupied').length;
     const vacantRooms = rooms.filter(r => r.status === 'Vacant').length;
-    const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+    const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPriceSAR || b.totalPrice || 0), 0);
     const openRequests = requests.filter(r => r.status === 'open').length;
     const emergencyRequests = requests.filter(r => r.priority === 'emergency' && r.status !== 'completed').length;
 
@@ -2392,6 +2680,8 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
           lowStock: inventory.filter(i => i.status === 'low-stock').length,
           outOfStock: inventory.filter(i => i.status === 'out-of-stock').length
         },
+        announcements: { total: announcements.length },
+        policies: { total: policies.length },
         occupancyRate: totalRooms > 0 ? ((occupiedRooms / totalRooms) * 100).toFixed(1) : 0
       }
     });
@@ -2497,6 +2787,9 @@ server.listen(PORT, '0.0.0.0', async () => {
   console.log(`🔄 Auto token refresh: Enabled (threshold: ${Math.floor(TOKEN_REFRESH_THRESHOLD_MS/60000)} min)`);
   console.log(`📍 Page stability: /api/user/page-state`);
   console.log(`🔔 Idle session logout: /api/auth/config, /api/auth/ping`);
+  console.log(`📜 Policies API: /api/policies`);
+  console.log(`📢 Announcements API: /api/announcements`);
+  console.log(`⚙️ Config API: /api/config`);
   console.log(`\n💡 NEW .env variables:`);
   console.log(`   IDLE_TIMEOUT_MS=1800000        (default: 30 min)`);
   console.log(`   TOKEN_EXPIRY=7d                 (default: 7 days)`);
