@@ -279,13 +279,13 @@ body.high-contrast{filter:contrast(1.4) saturate(1.3)}
 </div>
 </div>
 <div id="modals"></div>
-<script>
+
+  <script>
 // ============================================================
 // COMPLETE TRANSLATIONS - English, Hindi, Arabic
 // ============================================================
 const T = {
 en: {
-    // Login
     hotelName: 'Crown Plaza Hotel',
     welcomeSubtitle: 'Complete Management System',
     connecting: 'Connecting to server…',
@@ -311,8 +311,6 @@ en: {
     roleLaundry: 'Laundry',
     roleSecurity: 'Security',
     roleIT: 'IT Support',
-
-    // Admin Tabs
     tabOverview: '📊 Dashboard Analytics',
     tabRooms: '🏨 Rooms',
     tabGuests: '👥 Guests',
@@ -331,8 +329,6 @@ en: {
     tabBookings: '📅 Bookings',
     tabPolicies: '📜 Policies',
     tabAnnouncements: '📢 Announcements',
-
-    // Guest Tabs
     myRequests: 'Requests',
     pending: 'Pending',
     completed: 'Completed',
@@ -343,63 +339,43 @@ en: {
     histTab: 'History',
     infoTab: 'Info',
     bookTab: 'Book Room',
-
-    // Room Status (ALL TRANSLATIONS ADDED)
     vacant: 'Vacant',
     occupied: 'Occupied',
     cleaning: 'Cleaning',
     maintenance: 'Maintenance',
     'checked-out': 'Checked Out',
-
-    // Room Types
     standard: 'Standard',
     deluxe: 'Deluxe',
     suite: 'Suite',
     presidential: 'Presidential',
     'quad-room': 'Quad Room',
     'family-room': 'Family Room',
-
-    // Room Views
     city: 'City',
     garden: 'Garden',
     pool: 'Pool',
     sea: 'Sea',
-
-    // Amenities
     safe: 'Safe',
     'mini-bar': 'Mini Bar',
     ac: 'AC',
     tv: 'TV',
     wifi: 'WiFi',
-
-    // Guest Status
     active: 'Active',
     blocked: 'Blocked',
-
-    // Food Categories
     'main-course': 'Main Course',
     appetizer: 'Appetizer',
     dessert: 'Dessert',
     beverage: 'Beverage',
-
-    // Inventory Categories
     amenities: 'Amenities',
     linen: 'Linen',
     food: 'Food',
     other: 'Other',
-
-    // Priority
     low: 'Low',
     medium: 'Medium',
     high: 'High',
-
-    // Booking Status
     confirmed: 'Confirmed',
     'checked-in': 'Checked-In',
     'checked-out': 'Checked-Out',
     cancelled: 'Cancelled',
-
-    // Policies
     'privacy-policy': 'Privacy Policy',
     'terms-conditions': 'Terms & Conditions',
     'checkin-policy': 'Check-in Policy',
@@ -407,23 +383,17 @@ en: {
     'cancellation-policy': 'Cancellation Policy',
     'refund-policy': 'Refund Policy',
     'custom-policy': 'Custom Policy',
-
-    // Announcement Categories
     'welcome-message': 'Welcome Message',
     offers: 'Offers',
     promotions: 'Promotions',
     'service-updates': 'Service Updates',
     'wifi-updates': 'WiFi Updates',
     'emergency-alerts': 'Emergency Alerts',
-
-    // Settings
     hotelNameLbl: 'Hotel Name',
     currencyLbl: 'Currency',
     wifiLbl: 'WiFi Password',
     airportPrice: 'Airport Transfer Price',
     localPrice: 'Local Cab per hour',
-
-    // Buttons
     addRoom: '+ Add Room',
     addGuest: '+ Add Guest',
     addDish: '+ Add Dish',
@@ -450,8 +420,6 @@ en: {
     placeOrder: '🛒 Place Order',
     requestMore: 'Request More',
     bookNow: '📅 Book Now',
-
-    // Info
     localTime: '🌍 Local Time',
     checkoutTime: '🕐 Checkout',
     copy: 'Copy',
@@ -468,15 +436,11 @@ en: {
     cleanliness: 'Cleanliness',
     shareExp: 'Share your experience…',
     submitReview: 'Submit Review',
-
-    // Reports
     reportType: 'Report Type',
     generate: '🔄 Generate',
     exportBtn: '📥 Export',
     exportXLS: '📥 Export XLS',
     clearLogs: '🗑️ Clear',
-
-    // Table Headers
     roomNum: 'Room #',
     roomType: 'Type',
     price: 'Price',
@@ -498,24 +462,16 @@ en: {
     task: 'Task',
     area: 'Room/Area',
     priority: 'Priority',
-
-    // Transport
     airportTx: '✈️ Airport Transfer',
     localCab: '🚕 Local Cab',
     unblock: '✅ Unblock',
     block: '🚫 Block',
-
-    // QR
     generating: 'Generating QR…',
     genAll: '🔄 Generate All',
     download: '⬇️ Download',
-
-    // Connection
     online: '🟢 Online',
     offline: '📴 Offline',
     reconnecting: '🔄 Reconnecting…',
-
-    // Services
     deptHK: '🧹 Housekeeping',
     deptMaint: '🔧 Maintenance',
     deptRest: '🍽️ Restaurant',
@@ -557,8 +513,6 @@ en: {
     svcCarRental: 'Car Rental',
     svcBikeRental: 'Bike Rental',
     svcShuttle: 'Shuttle Service',
-
-    // Staff
     staffName: 'Staff Name',
     staffRole: 'Role',
     department: 'Department',
@@ -577,8 +531,6 @@ en: {
     performance: 'Performance',
     onLeave: 'On Leave',
     onDuty: 'On Duty',
-
-    // Booking
     selectRoom: 'Select Room',
     checkIn: 'Check-in',
     checkOut: 'Check-out',
@@ -588,8 +540,6 @@ en: {
     bookingConfirmed: 'Booking confirmed! Booking ID:',
     myBookings: 'My Bookings',
     bookingStatus: 'Status',
-
-    // Notifications
     requestSubmitted: 'Request submitted',
     orderPlaced: 'Order placed successfully',
     bookingConfirmedMsg: 'Booking confirmed',
@@ -642,8 +592,6 @@ en: {
     guestBlocked: 'Guest blocked successfully',
     guestUnblocked: 'Guest unblocked successfully',
     menuUpdatedLive: 'Menu updated live!',
-
-    // Dashboard KPIs
     dashTotalRooms: 'Total Rooms',
     dashOccupied: 'Occupied',
     dashAvailable: 'Available',
@@ -662,14 +610,10 @@ en: {
     dashMaintenanceSummary: 'Pending Maint.',
     dashAnnouncementStats: 'Active Announce.',
     dashPolicyStats: 'Active Policies',
-
-    // Filters
     filterAll: 'All',
     filterOpen: 'Open',
     filterDone: 'Done',
     filterEmerg: '🚨 Emergency',
-
-    // Misc
     weather: '🌤️ Weather',
     currency: '💱 Currency',
     quickActions: '⚡ Quick Actions',
@@ -2293,7 +2237,7 @@ function loginAsRole(role) {
 }
 
 // ============================================================
-// SOCKET.IO
+// SOCKET.IO with REAL-TIME NOTIFICATIONS
 // ============================================================
 function initSocket() {
     try {
@@ -2342,7 +2286,7 @@ function initSocket() {
             updateNetBadge('reconnecting');
         });
 
-        // SYNC ALL DATA
+        // ===== SYNC ALL DATA =====
         socket.on('sync_all', (data) => {
             if (data.syncToken && processedEvents.has(data.syncToken)) return;
             if (data.syncToken) processedEvents.add(data.syncToken);
@@ -2364,7 +2308,7 @@ function initSocket() {
             updateCache();
         });
 
-        // CONFIG SYNC
+        // ===== CONFIG SYNC =====
         socket.on('cfg_upd', (cfg) => {
             if (cfg.syncToken && processedEvents.has(cfg.syncToken)) return;
             if (cfg.syncToken) processedEvents.add(cfg.syncToken);
@@ -2384,9 +2328,10 @@ function initSocket() {
                 if (currencyCard) { currencyCard.innerHTML = buildCurrencyHTML(); }
             }
             if (currentUser?.type === 'admin') { renderDashboardAnalytics(); }
+            sendRealTimeNotification('admin', '⚙️ Config updated', 'Settings changed by admin');
         });
 
-        // POLICIES SYNC
+        // ===== POLICIES SYNC =====
         socket.on('policy_upd', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2401,11 +2346,14 @@ function initSocket() {
             }
             renderPolicies();
             renderGuestPolicies();
-            if (currentUser?.type === 'guest') showToast('📜 Policies updated by Admin', 'socket');
+            if (currentUser?.type === 'guest') {
+                showToast('📜 Policies updated by Admin', 'socket');
+                sendRealTimeNotification('guest', '📜 Policy Updated', 'Admin updated hotel policies');
+            }
             updateCache();
         });
 
-        // ANNOUNCEMENTS SYNC
+        // ===== ANNOUNCEMENTS SYNC =====
         socket.on('announcement_upd', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2420,11 +2368,14 @@ function initSocket() {
             }
             renderAnnouncements();
             renderGuestAnnouncements();
-            if (currentUser?.type === 'guest') showToast('📢 New announcement from Admin', 'socket');
+            if (currentUser?.type === 'guest') {
+                showToast('📢 New announcement from Admin', 'socket');
+                sendRealTimeNotification('guest', '📢 New Announcement', a.title?.[lang] || a.title?.en || 'Announcement');
+            }
             updateCache();
         });
 
-        // REQUESTS SYNC
+        // ===== REQUESTS SYNC =====
         socket.on('req_new', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2436,11 +2387,13 @@ function initSocket() {
             if (currentUser?.type === 'admin') {
                 const urgency = req.priority === 'emergency' ? '🚨 ' : '';
                 showToast(`${urgency}📋 New request from ${req.guestName} - ${req.department}`, 'socket');
+                sendRealTimeNotification('admin', '📋 New Request', `${req.guestName} requested ${req.department}`);
                 if (req.priority === 'emergency') speakText(`Emergency request from ${req.guestName}`);
                 renderDashboardAnalytics();
             }
             if (currentUser?.type === 'guest' && req.guestName === currentUser.name) {
                 showToast('✅ ' + (t('reqSubmitted') || 'Request submitted'), 'success');
+                sendRealTimeNotification('guest', '✅ Request Submitted', 'Your request has been submitted');
             }
             updateCache();
         });
@@ -2462,12 +2415,15 @@ function initSocket() {
             updateGuestStats();
             if (currentUser?.type === 'guest') {
                 renderGuestHistory();
-                if (req.adminReply) showToast('👑 ' + (t('replyReceived') || 'You have a new reply from Admin'), 'success');
+                if (req.adminReply) {
+                    showToast('👑 ' + (t('replyReceived') || 'You have a new reply from Admin'), 'success');
+                    sendRealTimeNotification('guest', '💬 New Reply', 'Admin replied to your request');
+                }
             }
             updateCache();
         });
 
-        // ROOMS SYNC
+        // ===== ROOMS SYNC =====
         socket.on('room_upd', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2485,11 +2441,12 @@ function initSocket() {
             updateAdminStats();
             if (currentUser?.type === 'guest' && room && room.number && room.status) {
                 showToast(`🏨 Room #${room.number} is now ${getStatusLabel(room.status)}`, 'info');
+                sendRealTimeNotification('guest', '🏨 Room Update', `Room #${room.number} is now ${getStatusLabel(room.status)}`);
             }
             updateCache();
         });
 
-        // INVENTORY SYNC
+        // ===== INVENTORY SYNC =====
         socket.on('inventory_upd', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2506,11 +2463,12 @@ function initSocket() {
             renderGuestInv();
             if (currentUser?.type === 'guest' && item && item.name) {
                 showToast(`📦 Inventory updated: ${item.name} (${item.stock} ${item.unit})`, 'info');
+                sendRealTimeNotification('guest', '📦 Inventory Update', `${item.name} updated`);
             }
             updateCache();
         });
 
-        // FOOD SYNC
+        // ===== FOOD SYNC =====
         socket.on('food_upd', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2527,12 +2485,18 @@ function initSocket() {
             }
             renderFood();
             renderGuestFood();
-            if (currentUser?.type === 'guest') showToast('🍽️ Menu updated by Admin', 'socket');
-            if (currentUser?.type === 'admin') showToast('🍽️ ' + (t('menuUpdatedLive') || 'Menu updated live!'), 'socket');
+            if (currentUser?.type === 'guest') {
+                showToast('🍽️ Menu updated by Admin', 'socket');
+                sendRealTimeNotification('guest', '🍽️ Menu Updated', 'Food menu has been updated');
+            }
+            if (currentUser?.type === 'admin') {
+                showToast('🍽️ ' + (t('menuUpdatedLive') || 'Menu updated live!'), 'socket');
+                sendRealTimeNotification('admin', '🍽️ Menu Updated', 'Food menu updated by admin');
+            }
             updateCache();
         });
 
-        // REVIEWS SYNC
+        // ===== REVIEWS SYNC =====
         socket.on('review_new', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2544,12 +2508,13 @@ function initSocket() {
                 const rating = rev.overall || 0;
                 const stars = '⭐'.repeat(Math.min(rating, 5));
                 showToast(`⭐ New review from ${rev.guest}: ${stars}`, 'socket');
+                sendRealTimeNotification('admin', '⭐ New Review', `${rev.guest} rated ${rating} stars`);
                 renderDashboardAnalytics();
             }
             updateCache();
         });
 
-        // BOOKINGS SYNC
+        // ===== BOOKINGS SYNC =====
         socket.on('booking_new', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2560,6 +2525,7 @@ function initSocket() {
             renderAdminBookings();
             if (currentUser?.type === 'admin') {
                 showToast(`📅 New booking: ${booking.guestName} - Room #${booking.roomNumber}`, 'socket');
+                sendRealTimeNotification('admin', '📅 New Booking', `${booking.guestName} booked Room #${booking.roomNumber}`);
                 renderDashboardAnalytics();
             }
             updateCache();
@@ -2583,7 +2549,7 @@ function initSocket() {
             updateCache();
         });
 
-        // STAFF SYNC
+        // ===== STAFF SYNC =====
         socket.on('staff_upd', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2599,11 +2565,15 @@ function initSocket() {
             renderStaff();
             if (currentUser?.type === 'guest' && s && s.name) {
                 showToast(`👔 ${s.name} is now ${getStatusLabel(s.status)}`, 'info');
+                sendRealTimeNotification('guest', '👔 Staff Update', `${s.name} is now ${getStatusLabel(s.status)}`);
+            }
+            if (currentUser?.type === 'admin') {
+                sendRealTimeNotification('admin', '👔 Staff Updated', `${s.name} status changed to ${getStatusLabel(s.status)}`);
             }
             updateCache();
         });
 
-        // GUESTS SYNC
+        // ===== GUESTS SYNC =====
         socket.on('guest_upd', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2622,7 +2592,7 @@ function initSocket() {
             updateCache();
         });
 
-        // BLACKLIST SYNC
+        // ===== BLACKLIST SYNC =====
         socket.on('blacklist_upd', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2639,7 +2609,7 @@ function initSocket() {
             updateCache();
         });
 
-        // MAINTENANCE SYNC
+        // ===== MAINTENANCE SYNC =====
         socket.on('maintenance_upd', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2657,7 +2627,7 @@ function initSocket() {
             updateCache();
         });
 
-        // LOGS SYNC
+        // ===== LOGS SYNC =====
         socket.on('logs_upd', (payload) => {
             if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
             if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2679,103 +2649,21 @@ function initSocket() {
     }
 }
 
-function setSockStatus(s) {
-    const dot = document.getElementById('sockDot'), txt = document.getElementById('sockTxt');
-    const map = {
-        connected: { cls: 'connected', text: t('serverConnected') || 'Live' },
-        disconnected: { cls: 'error', text: t('serverOffline') || 'Offline' },
-        connecting: { cls: 'connecting', text: t('serverConnecting') || 'Connecting…' },
-        error: { cls: 'error', text: t('serverOffline') || 'Offline' }
-    };
-    const m = map[s] || map.disconnected;
-    if (dot) dot.className = 'sock-dot ' + m.cls;
-    if (txt) txt.textContent = m.text;
-    const sockEl = document.getElementById('sockStatus');
-    if (sockEl) sockEl.style.display = s === 'connected' ? 'none' : 'flex';
-}
-
-function updateNetBadge(status) {
-    const loginBadge = document.getElementById('loginNetBadge');
-    if (!loginBadge) return;
-    const className = status === 'online' ? 'online' : status === 'offline' ? 'offline' : status === 'reconnecting' ? 'reconnecting' : 'queued';
-    const text = status === 'online' ? t('online') : status === 'offline' ? t('offline') : status === 'reconnecting' ? t('reconnecting') : '📴 Queued';
-    if (loginBadge) {
-        loginBadge.className = '';
-        loginBadge.classList.add(className);
-        loginBadge.textContent = text;
+// ===== REAL-TIME NOTIFICATION HELPER =====
+function sendRealTimeNotification(target, title, body) {
+    if (!socket || !socket.connected) return;
+    try {
+        socket.emit('notification', {
+            hotelId: HID,
+            target: target,
+            title: title,
+            body: body,
+            timestamp: new Date().toISOString(),
+            clientId: clientId
+        });
+    } catch (e) {
+        console.warn('Notification emit error:', e);
     }
-}
-
-function toggleOnlineMode() {
-    isOnline = !isOnline;
-    const btn = document.getElementById('onlineBtn');
-    if (isOnline) {
-        btn.innerHTML = '🟢 Online';
-        btn.title = 'Click to go offline';
-        updateNetBadge('online');
-        if (socket && !socket.connected) socket.connect();
-        showToast('🌐 Online mode enabled', 'success');
-    } else {
-        btn.innerHTML = '📴 Offline';
-        btn.title = 'Click to go online';
-        updateNetBadge('offline');
-        if (socket && socket.connected) socket.disconnect();
-        showToast('📴 Offline mode - using localStorage', 'warning');
-    }
-}
-
-async function syncBack() {
-    if (!isOnline) return;
-    const [r, g, f, inv, req, bl, maint, rev, st, lg, bk, cfg, pol, ann] = await Promise.all([
-        apiCall('GET', `/rooms?hotelId=${HID}`),
-        apiCall('GET', `/guests?hotelId=${HID}`),
-        apiCall('GET', `/food?hotelId=${HID}`),
-        apiCall('GET', `/inventory?hotelId=${HID}`),
-        apiCall('GET', `/requests?hotelId=${HID}`),
-        apiCall('GET', `/blacklist?hotelId=${HID}`),
-        apiCall('GET', `/maintenance?hotelId=${HID}`),
-        apiCall('GET', `/reviews?hotelId=${HID}`),
-        apiCall('GET', `/staff?hotelId=${HID}`),
-        apiCall('GET', `/logs?hotelId=${HID}`),
-        apiCall('GET', `/bookings?hotelId=${HID}`),
-        apiCall('GET', `/config?hotelId=${HID}`),
-        apiCall('GET', `/policies?hotelId=${HID}`),
-        apiCall('GET', `/announcements?hotelId=${HID}`)
-    ]);
-    if (r) { rooms = safeMerge(rooms, r, 'rooms');
-        cacheData('rooms', rooms); }
-    if (g) { guests = safeMerge(guests, g, 'guests');
-        cacheData('guests', guests); }
-    if (f) { food = safeMerge(food, f, 'food');
-        cacheData('food', food); }
-    if (inv) { inventory = safeMerge(inventory, inv, 'inventory');
-        cacheData('inventory', inventory); }
-    if (req) { requests = safeMerge(requests, req, 'requests');
-        cacheData('requests', requests); }
-    if (bl) { blacklist = safeMerge(blacklist, bl, 'blacklist');
-        cacheData('blacklist', blacklist); }
-    if (maint) { maintenance = safeMerge(maintenance, maint, 'maintenance');
-        cacheData('maintenance', maintenance); }
-    if (rev) { reviews = safeMerge(reviews, rev, 'reviews');
-        cacheData('reviews', reviews); }
-    if (st) { staff = safeMerge(staff, st, 'staff');
-        cacheData('staff', staff); }
-    if (lg) { logs = safeMerge(logs, lg, 'logs');
-        cacheData('logs', logs); }
-    if (bk) { bookings = safeMerge(bookings, bk, 'bookings');
-        cacheData('bookings', bookings); }
-    if (pol) { policies = safeMerge(policies, pol, 'policies');
-        cacheData('policies', policies); }
-    if (ann) { announcements = safeMerge(announcements, ann, 'announcements');
-        cacheData('announcements', announcements); }
-    if (cfg) {
-        Object.assign(HotelCfg, cfg);
-        if (cfg._id) HotelCfg._id = cfg._id;
-        applyCfg();
-        cacheData('config', cfg);
-    }
-    renderAll();
-    if (!rooms.length) loadAllData();
 }
 
 // ============================================================
@@ -2823,17 +2711,20 @@ function toggleDark() {
     saveUIPrefs();
 }
 
+// ===== FONT SIZE - TOAST NOTIFICATIONS REMOVED =====
 function adjustFont(d) {
     let currentSize = parseInt(document.documentElement.style.fontSize) || 16;
-    if (d === 0) { currentSize = 16; } else if (d === -1) { currentSize = Math.max(12, currentSize - 2); } else if (d === 1) { currentSize = Math.min(24, currentSize + 2); }
+    if (d === 0) {
+        currentSize = 16;
+    } else if (d === -1) {
+        currentSize = Math.max(12, currentSize - 2);
+    } else if (d === 1) {
+        currentSize = Math.min(24, currentSize + 2);
+    }
     document.documentElement.style.fontSize = currentSize + 'px';
     document.body.style.fontSize = currentSize + 'px';
     fontSize = currentSize;
-    let msg = '';
-    if (d === 0) msg = t('fontReset') || 'Font reset to 16px';
-    else if (d === -1) msg = (t('fontDecreased') || 'Font decreased') + `: ${currentSize}px`;
-    else if (d === 1) msg = (t('fontIncreased') || 'Font increased') + `: ${currentSize}px`;
-    showToast(msg, 'success');
+    // ✅ TOAST NOTIFICATION REMOVED - Silent font change only
     saveUIPrefs();
 }
 
@@ -3079,9 +2970,9 @@ async function saveCfg(field) {
         showToast('⚙️ ' + (t('settingsSaved') || 'Settings saved successfully'), 'success');
         addLog('Config Update', field);
         renderAll();
+        sendRealTimeNotification('guest', '⚙️ Settings Updated', 'Hotel settings have been updated');
     } else {
         showToast('⚠️ Settings not saved - please check connection', 'error');
-        // Store in offline queue
         offlineQueue.push({ collection: 'config', data: payload, event: 'cfg_upd', timestamp: Date.now() });
         saveUIPrefs();
     }
@@ -3098,6 +2989,9 @@ function buildCurrencyHTML() {
             <div class="currency-row"><span>1 USD</span><span>= ${CURRENCIES.KWD.symbol}0.31</span></div>`;
 }
 
+// ============================================================
+// REMAINING FUNCTIONS (continue in next message)
+// ============================================================
 function openAddCurrencyModal() {
     openModal('infoModal');
     document.getElementById('infoModalTitle').textContent = '➕ Add New Currency';
@@ -3620,7 +3514,6 @@ function renderDashboardAnalytics() {
 }
 
 function updateAdminStats() {
-    const el = id => document.getElementById(id);
     // Quick stats for admin
 }
 
@@ -4056,6 +3949,7 @@ function submitGuestReq(e) {
     speakRequestSubmitted();
     addLog('New Request', `${currentUser.name} - ${dept}`);
     if (prio === 'emergency') showToast('🚨 Emergency alert sent to staff!', 'error');
+    sendRealTimeNotification('admin', '📋 New Request', `${currentUser.name} requested ${dept}`);
 }
 
 function addToCart(id, name, baseSARPrice) {
@@ -4100,6 +3994,7 @@ function placeOrder() {
     showToast('🍽️ ' + (t('orderPlacedToast') || 'Order placed successfully'), 'success');
     speakOrderPlaced();
     sendGuestNotification('notifOrderTitle', 'notifOrderBody');
+    sendRealTimeNotification('admin', '🍽️ New Order', `${currentUser.name} placed a food order`);
 }
 
 function reqInvItem(name) {
@@ -4123,6 +4018,7 @@ function reqInvItem(name) {
     showToast('📦 ' + (t('invRequested') || 'Request sent for ') + name, 'success');
     speakRequestSubmitted();
     sendGuestNotification('notifInventoryTitle', 'notifInventoryBody');
+    sendRealTimeNotification('admin', '📦 Inventory Request', `${currentUser.name} requested ${name}`);
 }
 
 function bookCab(e) {
@@ -4151,6 +4047,7 @@ function bookCab(e) {
     showToast('🚗 ' + (t('bookingConfirmedToast') || 'Booking confirmed') + '!', 'success');
     speakBookingConfirmed();
     sendGuestNotification('notifCabTitle', 'notifCabBody');
+    sendRealTimeNotification('admin', '🚗 Cab Booked', `${currentUser.name} booked a cab`);
 }
 
 function bookRoom(e) {
@@ -4192,6 +4089,7 @@ function bookRoom(e) {
     speakBookingConfirmed();
     sendGuestNotification('notifBookingTitle', 'notifBookingBody');
     addLog('New Booking', `${currentUser.name} - Room ${room.number}`);
+    sendRealTimeNotification('admin', '📅 New Booking', `${currentUser.name} booked Room #${room.number}`);
 }
 
 function copyWifi() {
@@ -4242,6 +4140,7 @@ function submitRating() {
     renderReviews();
     showToast('⭐ Thank you for rating!', 'success');
     ratingData = { overall: 0, service: 0, clean: 0 };
+    sendRealTimeNotification('admin', '⭐ New Review', `${currentUser.name} rated ${ratingData.overall} stars`);
 }
 
 function showConcierge() {
@@ -4413,13 +4312,13 @@ function openPolicyModal(policyId = null) {
         `<form onsubmit="savePolicy(event, '${policyId || ''}')">
             <div class="form-row"><label class="lbl">Policy Type</label>
                 <select class="inp" id="polType" required>
-                    <option value="privacy" ${p?.type === 'privacy' ? 'selected' : ''}>Privacy Policy</option>
-                    <option value="terms" ${p?.type === 'terms' ? 'selected' : ''}>Terms & Conditions</option>
-                    <option value="checkin" ${p?.type === 'checkin' ? 'selected' : ''}>Check-in Policy</option>
-                    <option value="checkout" ${p?.type === 'checkout' ? 'selected' : ''}>Check-out Policy</option>
-                    <option value="cancellation" ${p?.type === 'cancellation' ? 'selected' : ''}>Cancellation Policy</option>
-                    <option value="refund" ${p?.type === 'refund' ? 'selected' : ''}>Refund Policy</option>
-                    <option value="custom" ${p?.type === 'custom' ? 'selected' : ''}>Custom Policy</option>
+                    <option value="privacy" ${p?.type === 'privacy' ? 'selected' : ''}>${t('privacy-policy')}</option>
+                    <option value="terms" ${p?.type === 'terms' ? 'selected' : ''}>${t('terms-conditions')}</option>
+                    <option value="checkin" ${p?.type === 'checkin' ? 'selected' : ''}>${t('checkin-policy')}</option>
+                    <option value="checkout" ${p?.type === 'checkout' ? 'selected' : ''}>${t('checkout-policy')}</option>
+                    <option value="cancellation" ${p?.type === 'cancellation' ? 'selected' : ''}>${t('cancellation-policy')}</option>
+                    <option value="refund" ${p?.type === 'refund' ? 'selected' : ''}>${t('refund-policy')}</option>
+                    <option value="custom" ${p?.type === 'custom' ? 'selected' : ''}>${t('custom-policy')}</option>
                 </select>
             </div>
             <div class="form-row"><label class="lbl">English Content</label><textarea class="inp" id="polEn" rows="3" required>${p?.content?.en || ''}</textarea></div>
@@ -4464,6 +4363,7 @@ async function savePolicy(e, policyId) {
     renderGuestPolicies();
     showToast('✅ Policy saved successfully', 'success');
     addLog('Policy Update', `Policy ${policyId ? 'updated' : 'created'}: ${type}`);
+    sendRealTimeNotification('guest', '📜 Policy Updated', 'Hotel policy has been updated');
 }
 
 function editPolicy(id) { openPolicyModal(id); }
@@ -4488,6 +4388,7 @@ async function togglePolicy(id, isEnabled) {
         renderPolicies();
         renderGuestPolicies();
         showToast(`✅ Policy ${isEnabled ? 'enabled' : 'disabled'}`, 'success');
+        sendRealTimeNotification('guest', '📜 Policy Toggled', `Policy ${isEnabled ? 'enabled' : 'disabled'}`);
     }
 }
 
@@ -4557,6 +4458,7 @@ async function saveAnnouncement(e, annId) {
     renderGuestAnnouncements();
     showToast('✅ Announcement saved successfully', 'success');
     addLog('Announcement Update', `Announcement ${annId ? 'updated' : 'created'}: ${category}`);
+    sendRealTimeNotification('guest', '📢 New Announcement', category);
 }
 
 function editAnnouncement(id) { openAnnouncementModal(id); }
@@ -4581,6 +4483,7 @@ async function toggleAnnouncement(id, isActive) {
         renderAnnouncements();
         renderGuestAnnouncements();
         showToast(`✅ Announcement ${isActive ? 'activated' : 'deactivated'}`, 'success');
+        sendRealTimeNotification('guest', '📢 Announcement Update', `Announcement ${isActive ? 'activated' : 'deactivated'}`);
     }
 }
 
@@ -4598,8 +4501,7 @@ function buildModals() {
                     <div class="form-2">
                         <div class="form-row"><label class="lbl" data-i18n="roomType">Type</label>
                             <select class="inp" id="mRoomType">
-                                <option>Standard</option><option>Deluxe</option><option>Suite</option>
-                                <option>Presidential</option><option>Quad Room</option><option>Family Room</option>
+                                ${['Standard','Deluxe','Suite','Presidential','Quad Room','Family Room'].map(type => `<option value="${type}">${getRoomTypeLabel(type)}</option>`).join('')}
                             </select>
                         </div>
                         <div class="form-row"><label class="lbl" data-i18n="price">Price</label><input class="inp" id="mRoomPrice" type="number" required></div>
@@ -4611,22 +4513,18 @@ function buildModals() {
                     <div class="form-2">
                         <div class="form-row"><label class="lbl" data-i18n="roomView">View</label>
                             <select class="inp" id="mRoomView">
-                                <option>City</option><option>Garden</option><option>Pool</option><option>Sea</option>
+                                ${['City','Garden','Pool','Sea'].map(view => `<option value="${view}">${getViewLabel(view)}</option>`).join('')}
                             </select>
                         </div>
                         <div class="form-row"><label class="lbl" data-i18n="status">Status</label>
                             <select class="inp" id="mRoomStatus">
-                                <option>Vacant</option><option>Occupied</option><option>Cleaning</option><option>Maintenance</option>
+                                ${['Vacant','Occupied','Cleaning','Maintenance'].map(status => `<option value="${status}">${getStatusLabel(status)}</option>`).join('')}
                             </select>
                         </div>
                     </div>
                     <div class="form-row"><label class="lbl" data-i18n="roomAmenities">Amenities</label>
                         <div id="mRoomAmenities" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
-                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="WiFi"> ${t('amenitiesWifi')}</label>
-                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="TV"> ${t('amenitiesTV')}</label>
-                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="AC"> ${t('amenitiesAC')}</label>
-                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="MiniBar"> ${t('amenitiesMiniBar')}</label>
-                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="Safe"> ${t('amenitiesSafe')}</label>
+                            ${['WiFi','TV','AC','MiniBar','Safe'].map(amenity => `<label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="${amenity}"> ${t(amenity.toLowerCase())}</label>`).join('')}
                         </div>
                     </div>
                     <div class="form-row"><label class="lbl" data-i18n="roomDescription">Description</label><textarea class="inp" id="mRoomDesc" rows="2"></textarea></div>
@@ -4648,7 +4546,7 @@ function buildModals() {
                     <div class="form-row"><label class="lbl" data-i18n="status">Status</label>
                         <select class="inp" id="mGStatus">
                             <option value="active">✅ ${t('active')}</option>
-                            <option value="checked_out">🚪 ${t('checkedOut')}</option>
+                            <option value="checked_out">🚪 ${t('checked-out')}</option>
                             <option value="blocked">🚫 ${t('blocked')}</option>
                         </select>
                     </div>
@@ -4668,7 +4566,7 @@ function buildModals() {
                     <div class="form-row"><label class="lbl">Emoji</label><input class="inp" id="mFEmoji" placeholder="🍔" style="text-align:center"></div></div>
                     <div class="form-row"><label class="lbl" data-i18n="category">Category</label>
                         <select class="inp" id="mFCat">
-                            <option>Main Course</option><option>Appetizer</option><option>Dessert</option><option>Beverage</option>
+                            ${['Main Course','Appetizer','Dessert','Beverage'].map(cat => `<option value="${cat}">${getCategoryLabel(cat)}</option>`).join('')}
                         </select>
                     </div>
                     <div style="display:flex;gap:4px;margin-top:14px">
@@ -4687,8 +4585,7 @@ function buildModals() {
                     <div class="form-row"><label class="lbl" data-i18n="unit">Unit</label><input class="inp" id="mIUnit" placeholder="pcs"></div></div>
                     <div class="form-2"><div class="form-row"><label class="lbl" data-i18n="category">Category</label>
                         <select class="inp" id="mICat">
-                            <option>Amenities</option><option>Linen</option><option>Food</option>
-                            <option>Maintenance</option><option>Other</option>
+                            ${['Amenities','Linen','Food','Maintenance','Other'].map(cat => `<option value="${cat}">${getCategoryLabel(cat)}</option>`).join('')}
                         </select>
                     </div>
                     <div class="form-row"><label class="lbl" data-i18n="minAlert">Min Alert</label><input class="inp" id="mIMin" type="number" value="10"></div></div>
@@ -4837,6 +4734,7 @@ function addRoom(e) {
     if (document.getElementById('roomModal').dataset) delete document.getElementById('roomModal').dataset.editId;
     renderRooms();
     updateAdminStats();
+    sendRealTimeNotification('guest', '🏨 Room Updated', `Room #${roomData.number} ${editId ? 'updated' : 'added'}`);
 }
 
 function editRoom(id) {
@@ -4946,6 +4844,7 @@ function addDish(e) {
     if (document.getElementById('foodModal').dataset) delete document.getElementById('foodModal').dataset.editId;
     renderFood();
     renderGuestFood();
+    sendRealTimeNotification('guest', '🍽️ Menu Updated', `Food item ${editId ? 'updated' : 'added'}`);
 }
 
 function editFood(id) {
@@ -5158,6 +5057,7 @@ function addStaff(e) {
     showToast('✅ ' + (t('staffAdded') || 'Staff member added successfully'), 'success');
     speakItemAdded();
     addLog('Add Staff', name);
+    sendRealTimeNotification('guest', '👔 Staff Added', `${name} joined as ${role}`);
 }
 
 function updateStaffStatus(i, status) {
@@ -5239,6 +5139,7 @@ function updReqStatus(id, status) {
         updateGuestStats();
         renderGuestHistory();
         showToast('✅ ' + (t('reqStatusUpdated') || 'Request status updated to ') + status, 'success');
+        sendRealTimeNotification('guest', '📋 Request Updated', `Request status: ${status}`);
     }
 }
 
@@ -5266,6 +5167,7 @@ function sendAdminReply(reqId) {
         renderRequests();
         showToast('✅ ' + (t('replySentToGuest') || 'Reply sent to guest'), 'success');
         addLog('Admin Reply', `To ${req.guestName}: ${reply}`);
+        sendRealTimeNotification('guest', '💬 Admin Reply', `Reply to your request: ${reply.substring(0, 30)}...`);
     }
 }
 
@@ -5279,6 +5181,7 @@ function updateBookingStatus(id, status) {
         renderGuestBookings();
         showToast('✅ Booking status updated', 'success');
         addLog('Update Booking', `${b.guestName} - ${status}`);
+        sendRealTimeNotification('guest', '📅 Booking Updated', `Booking status: ${status}`);
     }
 }
 
