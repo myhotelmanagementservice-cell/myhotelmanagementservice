@@ -15,6 +15,22 @@
 <script src="/socket.io/socket.io.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+/* Prevent text selection across the webapp */
+body, * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+}
+/* Allow selection for form inputs */
+input, textarea, select, [contenteditable="true"] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
 html{height:100%}
 body{margin:0;padding:0;font-family:'DM Sans','Noto Sans Devanagari','Noto Naskh Arabic',system-ui,sans-serif;background:var(--bg);color:var(--fg);min-height:100dvh;width:100vw;overflow-x:hidden;transition:background .25s,color .25s,filter .2s;font-size:16px;line-height:1.5}
 :root{--p1:#6c63ff;--p2:#a78bfa;--p3:#7c3aed;--bg:#f4f3ff;--fg:#1e1b4b;--card:#fff;--card2:#f8f7ff;--border:#e0deff;--shadow:0 2px 16px rgba(108,99,255,.10);--header:linear-gradient(135deg,#6c63ff,#a78bfa);--toolbar-bg:rgba(108,99,255,.97);--input-bg:#fff;--input-border:#c4bfff;--badge-open:#fef3c7;--badge-open-c:#92400e;--badge-done:#d1fae5;--badge-done-c:#065f46;--badge-pend:#dbeafe;--badge-pend-c:#1e40af;--badge-blk:#fee2e2;--badge-blk-c:#991b1b;--r:14px}
@@ -1919,6 +1935,8 @@ await new Promise(res => setTimeout(res, 1000 * (i + 1)));
 }
 return null;
 }
+
+// FIXED: Correctly captures MongoDB _id from backend response to prevent data loss on refresh
 async function saveToMongo(collection, data) {
 if (!isOnline) return false;
 try {
@@ -1929,8 +1947,9 @@ const payload = { ...item };
 delete payload._isNew;
 if (isNew || !payload._id) {
 const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-if (res && res._id) {
-item._id = res._id;
+if (res) {
+const newId = res._id || res.insertedId || res.id;
+if (newId) item._id = newId;
 delete item._isNew;
 }
 } else {
@@ -1944,8 +1963,9 @@ const payload = { ...data };
 delete payload._isNew;
 if (isNew || !payload._id) {
 const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-if (res && res._id) {
-data._id = res._id;
+if (res) {
+const newId = res._id || res.insertedId || res.id;
+if (newId) data._id = newId;
 delete data._isNew;
 }
 } else {
@@ -1959,6 +1979,7 @@ console.warn(`saveToMongo error for ${collection}:`, e);
 return false;
 }
 }
+
 async function save(collection, data, event = 'data_upd') {
 if (Array.isArray(data)) {
 data.forEach(item => {
@@ -3979,10 +4000,11 @@ ${renderOptionsWithEmoji(DROPDOWN_TRANSLATIONS.maintenancePriority)}
 <form onsubmit="bookRoom(event)">
 <div class="form-row">
 <label class="lbl" data-i18n="selectRoom">Select Room</label>
-<select class="inp" id="bookRoomSelect" required>
+<select class="inp" id="bookRoomSelect" required onchange="showRoomDetails(this.value); calcBookingPrice();">
 <option value="">${t('selectRoom')}</option>
 </select>
 </div>
+<div id="bookRoomDetails" class="card-sm" style="margin-top:10px; display:none; border-left: 4px solid var(--p1);"></div>
 <div class="form-2">
 <div class="form-row">
 <label class="lbl" data-i18n="checkIn">Check-in</label>
@@ -4020,6 +4042,40 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}</option>`).join('')
 </div>
 `;
 }
+
+// NEW: Show full room details when a room is selected for booking
+function showRoomDetails(roomId) {
+    const room = rooms.find(r => r._id === roomId);
+    const detailsEl = document.getElementById('bookRoomDetails');
+    if (!room || !detailsEl) {
+        if(detailsEl) detailsEl.style.display = 'none';
+        return;
+    }
+    detailsEl.style.display = 'block';
+
+    // Translate amenities if possible
+    const amenities = (room.amenities && Array.isArray(room.amenities)) 
+        ? room.amenities.map(a => {
+            const key = 'amenities' + a;
+            const translated = t(key);
+            return translated !== key ? translated : a;
+        }).join(', ') 
+        : 'N/A';
+
+    detailsEl.innerHTML = `
+        <h4 style="margin-bottom:8px; color:var(--p1); font-size:14px;">🏨 Room #${room.number} Details</h4>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;">
+            <div><strong>${t('roomType')}:</strong> ${getRoomTypeLabel(room.type)}</div>
+            <div><strong>${t('price')}:</strong> ${formatPrice(room.basePriceSAR)}/night</div>
+            <div><strong>${t('roomFloor')}:</strong> ${room.floor || 'N/A'}</div>
+            <div><strong>${t('roomMaxGuests')}:</strong> ${room.maxGuests || 'N/A'}</div>
+            <div><strong>${t('roomView')}:</strong> ${room.view ? getViewLabel(room.view) : 'N/A'}</div>
+        </div>
+        <div style="margin-top:8px; font-size:13px;"><strong>${t('roomAmenities')}:</strong> ${amenities}</div>
+        <div style="margin-top:8px; font-size:13px;"><strong>${t('roomDescription')}:</strong> ${room.description || 'No description available.'}</div>
+    `;
+}
+
 function showGuestTab(id) {
 GUEST_TABS.forEach(tb => {
 const p = document.getElementById(`gp-${tb.id}`);
@@ -4148,6 +4204,9 @@ opt.textContent = `#${r.number} - ${getRoomTypeLabel(r.type)} - ${formatPrice(r.
 opt.dataset.price = r.basePriceSAR;
 select.appendChild(opt);
 });
+// Hide details initially
+const detailsEl = document.getElementById('bookRoomDetails');
+if(detailsEl) detailsEl.style.display = 'none';
 }
 function updateServices() {
 const deptKey = document.getElementById('gDept')?.value;
@@ -4360,6 +4419,9 @@ renderGuestBookings();
 renderAdminBookings();
 e.target.reset();
 document.getElementById('bookingTotalPrice').textContent = '0';
+// Hide room details after booking
+const detailsEl = document.getElementById('bookRoomDetails');
+if(detailsEl) detailsEl.style.display = 'none';
 showToast('📅 ' + (t('roomBooked') || 'Room booked successfully') + '!', 'success');
 speakBookingConfirmed();
 sendGuestNotification('notifBookingTitle', 'notifBookingBody');
@@ -4568,7 +4630,6 @@ options: { ...opts, scales: { y: { beginAtZero: true, max: 100, ticks: { color: 
 });
 }
 }
-
 // ============================================================
 // POLICIES & ANNOUNCEMENTS CRUD
 // ============================================================
@@ -4735,7 +4796,6 @@ renderGuestAnnouncements();
 showToast(`✅ Announcement ${isActive ? 'activated' : 'deactivated'}`, 'success');
 }
 }
-
 // ============================================================
 // MODALS
 // ============================================================
@@ -4937,7 +4997,6 @@ ${departments.filter(d => d.isEnabled).map(d => `<option value="${d.key}">${d.em
 }
 function openModal(id) { document.getElementById(id)?.classList.add('open'); }
 function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
-
 // ============================================================
 // CRUD HANDLERS
 // ============================================================
@@ -5259,10 +5318,8 @@ const role = document.getElementById('mSRole')?.value;
 const deptKey = document.getElementById('mSDept')?.value;
 const joinDate = document.getElementById('mSJoin')?.value;
 if (!name || !role) { showToast('Fill required fields', 'error'); return; }
-
 const dept = departments.find(d => d.key === deptKey);
 const deptName = dept ? dept.name.en : 'General';
-
 const s = {
 _id: 's_' + Date.now(),
 _isNew: true,
@@ -5442,7 +5499,6 @@ XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(bookings), 'Bookings')
 XLSX.writeFile(wb, `bookings-${Date.now()}.xlsx`);
 showToast('✅ Bookings exported!', 'success');
 }
-
 // ============================================================
 // REPORT FUNCTIONS
 // ============================================================
@@ -5496,7 +5552,6 @@ renderLogs();
 showToast('✅ Logs cleared', 'success');
 }
 }
-
 // ============================================================
 // QR CODE FUNCTIONS
 // ============================================================
@@ -5520,7 +5575,6 @@ correctLevel: QRCode.CorrectLevel.H
 });
 showToast('✅ QR codes generated!', 'success');
 }
-
 // ============================================================
 // WEATHER FUNCTIONS
 // ============================================================
@@ -5559,7 +5613,6 @@ guestCard.classList.add('weather-update-flash');
 }
 }
 setInterval(updateWeather, 30000);
-
 // ============================================================
 // ADD LOG
 // ============================================================
@@ -5577,7 +5630,6 @@ logs.unshift(entry);
 save('logs', entry, 'logs_upd');
 renderLogs();
 }
-
 // ============================================================
 // QUICK ACTIONS
 // ============================================================
@@ -5594,7 +5646,6 @@ document.getElementById('infoModalTitle').textContent = title;
 document.getElementById('infoModalBody').innerHTML = body;
 openModal('infoModal');
 }
-
 // ============================================================
 // CHECK HEALTH
 // ============================================================
@@ -5615,7 +5666,6 @@ updateNetBadge('offline');
 return false;
 }
 }
-
 // ============================================================
 // INIT
 // ============================================================
