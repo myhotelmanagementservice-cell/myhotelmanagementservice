@@ -57,4 +57,13 @@ configSchema.pre('save', function(next) {
     next();
 });
 
+// ✅ FIX: currencies Object update hone pe Mongoose ko batao
+// Mongoose by default nested Object changes track nahi karta
+configSchema.pre('save', function(next) {
+    if (this.isModified('currencies') || this.currencies) {
+        this.markModified('currencies');
+    }
+    next();
+});
+
 module.exports = mongoose.model('Config', configSchema);

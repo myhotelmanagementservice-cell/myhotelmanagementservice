@@ -5,7 +5,7 @@ const Announcement = require('../models/Announcement');
 // GET all announcements for a hotel
 router.get('/', async (req, res) => {
     try {
-        const { hotelId } = req.query;
+        const { hotelId } = req.query; 
         if (!hotelId) {
             return res.status(400).json({ error: 'hotelId is required' });
         }

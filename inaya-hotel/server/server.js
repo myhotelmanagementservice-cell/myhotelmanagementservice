@@ -1,5 +1,5 @@
 require("dotenv").config({ path: __dirname + "/.env" });
-// server.js - Complete Multi-Tenant Hotel SaaS Backend (ADVANCED - PRODUCTION READY v2.0)
+// server.js - Complete Multi-Tenant Hotel SaaS Backend (FIXED v2.2 - POST CONFIG ADDED)
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
@@ -10,7 +10,6 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// ✅ NEW: Advanced middleware imports
 let compression, helmet, rateLimit;
 try { compression = require('compression'); } catch(e) { compression = null; }
 try { helmet = require('helmet'); } catch(e) { helmet = null; }
@@ -19,7 +18,6 @@ try { rateLimit = require('express-rate-limit'); } catch(e) { rateLimit = null; 
 const app = express();
 const server = http.createServer(app);
 
-// ✅ Socket.io Setup with CORS for multi-origin support
 const io = new Server(server, {
   cors: {
     origin: process.env.FRONTEND_URL || '*',
@@ -31,24 +29,19 @@ const io = new Server(server, {
   pingInterval: 25000
 });
 
-// ==================== ADVANCED MIDDLEWARE ====================
-
-// ✅ NEW: Compression for faster responses
 if (compression) {
   app.use(compression());
   console.log('✅ Compression enabled');
 }
 
-// ✅ NEW: Security headers (Helmet) - configured for SPA compatibility
 if (helmet) {
   app.use(helmet({
-    contentSecurityPolicy: false, // Disable CSP to avoid blocking frontend assets
+    contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false
   }));
   console.log('✅ Helmet security headers enabled');
 }
 
-// CORS
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   credentials: true,
@@ -59,54 +52,48 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Static file path - supports both root and inaya-hotel folder
 const publicPath = path.join(__dirname, process.env.PUBLIC_PATH || '../public');
 app.use(express.static(publicPath, {
-  maxAge: '1h',           // Cache static assets
+  maxAge: '1h',
   etag: true,
   lastModified: true
 }));
 
-// Session configuration
 app.use(session({
   secret: process.env.SESSION_SECRET || 'inaya-hotel-secret-key-change-in-production',
   resave: false,
-  saveUninitialized: false, // ✅ FIXED: Don't save empty sessions
-  rolling: true,            // ✅ NEW: Reset expiry on each request (keeps session alive on activity)
+  saveUninitialized: false,
+  rolling: true,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: 'lax',
-    maxAge: parseInt(process.env.SESSION_MAX_AGE) || 7 * 24 * 60 * 60 * 1000 // 7 days default
+    maxAge: parseInt(process.env.SESSION_MAX_AGE) || 7 * 24 * 60 * 60 * 1000
   }
 }));
 
-// ==================== CONFIG ====================
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb+srv://hotel:hotelinaya@cluster0.hauipx7.mongodb.net/inaya_hotel?retryWrites=true&w=majority&appName=Cluster0';
 const DB_NAME = process.env.DB_NAME || 'inaya_hotel';
 const JWT_SECRET = process.env.JWT_SECRET || 'jwt-secret-key-change-in-production';
 
-// ✅ NEW: Idle timeout configuration (in milliseconds)
-const IDLE_TIMEOUT_MS = parseInt(process.env.IDLE_TIMEOUT_MS) || 30 * 60 * 1000; // 30 minutes default
+const IDLE_TIMEOUT_MS = parseInt(process.env.IDLE_TIMEOUT_MS) || 30 * 60 * 1000;
 const TOKEN_EXPIRY = process.env.TOKEN_EXPIRY || '7d';
-const TOKEN_REFRESH_THRESHOLD_MS = parseInt(process.env.TOKEN_REFRESH_THRESHOLD_MS) || 60 * 60 * 1000; // Refresh if <1hr left
+const TOKEN_REFRESH_THRESHOLD_MS = parseInt(process.env.TOKEN_REFRESH_THRESHOLD_MS) || 60 * 60 * 1000;
 
 let db;
 let client;
 let dbConnected = false;
 let dbReconnectTimer = null;
 
-// ✅ NEW: In-memory store for idempotency keys (clears old ones every hour)
 const idempotencyStore = new Map();
 setInterval(() => {
-  const cutoff = Date.now() - 24 * 60 * 60 * 1000; // Remove keys older than 24h
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   for (const [key, val] of idempotencyStore.entries()) {
     if (val.timestamp < cutoff) idempotencyStore.delete(key);
   }
 }, 60 * 60 * 1000);
 
-// ==================== MONGODB CONNECTION ====================
 async function connectDB() {
   try {
     console.log('🔄 Connecting to MongoDB Atlas...');
@@ -128,7 +115,6 @@ async function connectDB() {
     dbConnected = true;
     console.log('✅ MongoDB Connected Successfully!');
 
-    // ✅ NEW: Monitor connection events
     client.on('close', () => {
       console.warn('⚠️ MongoDB connection closed. Attempting reconnect...');
       dbConnected = false;
@@ -159,10 +145,8 @@ function scheduleReconnect() {
   }
 }
 
-// ✅ FIXED: Index creation with KEY PATTERN check
 async function createIndexes() {
   try {
-    // ✅ ADDED: announcements, policies, config collections
     const collections = ['rooms', 'guests', 'food', 'inventory', 'requests', 'blacklist', 'maintenance', 'reviews', 'loyalty', 'staff', 'logs', 'settings', 'tenants', 'bookings', 'users', 'sessions', 'announcements', 'policies', 'config'];
 
     for (const col of collections) {
@@ -194,6 +178,9 @@ async function createIndexes() {
       if (col === 'settings' && !indexExistsWithKeys({ hotelId: 1 })) {
         await collection.createIndex({ hotelId: 1 }, { unique: true, background: true });
       }
+      if (col === 'config' && !indexExistsWithKeys({ hotelId: 1 })) {
+        await collection.createIndex({ hotelId: 1 }, { unique: true, background: true });
+      }
       if (col === 'tenants' && !indexExistsWithKeys({ hotelId: 1 })) {
         await collection.createIndex({ hotelId: 1 }, { unique: true, background: true });
       }
@@ -206,27 +193,20 @@ async function createIndexes() {
       if (col === 'users' && !indexExistsWithKeys({ email: 1, hotelId: 1 })) {
         await collection.createIndex({ email: 1, hotelId: 1 }, { unique: true, background: true });
       }
-      // ✅ NEW: Sessions index for TTL auto-cleanup
       if (col === 'sessions' && !indexExistsWithKeys({ lastActivity: 1 })) {
         await collection.createIndex({ lastActivity: 1 }, { expireAfterSeconds: Math.floor(IDLE_TIMEOUT_MS / 1000) + 3600 });
       }
-      // ✅ NEW: Announcements indexes
       if (col === 'announcements' && !indexExistsWithKeys({ category: 1, hotelId: 1 })) {
         await collection.createIndex({ category: 1, hotelId: 1 }, { background: true });
       }
       if (col === 'announcements' && !indexExistsWithKeys({ isActive: 1, hotelId: 1 })) {
         await collection.createIndex({ isActive: 1, hotelId: 1 }, { background: true });
       }
-      // ✅ NEW: Policies indexes
       if (col === 'policies' && !indexExistsWithKeys({ type: 1, hotelId: 1 })) {
         await collection.createIndex({ type: 1, hotelId: 1 }, { background: true });
       }
       if (col === 'policies' && !indexExistsWithKeys({ isEnabled: 1, hotelId: 1 })) {
         await collection.createIndex({ isEnabled: 1, hotelId: 1 }, { background: true });
-      }
-      // ✅ NEW: Config indexes
-      if (col === 'config' && !indexExistsWithKeys({ hotelId: 1 })) {
-        await collection.createIndex({ hotelId: 1 }, { unique: true, background: true });
       }
     }
     console.log('✅ All indexes verified/created successfully');
@@ -235,13 +215,11 @@ async function createIndexes() {
   }
 }
 
-// ==================== RATE LIMITING ====================
-// ✅ NEW: Rate limiting to prevent abuse
 let loginLimiter, apiLimiter;
 if (rateLimit) {
   loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20,                   // Max 20 login attempts per window
+    windowMs: 15 * 60 * 1000,
+    max: 20,
     message: { success: false, error: 'Too many login attempts. Please try again after 15 minutes.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -249,19 +227,18 @@ if (rateLimit) {
   });
 
   apiLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 300,                  // 300 requests per minute per IP
+    windowMs: 1 * 60 * 1000,
+    max: 300,
     message: { success: false, error: 'Too many requests. Please slow down.' },
     standardHeaders: true,
     legacyHeaders: false,
-    skip: (req) => req.method === 'GET' // Only limit write operations
+    skip: (req) => req.method === 'GET'
   });
 
   app.use('/api/', apiLimiter);
   console.log('✅ Rate limiting enabled');
 }
 
-// ==================== MULTI-TENANT MIDDLEWARE ====================
 const getHotelId = (req) => {
   return req.headers['x-hotel-id'] ||
          req.query.hotelId ||
@@ -281,7 +258,6 @@ const clientInfoMiddleware = (req, res, next) => {
   next();
 };
 
-// ✅ NEW: Idempotency middleware - prevents duplicate POSTs on retry
 const idempotencyMiddleware = (req, res, next) => {
   const key = req.headers['x-idempotency-key'];
   if (!key || req.method !== 'POST') return next();
@@ -303,7 +279,6 @@ app.use('/api', tenantMiddleware);
 app.use('/api', clientInfoMiddleware);
 app.use('/api', idempotencyMiddleware);
 
-// ✅ Subscription Expiry Validation Middleware
 const checkSubscription = async (req, res, next) => {
   try {
     const hotelId = req.hotelId;
@@ -340,17 +315,14 @@ app.use('/api/inventory', checkSubscription);
 app.use('/api/requests', checkSubscription);
 app.use('/api/bookings', checkSubscription);
 app.use('/api/staff', checkSubscription);
-// ✅ NEW: Add subscription check for new routes
 app.use('/api/announcements', checkSubscription);
 app.use('/api/policies', checkSubscription);
 app.use('/api/config', checkSubscription);
 
-// ==================== AUTH UTILITIES ====================
 const generateToken = (payload, expiresIn = TOKEN_EXPIRY) => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn });
 };
 
-// ✅ NEW: Decode token without verification (to check expiry before verifying)
 const decodeTokenSafe = (token) => {
   try { return jwt.decode(token); } catch(e) { return null; }
 };
@@ -367,7 +339,6 @@ const authMiddleware = (req, res, next) => {
     req.user = decoded;
     req.hotelId = decoded.hotelId || req.hotelId;
 
-    // ✅ NEW: Auto-refresh token if expiry is close
     const exp = decoded.exp * 1000;
     const now = Date.now();
     if (exp - now < TOKEN_REFRESH_THRESHOLD_MS) {
@@ -401,24 +372,19 @@ const superAdminMiddleware = async (req, res, next) => {
   }
 };
 
-// ==================== ✅ NEW: IDLE SESSION MANAGEMENT ====================
+const activeSessions = new Map();
 
-// Track active sessions (in-memory + DB for persistence)
-const activeSessions = new Map(); // token -> { lastActivity, hotelId, userId }
-
-// ✅ NEW: Update session activity on every authenticated request
 const updateSessionActivity = async (req) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token || !req.user) return;
 
-  const sessionKey = token.substring(token.length - 32); // Use last 32 chars as key
+  const sessionKey = token.substring(token.length - 32);
   activeSessions.set(sessionKey, {
     lastActivity: Date.now(),
     hotelId: req.hotelId,
     email: req.user?.email
   });
 
-  // Update in DB if connected (async, non-blocking)
   if (dbConnected) {
     db.collection('sessions').updateOne(
       { sessionKey },
@@ -428,7 +394,6 @@ const updateSessionActivity = async (req) => {
   }
 };
 
-// ✅ NEW: Check if session is idle
 const checkIdleTimeout = (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return next();
@@ -440,7 +405,6 @@ const checkIdleTimeout = (req, res, next) => {
     const idleTime = Date.now() - session.lastActivity;
     if (idleTime > IDLE_TIMEOUT_MS) {
       activeSessions.delete(sessionKey);
-      // Clean from DB
       if (dbConnected) {
         db.collection('sessions').deleteOne({ sessionKey }).catch(() => {});
       }
@@ -453,12 +417,10 @@ const checkIdleTimeout = (req, res, next) => {
     }
   }
 
-  // Update activity
   updateSessionActivity(req);
   next();
 };
 
-// Apply idle check to authenticated routes
 app.use('/api/rooms', checkIdleTimeout);
 app.use('/api/guests', checkIdleTimeout);
 app.use('/api/food', checkIdleTimeout);
@@ -472,12 +434,10 @@ app.use('/api/maintenance', checkIdleTimeout);
 app.use('/api/reviews', checkIdleTimeout);
 app.use('/api/logs', checkIdleTimeout);
 app.use('/api/dashboard', checkIdleTimeout);
-// ✅ NEW: Add idle check for new routes
 app.use('/api/announcements', checkIdleTimeout);
 app.use('/api/policies', checkIdleTimeout);
 app.use('/api/config', checkIdleTimeout);
 
-// ✅ NEW: Periodic cleanup of stale in-memory sessions
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of activeSessions.entries()) {
@@ -485,13 +445,11 @@ setInterval(() => {
       activeSessions.delete(key);
     }
   }
-}, 5 * 60 * 1000); // Every 5 minutes
+}, 5 * 60 * 1000);
 
-// ==================== SOCKET.IO REAL-TIME ====================
 io.on('connection', (socket) => {
   console.log('🔌 Client connected:', socket.id);
 
-  // ✅ Support both snake_case and camelCase event names
   socket.on('join_hotel', (hotelId) => {
     socket.join(`hotel_${hotelId}`);
     console.log(`📡 ${socket.id} joined room: hotel_${hotelId}`);
@@ -503,7 +461,6 @@ io.on('connection', (socket) => {
     socket.emit('connected', { hotelId, message: 'Connected' });
   });
 
-  // ✅ NEW: Heartbeat to keep connection alive and detect stale clients
   socket.on('ping_heartbeat', (data) => {
     socket.emit('pong_heartbeat', { serverTime: new Date().toISOString(), received: data });
   });
@@ -531,9 +488,11 @@ io.on('connection', (socket) => {
   socket.on('booking_upd', (payload) => broadcastEvent('booking_upd', payload));
   socket.on('staff_upd', (payload) => broadcastEvent('staff_upd', payload));
   socket.on('review_new', (payload) => broadcastEvent('review_new', payload));
-  // ✅ NEW: Socket events for announcements and policies
   socket.on('announcement_upd', (payload) => broadcastEvent('announcement_upd', payload));
   socket.on('policy_upd', (payload) => broadcastEvent('policy_upd', payload));
+  socket.on('blacklist_upd', (payload) => broadcastEvent('blacklist_upd', payload));
+  socket.on('maintenance_upd', (payload) => broadcastEvent('maintenance_upd', payload));
+  socket.on('logs_upd', (payload) => broadcastEvent('logs_upd', payload));
 
   socket.on('leave_hotel', (hotelId) => {
     socket.leave(`hotel_${hotelId}`);
@@ -559,13 +518,12 @@ const broadcast = (hotelId, event, data, clientId = null) => {
   io.to(`hotel_${hotelId}`).emit(event, payload);
 };
 
-// ==================== HEALTH CHECK ====================
 app.get('/api/health', (req, res) => {
   const memUsage = process.memoryUsage();
   res.json({
     message: 'Inaya Hotel Management System API',
     status: 'OK',
-    version: '2.0.0',
+    version: '2.2.0',
     mongodb: dbConnected ? 'connected' : 'disconnected',
     socket: io.engine.clientsCount,
     activeSessions: activeSessions.size,
@@ -587,7 +545,6 @@ app.get('/api/session', (req, res) => {
   }
 });
 
-// ✅ NEW: Token validation + refresh endpoint (frontend calls this on page load)
 app.get('/api/auth/validate', (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) {
@@ -600,7 +557,6 @@ app.get('/api/auth/validate', (req, res) => {
     const now = Date.now();
     const idleMs = IDLE_TIMEOUT_MS;
 
-    // Check idle timeout
     const sessionKey = token.substring(token.length - 32);
     const session = activeSessions.get(sessionKey);
     if (session) {
@@ -616,14 +572,12 @@ app.get('/api/auth/validate', (req, res) => {
       }
     }
 
-    // Auto-refresh if token expiry is close
     let newToken = null;
     if (exp - now < TOKEN_REFRESH_THRESHOLD_MS) {
       const { iat, exp: _exp, ...rest } = decoded;
       newToken = generateToken(rest);
     }
 
-    // Register session activity
     activeSessions.set(sessionKey, {
       lastActivity: now,
       hotelId: decoded.hotelId,
@@ -642,7 +596,7 @@ app.get('/api/auth/validate', (req, res) => {
       },
       expiresAt: new Date(exp).toISOString(),
       idleTimeoutMs: idleMs,
-      newToken // Frontend should update stored token if this is present
+      newToken
     });
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -652,7 +606,6 @@ app.get('/api/auth/validate', (req, res) => {
   }
 });
 
-// ✅ NEW: Idle timeout config endpoint (frontend reads this on load)
 app.get('/api/auth/config', (req, res) => {
   res.json({
     success: true,
@@ -665,7 +618,6 @@ app.get('/api/auth/config', (req, res) => {
   });
 });
 
-// ✅ NEW: Explicit session keep-alive ping (frontend calls this on user activity)
 app.post('/api/auth/ping', (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.json({ success: false, error: 'No token' });
@@ -684,7 +636,6 @@ app.post('/api/auth/ping', (req, res) => {
   }
 });
 
-// ==================== TENANT MANAGEMENT ====================
 app.get('/api/tenant', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -773,7 +724,6 @@ app.post('/api/tenant', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ Hotel Registration API (Super Admin Only)
 app.post('/api/super/tenants/register', superAdminMiddleware, async (req, res) => {
   try {
     const {
@@ -822,16 +772,16 @@ app.post('/api/super/tenants/register', superAdminMiddleware, async (req, res) =
 
     await db.collection('users').insertOne(adminUser);
 
-    await db.collection('settings').insertOne({
-      hotelId, hotelName,
-      currencySymbol: currencySymbol || '$',
-      priceFormat: 'symbol-first',
-      taxRate: 0,
-      wifiSSID: `${hotelName.replace(/\s+/g, '_')}_Guest`,
-      wifiPassword: 'Welcome123',
+    await db.collection('config').insertOne({
+      hotelId,
+      name: hotelName,
+      currency: currency || 'SAR',
+      currencySymbol: currencySymbol || '﷼',
+      wifi: `${hotelName.replace(/\s+/g, '_')}_Guest`,
+      airportPrice: 115,
+      localPrice: 60,
       language: language || 'en',
       theme: { primaryColor: '#667eea' },
-      transport: { airport: 30, local: 15 },
       updatedAt: new Date()
     });
 
@@ -920,12 +870,10 @@ app.delete('/api/super/tenants/:hotelId', superAdminMiddleware, async (req, res)
       db.collection('staff').deleteMany({ hotelId }),
       db.collection('logs').deleteMany({ hotelId }),
       db.collection('sessions').deleteMany({ hotelId }),
-      db.collection('settings').deleteOne({ hotelId }),
+      db.collection('config').deleteOne({ hotelId }),
       db.collection('users').deleteMany({ hotelId }),
-      // ✅ NEW: Delete from new collections
       db.collection('announcements').deleteMany({ hotelId }),
-      db.collection('policies').deleteMany({ hotelId }),
-      db.collection('config').deleteMany({ hotelId })
+      db.collection('policies').deleteMany({ hotelId })
     ]);
 
     await db.collection('tenants').deleteOne({ hotelId });
@@ -1025,7 +973,6 @@ app.get('/api/super/transactions', superAdminMiddleware, async (req, res) => {
   }
 });
 
-// ==================== AUTHENTICATION ====================
 app.post('/api/super/admins/register', superAdminMiddleware, async (req, res) => {
   try {
     const { email, password, name, hotelId, role, permissions } = req.body;
@@ -1054,7 +1001,6 @@ app.post('/api/super/admins/register', superAdminMiddleware, async (req, res) =>
   }
 });
 
-// ✅ Apply rate limiting to login route
 app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async (req, res) => {
   try {
     const { email, password, hotelId } = req.body;
@@ -1068,7 +1014,6 @@ app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async
           permissions: ['rooms', 'guests', 'food', 'inventory', 'requests', 'settings']
         };
         const token = generateToken(tokenPayload);
-        // Register session
         const sessionKey = token.substring(token.length - 32);
         activeSessions.set(sessionKey, { lastActivity: Date.now(), hotelId: hotelId || 'HOTEL001', email });
 
@@ -1114,7 +1059,6 @@ app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async
     };
     const token = generateToken(tokenPayload);
 
-    // ✅ Register session on login
     const sessionKey = token.substring(token.length - 32);
     activeSessions.set(sessionKey, {
       lastActivity: Date.now(),
@@ -1141,7 +1085,7 @@ app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async
       success: true, token,
       user: { email: user.email, name: user.name, role: user.role, permissions: user.permissions },
       hotelId: hotelId || user.hotelId || 'HOTEL001',
-      idleTimeoutMs: IDLE_TIMEOUT_MS  // ✅ Tell frontend what the idle timeout is
+      idleTimeoutMs: IDLE_TIMEOUT_MS
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -1155,7 +1099,6 @@ app.get('/api/admin/check-session', (req, res) => {
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
 
-      // Check idle timeout
       const sessionKey = token.substring(token.length - 32);
       const session = activeSessions.get(sessionKey);
       if (session) {
@@ -1164,7 +1107,6 @@ app.get('/api/admin/check-session', (req, res) => {
           activeSessions.delete(sessionKey);
           return res.json({ success: false, isAdmin: false, code: 'SESSION_IDLE_TIMEOUT' });
         }
-        // Update activity
         session.lastActivity = Date.now();
       }
 
@@ -1197,7 +1139,6 @@ app.get('/api/admin/check-session', (req, res) => {
 });
 
 app.post('/api/admin/logout', (req, res) => {
-  // ✅ Clean up session from memory
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (token) {
     const sessionKey = token.substring(token.length - 32);
@@ -1210,13 +1151,13 @@ app.post('/api/admin/logout', (req, res) => {
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
-// ==================== ROOMS CRUD ====================
+// ✅ FIXED: ROOMS - Return array directly
 app.get('/api/rooms', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const rooms = await db.collection('rooms').find({ hotelId }).sort({ number: 1 }).toArray();
-    res.json({ success: true, data: rooms, count: rooms.length });
+    res.json(rooms);
   } catch (error) {
     console.error('Rooms fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1226,9 +1167,9 @@ app.get('/api/rooms', async (req, res) => {
 app.get('/api/rooms/available', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const rooms = await db.collection('rooms').find({ hotelId, status: 'Vacant' }).sort({ number: 1 }).toArray();
-    res.json({ success: true, data: rooms, count: rooms.length });
+    res.json(rooms);
   } catch (error) {
     console.error('Available rooms fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1338,13 +1279,13 @@ app.delete('/api/rooms/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== GUESTS CRUD ====================
+// ✅ FIXED: GUESTS - Return array directly
 app.get('/api/guests', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const guests = await db.collection('guests').find({ hotelId }).sort({ createdAt: -1 }).toArray();
-    res.json({ success: true, data: guests, count: guests.length });
+    res.json(guests);
   } catch (error) {
     console.error('Guests fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1457,13 +1398,13 @@ app.delete('/api/guests/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== FOOD MENU CRUD ====================
+// ✅ FIXED: FOOD - Return array directly
 app.get('/api/food', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const food = await db.collection('food').find({ hotelId }).sort({ name: 1 }).toArray();
-    res.json({ success: true, data: food, count: food.length });
+    res.json(food);
   } catch (error) {
     console.error('Food fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1568,13 +1509,13 @@ app.delete('/api/food/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== INVENTORY CRUD ====================
+// ✅ FIXED: INVENTORY - Return array directly
 app.get('/api/inventory', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const inventory = await db.collection('inventory').find({ hotelId }).sort({ name: 1 }).toArray();
-    res.json({ success: true, data: inventory, count: inventory.length });
+    res.json(inventory);
   } catch (error) {
     console.error('Inventory fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1697,11 +1638,11 @@ app.delete('/api/inventory/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== SERVICE REQUESTS CRUD ====================
+// ✅ FIXED: REQUESTS - Return array directly
 app.get('/api/requests', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
 
     const { status, priority, department } = req.query;
     let filter = { hotelId };
@@ -1710,7 +1651,7 @@ app.get('/api/requests', async (req, res) => {
     if (department) filter.department = department;
 
     const requests = await db.collection('requests').find(filter).sort({ createdAt: -1 }).toArray();
-    res.json({ success: true, data: requests, count: requests.length });
+    res.json(requests);
   } catch (error) {
     console.error('Requests fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1820,7 +1761,7 @@ app.delete('/api/requests/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== SETTINGS ====================
+// ✅ FIXED: SETTINGS - Return object directly (not wrapped)
 app.get('/api/settings', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1832,10 +1773,10 @@ app.get('/api/settings', async (req, res) => {
       transport: { airport: 30, local: 15 }, updatedAt: new Date()
     };
 
-    if (!dbConnected) return res.json({ success: true, data: defaultSettings });
+    if (!dbConnected) return res.json(defaultSettings);
 
     const settings = await db.collection('settings').findOne({ hotelId });
-    res.json({ success: true, data: settings || defaultSettings });
+    res.json(settings || defaultSettings);
   } catch (error) {
     console.error('Settings fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1877,13 +1818,13 @@ app.put('/api/settings', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== BOOKINGS CRUD ====================
+// ✅ FIXED: BOOKINGS - Return array directly
 app.get('/api/bookings', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const bookings = await db.collection('bookings').find({ hotelId }).sort({ createdAt: -1 }).toArray();
-    res.json({ success: true, data: bookings, count: bookings.length });
+    res.json(bookings);
   } catch (error) {
     console.error('Bookings fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1987,13 +1928,13 @@ app.delete('/api/bookings/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== BLACKLIST CRUD ====================
+// ✅ FIXED: BLACKLIST - Return array directly
 app.get('/api/blacklist', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const blacklist = await db.collection('blacklist').find({ hotelId }).sort({ date: -1 }).toArray();
-    res.json({ success: true, data: blacklist, count: blacklist.length });
+    res.json(blacklist);
   } catch (error) {
     console.error('Blacklist fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2049,13 +1990,13 @@ app.delete('/api/blacklist/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== MAINTENANCE CRUD ====================
+// ✅ FIXED: MAINTENANCE - Return array directly
 app.get('/api/maintenance', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const maintenance = await db.collection('maintenance').find({ hotelId }).sort({ scheduled: 1 }).toArray();
-    res.json({ success: true, data: maintenance, count: maintenance.length });
+    res.json(maintenance);
   } catch (error) {
     console.error('Maintenance fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2148,13 +2089,13 @@ app.delete('/api/maintenance/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== REVIEWS CRUD ====================
+// ✅ FIXED: REVIEWS - Return array directly
 app.get('/api/reviews', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const reviews = await db.collection('reviews').find({ hotelId }).sort({ date: -1 }).toArray();
-    res.json({ success: true, data: reviews, count: reviews.length });
+    res.json(reviews);
   } catch (error) {
     console.error('Reviews fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2193,13 +2134,13 @@ app.post('/api/reviews', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== STAFF CRUD ====================
+// ✅ FIXED: STAFF - Return array directly
 app.get('/api/staff', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const staff = await db.collection('staff').find({ hotelId }).sort({ name: 1 }).toArray();
-    res.json({ success: true, data: staff, count: staff.length });
+    res.json(staff);
   } catch (error) {
     console.error('Staff fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2302,13 +2243,13 @@ app.delete('/api/staff/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== LOGS CRUD ====================
+// ✅ FIXED: LOGS - Return array directly
 app.get('/api/logs', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const logs = await db.collection('logs').find({ hotelId }).sort({ timestamp: -1 }).limit(100).toArray();
-    res.json({ success: true, data: logs, count: logs.length });
+    res.json(logs);
   } catch (error) {
     console.error('Logs fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2353,36 +2294,91 @@ app.delete('/api/logs', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== CONFIG (alias for settings) ====================
+// ✅ FIXED: CONFIG - Return object directly (matches frontend HotelCfg structure)
 app.get('/api/config', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    const defaultConfig = { hotelId, name: 'Crown Plaza Hotel', currency: 'SAR', currencySymbol: '﷼', wifi: 'CrownPlaza@2024', airportPrice: 115, localPrice: 60 };
+    const defaultConfig = { 
+      _id: `config_${hotelId}`,
+      hotelId, 
+      name: 'Crown Plaza Hotel', 
+      currency: 'SAR', 
+      wifi: 'CrownPlaza@2024', 
+      airportPrice: 115, 
+      localPrice: 60,
+      _version: 1,
+      updatedAt: new Date()
+    };
 
-    if (!dbConnected) return res.json({ success: true, data: defaultConfig });
+    if (!dbConnected) return res.json(defaultConfig);
 
-    const settings = await db.collection('settings').findOne({ hotelId });
-    res.json({ success: true, data: settings || defaultConfig });
+    const config = await db.collection('config').findOne({ hotelId });
+    res.json(config || defaultConfig);
   } catch (error) {
     console.error('Config fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
+// ✅ NEW: POST /api/config - ADDED FOR FIRST-TIME SAVE
+app.post('/api/config', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const config = { 
+      ...req.body, 
+      hotelId, 
+      _id: req.body._id || `config_${hotelId}`,
+      _version: 1,
+      updatedAt: new Date() 
+    };
+
+    if (!dbConnected) {
+      broadcast(hotelId, 'cfg_upd', config, req.clientId);
+      return res.status(201).json({ success: true, data: config });
+    }
+
+    const result = await db.collection('config').findOneAndUpdate(
+      { hotelId },
+      { $set: config },
+      { upsert: true, returnDocument: 'after' }
+    );
+
+    const saved = result.value || result;
+    broadcast(hotelId, 'cfg_upd', saved, req.clientId);
+    res.status(201).json({ success: true, data: saved });
+  } catch (error) {
+    console.error('Config POST error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ✅ FIXED: CONFIG PUT - Save with correct structure
 app.put('/api/config', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const config = req.body;
 
     if (!dbConnected) {
-      const updated = { ...config, hotelId, updatedAt: new Date() };
+      const updated = { ...config, hotelId, _id: `config_${hotelId}`, updatedAt: new Date() };
       broadcast(hotelId, 'cfg_upd', updated, req.clientId);
       return res.json({ success: true, message: 'Config saved (offline)', data: updated });
     }
 
-    const updateData = { ...config, hotelId, updatedAt: new Date() };
-    await db.collection('settings').updateOne({ hotelId }, { $set: updateData }, { upsert: true });
-    const updated = await db.collection('settings').findOne({ hotelId });
+    const updateData = { 
+      ...config, 
+      hotelId, 
+      _id: `config_${hotelId}`,
+      _version: (config._version || 0) + 1,
+      updatedAt: new Date() 
+    };
+
+    await db.collection('config').updateOne(
+      { hotelId }, 
+      { $set: updateData }, 
+      { upsert: true }
+    );
+
+    const updated = await db.collection('config').findOne({ hotelId });
     broadcast(hotelId, 'cfg_upd', updated, req.clientId);
     res.json({ success: true, message: 'Config saved', data: updated });
   } catch (error) {
@@ -2391,13 +2387,13 @@ app.put('/api/config', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== ANNOUNCEMENTS CRUD ====================
+// ✅ FIXED: ANNOUNCEMENTS - Return array directly
 app.get('/api/announcements', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const announcements = await db.collection('announcements').find({ hotelId }).sort({ createdAt: -1 }).toArray();
-    res.json({ success: true, data: announcements, count: announcements.length });
+    res.json(announcements);
   } catch (error) {
     console.error('Announcements fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2519,13 +2515,13 @@ app.delete('/api/announcements/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== POLICIES CRUD ====================
+// ✅ FIXED: POLICIES - Return array directly
 app.get('/api/policies', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    if (!dbConnected) return res.json({ success: true, data: [], count: 0 });
+    if (!dbConnected) return res.json([]);
     const policies = await db.collection('policies').find({ hotelId }).toArray();
-    res.json({ success: true, data: policies, count: policies.length });
+    res.json(policies);
   } catch (error) {
     console.error('Policies fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2643,7 +2639,6 @@ app.delete('/api/policies/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== DASHBOARD STATS ====================
 app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2691,8 +2686,6 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== ✅ NEW: PAGE STATE PERSISTENCE ====================
-// Stores last active page per user (for refresh stability)
 app.post('/api/user/page-state', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2700,8 +2693,6 @@ app.post('/api/user/page-state', authMiddleware, async (req, res) => {
     const email = req.user?.email;
 
     if (!email) return res.status(400).json({ success: false, error: 'User not identified' });
-
-    const key = `${hotelId}_${email}`;
 
     if (!dbConnected) {
       return res.json({ success: true, message: 'Page state saved (memory only)' });
@@ -2744,7 +2735,6 @@ app.get('/api/user/page-state', authMiddleware, async (req, res) => {
   }
 });
 
-// ==================== FRONTEND ROUTES ====================
 app.get('/admin', (req, res) => {
   if (req.session.isAdmin) {
     res.sendFile(path.join(publicPath, 'admin.html'));
@@ -2757,7 +2747,6 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
-// ✅ IMPORTANT: API 404 before wildcard
 app.use('/api/*', (req, res) => {
   res.status(404).json({ success: false, error: 'API endpoint not found' });
 });
@@ -2766,13 +2755,11 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
-// ==================== ERROR HANDLING ====================
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
-// ==================== SERVER START ====================
 server.listen(PORT, '0.0.0.0', async () => {
   console.log(`\n🚀 Server running on port ${PORT}`);
   console.log(`🌐 URL: http://localhost:${PORT}`);
@@ -2790,6 +2777,7 @@ server.listen(PORT, '0.0.0.0', async () => {
   console.log(`📜 Policies API: /api/policies`);
   console.log(`📢 Announcements API: /api/announcements`);
   console.log(`⚙️ Config API: /api/config`);
+  console.log(`✅ POST /api/config: ADDED (fixes settings persistence)`);
   console.log(`\n💡 NEW .env variables:`);
   console.log(`   IDLE_TIMEOUT_MS=1800000        (default: 30 min)`);
   console.log(`   TOKEN_EXPIRY=7d                 (default: 7 days)`);
@@ -2798,7 +2786,6 @@ server.listen(PORT, '0.0.0.0', async () => {
   await connectDB();
 });
 
-// ==================== GRACEFUL SHUTDOWN ====================
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down gracefully...');
   if (client) await client.close();

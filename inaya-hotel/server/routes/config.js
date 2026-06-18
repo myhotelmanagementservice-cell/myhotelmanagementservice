@@ -51,7 +51,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// POST create config
+// POST create or update config (FIXED: upsert instead of 400 error)
 router.post('/', async (req, res) => {
     try {
         const { hotelId, name, currency, wifi, airportPrice, localPrice, currencies } = req.body;
@@ -61,26 +61,37 @@ router.post('/', async (req, res) => {
 
         // Check if config already exists
         let config = await Config.findOne({ hotelId });
+
         if (config) {
-            return res.status(400).json({ error: 'Config already exists for this hotel. Use PUT to update.' });
+            // Already exists — update kar do (400 error nahi dena)
+            if (name !== undefined) config.name = name;
+            if (currency !== undefined) config.currency = currency;
+            if (wifi !== undefined) config.wifi = wifi;
+            if (airportPrice !== undefined) config.airportPrice = airportPrice;
+            if (localPrice !== undefined) config.localPrice = localPrice;
+            if (currencies !== undefined) config.currencies = currencies;
+            config._version = (config._version || 0) + 1;
+            config.updatedAt = new Date();
+        } else {
+            // Naya config banao
+            config = new Config({
+                hotelId,
+                name: name || 'Crown Plaza Hotel',
+                currency: currency || 'SAR',
+                wifi: wifi || 'CrownPlaza@2024',
+                airportPrice: airportPrice || 115,
+                localPrice: localPrice || 60,
+                currencies: currencies || {
+                    INR: { symbol: '₹', rate: 83.50, flag: '🇮🇳', custom: false },
+                    SAR: { symbol: '﷼', rate: 3.75, flag: '🇸🇦', custom: false },
+                    AED: { symbol: 'د.إ', rate: 3.67, flag: '🇦🇪', custom: false },
+                    USD: { symbol: '$', rate: 1.00, flag: '🇺🇸', custom: false },
+                    KWD: { symbol: 'د.ك', rate: 0.31, flag: '🇰🇼', custom: false }
+                },
+                _version: 1
+            });
         }
 
-        config = new Config({
-            hotelId,
-            name: name || 'Crown Plaza Hotel',
-            currency: currency || 'SAR',
-            wifi: wifi || 'CrownPlaza@2024',
-            airportPrice: airportPrice || 115,
-            localPrice: localPrice || 60,
-            currencies: currencies || {
-                INR: { symbol: '₹', rate: 83.50, flag: '🇮🇳', custom: false },
-                SAR: { symbol: '﷼', rate: 3.75, flag: '🇸🇦', custom: false },
-                AED: { symbol: 'د.إ', rate: 3.67, flag: '🇦🇪', custom: false },
-                USD: { symbol: '$', rate: 1.00, flag: '🇺🇸', custom: false },
-                KWD: { symbol: 'د.ك', rate: 0.31, flag: '🇰🇼', custom: false }
-            },
-            _version: 1
-        });
         await config.save();
         res.status(201).json(config);
     } catch (error) {
@@ -89,7 +100,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// PUT update config
+// PUT update config by MongoDB _id
 router.put('/:id', async (req, res) => {
     try {
         const { name, currency, wifi, airportPrice, localPrice, currencies } = req.body;
@@ -97,12 +108,12 @@ router.put('/:id', async (req, res) => {
         if (!config) {
             return res.status(404).json({ error: 'Config not found' });
         }
-        if (name) config.name = name;
-        if (currency) config.currency = currency;
-        if (wifi) config.wifi = wifi;
+        if (name !== undefined) config.name = name;
+        if (currency !== undefined) config.currency = currency;
+        if (wifi !== undefined) config.wifi = wifi;
         if (airportPrice !== undefined) config.airportPrice = airportPrice;
         if (localPrice !== undefined) config.localPrice = localPrice;
-        if (currencies) config.currencies = currencies;
+        if (currencies !== undefined) config.currencies = currencies;
         config._version = (config._version || 0) + 1;
         config.updatedAt = new Date();
         await config.save();
@@ -113,15 +124,16 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// PUT update config by hotelId
+// PUT update config by hotelId (MAIN ROUTE — HTML isko use karta hai)
 router.put('/hotel/:hotelId', async (req, res) => {
     try {
         const { hotelId } = req.params;
         const { name, currency, wifi, airportPrice, localPrice, currencies } = req.body;
 
         let config = await Config.findOne({ hotelId });
+
         if (!config) {
-            // Create new config if not exists
+            // Config exist nahi karta — naya banao
             config = new Config({
                 hotelId,
                 name: name || 'Crown Plaza Hotel',
@@ -139,15 +151,17 @@ router.put('/hotel/:hotelId', async (req, res) => {
                 _version: 1
             });
         } else {
-            if (name) config.name = name;
-            if (currency) config.currency = currency;
-            if (wifi) config.wifi = wifi;
+            // Exist karta hai — update karo
+            if (name !== undefined) config.name = name;
+            if (currency !== undefined) config.currency = currency;
+            if (wifi !== undefined) config.wifi = wifi;
             if (airportPrice !== undefined) config.airportPrice = airportPrice;
             if (localPrice !== undefined) config.localPrice = localPrice;
-            if (currencies) config.currencies = currencies;
+            if (currencies !== undefined) config.currencies = currencies;
             config._version = (config._version || 0) + 1;
             config.updatedAt = new Date();
         }
+
         await config.save();
         res.json(config);
     } catch (error) {
@@ -156,7 +170,7 @@ router.put('/hotel/:hotelId', async (req, res) => {
     }
 });
 
-// DELETE config
+// DELETE config by id
 router.delete('/:id', async (req, res) => {
     try {
         const config = await Config.findByIdAndDelete(req.params.id);

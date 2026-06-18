@@ -279,7 +279,8 @@ body.high-contrast{filter:contrast(1.4) saturate(1.3)}
 </div>
 </div>
 <div id="modals"></div>
-<script>
+
+  <script>
 // ============================================================
 // COMPLETE TRANSLATIONS - English, Hindi, Arabic
 // ============================================================
@@ -4326,7 +4327,7 @@ function buildTabContent(id) {
         case 'blacklist':
             return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🚫 Blacklist</h3><button class="btn-primary" style="background:#ef4444" onclick="openModal('blacklistModal')" data-i18n="blockGuest">+ Block Guest</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th data-i18n="nameLbl">Name</th><th data-i18n="room">Room</th><th data-i18n="reason">Reason</th><th data-i18n="date">Date</th><th data-i18n="actions">Actions</th></tr></thead><tbody id="blTbody"></tbody></table></div></div>`;
         case 'reports':
-            return `<div class="card"><h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px" data-i18n="tabReports">📈 Reports</h3><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;align-items:center"><select class="inp" id="rptType" style="width:auto"><option value="occupancy">🏨 Occupancy</option><option value="revenue">💰 Revenue</option><option value="requests">📋 Requests</option><option value="guests">👥 Guests</option></select><input type="date" class="inp" id="rptFrom" style="width:auto"><input type="date" class="inp" id="rptTo" style="width:auto"><button class="btn-primary" onclick="genReport()" data-i18n="generate">Generate</button><button class="btn-primary" style="background:#10b981" onclick="exportReport()" data-i18n="exportBtn">Export</button></div><div id="rptOut" style="background:var(--card2);border-radius:8px;padding:12px;min-height:80px;font-size:12px"></div></div>`;
+            return `<div class="card"><h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px" data-i18n="tabReports">📈 Reports</h3><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;align-items:center"><select class="inp" id="rptType" style="width:auto"><option value="occupancy">🏨 Occupancy — अधिभोग — الإشغال</option><option value="revenue">💵 Revenue — राजस्व — الإيرادات</option><option value="requests">📩 Request — अनुरोध — الطلبات</option><option value="guests">👤 Guest — अतिथि — النزيل</option></select><input type="date" class="inp" id="rptFrom" style="width:auto"><input type="date" class="inp" id="rptTo" style="width:auto"><button class="btn-primary" onclick="genReport()" data-i18n="generate">Generate</button><button class="btn-primary" style="background:#10b981" onclick="exportReport()" data-i18n="exportBtn">Export</button></div><div id="rptOut" style="background:var(--card2);border-radius:8px;padding:12px;min-height:80px;font-size:12px"></div></div>`;
         case 'reviews':
             return `<div class="card"><h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px" data-i18n="tabReviews">⭐ Reviews</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;margin-bottom:12px"><div class="stat-card"><div class="stat-val" id="avgR" style="color:#f59e0b">—</div><div class="stat-lbl">Avg Rating</div></div><div class="stat-card"><div class="stat-val" id="totR">0</div><div class="stat-lbl">Total</div></div><div class="stat-card"><div class="stat-val" id="recR" style="color:#10b981">—%</div><div class="stat-lbl">Recommend</div></div></div><div id="reviewsList"></div></div>`;
         case 'qrcodes':
@@ -4413,13 +4414,13 @@ function openPolicyModal(policyId = null) {
         `<form onsubmit="savePolicy(event, '${policyId || ''}')">
             <div class="form-row"><label class="lbl">Policy Type</label>
                 <select class="inp" id="polType" required>
-                    <option value="privacy" ${p?.type === 'privacy' ? 'selected' : ''}>Privacy Policy</option>
-                    <option value="terms" ${p?.type === 'terms' ? 'selected' : ''}>Terms & Conditions</option>
-                    <option value="checkin" ${p?.type === 'checkin' ? 'selected' : ''}>Check-in Policy</option>
-                    <option value="checkout" ${p?.type === 'checkout' ? 'selected' : ''}>Check-out Policy</option>
-                    <option value="cancellation" ${p?.type === 'cancellation' ? 'selected' : ''}>Cancellation Policy</option>
-                    <option value="refund" ${p?.type === 'refund' ? 'selected' : ''}>Refund Policy</option>
-                    <option value="custom" ${p?.type === 'custom' ? 'selected' : ''}>Custom Policy</option>
+                    <option value="privacy" ${p?.type === 'privacy' ? 'selected' : ''}>🔒 Privacy Policy — गोपनीयता नीति — سياسة الخصوصية</option>
+                    <option value="terms" ${p?.type === 'terms' ? 'selected' : ''}>📜 Terms & Conditions — नियम एवं शर्तें — الشروط والأحكام</option>
+                    <option value="checkin" ${p?.type === 'checkin' ? 'selected' : ''}>🛎️ Check-in Policy — चेक-इन नीति — سياسة تسجيل الدخول</option>
+                    <option value="checkout" ${p?.type === 'checkout' ? 'selected' : ''}>🚪 Check-out Policy — चेक-आउट नीति — سياسة تسجيل المغادرة</option>
+                    <option value="cancellation" ${p?.type === 'cancellation' ? 'selected' : ''}>❌ Cancellation Policy — रद्दीकरण नीति — سياسة الإلغاء</option>
+                    <option value="refund" ${p?.type === 'refund' ? 'selected' : ''}>💰 Refund Policy — धनवापसी नीति — سياسة استرداد الأموال</option>
+                    <option value="custom" ${p?.type === 'custom' ? 'selected' : ''}>⚙️ Custom Policy — कस्टम नीति — سياسة مخصصة</option>
                 </select>
             </div>
             <div class="form-row"><label class="lbl">English Content</label><textarea class="inp" id="polEn" rows="3" required>${p?.content?.en || ''}</textarea></div>
@@ -4598,8 +4599,12 @@ function buildModals() {
                     <div class="form-2">
                         <div class="form-row"><label class="lbl" data-i18n="roomType">Type</label>
                             <select class="inp" id="mRoomType">
-                                <option>Standard</option><option>Deluxe</option><option>Suite</option>
-                                <option>Presidential</option><option>Quad Room</option><option>Family Room</option>
+                                <option value="Standard">🛏️ Standard — स्टैंडर्ड — قياسية</option>
+                                <option value="Deluxe">✨ Deluxe — डीलक्स — ديلوكس</option>
+                                <option value="Suite">🏡 Suite — सुइट — جناح</option>
+                                <option value="Presidential">👑 Presidential — प्रेसिडेंशियल — جناح رئاسي</option>
+                                <option value="Quad Room">🛌 Quad room — चार-बिस्तर कक्ष — غرفة رباعية</option>
+                                <option value="Family Room">👨‍👩‍👧‍👦 Family room — पारिवारिक कक्ष — غرفة عائلية</option>
                             </select>
                         </div>
                         <div class="form-row"><label class="lbl" data-i18n="price">Price</label><input class="inp" id="mRoomPrice" type="number" required></div>
@@ -4611,22 +4616,28 @@ function buildModals() {
                     <div class="form-2">
                         <div class="form-row"><label class="lbl" data-i18n="roomView">View</label>
                             <select class="inp" id="mRoomView">
-                                <option>City</option><option>Garden</option><option>Pool</option><option>Sea</option>
+                                <option value="City">🌆 City — सिटी — مدينة</option>
+                                <option value="Garden">🌿 Garden — गार्डन — حديقة</option>
+                                <option value="Pool">🏊 Pool — पूल — مسبح</option>
+                                <option value="Sea">🌊 Sea — सी — بحر</option>
                             </select>
                         </div>
                         <div class="form-row"><label class="lbl" data-i18n="status">Status</label>
                             <select class="inp" id="mRoomStatus">
-                                <option>Vacant</option><option>Occupied</option><option>Cleaning</option><option>Maintenance</option>
+                                <option value="Vacant">🟢 Vacant — खाली — شاغرة</option>
+                                <option value="Occupied">🔴 Occupied — अधिभोगित — مشغولة</option>
+                                <option value="Cleaning">🧹 Cleaning — सफाई — قيد التنظيف</option>
+                                <option value="Maintenance">🔧 Maintenance — रखरखाव — قيد الصيانة</option>
                             </select>
                         </div>
                     </div>
                     <div class="form-row"><label class="lbl" data-i18n="roomAmenities">Amenities</label>
                         <div id="mRoomAmenities" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
-                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="WiFi"> ${t('amenitiesWifi')}</label>
-                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="TV"> ${t('amenitiesTV')}</label>
-                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="AC"> ${t('amenitiesAC')}</label>
-                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="MiniBar"> ${t('amenitiesMiniBar')}</label>
-                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="Safe"> ${t('amenitiesSafe')}</label>
+                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="WiFi"> 📶 Wifi — वाई-फाई — واي فاي</label>
+                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="TV"> 📺 Tv — टेलीविजन — تلفاز</label>
+                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="AC"> ❄️ Ac — एयर कंडीशनर — مكيف هواء</label>
+                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="MiniBar"> 🍷 Mini bar — मिनी बार — ميني بار</label>
+                            <label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" value="Safe"> 🔐 Safe — तिजोरी — خزنة</label>
                         </div>
                     </div>
                     <div class="form-row"><label class="lbl" data-i18n="roomDescription">Description</label><textarea class="inp" id="mRoomDesc" rows="2"></textarea></div>
@@ -4647,9 +4658,9 @@ function buildModals() {
                     <div class="form-row"><label class="lbl">Check-in</label><input class="inp" id="mGCheckin" type="date"></div>
                     <div class="form-row"><label class="lbl" data-i18n="status">Status</label>
                         <select class="inp" id="mGStatus">
-                            <option value="active">✅ ${t('active')}</option>
-                            <option value="checked_out">🚪 ${t('checkedOut')}</option>
-                            <option value="blocked">🚫 ${t('blocked')}</option>
+                            <option value="active">✅ Active — सक्रिय — نشط</option>
+                            <option value="checked_out">🚪 CheckedOut — चेक-आउट किया गया — تم تسجيل المغادرة</option>
+                            <option value="blocked">⛔ Blocked — अवरुद्ध — محظور</option>
                         </select>
                     </div>
                     <div style="display:flex;gap:4px;margin-top:14px">
@@ -4668,7 +4679,10 @@ function buildModals() {
                     <div class="form-row"><label class="lbl">Emoji</label><input class="inp" id="mFEmoji" placeholder="🍔" style="text-align:center"></div></div>
                     <div class="form-row"><label class="lbl" data-i18n="category">Category</label>
                         <select class="inp" id="mFCat">
-                            <option>Main Course</option><option>Appetizer</option><option>Dessert</option><option>Beverage</option>
+                            <option value="Main Course">🍽️ Main Course — मुख्य कोर्स — طبق رئيسي</option>
+                            <option value="Appetizer">🥗 Appetizer — क्षुधावर्धक — مقبلات</option>
+                            <option value="Dessert">🍰 Dessert — मिठाई — حلوى</option>
+                            <option value="Beverage">🥤 Beverage — पेय — مشروبات</option>
                         </select>
                     </div>
                     <div style="display:flex;gap:4px;margin-top:14px">
@@ -4687,8 +4701,11 @@ function buildModals() {
                     <div class="form-row"><label class="lbl" data-i18n="unit">Unit</label><input class="inp" id="mIUnit" placeholder="pcs"></div></div>
                     <div class="form-2"><div class="form-row"><label class="lbl" data-i18n="category">Category</label>
                         <select class="inp" id="mICat">
-                            <option>Amenities</option><option>Linen</option><option>Food</option>
-                            <option>Maintenance</option><option>Other</option>
+                            <option value="Amenities">🧴 Amenities — सुविधाएं — وسائل الراحة</option>
+                            <option value="Linen">🛏️ Linen — लिनन — الكتان</option>
+                            <option value="Food">🍽️ Food — भोजन — طعام</option>
+                            <option value="Maintenance">🔧 Maintenance — रखरखाव — صيانة</option>
+                            <option value="Other">📦 Other — अन्य — أخرى</option>
                         </select>
                     </div>
                     <div class="form-row"><label class="lbl" data-i18n="minAlert">Min Alert</label><input class="inp" id="mIMin" type="number" value="10"></div></div>
@@ -4723,9 +4740,9 @@ function buildModals() {
                     <div class="form-2"><div class="form-row"><label class="lbl" data-i18n="assigned">Assigned To</label><input class="inp" id="mMAssigned"></div>
                     <div class="form-row"><label class="lbl" data-i18n="priority">Priority</label>
                         <select class="inp" id="mMPrio">
-                            <option value="low">🟢 ${t('low')}</option>
-                            <option value="medium" selected>🟡 ${t('medium')}</option>
-                            <option value="high">🔴 ${t('high')}</option>
+                            <option value="low">🟢 Low — निम्न — منخفض</option>
+                            <option value="medium" selected>🟡 Medium — मध्यम — متوسط</option>
+                            <option value="high">🔴 High — उच्च — مرتفع</option>
                         </select>
                     </div></div>
                     <div style="display:flex;gap:4px;margin-top:14px">
@@ -4743,8 +4760,12 @@ function buildModals() {
                     <div class="form-row"><label class="lbl" data-i18n="staffRole">Role</label><input class="inp" id="mSRole" required></div>
                     <div class="form-2"><div class="form-row"><label class="lbl" data-i18n="department">Department</label>
                         <select class="inp" id="mSDept">
-                            <option>Admin</option><option>Housekeeping</option><option>Maintenance</option>
-                            <option>Restaurant</option><option>Security</option><option>IT</option>
+                            <option value="Admin">👨‍💼 Admin — प्रशासक — مسؤول النظام</option>
+                            <option value="Housekeeping">🧹 Housekeeping — हाउसकीपिंग — التدبير المنزلي</option>
+                            <option value="Maintenance">🔧 Maintenance — रखरखाव — الصيانة</option>
+                            <option value="Restaurant">🍽️ Restaurant — रेस्टोरेंट — المطعم</option>
+                            <option value="Security">🛡️ Security — सुरक्षा — الأمن</option>
+                            <option value="IT">💻 IT — आईटी — تقنية المعلومات</option>
                         </select>
                     </div>
                     <div class="form-row"><label class="lbl" data-i18n="joinDate">Join Date</label><input class="inp" id="mSJoin" type="date"></div></div>
