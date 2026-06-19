@@ -1,5 +1,5 @@
 require("dotenv").config({ path: __dirname + "/.env" });
-// server.js - Complete Multi-Tenant Hotel SaaS Backend (FIXED v2.2 - POST CONFIG ADDED)
+// server.js - Complete Multi-Tenant Hotel SaaS Backend (FIXED v3.0 - STABLE SYNC & ID HANDLING)
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
@@ -94,6 +94,16 @@ setInterval(() => {
   }
 }, 60 * 60 * 1000);
 
+// ✅ NEW: SAFE ID PARSER (Fixes crash when frontend sends string IDs like 'r_123456')
+const parseId = (id) => {
+  if (!id) return id;
+  try {
+    return ObjectId.isValid(id) ? new ObjectId(id) : id;
+  } catch (e) {
+    return id;
+  }
+};
+
 async function connectDB() {
   try {
     console.log('🔄 Connecting to MongoDB Atlas...');
@@ -147,7 +157,8 @@ function scheduleReconnect() {
 
 async function createIndexes() {
   try {
-    const collections = ['rooms', 'guests', 'food', 'inventory', 'requests', 'blacklist', 'maintenance', 'reviews', 'loyalty', 'staff', 'logs', 'settings', 'tenants', 'bookings', 'users', 'sessions', 'announcements', 'policies', 'config'];
+    // ✅ ADDED 'departments' to collections list
+    const collections = ['rooms', 'guests', 'food', 'inventory', 'requests', 'blacklist', 'maintenance', 'reviews', 'loyalty', 'staff', 'logs', 'settings', 'tenants', 'bookings', 'users', 'sessions', 'announcements', 'policies', 'config', 'departments'];
 
     for (const col of collections) {
       const collection = db.collection(col);
@@ -207,6 +218,10 @@ async function createIndexes() {
       }
       if (col === 'policies' && !indexExistsWithKeys({ isEnabled: 1, hotelId: 1 })) {
         await collection.createIndex({ isEnabled: 1, hotelId: 1 }, { background: true });
+      }
+      // ✅ NEW: Departments Index
+      if (col === 'departments' && !indexExistsWithKeys({ key: 1, hotelId: 1 })) {
+        await collection.createIndex({ key: 1, hotelId: 1 }, { unique: true, background: true });
       }
     }
     console.log('✅ All indexes verified/created successfully');
@@ -279,6 +294,14 @@ app.use('/api', tenantMiddleware);
 app.use('/api', clientInfoMiddleware);
 app.use('/api', idempotencyMiddleware);
 
+const departmentRoutes = require('./routes/department.routes');
+
+// Socket.io instance ko app mein store karein
+app.set('io', io);
+
+// Route register karein
+app.use('/api/departments', departmentRoutes);
+
 const checkSubscription = async (req, res, next) => {
   try {
     const hotelId = req.hotelId;
@@ -318,6 +341,7 @@ app.use('/api/staff', checkSubscription);
 app.use('/api/announcements', checkSubscription);
 app.use('/api/policies', checkSubscription);
 app.use('/api/config', checkSubscription);
+app.use('/api/departments', checkSubscription);
 
 const generateToken = (payload, expiresIn = TOKEN_EXPIRY) => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn });
@@ -437,6 +461,7 @@ app.use('/api/dashboard', checkIdleTimeout);
 app.use('/api/announcements', checkIdleTimeout);
 app.use('/api/policies', checkIdleTimeout);
 app.use('/api/config', checkIdleTimeout);
+app.use('/api/departments', checkIdleTimeout);
 
 setInterval(() => {
   const now = Date.now();
@@ -493,6 +518,8 @@ io.on('connection', (socket) => {
   socket.on('blacklist_upd', (payload) => broadcastEvent('blacklist_upd', payload));
   socket.on('maintenance_upd', (payload) => broadcastEvent('maintenance_upd', payload));
   socket.on('logs_upd', (payload) => broadcastEvent('logs_upd', payload));
+  // ✅ NEW: Departments Sync
+  socket.on('dept_upd', (payload) => broadcastEvent('dept_upd', payload));
 
   socket.on('leave_hotel', (hotelId) => {
     socket.leave(`hotel_${hotelId}`);
@@ -523,7 +550,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     message: 'Inaya Hotel Management System API',
     status: 'OK',
-    version: '2.2.0',
+    version: '3.0.0',
     mongodb: dbConnected ? 'connected' : 'disconnected',
     socket: io.engine.clientsCount,
     activeSessions: activeSessions.size,
@@ -873,7 +900,9 @@ app.delete('/api/super/tenants/:hotelId', superAdminMiddleware, async (req, res)
       db.collection('config').deleteOne({ hotelId }),
       db.collection('users').deleteMany({ hotelId }),
       db.collection('announcements').deleteMany({ hotelId }),
-      db.collection('policies').deleteMany({ hotelId })
+      db.collection('policies').deleteMany({ hotelId }),
+      // ✅ NEW: Delete departments
+      db.collection('departments').deleteMany({ hotelId })
     ]);
 
     await db.collection('tenants').deleteOne({ hotelId });
@@ -994,7 +1023,8 @@ app.post('/api/super/admins/register', superAdminMiddleware, async (req, res) =>
     const result = await db.collection('users').insertOne(user);
     user._id = result.insertedId;
     delete user.password;
-    res.status(201).json({ success: true, message: 'Admin created', data: user });
+    // ✅ FIXED: Return user at root level
+    res.status(201).json({ ...user, success: true, message: 'Admin created' });
   } catch (error) {
     console.error('Admin register error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1179,36 +1209,42 @@ app.get('/api/rooms/available', async (req, res) => {
 app.post('/api/rooms', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    const { number, type, price, status, guestName, amenities } = req.body;
+    const { number, type, price, basePriceSAR, floor, maxGuests, view, amenities, description, status, guestName } = req.body;
 
-    if (!number || !type || !price) {
+    if (!number || !type || (!price && !basePriceSAR)) {
       return res.status(400).json({ success: false, error: 'number, type, and price are required' });
     }
 
     if (!dbConnected) {
       const room = {
         _id: 'r_'+Date.now(), hotelId, number: parseInt(number), type,
-        price: parseFloat(price), status: status || 'Vacant',
-        guestName: guestName || null, amenities: amenities || [],
+        price: parseFloat(price || basePriceSAR), basePriceSAR: parseFloat(basePriceSAR || price),
+        floor: floor || 1, maxGuests: maxGuests || 2, view: view || 'City',
+        amenities: amenities || [], description: description || '',
+        status: status || 'Vacant', guestName: guestName || null,
         createdAt: new Date(), updatedAt: new Date()
       };
       broadcast(hotelId, 'room_upd', room, req.clientId);
-      return res.status(201).json({ success: true, message: 'Room added (offline)', data: room });
+      // ✅ FIXED: Spread room at root level so frontend gets _id
+      return res.status(201).json({ ...room, success: true, message: 'Room added (offline)' });
     }
 
     const existing = await db.collection('rooms').findOne({ hotelId, number: parseInt(number) });
     if (existing) return res.status(400).json({ success: false, error: 'Room number already exists' });
 
     const room = {
-      hotelId, number: parseInt(number), type, price: parseFloat(price),
+      hotelId, number: parseInt(number), type, 
+      price: parseFloat(price || basePriceSAR), basePriceSAR: parseFloat(basePriceSAR || price),
+      floor: floor || 1, maxGuests: maxGuests || 2, view: view || 'City',
+      amenities: amenities || [], description: description || '',
       status: status || 'Vacant', guestName: guestName || null,
-      amenities: amenities || [], createdAt: new Date(), updatedAt: new Date()
+      createdAt: new Date(), updatedAt: new Date()
     };
 
     const result = await db.collection('rooms').insertOne(room);
     room._id = result.insertedId;
     broadcast(hotelId, 'room_upd', room, req.clientId);
-    res.status(201).json({ success: true, message: 'Room added', data: room });
+    res.status(201).json({ ...room, success: true, message: 'Room added' });
   } catch (error) {
     console.error('Room create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1219,17 +1255,17 @@ app.put('/api/rooms/:id', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { id } = req.params;
-    const { number, type, price, status, guestName, amenities } = req.body;
+    const { number, type, price, basePriceSAR, floor, maxGuests, view, amenities, description, status, guestName } = req.body;
 
     if (!dbConnected) {
       const updatedRoom = {
         _id: id, hotelId,
         number: number ? parseInt(number) : undefined, type,
-        price: price ? parseFloat(price) : undefined,
-        status, guestName, amenities, updatedAt: new Date()
+        price: price ? parseFloat(price) : undefined, basePriceSAR: basePriceSAR ? parseFloat(basePriceSAR) : undefined,
+        floor, maxGuests, view, amenities, description, status, guestName, updatedAt: new Date()
       };
       broadcast(hotelId, 'room_upd', updatedRoom, req.clientId);
-      return res.json({ success: true, message: 'Room updated (offline)', data: updatedRoom });
+      return res.json({ ...updatedRoom, success: true, message: 'Room updated (offline)' });
     }
 
     const updateData = {
@@ -1237,21 +1273,27 @@ app.put('/api/rooms/:id', authMiddleware, async (req, res) => {
       ...(number && { number: parseInt(number) }),
       ...(type && { type }),
       ...(price && { price: parseFloat(price) }),
+      ...(basePriceSAR && { basePriceSAR: parseFloat(basePriceSAR) }),
+      ...(floor !== undefined && { floor }),
+      ...(maxGuests !== undefined && { maxGuests }),
+      ...(view && { view }),
+      ...(description !== undefined && { description }),
       ...(status && { status }),
       ...(guestName !== undefined && { guestName }),
       ...(amenities && { amenities })
     };
 
+    // ✅ FIXED: Use parseId to prevent crash on string IDs
     const result = await db.collection('rooms').updateOne(
-      { _id: new ObjectId(id), hotelId },
+      { _id: parseId(id), hotelId },
       { $set: updateData }
     );
 
     if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Room not found' });
 
-    const updatedRoom = await db.collection('rooms').findOne({ _id: new ObjectId(id) });
+    const updatedRoom = await db.collection('rooms').findOne({ _id: parseId(id) });
     broadcast(hotelId, 'room_upd', updatedRoom, req.clientId);
-    res.json({ success: true, message: 'Room updated', data: updatedRoom });
+    res.json({ ...updatedRoom, success: true, message: 'Room updated' });
   } catch (error) {
     console.error('Room update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1268,7 +1310,7 @@ app.delete('/api/rooms/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Room deleted (offline)' });
     }
 
-    const result = await db.collection('rooms').deleteOne({ _id: new ObjectId(id), hotelId });
+    const result = await db.collection('rooms').deleteOne({ _id: parseId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Room not found' });
 
     broadcast(hotelId, 'room_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -1279,7 +1321,7 @@ app.delete('/api/rooms/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ FIXED: GUESTS - Return array directly
+// ✅ FIXED: GUESTS
 app.get('/api/guests', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1309,7 +1351,7 @@ app.post('/api/guests', authMiddleware, async (req, res) => {
         createdAt: new Date(), updatedAt: new Date()
       };
       broadcast(hotelId, 'guest_upd', guest, req.clientId);
-      return res.status(201).json({ success: true, message: 'Guest added (offline)', data: guest });
+      return res.status(201).json({ ...guest, success: true, message: 'Guest added (offline)' });
     }
 
     const guest = {
@@ -1323,7 +1365,7 @@ app.post('/api/guests', authMiddleware, async (req, res) => {
     const result = await db.collection('guests').insertOne(guest);
     guest._id = result.insertedId;
     broadcast(hotelId, 'guest_upd', guest, req.clientId);
-    res.status(201).json({ success: true, message: 'Guest added', data: guest });
+    res.status(201).json({ ...guest, success: true, message: 'Guest added' });
   } catch (error) {
     console.error('Guest create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1346,7 +1388,7 @@ app.put('/api/guests/:id', authMiddleware, async (req, res) => {
         status, updatedAt: new Date()
       };
       broadcast(hotelId, 'guest_upd', updatedGuest, req.clientId);
-      return res.json({ success: true, message: 'Guest updated (offline)', data: updatedGuest });
+      return res.json({ ...updatedGuest, success: true, message: 'Guest updated (offline)' });
     }
 
     const updateData = {
@@ -1362,15 +1404,15 @@ app.put('/api/guests/:id', authMiddleware, async (req, res) => {
     };
 
     const result = await db.collection('guests').updateOne(
-      { _id: new ObjectId(id), hotelId },
+      { _id: parseId(id), hotelId },
       { $set: updateData }
     );
 
     if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Guest not found' });
 
-    const updatedGuest = await db.collection('guests').findOne({ _id: new ObjectId(id) });
+    const updatedGuest = await db.collection('guests').findOne({ _id: parseId(id) });
     broadcast(hotelId, 'guest_upd', updatedGuest, req.clientId);
-    res.json({ success: true, message: 'Guest updated', data: updatedGuest });
+    res.json({ ...updatedGuest, success: true, message: 'Guest updated' });
   } catch (error) {
     console.error('Guest update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1387,7 +1429,7 @@ app.delete('/api/guests/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Guest deleted (offline)' });
     }
 
-    const result = await db.collection('guests').deleteOne({ _id: new ObjectId(id), hotelId });
+    const result = await db.collection('guests').deleteOne({ _id: parseId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Guest not found' });
 
     broadcast(hotelId, 'guest_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -1398,7 +1440,7 @@ app.delete('/api/guests/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ FIXED: FOOD - Return array directly
+// ✅ FIXED: FOOD
 app.get('/api/food', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1414,32 +1456,34 @@ app.get('/api/food', async (req, res) => {
 app.post('/api/food', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    const { name, price, category, description, available, image } = req.body;
+    const { name, price, basePriceSAR, category, description, available, image, emoji } = req.body;
 
-    if (!name || !price) return res.status(400).json({ success: false, error: 'name and price are required' });
+    if (!name || (!price && !basePriceSAR)) return res.status(400).json({ success: false, error: 'name and price are required' });
 
     if (!dbConnected) {
       const item = {
-        _id: 'f_'+Date.now(), hotelId, name, price: parseFloat(price),
+        _id: 'f_'+Date.now(), hotelId, name, 
+        price: parseFloat(price || basePriceSAR), basePriceSAR: parseFloat(basePriceSAR || price),
         category: category || 'Main Course', description: description || '',
-        available: available !== false, image: image || null,
+        available: available !== false, image: image || null, emoji: emoji || '🍽️',
         createdAt: new Date(), updatedAt: new Date()
       };
       broadcast(hotelId, 'food_upd', item, req.clientId);
-      return res.status(201).json({ success: true, message: 'Food item added (offline)', data: item });
+      return res.status(201).json({ ...item, success: true, message: 'Food item added (offline)' });
     }
 
     const item = {
-      hotelId, name, price: parseFloat(price),
+      hotelId, name, 
+      price: parseFloat(price || basePriceSAR), basePriceSAR: parseFloat(basePriceSAR || price),
       category: category || 'Main Course', description: description || '',
-      available: available !== false, image: image || null,
+      available: available !== false, image: image || null, emoji: emoji || '🍽️',
       createdAt: new Date(), updatedAt: new Date()
     };
 
     const result = await db.collection('food').insertOne(item);
     item._id = result.insertedId;
     broadcast(hotelId, 'food_upd', item, req.clientId);
-    res.status(201).json({ success: true, message: 'Food item added', data: item });
+    res.status(201).json({ ...item, success: true, message: 'Food item added' });
   } catch (error) {
     console.error('Food create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1450,38 +1494,40 @@ app.put('/api/food/:id', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { id } = req.params;
-    const { name, price, category, description, available, image } = req.body;
+    const { name, price, basePriceSAR, category, description, available, image, emoji } = req.body;
 
     if (!dbConnected) {
       const updatedItem = {
         _id: id, hotelId, name,
-        price: price ? parseFloat(price) : undefined,
-        category, description, available, image, updatedAt: new Date()
+        price: price ? parseFloat(price) : undefined, basePriceSAR: basePriceSAR ? parseFloat(basePriceSAR) : undefined,
+        category, description, available, image, emoji, updatedAt: new Date()
       };
       broadcast(hotelId, 'food_upd', updatedItem, req.clientId);
-      return res.json({ success: true, message: 'Food item updated (offline)', data: updatedItem });
+      return res.json({ ...updatedItem, success: true, message: 'Food item updated (offline)' });
     }
 
     const updateData = {
       updatedAt: new Date(),
       ...(name && { name }),
       ...(price && { price: parseFloat(price) }),
+      ...(basePriceSAR && { basePriceSAR: parseFloat(basePriceSAR) }),
       ...(category && { category }),
       ...(description !== undefined && { description }),
       ...(available !== undefined && { available }),
-      ...(image !== undefined && { image })
+      ...(image !== undefined && { image }),
+      ...(emoji && { emoji })
     };
 
     const result = await db.collection('food').updateOne(
-      { _id: new ObjectId(id), hotelId },
+      { _id: parseId(id), hotelId },
       { $set: updateData }
     );
 
     if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Food item not found' });
 
-    const updatedItem = await db.collection('food').findOne({ _id: new ObjectId(id) });
+    const updatedItem = await db.collection('food').findOne({ _id: parseId(id) });
     broadcast(hotelId, 'food_upd', updatedItem, req.clientId);
-    res.json({ success: true, message: 'Food item updated', data: updatedItem });
+    res.json({ ...updatedItem, success: true, message: 'Food item updated' });
   } catch (error) {
     console.error('Food update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1498,7 +1544,7 @@ app.delete('/api/food/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Food item deleted (offline)' });
     }
 
-    const result = await db.collection('food').deleteOne({ _id: new ObjectId(id), hotelId });
+    const result = await db.collection('food').deleteOne({ _id: parseId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Food item not found' });
 
     broadcast(hotelId, 'food_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -1509,7 +1555,7 @@ app.delete('/api/food/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ FIXED: INVENTORY - Return array directly
+// ✅ FIXED: INVENTORY
 app.get('/api/inventory', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1525,37 +1571,41 @@ app.get('/api/inventory', async (req, res) => {
 app.post('/api/inventory', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    const { name, category, quantity, minStock, price, unit, status } = req.body;
+    const { name, category, quantity, stock, minStock, min, price, unit, status } = req.body;
 
-    if (!name || !category || quantity === undefined) {
+    const qty = parseInt(quantity || stock || 0);
+    const minQty = parseInt(minStock || min || 10);
+
+    if (!name || !category || isNaN(qty)) {
       return res.status(400).json({ success: false, error: 'name, category, and quantity are required' });
     }
 
-    const autoStatus = parseInt(quantity) <= 0 ? 'out-of-stock'
-      : parseInt(quantity) <= (parseInt(minStock) || 10) ? 'low-stock' : 'in-stock';
+    const autoStatus = qty <= 0 ? 'out-of-stock'
+      : qty <= minQty ? 'low-stock' : 'in-stock';
 
     if (!dbConnected) {
       const item = {
         _id: 'i_'+Date.now(), hotelId, name, category,
-        quantity: parseInt(quantity), minStock: parseInt(minStock) || 10,
+        quantity: qty, stock: qty, minStock: minQty, min: minQty,
         price: price ? parseFloat(price) : 0, unit: unit || 'pcs',
         status: status || autoStatus, createdAt: new Date(), updatedAt: new Date()
       };
       broadcast(hotelId, 'inventory_upd', item, req.clientId);
-      return res.status(201).json({ success: true, message: 'Inventory item added (offline)', data: item });
+      return res.status(201).json({ ...item, success: true, message: 'Inventory item added (offline)' });
     }
 
     const item = {
-      hotelId, name, category, quantity: parseInt(quantity),
-      minStock: parseInt(minStock) || 10, price: price ? parseFloat(price) : 0,
-      unit: unit || 'pcs', status: status || autoStatus,
+      hotelId, name, category, 
+      quantity: qty, stock: qty, minStock: minQty, min: minQty,
+      price: price ? parseFloat(price) : 0, unit: unit || 'pcs',
+      status: status || autoStatus,
       createdAt: new Date(), updatedAt: new Date()
     };
 
     const result = await db.collection('inventory').insertOne(item);
     item._id = result.insertedId;
     broadcast(hotelId, 'inventory_upd', item, req.clientId);
-    res.status(201).json({ success: true, message: 'Inventory item added', data: item });
+    res.status(201).json({ ...item, success: true, message: 'Inventory item added' });
   } catch (error) {
     console.error('Inventory create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1566,33 +1616,34 @@ app.put('/api/inventory/:id', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { id } = req.params;
-    const { name, category, quantity, minStock, price, unit, status } = req.body;
+    const { name, category, quantity, stock, minStock, min, price, unit, status } = req.body;
+
+    const qty = quantity !== undefined ? parseInt(quantity) : (stock !== undefined ? parseInt(stock) : undefined);
+    const minQty = minStock !== undefined ? parseInt(minStock) : (min !== undefined ? parseInt(min) : undefined);
 
     const autoStatus = () => {
-      if (quantity === undefined) return undefined;
-      const qty = parseInt(quantity);
-      const min = parseInt(minStock) || 10;
-      return qty <= 0 ? 'out-of-stock' : qty <= min ? 'low-stock' : 'in-stock';
+      if (qty === undefined) return undefined;
+      const m = minQty || 10;
+      return qty <= 0 ? 'out-of-stock' : qty <= m ? 'low-stock' : 'in-stock';
     };
 
     if (!dbConnected) {
       const updatedItem = {
         _id: id, hotelId, name, category,
-        quantity: quantity !== undefined ? parseInt(quantity) : undefined,
-        minStock: minStock !== undefined ? parseInt(minStock) : undefined,
+        quantity: qty, stock: qty, minStock: minQty, min: minQty,
         price: price !== undefined ? parseFloat(price) : undefined,
         unit, status: status || autoStatus(), updatedAt: new Date()
       };
       broadcast(hotelId, 'inventory_upd', updatedItem, req.clientId);
-      return res.json({ success: true, message: 'Inventory item updated (offline)', data: updatedItem });
+      return res.json({ ...updatedItem, success: true, message: 'Inventory item updated (offline)' });
     }
 
     const updateData = {
       updatedAt: new Date(),
       ...(name && { name }),
       ...(category && { category }),
-      ...(quantity !== undefined && { quantity: parseInt(quantity) }),
-      ...(minStock !== undefined && { minStock: parseInt(minStock) }),
+      ...(qty !== undefined && { quantity: qty, stock: qty }),
+      ...(minQty !== undefined && { minStock: minQty, min: minQty }),
       ...(price !== undefined && { price: parseFloat(price) }),
       ...(unit && { unit }),
       ...(status && { status })
@@ -1602,15 +1653,15 @@ app.put('/api/inventory/:id', authMiddleware, async (req, res) => {
     if (computed) updateData.status = computed;
 
     const result = await db.collection('inventory').updateOne(
-      { _id: new ObjectId(id), hotelId },
+      { _id: parseId(id), hotelId },
       { $set: updateData }
     );
 
     if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Inventory item not found' });
 
-    const updatedItem = await db.collection('inventory').findOne({ _id: new ObjectId(id) });
+    const updatedItem = await db.collection('inventory').findOne({ _id: parseId(id) });
     broadcast(hotelId, 'inventory_upd', updatedItem, req.clientId);
-    res.json({ success: true, message: 'Inventory item updated', data: updatedItem });
+    res.json({ ...updatedItem, success: true, message: 'Inventory item updated' });
   } catch (error) {
     console.error('Inventory update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1627,7 +1678,7 @@ app.delete('/api/inventory/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Inventory item deleted (offline)' });
     }
 
-    const result = await db.collection('inventory').deleteOne({ _id: new ObjectId(id), hotelId });
+    const result = await db.collection('inventory').deleteOne({ _id: parseId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Inventory item not found' });
 
     broadcast(hotelId, 'inventory_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -1638,7 +1689,7 @@ app.delete('/api/inventory/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ FIXED: REQUESTS - Return array directly
+// ✅ FIXED: REQUESTS
 app.get('/api/requests', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1678,7 +1729,7 @@ app.post('/api/requests', authMiddleware, async (req, res) => {
         assignedTo: null, createdAt: new Date(), updatedAt: new Date()
       };
       broadcast(hotelId, 'req_new', request, req.clientId);
-      return res.status(201).json({ success: true, message: 'Request submitted (offline)', data: request });
+      return res.status(201).json({ ...request, success: true, message: 'Request submitted (offline)' });
     }
 
     const request = {
@@ -1693,7 +1744,7 @@ app.post('/api/requests', authMiddleware, async (req, res) => {
     const result = await db.collection('requests').insertOne(request);
     request._id = result.insertedId;
     broadcast(hotelId, 'req_new', request, req.clientId);
-    res.status(201).json({ success: true, message: 'Request submitted', data: request });
+    res.status(201).json({ ...request, success: true, message: 'Request submitted' });
   } catch (error) {
     console.error('Request create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1704,16 +1755,15 @@ app.put('/api/requests/:id', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { id } = req.params;
-    const { status, priority, assignedTo, notes } = req.body;
+    const { status, priority, assignedTo, notes, adminReply, adminReplyTime } = req.body;
 
     if (!dbConnected) {
       const updatedRequest = {
-        _id: id, hotelId, status, priority, assignedTo,
-        notes: notes ? (notes + '\n[' + new Date().toISOString() + ']') : undefined,
+        _id: id, hotelId, status, priority, assignedTo, notes, adminReply, adminReplyTime,
         updatedAt: new Date()
       };
       broadcast(hotelId, 'req_upd', updatedRequest, req.clientId);
-      return res.json({ success: true, message: 'Request updated (offline)', data: updatedRequest });
+      return res.json({ ...updatedRequest, success: true, message: 'Request updated (offline)' });
     }
 
     const updateData = {
@@ -1721,19 +1771,21 @@ app.put('/api/requests/:id', authMiddleware, async (req, res) => {
       ...(status && { status }),
       ...(priority && { priority }),
       ...(assignedTo !== undefined && { assignedTo }),
-      ...(notes && { notes: (notes + '\n[' + new Date().toISOString() + '])') })
+      ...(notes && { notes }),
+      ...(adminReply !== undefined && { adminReply }),
+      ...(adminReplyTime && { adminReplyTime })
     };
 
     const result = await db.collection('requests').updateOne(
-      { _id: new ObjectId(id), hotelId },
+      { _id: parseId(id), hotelId },
       { $set: updateData }
     );
 
     if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Request not found' });
 
-    const updatedRequest = await db.collection('requests').findOne({ _id: new ObjectId(id) });
+    const updatedRequest = await db.collection('requests').findOne({ _id: parseId(id) });
     broadcast(hotelId, 'req_upd', updatedRequest, req.clientId);
-    res.json({ success: true, message: 'Request updated', data: updatedRequest });
+    res.json({ ...updatedRequest, success: true, message: 'Request updated' });
   } catch (error) {
     console.error('Request update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1750,7 +1802,7 @@ app.delete('/api/requests/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Request deleted (offline)' });
     }
 
-    const result = await db.collection('requests').deleteOne({ _id: new ObjectId(id), hotelId });
+    const result = await db.collection('requests').deleteOne({ _id: parseId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Request not found' });
 
     broadcast(hotelId, 'req_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -1761,7 +1813,7 @@ app.delete('/api/requests/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ FIXED: SETTINGS - Return object directly (not wrapped)
+// ✅ FIXED: SETTINGS
 app.get('/api/settings', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1797,7 +1849,7 @@ app.put('/api/settings', authMiddleware, async (req, res) => {
         language: updatedSettings.language,
         theme: updatedSettings.theme
       }, req.clientId);
-      return res.json({ success: true, message: 'Settings saved (offline)', data: updatedSettings });
+      return res.json({ ...updatedSettings, success: true, message: 'Settings saved (offline)' });
     }
 
     const updateData = { ...settings, hotelId, updatedAt: new Date() };
@@ -1811,14 +1863,14 @@ app.put('/api/settings', authMiddleware, async (req, res) => {
       language: updatedSettings.language,
       theme: updatedSettings.theme
     }, req.clientId);
-    res.json({ success: true, message: 'Settings saved', data: updatedSettings });
+    res.json({ ...updatedSettings, success: true, message: 'Settings saved' });
   } catch (error) {
     console.error('Settings save error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ✅ FIXED: BOOKINGS - Return array directly
+// ✅ FIXED: BOOKINGS
 app.get('/api/bookings', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1851,13 +1903,13 @@ app.post('/api/bookings', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       booking._id = 'bk_'+Date.now();
       broadcast(hotelId, 'booking_new', booking, req.clientId);
-      return res.status(201).json({ success: true, message: 'Booking added (offline)', data: booking });
+      return res.status(201).json({ ...booking, success: true, message: 'Booking added (offline)' });
     }
 
     const result = await db.collection('bookings').insertOne(booking);
     booking._id = result.insertedId;
     broadcast(hotelId, 'booking_new', booking, req.clientId);
-    res.status(201).json({ success: true, message: 'Booking added', data: booking });
+    res.status(201).json({ ...booking, success: true, message: 'Booking added' });
   } catch (error) {
     console.error('Booking create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1879,7 +1931,7 @@ app.put('/api/bookings/:id', authMiddleware, async (req, res) => {
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'booking_upd', updatedBooking, req.clientId);
-      return res.json({ success: true, message: 'Booking updated (offline)', data: updatedBooking });
+      return res.json({ ...updatedBooking, success: true, message: 'Booking updated (offline)' });
     }
 
     const updateData = {
@@ -1892,15 +1944,15 @@ app.put('/api/bookings/:id', authMiddleware, async (req, res) => {
     };
 
     const result = await db.collection('bookings').updateOne(
-      { _id: new ObjectId(id), hotelId },
+      { _id: parseId(id), hotelId },
       { $set: updateData }
     );
 
     if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Booking not found' });
 
-    const updatedBooking = await db.collection('bookings').findOne({ _id: new ObjectId(id) });
+    const updatedBooking = await db.collection('bookings').findOne({ _id: parseId(id) });
     broadcast(hotelId, 'booking_upd', updatedBooking, req.clientId);
-    res.json({ success: true, message: 'Booking updated', data: updatedBooking });
+    res.json({ ...updatedBooking, success: true, message: 'Booking updated' });
   } catch (error) {
     console.error('Booking update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1917,7 +1969,7 @@ app.delete('/api/bookings/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Booking deleted (offline)' });
     }
 
-    const result = await db.collection('bookings').deleteOne({ _id: new ObjectId(id), hotelId });
+    const result = await db.collection('bookings').deleteOne({ _id: parseId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Booking not found' });
 
     broadcast(hotelId, 'booking_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -1928,7 +1980,7 @@ app.delete('/api/bookings/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ FIXED: BLACKLIST - Return array directly
+// ✅ FIXED: BLACKLIST
 app.get('/api/blacklist', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1956,13 +2008,13 @@ app.post('/api/blacklist', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       entry._id = 'bl_'+Date.now();
       broadcast(hotelId, 'blacklist_upd', entry, req.clientId);
-      return res.status(201).json({ success: true, message: 'Guest blocked (offline)', data: entry });
+      return res.status(201).json({ ...entry, success: true, message: 'Guest blocked (offline)' });
     }
 
     const result = await db.collection('blacklist').insertOne(entry);
     entry._id = result.insertedId;
     broadcast(hotelId, 'blacklist_upd', entry, req.clientId);
-    res.status(201).json({ success: true, message: 'Guest blocked', data: entry });
+    res.status(201).json({ ...entry, success: true, message: 'Guest blocked' });
   } catch (error) {
     console.error('Blacklist create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1979,7 +2031,7 @@ app.delete('/api/blacklist/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Unblocked (offline)' });
     }
 
-    const result = await db.collection('blacklist').deleteOne({ _id: new ObjectId(id), hotelId });
+    const result = await db.collection('blacklist').deleteOne({ _id: parseId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Entry not found' });
 
     broadcast(hotelId, 'blacklist_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -1990,7 +2042,7 @@ app.delete('/api/blacklist/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ FIXED: MAINTENANCE - Return array directly
+// ✅ FIXED: MAINTENANCE
 app.get('/api/maintenance', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2020,13 +2072,13 @@ app.post('/api/maintenance', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       item._id = 'm_'+Date.now();
       broadcast(hotelId, 'maintenance_upd', item, req.clientId);
-      return res.status(201).json({ success: true, message: 'Task added (offline)', data: item });
+      return res.status(201).json({ ...item, success: true, message: 'Task added (offline)' });
     }
 
     const result = await db.collection('maintenance').insertOne(item);
     item._id = result.insertedId;
     broadcast(hotelId, 'maintenance_upd', item, req.clientId);
-    res.status(201).json({ success: true, message: 'Task added', data: item });
+    res.status(201).json({ ...item, success: true, message: 'Task added' });
   } catch (error) {
     console.error('Maintenance create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2042,7 +2094,7 @@ app.put('/api/maintenance/:id', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       const updated = { _id: id, hotelId, status, assigned, priority, updatedAt: new Date().toISOString() };
       broadcast(hotelId, 'maintenance_upd', updated, req.clientId);
-      return res.json({ success: true, message: 'Task updated (offline)', data: updated });
+      return res.json({ ...updated, success: true, message: 'Task updated (offline)' });
     }
 
     const updateData = {
@@ -2053,15 +2105,15 @@ app.put('/api/maintenance/:id', authMiddleware, async (req, res) => {
     };
 
     const result = await db.collection('maintenance').updateOne(
-      { _id: new ObjectId(id), hotelId },
+      { _id: parseId(id), hotelId },
       { $set: updateData }
     );
 
     if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Task not found' });
 
-    const updated = await db.collection('maintenance').findOne({ _id: new ObjectId(id) });
+    const updated = await db.collection('maintenance').findOne({ _id: parseId(id) });
     broadcast(hotelId, 'maintenance_upd', updated, req.clientId);
-    res.json({ success: true, message: 'Task updated', data: updated });
+    res.json({ ...updated, success: true, message: 'Task updated' });
   } catch (error) {
     console.error('Maintenance update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2078,7 +2130,7 @@ app.delete('/api/maintenance/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Task deleted (offline)' });
     }
 
-    const result = await db.collection('maintenance').deleteOne({ _id: new ObjectId(id), hotelId });
+    const result = await db.collection('maintenance').deleteOne({ _id: parseId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Task not found' });
 
     broadcast(hotelId, 'maintenance_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -2089,7 +2141,7 @@ app.delete('/api/maintenance/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ FIXED: REVIEWS - Return array directly
+// ✅ FIXED: REVIEWS
 app.get('/api/reviews', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2121,20 +2173,20 @@ app.post('/api/reviews', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       review._id = 'rev_'+Date.now();
       broadcast(hotelId, 'review_new', review, req.clientId);
-      return res.status(201).json({ success: true, message: 'Review added (offline)', data: review });
+      return res.status(201).json({ ...review, success: true, message: 'Review added (offline)' });
     }
 
     const result = await db.collection('reviews').insertOne(review);
     review._id = result.insertedId;
     broadcast(hotelId, 'review_new', review, req.clientId);
-    res.status(201).json({ success: true, message: 'Review added', data: review });
+    res.status(201).json({ ...review, success: true, message: 'Review added' });
   } catch (error) {
     console.error('Review create error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ✅ FIXED: STAFF - Return array directly
+// ✅ FIXED: STAFF
 app.get('/api/staff', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2166,13 +2218,13 @@ app.post('/api/staff', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       s._id = 's_'+Date.now();
       broadcast(hotelId, 'staff_upd', s, req.clientId);
-      return res.status(201).json({ success: true, message: 'Staff added (offline)', data: s });
+      return res.status(201).json({ ...s, success: true, message: 'Staff added (offline)' });
     }
 
     const result = await db.collection('staff').insertOne(s);
     s._id = result.insertedId;
     broadcast(hotelId, 'staff_upd', s, req.clientId);
-    res.status(201).json({ success: true, message: 'Staff added', data: s });
+    res.status(201).json({ ...s, success: true, message: 'Staff added' });
   } catch (error) {
     console.error('Staff create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2193,7 +2245,7 @@ app.put('/api/staff/:id', authMiddleware, async (req, res) => {
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'staff_upd', updated, req.clientId);
-      return res.json({ success: true, message: 'Staff updated (offline)', data: updated });
+      return res.json({ ...updated, success: true, message: 'Staff updated (offline)' });
     }
 
     const updateData = {
@@ -2207,15 +2259,15 @@ app.put('/api/staff/:id', authMiddleware, async (req, res) => {
     };
 
     const result = await db.collection('staff').updateOne(
-      { _id: new ObjectId(id), hotelId },
+      { _id: parseId(id), hotelId },
       { $set: updateData }
     );
 
     if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Staff not found' });
 
-    const updated = await db.collection('staff').findOne({ _id: new ObjectId(id) });
+    const updated = await db.collection('staff').findOne({ _id: parseId(id) });
     broadcast(hotelId, 'staff_upd', updated, req.clientId);
-    res.json({ success: true, message: 'Staff updated', data: updated });
+    res.json({ ...updated, success: true, message: 'Staff updated' });
   } catch (error) {
     console.error('Staff update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2232,7 +2284,7 @@ app.delete('/api/staff/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Staff removed (offline)' });
     }
 
-    const result = await db.collection('staff').deleteOne({ _id: new ObjectId(id), hotelId });
+    const result = await db.collection('staff').deleteOne({ _id: parseId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Staff not found' });
 
     broadcast(hotelId, 'staff_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -2243,7 +2295,7 @@ app.delete('/api/staff/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ FIXED: LOGS - Return array directly
+// ✅ FIXED: LOGS
 app.get('/api/logs', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2270,12 +2322,12 @@ app.post('/api/logs', authMiddleware, async (req, res) => {
 
     if (!dbConnected) {
       log._id = 'log_'+Date.now();
-      return res.status(201).json({ success: true, message: 'Log added (offline)', data: log });
+      return res.status(201).json({ ...log, success: true, message: 'Log added (offline)' });
     }
 
     const result = await db.collection('logs').insertOne(log);
     log._id = result.insertedId;
-    res.status(201).json({ success: true, message: 'Log added', data: log });
+    res.status(201).json({ ...log, success: true, message: 'Log added' });
   } catch (error) {
     console.error('Log create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2294,7 +2346,7 @@ app.delete('/api/logs', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ FIXED: CONFIG - Return object directly (matches frontend HotelCfg structure)
+// ✅ FIXED: CONFIG
 app.get('/api/config', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2320,7 +2372,6 @@ app.get('/api/config', async (req, res) => {
   }
 });
 
-// ✅ NEW: POST /api/config - ADDED FOR FIRST-TIME SAVE
 app.post('/api/config', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2334,7 +2385,7 @@ app.post('/api/config', authMiddleware, async (req, res) => {
 
     if (!dbConnected) {
       broadcast(hotelId, 'cfg_upd', config, req.clientId);
-      return res.status(201).json({ success: true, data: config });
+      return res.status(201).json({ ...config, success: true });
     }
 
     const result = await db.collection('config').findOneAndUpdate(
@@ -2345,14 +2396,13 @@ app.post('/api/config', authMiddleware, async (req, res) => {
 
     const saved = result.value || result;
     broadcast(hotelId, 'cfg_upd', saved, req.clientId);
-    res.status(201).json({ success: true, data: saved });
+    res.status(201).json({ ...saved, success: true });
   } catch (error) {
     console.error('Config POST error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ✅ FIXED: CONFIG PUT - Save with correct structure
 app.put('/api/config', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2361,7 +2411,7 @@ app.put('/api/config', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       const updated = { ...config, hotelId, _id: `config_${hotelId}`, updatedAt: new Date() };
       broadcast(hotelId, 'cfg_upd', updated, req.clientId);
-      return res.json({ success: true, message: 'Config saved (offline)', data: updated });
+      return res.json({ ...updated, success: true, message: 'Config saved (offline)' });
     }
 
     const updateData = { 
@@ -2380,14 +2430,14 @@ app.put('/api/config', authMiddleware, async (req, res) => {
 
     const updated = await db.collection('config').findOne({ hotelId });
     broadcast(hotelId, 'cfg_upd', updated, req.clientId);
-    res.json({ success: true, message: 'Config saved', data: updated });
+    res.json({ ...updated, success: true, message: 'Config saved' });
   } catch (error) {
     console.error('Config save error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ✅ FIXED: ANNOUNCEMENTS - Return array directly
+// ✅ FIXED: ANNOUNCEMENTS
 app.get('/api/announcements', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2422,7 +2472,7 @@ app.post('/api/announcements', authMiddleware, async (req, res) => {
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'announcement_upd', announcement, req.clientId);
-      return res.status(201).json({ success: true, message: 'Announcement added (offline)', data: announcement });
+      return res.status(201).json({ ...announcement, success: true, message: 'Announcement added (offline)' });
     }
 
     const announcement = {
@@ -2439,7 +2489,7 @@ app.post('/api/announcements', authMiddleware, async (req, res) => {
     const result = await db.collection('announcements').insertOne(announcement);
     announcement._id = result.insertedId;
     broadcast(hotelId, 'announcement_upd', announcement, req.clientId);
-    res.status(201).json({ success: true, message: 'Announcement created', data: announcement });
+    res.status(201).json({ ...announcement, success: true, message: 'Announcement created' });
   } catch (error) {
     console.error('Announcement create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2463,7 +2513,7 @@ app.put('/api/announcements/:id', authMiddleware, async (req, res) => {
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'announcement_upd', updated, req.clientId);
-      return res.json({ success: true, message: 'Announcement updated (offline)', data: updated });
+      return res.json({ ...updated, success: true, message: 'Announcement updated (offline)' });
     }
 
     const updateData = {
@@ -2475,7 +2525,7 @@ app.put('/api/announcements/:id', authMiddleware, async (req, res) => {
     };
 
     const result = await db.collection('announcements').updateOne(
-      { _id: new ObjectId(id), hotelId },
+      { _id: parseId(id), hotelId },
       { $set: updateData }
     );
 
@@ -2483,9 +2533,9 @@ app.put('/api/announcements/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Announcement not found' });
     }
 
-    const updated = await db.collection('announcements').findOne({ _id: new ObjectId(id) });
+    const updated = await db.collection('announcements').findOne({ _id: parseId(id) });
     broadcast(hotelId, 'announcement_upd', updated, req.clientId);
-    res.json({ success: true, message: 'Announcement updated', data: updated });
+    res.json({ ...updated, success: true, message: 'Announcement updated' });
   } catch (error) {
     console.error('Announcement update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2502,7 +2552,7 @@ app.delete('/api/announcements/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Announcement deleted (offline)' });
     }
 
-    const result = await db.collection('announcements').deleteOne({ _id: new ObjectId(id), hotelId });
+    const result = await db.collection('announcements').deleteOne({ _id: parseId(id), hotelId });
     if (result.deletedCount === 0) {
       return res.status(404).json({ success: false, error: 'Announcement not found' });
     }
@@ -2515,7 +2565,7 @@ app.delete('/api/announcements/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ FIXED: POLICIES - Return array directly
+// ✅ FIXED: POLICIES
 app.get('/api/policies', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2549,7 +2599,7 @@ app.post('/api/policies', authMiddleware, async (req, res) => {
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'policy_upd', policy, req.clientId);
-      return res.status(201).json({ success: true, message: 'Policy added (offline)', data: policy });
+      return res.status(201).json({ ...policy, success: true, message: 'Policy added (offline)' });
     }
 
     const policy = {
@@ -2565,7 +2615,7 @@ app.post('/api/policies', authMiddleware, async (req, res) => {
     const result = await db.collection('policies').insertOne(policy);
     policy._id = result.insertedId;
     broadcast(hotelId, 'policy_upd', policy, req.clientId);
-    res.status(201).json({ success: true, message: 'Policy created', data: policy });
+    res.status(201).json({ ...policy, success: true, message: 'Policy created' });
   } catch (error) {
     console.error('Policy create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2588,7 +2638,7 @@ app.put('/api/policies/:id', authMiddleware, async (req, res) => {
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'policy_upd', updated, req.clientId);
-      return res.json({ success: true, message: 'Policy updated (offline)', data: updated });
+      return res.json({ ...updated, success: true, message: 'Policy updated (offline)' });
     }
 
     const updateData = {
@@ -2599,7 +2649,7 @@ app.put('/api/policies/:id', authMiddleware, async (req, res) => {
     };
 
     const result = await db.collection('policies').updateOne(
-      { _id: new ObjectId(id), hotelId },
+      { _id: parseId(id), hotelId },
       { $set: updateData }
     );
 
@@ -2607,9 +2657,9 @@ app.put('/api/policies/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Policy not found' });
     }
 
-    const updated = await db.collection('policies').findOne({ _id: new ObjectId(id) });
+    const updated = await db.collection('policies').findOne({ _id: parseId(id) });
     broadcast(hotelId, 'policy_upd', updated, req.clientId);
-    res.json({ success: true, message: 'Policy updated', data: updated });
+    res.json({ ...updated, success: true, message: 'Policy updated' });
   } catch (error) {
     console.error('Policy update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2626,7 +2676,7 @@ app.delete('/api/policies/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Policy deleted (offline)' });
     }
 
-    const result = await db.collection('policies').deleteOne({ _id: new ObjectId(id), hotelId });
+    const result = await db.collection('policies').deleteOne({ _id: parseId(id), hotelId });
     if (result.deletedCount === 0) {
       return res.status(404).json({ success: false, error: 'Policy not found' });
     }
@@ -2777,7 +2827,10 @@ server.listen(PORT, '0.0.0.0', async () => {
   console.log(`📜 Policies API: /api/policies`);
   console.log(`📢 Announcements API: /api/announcements`);
   console.log(`⚙️ Config API: /api/config`);
+  console.log(`🏢 Departments API: /api/departments`);
   console.log(`✅ POST /api/config: ADDED (fixes settings persistence)`);
+  console.log(`✅ parseId() HELPER: ADDED (fixes string ID crashes)`);
+  console.log(`✅ RESPONSE FORMAT: FIXED (returns _id at root for frontend sync)`);
   console.log(`\n💡 NEW .env variables:`);
   console.log(`   IDLE_TIMEOUT_MS=1800000        (default: 30 min)`);
   console.log(`   TOKEN_EXPIRY=7d                 (default: 7 days)`);
