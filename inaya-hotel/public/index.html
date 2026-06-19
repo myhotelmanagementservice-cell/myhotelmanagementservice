@@ -1938,77 +1938,68 @@ return null;
 
 // FIXED: Correctly captures MongoDB _id from backend response to prevent data loss on refresh
 async function saveToMongo(collection, data) {
-if (!isOnline) return false;
-try {
-if (Array.isArray(data)) {
-await Promise.all(data.map(async (item) => {
-const isNew = item._isNew;
-const payload = { ...item };
-delete payload._isNew;
-if (isNew || !payload._id) {
-const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-if (res) {
-const newId = res._id || res.insertedId || res.id;
-if (newId) item._id = newId;
-delete item._isNew;
-}
-} else {
-await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
-delete item._isNew;
-}
-}));
-} else {
-const isNew = data._isNew;
-const payload = { ...data };
-delete payload._isNew;
-if (isNew || !payload._id) {
-const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-if (res) {
-const newId = res._id || res.insertedId || res.id;
-if (newId) data._id = newId;
-delete data._isNew;
-}
-} else {
-await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
-delete data._isNew;
-}
-}
-return true;
-} catch (e) {
-console.warn(`saveToMongo error for ${collection}:`, e);
-return false;
-}
-}
+  if (!isOnline) return false;
+  try {
+    const processItem = async (item) => {
+      const isNew = item._isNew;
+      const payload = { ...item };
+      delete payload._isNew;
+      
+      // ✅ Check if ID is temporary (starts with r_, g_, f_, etc.)
+      const isTempId = !payload._id || 
+        String(payload._id).startsWith('r_') || 
+        String(payload._id).startsWith('g_') || 
+        String(payload._id).startsWith('f_') ||
+        String(payload._id).startsWith('i_') || 
+        String(payload._id).startsWith('req_') ||
+        String(payload._id).startsWith('bk_') || 
+        String(payload._id).startsWith('s_') ||
+        String(payload._id).startsWith('m_') || 
+        String(payload._id).startsWith('bl_') ||
+        String(payload._id).startsWith('ann_') || 
+        String(payload._id).startsWith('pol_') ||
+        String(payload._id).startsWith('log_') || 
+        String(payload._id).startsWith('rev_') ||
+        String(payload._id).startsWith('dept_') || 
+        String(payload._id).startsWith('cat_');
+      
+      if (isNew || isTempId) {
+        // ✅ POST - Create new
+        const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
+        if (res) {
+          // ✅ Extract _id from response (now at root level)
+          const newId = res._id || res.insertedId || res.id || (res.data && res.data._id);
+          if (newId) {
+            item._id = String(newId); // ✅ Convert to string
+            // ✅ Update all fields from server response
+            Object.keys(res).forEach(key => {
+              if (key !== 'success' && key !== 'message') {
+                item[key] = res[key];
+              }
+            });
+          }
+          delete item._isNew;
+          return true;
+        }
+        return false;
+      } else {
+        // ✅ PUT - Update existing with real MongoDB ID
+        const res = await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
+        delete item._isNew;
+        return res && res.success !== false;
+      }
+    };
 
-async function save(collection, data, event = 'data_upd') {
-if (Array.isArray(data)) {
-data.forEach(item => {
-item._version = (item._version || 0) + 1;
-item.updatedAt = new Date().toISOString();
-});
-} else {
-data._version = (data._version || 0) + 1;
-data.updatedAt = new Date().toISOString();
-}
-const success = await saveToMongo(collection, data);
-if (success) {
-if (isOnline && socket?.connected) {
-socket.emit(event, {
-hotelId: HID,
-collection,
-data,
-clientId,
-syncToken: Date.now()
-});
-}
-updateCache();
-return true;
-} else {
-offlineQueue.push({ collection, data, event, timestamp: Date.now() });
-saveUIPrefs();
-updateNetBadge('queued');
-return false;
-}
+    if (Array.isArray(data)) {
+      await Promise.all(data.map(processItem));
+    } else {
+      await processItem(data);
+    }
+    return true;
+  } catch (e) {
+    console.warn(`saveToMongo error for ${collection}:`, e);
+    return false;
+  }
 }
 
 // ============================================================
