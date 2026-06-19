@@ -4,7 +4,7 @@
   "description": "Multi-Tenant Hotel Management System with Real-Time Sync, MongoDB, and Socket.IO",
   "main": "server/server.js",
   "scripts": {
-    "start": "node server/server.js",
+    "start": "node inaya-hotel/server/server.js",
     "dev": "nodemon server/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
