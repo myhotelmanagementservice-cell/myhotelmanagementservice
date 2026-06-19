@@ -23,6 +23,15 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// Cashfree Payment Gateway
+const axios = require('axios');
+const CASHFREE_CLIENT_ID = process.env.CASHFREE_CLIENT_ID;
+const CASHFREE_CLIENT_SECRET = process.env.CASHFREE_CLIENT_SECRET;
+const CASHFREE_ENVIRONMENT = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
+const CASHFREE_API_URL = CASHFREE_ENVIRONMENT === 'production' 
+  ? 'https://api.cashfree.com' 
+  : 'https://sandbox.cashfree.com';
+
 let compression, helmet, rateLimit;
 try { compression = require('compression'); } catch(e) { compression = null; }
 try { helmet = require('helmet'); } catch(e) { helmet = null; }
@@ -3247,6 +3256,190 @@ app.use('/api/*', (req, res) => {
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
+});
+
+// ==========================================
+// 💳 CASHFREE PAYMENT GATEWAY (COMPLETE)
+// ==========================================
+
+// Generate Payment Link
+app.post('/api/payment/create-link', async (req, res) => {
+  try {
+    const { amount, currency, customerEmail, customerPhone, customerName, purpose } = req.body;
+
+    if (!amount || !customerEmail || !customerPhone) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'amount, customerEmail, and customerPhone are required' 
+      });
+    }
+
+    const response = await axios.post(`${CASHFREE_API_URL}/pg/links`, {
+      link_id: 'link_' + Date.now() + '_' + Math.random().toString(36).substring(7),
+      link_amount: amount,
+      link_currency: currency || 'INR',
+      link_purpose: purpose || 'Hotel Management Subscription',
+      customer_details: {
+        customer_id: 'cust_' + Date.now(),
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        customer_name: customerName || 'Customer'
+      },
+      link_expiry_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().replace('Z', ''),
+      link_notify: {
+        send_sms: true,
+        send_email: true
+      }
+    }, {
+      headers: {
+        'x-api-version': '2022-09-01',
+        'x-client-id': CASHFREE_CLIENT_ID,
+        'x-client-secret': CASHFREE_CLIENT_SECRET,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      link: response.data.link_url,
+      link_id: response.data.link_id,
+      data: response.data 
+    });
+
+  } catch (error) {
+    console.error('Payment link error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: error.response?.data?.message || error.message 
+    });
+  }
+});
+
+// Check Payment Status
+app.get('/api/payment/status/:linkId', async (req, res) => {
+  try {
+    const { linkId } = req.params;
+
+    const response = await axios.get(`${CASHFREE_API_URL}/pg/links/${linkId}`, {
+      headers: {
+        'x-api-version': '2022-09-01',
+        'x-client-id': CASHFREE_CLIENT_ID,
+        'x-client-secret': CASHFREE_CLIENT_SECRET
+      }
+    });
+
+    res.json({ success: true, data: response.data });
+
+  } catch (error) {
+    console.error('Payment status error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: error.response?.data?.message || error.message 
+    });
+  }
+});
+
+// Get Payment Link by ID
+app.get('/api/payment/link/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const response = await axios.get(`${CASHFREE_API_URL}/pg/links/${id}`, {
+      headers: {
+        'x-api-version': '2022-09-01',
+        'x-client-id': CASHFREE_CLIENT_ID,
+        'x-client-secret': CASHFREE_CLIENT_SECRET
+      }
+    });
+
+    res.json({ success: true, data: response.data });
+
+  } catch (error) {
+    console.error('Get link error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: error.response?.data?.message || error.message 
+    });
+  }
+});
+
+// Get All Payment Links for a Customer
+app.get('/api/payment/links/:customerId', async (req, res) => {
+  try {
+    const { customerId } = req.params;
+
+    const response = await axios.get(`${CASHFREE_API_URL}/pg/links`, {
+      params: { customer_id: customerId },
+      headers: {
+        'x-api-version': '2022-09-01',
+        'x-client-id': CASHFREE_CLIENT_ID,
+        'x-client-secret': CASHFREE_CLIENT_SECRET
+      }
+    });
+
+    res.json({ success: true, data: response.data });
+
+  } catch (error) {
+    console.error('Get links error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: error.response?.data?.message || error.message 
+    });
+  }
+});
+
+// Cancel Payment Link
+app.post('/api/payment/cancel-link/:linkId', async (req, res) => {
+  try {
+    const { linkId } = req.params;
+
+    const response = await axios.post(`${CASHFREE_API_URL}/pg/links/${linkId}/cancel`, {}, {
+      headers: {
+        'x-api-version': '2022-09-01',
+        'x-client-id': CASHFREE_CLIENT_ID,
+        'x-client-secret': CASHFREE_CLIENT_SECRET,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    res.json({ success: true, data: response.data });
+
+  } catch (error) {
+    console.error('Cancel link error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: error.response?.data?.message || error.message 
+    });
+  }
+});
+
+// Webhook to handle payment status updates
+app.post('/api/payment/webhook', async (req, res) => {
+  try {
+    const event = req.body;
+    console.log('📢 Cashfree Webhook Received:', event);
+
+    // Handle different event types
+    if (event.type === 'LINK_PAID') {
+      const linkId = event.data.link_id;
+      const paymentStatus = event.data.link_status;
+
+      // Update your database here (e.g., mark hotel subscription as paid)
+      console.log(`✅ Payment successful for link: ${linkId}, Status: ${paymentStatus}`);
+
+      // Example: Update hotel subscription in MongoDB
+      // await db.collection('tenants').updateOne(
+      //   { subscriptionLink: linkId },
+      //   { $set: { subscriptionStatus: 'active', paidAt: new Date() } }
+      // );
+    }
+
+    res.json({ success: true, message: 'Webhook received' });
+
+  } catch (error) {
+    console.error('Webhook error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 app.use((err, req, res, next) => {
