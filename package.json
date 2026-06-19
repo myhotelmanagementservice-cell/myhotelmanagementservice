@@ -2,10 +2,10 @@
   "name": "crown-plaza-hotel-os",
   "version": "1.0.0",
   "description": "Multi-Tenant Hotel Management System with Real-Time Sync, MongoDB, and Socket.IO",
-  "main": "server/server.js",
+  "main": "inaya-hotel/server/server.js",
   "scripts": {
     "start": "node inaya-hotel/server/server.js",
-    "dev": "nodemon server/server.js",
+    "dev": "nodemon inaya-hotel/server/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -22,6 +22,7 @@
   "dependencies": {
     "@socket.io/redis-adapter": "^8.2.1",
     "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
     "express": "^4.18.2",
@@ -30,7 +31,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.3.0",
-    "mongoose": "^9.7.1",
+    "mongoose": "^8.0.3",
     "redis": "^4.6.12",
     "socket.io": "^4.7.4"
   },
