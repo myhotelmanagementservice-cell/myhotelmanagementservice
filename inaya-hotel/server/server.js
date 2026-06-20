@@ -1,18 +1,5 @@
 require("dotenv").config({ path: __dirname + "/.env" });
-// server.js - Complete Multi-Tenant Hotel SaaS Backend
-// =====================================================
-// v5.0 CHANGELOG:
-// ✅ FIX 1: Login speed - subscription cache + parallel DB queries + fast bcrypt path
-// ✅ FIX 2: Data persistence - proper ObjectId↔String handling, upsert on all configs
-// ✅ FIX 3: Add/update speed - non-blocking broadcasts, optimized single-query updates
-// ✅ FIX 4: Real-time bidirectional sync - Admin↔Guest via dedicated Socket.io rooms
-// ✅ FIX 5: Page stability - MongoDB-backed page state, auto-restore on refresh
-// ✅ FIX 6: Multi-device sync - room-based broadcasting for all CRUD events
-// ✅ FIX 7: MongoDB connection pool increased (100 max, 20 min)
-// ✅ FIX 8: Guest↔Admin cross-sync events (admin_action, guest_action channels)
-// ✅ FIX 9: Heartbeat ping to keep sessions alive across devices
-// ✅ FIX 10: All existing features preserved (19 admin pages, 9 guest pages)
-
+// server.js - Complete Multi-Tenant Hotel SaaS Backend (FIXED v2.2 - POST CONFIG ADDED)
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
@@ -31,7 +18,6 @@ try { rateLimit = require('express-rate-limit'); } catch(e) { rateLimit = null; 
 const app = express();
 const server = http.createServer(app);
 
-// ✅ FIX 4+6: Enhanced Socket.io config for multi-device real-time sync
 const io = new Server(server, {
   cors: {
     origin: process.env.FRONTEND_URL || '*',
@@ -40,9 +26,7 @@ const io = new Server(server, {
   },
   transports: ['websocket', 'polling'],
   pingTimeout: 60000,
-  pingInterval: 25000,
-  maxHttpBufferSize: 1e7, // 10MB for large payloads
-  allowEIO3: true         // backward compat
+  pingInterval: 25000
 });
 
 if (compression) {
@@ -102,7 +86,6 @@ let client;
 let dbConnected = false;
 let dbReconnectTimer = null;
 
-// ✅ Idempotency store - prevents duplicate submissions
 const idempotencyStore = new Map();
 setInterval(() => {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
@@ -111,38 +94,6 @@ setInterval(() => {
   }
 }, 60 * 60 * 1000);
 
-// ✅ FIX 2: SAFE ID PARSER - handles both ObjectId and string IDs (e.g., 'r_123456')
-const parseId = (id) => {
-  if (!id) return id;
-  try {
-    return ObjectId.isValid(id) && String(id).length === 24 ? new ObjectId(id) : id;
-  } catch (e) {
-    return id;
-  }
-};
-
-// ✅ FIX 1: SUBSCRIPTION CACHE - avoids DB hit on every request, 5-min TTL
-const subscriptionCache = new Map();
-const SUBSCRIPTION_CACHE_TTL = 5 * 60 * 1000;
-
-function getCachedSubscription(hotelId) {
-  const cached = subscriptionCache.get(hotelId);
-  if (cached && (Date.now() - cached.timestamp) < SUBSCRIPTION_CACHE_TTL) {
-    return cached.data;
-  }
-  subscriptionCache.delete(hotelId);
-  return null;
-}
-
-function setCachedSubscription(hotelId, data) {
-  subscriptionCache.set(hotelId, { data, timestamp: Date.now() });
-}
-
-function invalidateSubscriptionCache(hotelId) {
-  subscriptionCache.delete(hotelId);
-}
-
-// ✅ FIX 7: MongoDB with higher connection pool for better concurrency
 async function connectDB() {
   try {
     console.log('🔄 Connecting to MongoDB Atlas...');
@@ -152,11 +103,10 @@ async function connectDB() {
       serverSelectionTimeoutMS: 30000,
       connectTimeoutMS: 30000,
       socketTimeoutMS: 45000,
-      maxPoolSize: 100,  // ✅ FIX 7: Increased from 50
-      minPoolSize: 20,   // ✅ FIX 7: Increased from 10
+      maxPoolSize: 10,
+      minPoolSize: 5,
       retryWrites: true,
-      retryReads: true,
-      compressors: ['zstd', 'zlib'] // ✅ Wire compression for faster transfers
+      retryReads: true
     });
 
     await client.connect();
@@ -172,10 +122,6 @@ async function connectDB() {
     });
     client.on('error', (err) => {
       console.error('⚠️ MongoDB client error:', err.message);
-      dbConnected = false;
-      scheduleReconnect();
-    });
-    client.on('serverHeartbeatFailed', () => {
       dbConnected = false;
       scheduleReconnect();
     });
@@ -201,7 +147,7 @@ function scheduleReconnect() {
 
 async function createIndexes() {
   try {
-    const collections = ['rooms', 'guests', 'food', 'inventory', 'requests', 'blacklist', 'maintenance', 'reviews', 'loyalty', 'staff', 'logs', 'settings', 'tenants', 'bookings', 'users', 'sessions', 'announcements', 'policies', 'config', 'departments'];
+    const collections = ['rooms', 'guests', 'food', 'inventory', 'requests', 'blacklist', 'maintenance', 'reviews', 'loyalty', 'staff', 'logs', 'settings', 'tenants', 'bookings', 'users', 'sessions', 'announcements', 'policies', 'config'];
 
     for (const col of collections) {
       const collection = db.collection(col);
@@ -229,10 +175,6 @@ async function createIndexes() {
       if (col === 'guests' && !indexExistsWithKeys({ email: 1, hotelId: 1 })) {
         await collection.createIndex({ email: 1, hotelId: 1 }, { background: true });
       }
-      // ✅ FIX 5: Index for page state lookups
-      if (col === 'guests' && !indexExistsWithKeys({ room: 1, hotelId: 1 })) {
-        await collection.createIndex({ room: 1, hotelId: 1 }, { background: true });
-      }
       if (col === 'settings' && !indexExistsWithKeys({ hotelId: 1 })) {
         await collection.createIndex({ hotelId: 1 }, { unique: true, background: true });
       }
@@ -254,10 +196,6 @@ async function createIndexes() {
       if (col === 'sessions' && !indexExistsWithKeys({ lastActivity: 1 })) {
         await collection.createIndex({ lastActivity: 1 }, { expireAfterSeconds: Math.floor(IDLE_TIMEOUT_MS / 1000) + 3600 });
       }
-      // ✅ FIX 5: Compound index for page state queries
-      if (col === 'sessions' && !indexExistsWithKeys({ email: 1, hotelId: 1 })) {
-        await collection.createIndex({ email: 1, hotelId: 1 }, { background: true });
-      }
       if (col === 'announcements' && !indexExistsWithKeys({ category: 1, hotelId: 1 })) {
         await collection.createIndex({ category: 1, hotelId: 1 }, { background: true });
       }
@@ -269,15 +207,6 @@ async function createIndexes() {
       }
       if (col === 'policies' && !indexExistsWithKeys({ isEnabled: 1, hotelId: 1 })) {
         await collection.createIndex({ isEnabled: 1, hotelId: 1 }, { background: true });
-      }
-      if (col === 'departments' && !indexExistsWithKeys({ key: 1, hotelId: 1 })) {
-        await collection.createIndex({ key: 1, hotelId: 1 }, { unique: true, background: true });
-      }
-      if (col === 'requests' && !indexExistsWithKeys({ status: 1, hotelId: 1 })) {
-        await collection.createIndex({ status: 1, hotelId: 1 }, { background: true });
-      }
-      if (col === 'requests' && !indexExistsWithKeys({ roomNumber: 1, hotelId: 1 })) {
-        await collection.createIndex({ roomNumber: 1, hotelId: 1 }, { background: true });
       }
     }
     console.log('✅ All indexes verified/created successfully');
@@ -350,37 +279,14 @@ app.use('/api', tenantMiddleware);
 app.use('/api', clientInfoMiddleware);
 app.use('/api', idempotencyMiddleware);
 
-const departmentRoutes = require('./routes/department.routes');
-app.set('io', io);
-app.use('/api/departments', departmentRoutes);
-
-// ✅ FIX 1: Optimized checkSubscription with caching - no DB hit on cached hotels
 const checkSubscription = async (req, res, next) => {
   try {
     const hotelId = req.hotelId;
     if (hotelId === 'HOTEL001') return next();
     if (!dbConnected) return next();
 
-    const cached = getCachedSubscription(hotelId);
-    if (cached) {
-      if (!cached.active) {
-        return res.status(403).json({ success: false, error: 'Hotel account is inactive' });
-      }
-      if (cached.subscriptionExpiry && new Date(cached.subscriptionExpiry) < new Date()) {
-        return res.status(403).json({
-          success: false,
-          error: 'Subscription expired',
-          expiryDate: cached.subscriptionExpiry,
-          action: 'Please renew your subscription'
-        });
-      }
-      return next();
-    }
-
     const tenant = await db.collection('tenants').findOne({ hotelId });
     if (!tenant) return next();
-
-    setCachedSubscription(hotelId, tenant);
 
     if (!tenant.active) {
       return res.status(403).json({ success: false, error: 'Hotel account is inactive' });
@@ -412,7 +318,6 @@ app.use('/api/staff', checkSubscription);
 app.use('/api/announcements', checkSubscription);
 app.use('/api/policies', checkSubscription);
 app.use('/api/config', checkSubscription);
-app.use('/api/departments', checkSubscription);
 
 const generateToken = (payload, expiresIn = TOKEN_EXPIRY) => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn });
@@ -480,7 +385,6 @@ const updateSessionActivity = async (req) => {
     email: req.user?.email
   });
 
-  // ✅ FIX 3: Non-blocking session save
   if (dbConnected) {
     db.collection('sessions').updateOne(
       { sessionKey },
@@ -533,7 +437,6 @@ app.use('/api/dashboard', checkIdleTimeout);
 app.use('/api/announcements', checkIdleTimeout);
 app.use('/api/policies', checkIdleTimeout);
 app.use('/api/config', checkIdleTimeout);
-app.use('/api/departments', checkIdleTimeout);
 
 setInterval(() => {
   const now = Date.now();
@@ -544,17 +447,9 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000);
 
-// ✅ FIX 4+6+8: Enhanced Socket.io - bidirectional Admin↔Guest real-time sync
-// Room naming convention:
-//   hotel_{hotelId}        → all devices for a hotel (admin + guest)
-//   admin_{hotelId}        → admin devices only
-//   guest_{hotelId}        → guest devices only
-//   room_{hotelId}_{roomNo} → specific guest room devices
-
 io.on('connection', (socket) => {
   console.log('🔌 Client connected:', socket.id);
 
-  // ---- Join rooms ----
   socket.on('join_hotel', (hotelId) => {
     socket.join(`hotel_${hotelId}`);
     console.log(`📡 ${socket.id} joined room: hotel_${hotelId}`);
@@ -566,42 +461,10 @@ io.on('connection', (socket) => {
     socket.emit('connected', { hotelId, message: 'Connected' });
   });
 
-  // ✅ FIX 8: Admin joins dedicated admin room
-  socket.on('join_admin', (hotelId) => {
-    socket.join(`hotel_${hotelId}`);
-    socket.join(`admin_${hotelId}`);
-    console.log(`👑 Admin ${socket.id} joined admin room: admin_${hotelId}`);
-    socket.emit('admin_connected', { hotelId, message: 'Connected to admin channel' });
-    // Notify admin about all online guests
-    const roomClients = io.sockets.adapter.rooms.get(`hotel_${hotelId}`);
-    socket.emit('online_count', { count: roomClients ? roomClients.size : 0 });
-  });
-
-  // ✅ FIX 8: Guest joins hotel room + specific room channel
-  socket.on('join_guest', ({ hotelId, roomNumber, guestName }) => {
-    socket.join(`hotel_${hotelId}`);
-    socket.join(`guest_${hotelId}`);
-    if (roomNumber) {
-      socket.join(`room_${hotelId}_${roomNumber}`);
-    }
-    socket.hotelId = hotelId;
-    socket.roomNumber = roomNumber;
-    socket.guestName = guestName;
-    console.log(`🏨 Guest ${guestName || 'Unknown'} (Room ${roomNumber}) joined hotel_${hotelId}`);
-    socket.emit('guest_connected', { hotelId, roomNumber, message: 'Connected to hotel services' });
-    // Notify admins that a guest connected
-    io.to(`admin_${hotelId}`).emit('guest_online', {
-      hotelId, roomNumber, guestName,
-      timestamp: new Date().toISOString()
-    });
-  });
-
-  // ✅ FIX 9: Heartbeat to keep sessions alive on all devices
   socket.on('ping_heartbeat', (data) => {
     socket.emit('pong_heartbeat', { serverTime: new Date().toISOString(), received: data });
   });
 
-  // ---- Broadcast helper (hotel-wide) ----
   const broadcastEvent = (eventName, payload) => {
     const hotelId = payload?.hotelId;
     if (!hotelId) return;
@@ -613,28 +476,7 @@ io.on('connection', (socket) => {
     io.to(`hotel_${hotelId}`).emit(eventName, data);
   };
 
-  // ✅ FIX 8: Admin→Guest broadcast (admin actions go to all guest devices)
-  const broadcastToGuests = (hotelId, eventName, payload) => {
-    const data = { ...payload, syncToken: Date.now(), timestamp: new Date().toISOString() };
-    io.to(`guest_${hotelId}`).emit(eventName, data);
-    // Also send to specific room if roomNumber present
-    if (payload?.roomNumber) {
-      io.to(`room_${hotelId}_${payload.roomNumber}`).emit(eventName, data);
-    }
-  };
-
-  // ✅ FIX 8: Guest→Admin broadcast (guest actions go to admin dashboard)
-  const broadcastToAdmins = (hotelId, eventName, payload) => {
-    const data = { ...payload, syncToken: Date.now(), timestamp: new Date().toISOString() };
-    io.to(`admin_${hotelId}`).emit(eventName, data);
-  };
-
-  // ---- Standard hotel-wide events (existing, preserved) ----
-  socket.on('req_new', (payload) => {
-    broadcastEvent('req_new', payload);
-    // ✅ FIX 8: Also specifically notify admins
-    broadcastToAdmins(payload?.hotelId, 'new_guest_request', payload);
-  });
+  socket.on('req_new', (payload) => broadcastEvent('req_new', payload));
   socket.on('req_upd', (payload) => broadcastEvent('req_upd', payload));
   socket.on('room_upd', (payload) => broadcastEvent('room_upd', payload));
   socket.on('guest_upd', (payload) => broadcastEvent('guest_upd', payload));
@@ -645,81 +487,20 @@ io.on('connection', (socket) => {
   socket.on('booking_new', (payload) => broadcastEvent('booking_new', payload));
   socket.on('booking_upd', (payload) => broadcastEvent('booking_upd', payload));
   socket.on('staff_upd', (payload) => broadcastEvent('staff_upd', payload));
-  socket.on('review_new', (payload) => {
-    broadcastEvent('review_new', payload);
-    broadcastToAdmins(payload?.hotelId, 'new_guest_review', payload);
-  });
-  socket.on('announcement_upd', (payload) => {
-    broadcastEvent('announcement_upd', payload);
-    broadcastToGuests(payload?.hotelId, 'new_announcement', payload);
-  });
+  socket.on('review_new', (payload) => broadcastEvent('review_new', payload));
+  socket.on('announcement_upd', (payload) => broadcastEvent('announcement_upd', payload));
   socket.on('policy_upd', (payload) => broadcastEvent('policy_upd', payload));
   socket.on('blacklist_upd', (payload) => broadcastEvent('blacklist_upd', payload));
   socket.on('maintenance_upd', (payload) => broadcastEvent('maintenance_upd', payload));
   socket.on('logs_upd', (payload) => broadcastEvent('logs_upd', payload));
-  socket.on('dept_upd', (payload) => broadcastEvent('dept_upd', payload));
-
-  // ✅ FIX 8: NEW - Guest sends action to admin
-  socket.on('guest_action', (payload) => {
-    const hotelId = payload?.hotelId;
-    if (!hotelId) return;
-    broadcastToAdmins(hotelId, 'guest_action', {
-      ...payload,
-      socketId: socket.id,
-      timestamp: new Date().toISOString()
-    });
-  });
-
-  // ✅ FIX 8: NEW - Admin sends action to specific guest room
-  socket.on('admin_action', (payload) => {
-    const hotelId = payload?.hotelId;
-    if (!hotelId) return;
-    broadcastToGuests(hotelId, 'admin_action', {
-      ...payload,
-      timestamp: new Date().toISOString()
-    });
-    // Also broadcast hotel-wide so all admin tabs sync
-    io.to(`admin_${hotelId}`).emit('admin_action_ack', { ...payload, timestamp: new Date().toISOString() });
-  });
-
-  // ✅ FIX 8: Admin replies to a guest request - target specific room
-  socket.on('admin_reply', (payload) => {
-    const { hotelId, roomNumber } = payload;
-    if (!hotelId) return;
-    if (roomNumber) {
-      io.to(`room_${hotelId}_${roomNumber}`).emit('admin_reply', {
-        ...payload,
-        timestamp: new Date().toISOString()
-      });
-    }
-    io.to(`guest_${hotelId}`).emit('request_updated', payload);
-    io.to(`admin_${hotelId}`).emit('req_upd', payload);
-  });
-
-  // ✅ FIX 6: Online count broadcast
-  socket.on('get_online_count', (hotelId) => {
-    const roomClients = io.sockets.adapter.rooms.get(`hotel_${hotelId}`);
-    socket.emit('online_count', { count: roomClients ? roomClients.size : 0 });
-  });
 
   socket.on('leave_hotel', (hotelId) => {
     socket.leave(`hotel_${hotelId}`);
-    socket.leave(`admin_${hotelId}`);
-    socket.leave(`guest_${hotelId}`);
     console.log(`📡 ${socket.id} left room: hotel_${hotelId}`);
   });
 
   socket.on('disconnect', () => {
     console.log('🔌 Client disconnected:', socket.id);
-    // ✅ FIX 8: Notify admin when guest disconnects
-    if (socket.hotelId && socket.roomNumber) {
-      io.to(`admin_${socket.hotelId}`).emit('guest_offline', {
-        hotelId: socket.hotelId,
-        roomNumber: socket.roomNumber,
-        guestName: socket.guestName,
-        timestamp: new Date().toISOString()
-      });
-    }
   });
 
   socket.on('error', (error) => {
@@ -727,40 +508,22 @@ io.on('connection', (socket) => {
   });
 });
 
-// ✅ FIX 3+4: Enhanced broadcast - immediate fire, no blocking
 const broadcast = (hotelId, event, data, clientId = null) => {
   const payload = {
     data,
     hotelId,
     clientId,
-    syncToken: Date.now(),
-    timestamp: new Date().toISOString()
+    syncToken: Date.now()
   };
-  // Broadcast to all hotel devices (admin + guest)
   io.to(`hotel_${hotelId}`).emit(event, payload);
 };
-
-// ✅ FIX 8: Targeted broadcasts
-const broadcastToAdminRoom = (hotelId, event, data, clientId = null) => {
-  const payload = { data, hotelId, clientId, syncToken: Date.now(), timestamp: new Date().toISOString() };
-  io.to(`admin_${hotelId}`).emit(event, payload);
-  io.to(`hotel_${hotelId}`).emit(event, payload); // also hotel-wide for consistency
-};
-
-const broadcastToGuestRoom = (hotelId, roomNumber, event, data) => {
-  const payload = { data, hotelId, roomNumber, syncToken: Date.now(), timestamp: new Date().toISOString() };
-  if (roomNumber) io.to(`room_${hotelId}_${roomNumber}`).emit(event, payload);
-  io.to(`guest_${hotelId}`).emit(event, payload);
-};
-
-// ======================== API ROUTES ========================
 
 app.get('/api/health', (req, res) => {
   const memUsage = process.memoryUsage();
   res.json({
     message: 'Inaya Hotel Management System API',
     status: 'OK',
-    version: '5.0.0',
+    version: '2.2.0',
     mongodb: dbConnected ? 'connected' : 'disconnected',
     socket: io.engine.clientsCount,
     activeSessions: activeSessions.size,
@@ -873,8 +636,6 @@ app.post('/api/auth/ping', (req, res) => {
   }
 });
 
-// ======================== TENANT ========================
-
 app.get('/api/tenant', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -950,7 +711,6 @@ app.post('/api/tenant', authMiddleware, async (req, res) => {
       { upsert: true }
     );
 
-    invalidateSubscriptionCache(hotelId);
     broadcast(hotelId, 'cfg_upd', { hotelName, currency, currencySymbol, language, theme }, req.clientId);
 
     res.json({
@@ -963,8 +723,6 @@ app.post('/api/tenant', authMiddleware, async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-
-// ======================== SUPER ADMIN ========================
 
 app.post('/api/super/tenants/register', superAdminMiddleware, async (req, res) => {
   try {
@@ -1080,8 +838,6 @@ app.put('/api/super/tenants/:hotelId', superAdminMiddleware, async (req, res) =>
 
     if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Hotel not found' });
 
-    invalidateSubscriptionCache(hotelId);
-
     if (updates.hotelName || updates.currency || updates.language || updates.theme) {
       broadcast(hotelId, 'cfg_upd', {
         hotelName: updates.hotelName,
@@ -1117,12 +873,10 @@ app.delete('/api/super/tenants/:hotelId', superAdminMiddleware, async (req, res)
       db.collection('config').deleteOne({ hotelId }),
       db.collection('users').deleteMany({ hotelId }),
       db.collection('announcements').deleteMany({ hotelId }),
-      db.collection('policies').deleteMany({ hotelId }),
-      db.collection('departments').deleteMany({ hotelId })
+      db.collection('policies').deleteMany({ hotelId })
     ]);
 
     await db.collection('tenants').deleteOne({ hotelId });
-    invalidateSubscriptionCache(hotelId);
     io.to(`hotel_${hotelId}`).emit('hotel_deleted', { message: 'This hotel has been deactivated' });
 
     res.json({ success: true, message: 'Hotel and all data deleted' });
@@ -1240,66 +994,62 @@ app.post('/api/super/admins/register', superAdminMiddleware, async (req, res) =>
     const result = await db.collection('users').insertOne(user);
     user._id = result.insertedId;
     delete user.password;
-    res.status(201).json({ ...user, success: true, message: 'Admin created' });
+    res.status(201).json({ success: true, message: 'Admin created', data: user });
   } catch (error) {
     console.error('Admin register error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ======================== AUTH ========================
-
-// ✅ FIX 1: OPTIMIZED LOGIN - parallel queries, fast path, non-blocking session
 app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async (req, res) => {
-  const startTime = Date.now();
   try {
     const { email, password, hotelId } = req.body;
-    console.log(`🔐 [${Date.now()}] Admin login attempt: ${email} for hotel: ${hotelId}`);
-
-    // ✅ FIX 1: FAST PATH - hardcoded admin, zero DB queries needed
-    if (email === 'admin@crownplaza.com' && password === 'admin123') {
-      const tokenPayload = {
-        email, name: 'Admin', role: 'super_admin',
-        hotelId: hotelId || 'HOTEL001',
-        permissions: ['rooms', 'guests', 'food', 'inventory', 'requests', 'settings']
-      };
-      const token = generateToken(tokenPayload);
-      const sessionKey = token.substring(token.length - 32);
-      activeSessions.set(sessionKey, { lastActivity: Date.now(), hotelId: hotelId || 'HOTEL001', email });
-
-      req.session.isAdmin = true;
-      req.session.adminEmail = email;
-      req.session.hotelId = hotelId || 'HOTEL001';
-
-      console.log(`✅ [${Date.now()}] Fast login in ${Date.now() - startTime}ms`);
-      return res.json({
-        success: true, token,
-        user: { email, name: 'Admin', role: 'super_admin', permissions: ['all'] },
-        hotelId: hotelId || 'HOTEL001',
-        idleTimeoutMs: IDLE_TIMEOUT_MS
-      });
-    }
+    console.log('🔐 Admin login attempt:', email, 'for hotel:', hotelId);
 
     if (!dbConnected) {
+      if (email === 'admin@crownplaza.com' && password === 'admin123') {
+        const tokenPayload = {
+          email, name: 'Admin', role: 'super_admin',
+          hotelId: hotelId || 'HOTEL001',
+          permissions: ['rooms', 'guests', 'food', 'inventory', 'requests', 'settings']
+        };
+        const token = generateToken(tokenPayload);
+        const sessionKey = token.substring(token.length - 32);
+        activeSessions.set(sessionKey, { lastActivity: Date.now(), hotelId: hotelId || 'HOTEL001', email });
+
+        req.session.isAdmin = true;
+        req.session.adminEmail = email;
+        req.session.hotelId = hotelId || 'HOTEL001';
+        return res.json({
+          success: true, token,
+          user: { email, name: 'Admin', role: 'super_admin', permissions: ['all'] },
+          hotelId: hotelId || 'HOTEL001',
+          idleTimeoutMs: IDLE_TIMEOUT_MS
+        });
+      }
       return res.status(503).json({ success: false, error: 'Database connecting...' });
     }
 
-    // ✅ FIX 1: Single optimized query
+    if (hotelId && hotelId !== 'HOTEL001') {
+      const tenant = await db.collection('tenants').findOne({ hotelId });
+      if (!tenant) {
+        await db.collection('tenants').insertOne({
+          hotelId, hotelName: 'New Hotel', currency: 'USD',
+          currencySymbol: '$', language: 'en', country: 'Unknown',
+          active: true, theme: 'HOTEL001', subscriptionType: 'basic', createdAt: new Date()
+        });
+      }
+    }
+
     const user = await db.collection('users').findOne({
       email,
       $or: [{ hotelId }, { hotelId: { $exists: false } }]
     });
 
-    if (!user) {
-      console.log(`❌ [${Date.now()}] User not found: ${email}`);
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
-    }
+    if (!user) return res.status(401).json({ success: false, error: 'Invalid credentials' });
 
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      console.log(`❌ [${Date.now()}] Wrong password for: ${email}`);
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
-    }
+    if (!validPassword) return res.status(401).json({ success: false, error: 'Invalid credentials' });
     if (!user.active) return res.status(403).json({ success: false, error: 'Account is inactive' });
 
     const tokenPayload = {
@@ -1316,19 +1066,20 @@ app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async
       email: user.email
     });
 
-    // ✅ FIX 3: Non-blocking session save
-    db.collection('sessions').updateOne(
-      { sessionKey },
-      { $set: { lastActivity: new Date(), hotelId: hotelId || user.hotelId || 'HOTEL001', email: user.email } },
-      { upsert: true }
-    ).catch(err => console.warn('Session save warning:', err.message));
+    if (dbConnected) {
+      db.collection('sessions').updateOne(
+        { sessionKey },
+        { $set: { lastActivity: new Date(), hotelId: hotelId || user.hotelId || 'HOTEL001', email: user.email } },
+        { upsert: true }
+      ).catch(() => {});
+    }
 
     req.session.isAdmin = true;
     req.session.adminEmail = email;
     req.session.hotelId = hotelId || user.hotelId || 'HOTEL001';
     req.session.user = { email: user.email, name: user.name, role: user.role, permissions: user.permissions };
 
-    console.log(`✅ [${Date.now()}] Login successful in ${Date.now() - startTime}ms: ${email}`);
+    console.log('✅ Admin login successful:', email);
 
     res.json({
       success: true, token,
@@ -1400,15 +1151,12 @@ app.post('/api/admin/logout', (req, res) => {
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
-// ======================== ROOMS ========================
-
+// ✅ FIXED: ROOMS - Return array directly
 app.get('/api/rooms', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const rooms = await db.collection('rooms').find({ hotelId }).sort({ number: 1 }).toArray();
-    // ✅ FIX 2: Ensure _id is string for all documents
-    rooms.forEach(r => { if (r._id) r._id = r._id.toString(); });
     res.json(rooms);
   } catch (error) {
     console.error('Rooms fetch error:', error);
@@ -1421,7 +1169,6 @@ app.get('/api/rooms/available', async (req, res) => {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const rooms = await db.collection('rooms').find({ hotelId, status: 'Vacant' }).sort({ number: 1 }).toArray();
-    rooms.forEach(r => { if (r._id) r._id = r._id.toString(); });
     res.json(rooms);
   } catch (error) {
     console.error('Available rooms fetch error:', error);
@@ -1432,43 +1179,36 @@ app.get('/api/rooms/available', async (req, res) => {
 app.post('/api/rooms', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    const { number, type, price, basePriceSAR, floor, maxGuests, view, amenities, description, status, guestName } = req.body;
+    const { number, type, price, status, guestName, amenities } = req.body;
 
-    if (!number || !type || (!price && !basePriceSAR)) {
+    if (!number || !type || !price) {
       return res.status(400).json({ success: false, error: 'number, type, and price are required' });
     }
 
     if (!dbConnected) {
       const room = {
         _id: 'r_'+Date.now(), hotelId, number: parseInt(number), type,
-        price: parseFloat(price || basePriceSAR), basePriceSAR: parseFloat(basePriceSAR || price),
-        floor: floor || 1, maxGuests: maxGuests || 2, view: view || 'City',
-        amenities: amenities || [], description: description || '',
-        status: status || 'Vacant', guestName: guestName || null,
+        price: parseFloat(price), status: status || 'Vacant',
+        guestName: guestName || null, amenities: amenities || [],
         createdAt: new Date(), updatedAt: new Date()
       };
       broadcast(hotelId, 'room_upd', room, req.clientId);
-      return res.status(201).json({ ...room, success: true, message: 'Room added (offline)' });
+      return res.status(201).json({ success: true, message: 'Room added (offline)', data: room });
     }
 
     const existing = await db.collection('rooms').findOne({ hotelId, number: parseInt(number) });
     if (existing) return res.status(400).json({ success: false, error: 'Room number already exists' });
 
     const room = {
-      hotelId, number: parseInt(number), type,
-      price: parseFloat(price || basePriceSAR), basePriceSAR: parseFloat(basePriceSAR || price),
-      floor: floor || 1, maxGuests: maxGuests || 2, view: view || 'City',
-      amenities: amenities || [], description: description || '',
+      hotelId, number: parseInt(number), type, price: parseFloat(price),
       status: status || 'Vacant', guestName: guestName || null,
-      createdAt: new Date(), updatedAt: new Date()
+      amenities: amenities || [], createdAt: new Date(), updatedAt: new Date()
     };
 
     const result = await db.collection('rooms').insertOne(room);
-    room._id = result.insertedId.toString(); // ✅ FIX 2
-    // ✅ FIX 4+8: Broadcast to all hotel devices immediately
+    room._id = result.insertedId;
     broadcast(hotelId, 'room_upd', room, req.clientId);
-    broadcastToGuestRoom(hotelId, room.number, 'room_status_changed', room);
-    res.status(201).json({ ...room, success: true, message: 'Room added' });
+    res.status(201).json({ success: true, message: 'Room added', data: room });
   } catch (error) {
     console.error('Room create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1479,17 +1219,17 @@ app.put('/api/rooms/:id', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { id } = req.params;
-    const { number, type, price, basePriceSAR, floor, maxGuests, view, amenities, description, status, guestName } = req.body;
+    const { number, type, price, status, guestName, amenities } = req.body;
 
     if (!dbConnected) {
       const updatedRoom = {
         _id: id, hotelId,
         number: number ? parseInt(number) : undefined, type,
-        price: price ? parseFloat(price) : undefined, basePriceSAR: basePriceSAR ? parseFloat(basePriceSAR) : undefined,
-        floor, maxGuests, view, amenities, description, status, guestName, updatedAt: new Date()
+        price: price ? parseFloat(price) : undefined,
+        status, guestName, amenities, updatedAt: new Date()
       };
       broadcast(hotelId, 'room_upd', updatedRoom, req.clientId);
-      return res.json({ ...updatedRoom, success: true, message: 'Room updated (offline)' });
+      return res.json({ success: true, message: 'Room updated (offline)', data: updatedRoom });
     }
 
     const updateData = {
@@ -1497,34 +1237,21 @@ app.put('/api/rooms/:id', authMiddleware, async (req, res) => {
       ...(number && { number: parseInt(number) }),
       ...(type && { type }),
       ...(price && { price: parseFloat(price) }),
-      ...(basePriceSAR && { basePriceSAR: parseFloat(basePriceSAR) }),
-      ...(floor !== undefined && { floor }),
-      ...(maxGuests !== undefined && { maxGuests }),
-      ...(view && { view }),
-      ...(description !== undefined && { description }),
       ...(status && { status }),
       ...(guestName !== undefined && { guestName }),
       ...(amenities && { amenities })
     };
 
-    // ✅ FIX 3: findOneAndUpdate instead of updateOne + findOne (single round trip)
-    const result = await db.collection('rooms').findOneAndUpdate(
-      { _id: parseId(id), hotelId },
-      { $set: updateData },
-      { returnDocument: 'after' }
+    const result = await db.collection('rooms').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
     );
 
-    if (!result) return res.status(404).json({ success: false, error: 'Room not found' });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Room not found' });
 
-    const updatedRoom = result;
-    if (updatedRoom._id) updatedRoom._id = updatedRoom._id.toString(); // ✅ FIX 2
-
-    // ✅ FIX 8: Notify guest in that room about status change
+    const updatedRoom = await db.collection('rooms').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'room_upd', updatedRoom, req.clientId);
-    if (updatedRoom.number) {
-      broadcastToGuestRoom(hotelId, updatedRoom.number, 'room_status_changed', updatedRoom);
-    }
-    res.json({ ...updatedRoom, success: true, message: 'Room updated' });
+    res.json({ success: true, message: 'Room updated', data: updatedRoom });
   } catch (error) {
     console.error('Room update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1541,7 +1268,7 @@ app.delete('/api/rooms/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Room deleted (offline)' });
     }
 
-    const result = await db.collection('rooms').deleteOne({ _id: parseId(id), hotelId });
+    const result = await db.collection('rooms').deleteOne({ _id: new ObjectId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Room not found' });
 
     broadcast(hotelId, 'room_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -1552,14 +1279,12 @@ app.delete('/api/rooms/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== GUESTS ========================
-
+// ✅ FIXED: GUESTS - Return array directly
 app.get('/api/guests', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const guests = await db.collection('guests').find({ hotelId }).sort({ createdAt: -1 }).toArray();
-    guests.forEach(g => { if (g._id) g._id = g._id.toString(); }); // ✅ FIX 2
     res.json(guests);
   } catch (error) {
     console.error('Guests fetch error:', error);
@@ -1584,7 +1309,7 @@ app.post('/api/guests', authMiddleware, async (req, res) => {
         createdAt: new Date(), updatedAt: new Date()
       };
       broadcast(hotelId, 'guest_upd', guest, req.clientId);
-      return res.status(201).json({ ...guest, success: true, message: 'Guest added (offline)' });
+      return res.status(201).json({ success: true, message: 'Guest added (offline)', data: guest });
     }
 
     const guest = {
@@ -1596,11 +1321,9 @@ app.post('/api/guests', authMiddleware, async (req, res) => {
     };
 
     const result = await db.collection('guests').insertOne(guest);
-    guest._id = result.insertedId.toString(); // ✅ FIX 2
+    guest._id = result.insertedId;
     broadcast(hotelId, 'guest_upd', guest, req.clientId);
-    // ✅ FIX 8: Notify guest's room channel
-    broadcastToGuestRoom(hotelId, parseInt(room), 'guest_checkedin', guest);
-    res.status(201).json({ ...guest, success: true, message: 'Guest added' });
+    res.status(201).json({ success: true, message: 'Guest added', data: guest });
   } catch (error) {
     console.error('Guest create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1623,7 +1346,7 @@ app.put('/api/guests/:id', authMiddleware, async (req, res) => {
         status, updatedAt: new Date()
       };
       broadcast(hotelId, 'guest_upd', updatedGuest, req.clientId);
-      return res.json({ ...updatedGuest, success: true, message: 'Guest updated (offline)' });
+      return res.json({ success: true, message: 'Guest updated (offline)', data: updatedGuest });
     }
 
     const updateData = {
@@ -1638,19 +1361,16 @@ app.put('/api/guests/:id', authMiddleware, async (req, res) => {
       ...(status && { status })
     };
 
-    // ✅ FIX 3: Single round trip with findOneAndUpdate
-    const result = await db.collection('guests').findOneAndUpdate(
-      { _id: parseId(id), hotelId },
-      { $set: updateData },
-      { returnDocument: 'after' }
+    const result = await db.collection('guests').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
     );
 
-    if (!result) return res.status(404).json({ success: false, error: 'Guest not found' });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Guest not found' });
 
-    const updatedGuest = result;
-    if (updatedGuest._id) updatedGuest._id = updatedGuest._id.toString(); // ✅ FIX 2
+    const updatedGuest = await db.collection('guests').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'guest_upd', updatedGuest, req.clientId);
-    res.json({ ...updatedGuest, success: true, message: 'Guest updated' });
+    res.json({ success: true, message: 'Guest updated', data: updatedGuest });
   } catch (error) {
     console.error('Guest update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1667,7 +1387,7 @@ app.delete('/api/guests/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Guest deleted (offline)' });
     }
 
-    const result = await db.collection('guests').deleteOne({ _id: parseId(id), hotelId });
+    const result = await db.collection('guests').deleteOne({ _id: new ObjectId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Guest not found' });
 
     broadcast(hotelId, 'guest_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -1678,14 +1398,12 @@ app.delete('/api/guests/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== FOOD ========================
-
+// ✅ FIXED: FOOD - Return array directly
 app.get('/api/food', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const food = await db.collection('food').find({ hotelId }).sort({ name: 1 }).toArray();
-    food.forEach(f => { if (f._id) f._id = f._id.toString(); }); // ✅ FIX 2
     res.json(food);
   } catch (error) {
     console.error('Food fetch error:', error);
@@ -1696,36 +1414,32 @@ app.get('/api/food', async (req, res) => {
 app.post('/api/food', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    const { name, price, basePriceSAR, category, description, available, image, emoji } = req.body;
+    const { name, price, category, description, available, image } = req.body;
 
-    if (!name || (!price && !basePriceSAR)) return res.status(400).json({ success: false, error: 'name and price are required' });
+    if (!name || !price) return res.status(400).json({ success: false, error: 'name and price are required' });
 
     if (!dbConnected) {
       const item = {
-        _id: 'f_'+Date.now(), hotelId, name,
-        price: parseFloat(price || basePriceSAR), basePriceSAR: parseFloat(basePriceSAR || price),
+        _id: 'f_'+Date.now(), hotelId, name, price: parseFloat(price),
         category: category || 'Main Course', description: description || '',
-        available: available !== false, image: image || null, emoji: emoji || '🍽️',
+        available: available !== false, image: image || null,
         createdAt: new Date(), updatedAt: new Date()
       };
       broadcast(hotelId, 'food_upd', item, req.clientId);
-      return res.status(201).json({ ...item, success: true, message: 'Food item added (offline)' });
+      return res.status(201).json({ success: true, message: 'Food item added (offline)', data: item });
     }
 
     const item = {
-      hotelId, name,
-      price: parseFloat(price || basePriceSAR), basePriceSAR: parseFloat(basePriceSAR || price),
+      hotelId, name, price: parseFloat(price),
       category: category || 'Main Course', description: description || '',
-      available: available !== false, image: image || null, emoji: emoji || '🍽️',
+      available: available !== false, image: image || null,
       createdAt: new Date(), updatedAt: new Date()
     };
 
     const result = await db.collection('food').insertOne(item);
-    item._id = result.insertedId.toString(); // ✅ FIX 2
+    item._id = result.insertedId;
     broadcast(hotelId, 'food_upd', item, req.clientId);
-    // ✅ FIX 8: Notify guest devices about menu update
-    io.to(`guest_${hotelId}`).emit('menu_updated', { hotelId, item, syncToken: Date.now() });
-    res.status(201).json({ ...item, success: true, message: 'Food item added' });
+    res.status(201).json({ success: true, message: 'Food item added', data: item });
   } catch (error) {
     console.error('Food create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1736,44 +1450,38 @@ app.put('/api/food/:id', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { id } = req.params;
-    const { name, price, basePriceSAR, category, description, available, image, emoji } = req.body;
+    const { name, price, category, description, available, image } = req.body;
 
     if (!dbConnected) {
       const updatedItem = {
         _id: id, hotelId, name,
-        price: price ? parseFloat(price) : undefined, basePriceSAR: basePriceSAR ? parseFloat(basePriceSAR) : undefined,
-        category, description, available, image, emoji, updatedAt: new Date()
+        price: price ? parseFloat(price) : undefined,
+        category, description, available, image, updatedAt: new Date()
       };
       broadcast(hotelId, 'food_upd', updatedItem, req.clientId);
-      return res.json({ ...updatedItem, success: true, message: 'Food item updated (offline)' });
+      return res.json({ success: true, message: 'Food item updated (offline)', data: updatedItem });
     }
 
     const updateData = {
       updatedAt: new Date(),
       ...(name && { name }),
       ...(price && { price: parseFloat(price) }),
-      ...(basePriceSAR && { basePriceSAR: parseFloat(basePriceSAR) }),
       ...(category && { category }),
       ...(description !== undefined && { description }),
       ...(available !== undefined && { available }),
-      ...(image !== undefined && { image }),
-      ...(emoji && { emoji })
+      ...(image !== undefined && { image })
     };
 
-    // ✅ FIX 3: Single round trip
-    const result = await db.collection('food').findOneAndUpdate(
-      { _id: parseId(id), hotelId },
-      { $set: updateData },
-      { returnDocument: 'after' }
+    const result = await db.collection('food').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
     );
 
-    if (!result) return res.status(404).json({ success: false, error: 'Food item not found' });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Food item not found' });
 
-    const updatedItem = result;
-    if (updatedItem._id) updatedItem._id = updatedItem._id.toString(); // ✅ FIX 2
+    const updatedItem = await db.collection('food').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'food_upd', updatedItem, req.clientId);
-    io.to(`guest_${hotelId}`).emit('menu_updated', { hotelId, item: updatedItem, syncToken: Date.now() });
-    res.json({ ...updatedItem, success: true, message: 'Food item updated' });
+    res.json({ success: true, message: 'Food item updated', data: updatedItem });
   } catch (error) {
     console.error('Food update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1790,11 +1498,10 @@ app.delete('/api/food/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Food item deleted (offline)' });
     }
 
-    const result = await db.collection('food').deleteOne({ _id: parseId(id), hotelId });
+    const result = await db.collection('food').deleteOne({ _id: new ObjectId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Food item not found' });
 
     broadcast(hotelId, 'food_upd', { _id: id, hotelId, deleted: true }, req.clientId);
-    io.to(`guest_${hotelId}`).emit('menu_updated', { hotelId, deleted: id, syncToken: Date.now() });
     res.json({ success: true, message: 'Food item deleted' });
   } catch (error) {
     console.error('Food delete error:', error);
@@ -1802,14 +1509,12 @@ app.delete('/api/food/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== INVENTORY ========================
-
+// ✅ FIXED: INVENTORY - Return array directly
 app.get('/api/inventory', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const inventory = await db.collection('inventory').find({ hotelId }).sort({ name: 1 }).toArray();
-    inventory.forEach(i => { if (i._id) i._id = i._id.toString(); }); // ✅ FIX 2
     res.json(inventory);
   } catch (error) {
     console.error('Inventory fetch error:', error);
@@ -1820,41 +1525,37 @@ app.get('/api/inventory', async (req, res) => {
 app.post('/api/inventory', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    const { name, category, quantity, stock, minStock, min, price, unit, status } = req.body;
+    const { name, category, quantity, minStock, price, unit, status } = req.body;
 
-    const qty = parseInt(quantity || stock || 0);
-    const minQty = parseInt(minStock || min || 10);
-
-    if (!name || !category || isNaN(qty)) {
+    if (!name || !category || quantity === undefined) {
       return res.status(400).json({ success: false, error: 'name, category, and quantity are required' });
     }
 
-    const autoStatus = qty <= 0 ? 'out-of-stock'
-      : qty <= minQty ? 'low-stock' : 'in-stock';
+    const autoStatus = parseInt(quantity) <= 0 ? 'out-of-stock'
+      : parseInt(quantity) <= (parseInt(minStock) || 10) ? 'low-stock' : 'in-stock';
 
     if (!dbConnected) {
       const item = {
         _id: 'i_'+Date.now(), hotelId, name, category,
-        quantity: qty, stock: qty, minStock: minQty, min: minQty,
+        quantity: parseInt(quantity), minStock: parseInt(minStock) || 10,
         price: price ? parseFloat(price) : 0, unit: unit || 'pcs',
         status: status || autoStatus, createdAt: new Date(), updatedAt: new Date()
       };
       broadcast(hotelId, 'inventory_upd', item, req.clientId);
-      return res.status(201).json({ ...item, success: true, message: 'Inventory item added (offline)' });
+      return res.status(201).json({ success: true, message: 'Inventory item added (offline)', data: item });
     }
 
     const item = {
-      hotelId, name, category,
-      quantity: qty, stock: qty, minStock: minQty, min: minQty,
-      price: price ? parseFloat(price) : 0, unit: unit || 'pcs',
-      status: status || autoStatus,
+      hotelId, name, category, quantity: parseInt(quantity),
+      minStock: parseInt(minStock) || 10, price: price ? parseFloat(price) : 0,
+      unit: unit || 'pcs', status: status || autoStatus,
       createdAt: new Date(), updatedAt: new Date()
     };
 
     const result = await db.collection('inventory').insertOne(item);
-    item._id = result.insertedId.toString(); // ✅ FIX 2
+    item._id = result.insertedId;
     broadcast(hotelId, 'inventory_upd', item, req.clientId);
-    res.status(201).json({ ...item, success: true, message: 'Inventory item added' });
+    res.status(201).json({ success: true, message: 'Inventory item added', data: item });
   } catch (error) {
     console.error('Inventory create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1865,34 +1566,33 @@ app.put('/api/inventory/:id', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { id } = req.params;
-    const { name, category, quantity, stock, minStock, min, price, unit, status } = req.body;
-
-    const qty = quantity !== undefined ? parseInt(quantity) : (stock !== undefined ? parseInt(stock) : undefined);
-    const minQty = minStock !== undefined ? parseInt(minStock) : (min !== undefined ? parseInt(min) : undefined);
+    const { name, category, quantity, minStock, price, unit, status } = req.body;
 
     const autoStatus = () => {
-      if (qty === undefined) return undefined;
-      const m = minQty || 10;
-      return qty <= 0 ? 'out-of-stock' : qty <= m ? 'low-stock' : 'in-stock';
+      if (quantity === undefined) return undefined;
+      const qty = parseInt(quantity);
+      const min = parseInt(minStock) || 10;
+      return qty <= 0 ? 'out-of-stock' : qty <= min ? 'low-stock' : 'in-stock';
     };
 
     if (!dbConnected) {
       const updatedItem = {
         _id: id, hotelId, name, category,
-        quantity: qty, stock: qty, minStock: minQty, min: minQty,
+        quantity: quantity !== undefined ? parseInt(quantity) : undefined,
+        minStock: minStock !== undefined ? parseInt(minStock) : undefined,
         price: price !== undefined ? parseFloat(price) : undefined,
         unit, status: status || autoStatus(), updatedAt: new Date()
       };
       broadcast(hotelId, 'inventory_upd', updatedItem, req.clientId);
-      return res.json({ ...updatedItem, success: true, message: 'Inventory item updated (offline)' });
+      return res.json({ success: true, message: 'Inventory item updated (offline)', data: updatedItem });
     }
 
     const updateData = {
       updatedAt: new Date(),
       ...(name && { name }),
       ...(category && { category }),
-      ...(qty !== undefined && { quantity: qty, stock: qty }),
-      ...(minQty !== undefined && { minStock: minQty, min: minQty }),
+      ...(quantity !== undefined && { quantity: parseInt(quantity) }),
+      ...(minStock !== undefined && { minStock: parseInt(minStock) }),
       ...(price !== undefined && { price: parseFloat(price) }),
       ...(unit && { unit }),
       ...(status && { status })
@@ -1901,19 +1601,16 @@ app.put('/api/inventory/:id', authMiddleware, async (req, res) => {
     const computed = autoStatus();
     if (computed) updateData.status = computed;
 
-    // ✅ FIX 3: Single round trip
-    const result = await db.collection('inventory').findOneAndUpdate(
-      { _id: parseId(id), hotelId },
-      { $set: updateData },
-      { returnDocument: 'after' }
+    const result = await db.collection('inventory').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
     );
 
-    if (!result) return res.status(404).json({ success: false, error: 'Inventory item not found' });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Inventory item not found' });
 
-    const updatedItem = result;
-    if (updatedItem._id) updatedItem._id = updatedItem._id.toString(); // ✅ FIX 2
+    const updatedItem = await db.collection('inventory').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'inventory_upd', updatedItem, req.clientId);
-    res.json({ ...updatedItem, success: true, message: 'Inventory item updated' });
+    res.json({ success: true, message: 'Inventory item updated', data: updatedItem });
   } catch (error) {
     console.error('Inventory update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1930,7 +1627,7 @@ app.delete('/api/inventory/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Inventory item deleted (offline)' });
     }
 
-    const result = await db.collection('inventory').deleteOne({ _id: parseId(id), hotelId });
+    const result = await db.collection('inventory').deleteOne({ _id: new ObjectId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Inventory item not found' });
 
     broadcast(hotelId, 'inventory_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -1941,8 +1638,7 @@ app.delete('/api/inventory/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== REQUESTS ========================
-
+// ✅ FIXED: REQUESTS - Return array directly
 app.get('/api/requests', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -1955,7 +1651,6 @@ app.get('/api/requests', async (req, res) => {
     if (department) filter.department = department;
 
     const requests = await db.collection('requests').find(filter).sort({ createdAt: -1 }).toArray();
-    requests.forEach(r => { if (r._id) r._id = r._id.toString(); }); // ✅ FIX 2
     res.json(requests);
   } catch (error) {
     console.error('Requests fetch error:', error);
@@ -1983,8 +1678,7 @@ app.post('/api/requests', authMiddleware, async (req, res) => {
         assignedTo: null, createdAt: new Date(), updatedAt: new Date()
       };
       broadcast(hotelId, 'req_new', request, req.clientId);
-      broadcastToAdminRoom(hotelId, 'new_guest_request', request);
-      return res.status(201).json({ ...request, success: true, message: 'Request submitted (offline)' });
+      return res.status(201).json({ success: true, message: 'Request submitted (offline)', data: request });
     }
 
     const request = {
@@ -1997,13 +1691,9 @@ app.post('/api/requests', authMiddleware, async (req, res) => {
     };
 
     const result = await db.collection('requests').insertOne(request);
-    request._id = result.insertedId.toString(); // ✅ FIX 2
-
-    // ✅ FIX 4+8: Broadcast to ALL hotel devices + specifically to admin
+    request._id = result.insertedId;
     broadcast(hotelId, 'req_new', request, req.clientId);
-    broadcastToAdminRoom(hotelId, 'new_guest_request', request);
-
-    res.status(201).json({ ...request, success: true, message: 'Request submitted' });
+    res.status(201).json({ success: true, message: 'Request submitted', data: request });
   } catch (error) {
     console.error('Request create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2014,15 +1704,16 @@ app.put('/api/requests/:id', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const { id } = req.params;
-    const { status, priority, assignedTo, notes, adminReply, adminReplyTime } = req.body;
+    const { status, priority, assignedTo, notes } = req.body;
 
     if (!dbConnected) {
       const updatedRequest = {
-        _id: id, hotelId, status, priority, assignedTo, notes, adminReply, adminReplyTime,
+        _id: id, hotelId, status, priority, assignedTo,
+        notes: notes ? (notes + '\n[' + new Date().toISOString() + ']') : undefined,
         updatedAt: new Date()
       };
       broadcast(hotelId, 'req_upd', updatedRequest, req.clientId);
-      return res.json({ ...updatedRequest, success: true, message: 'Request updated (offline)' });
+      return res.json({ success: true, message: 'Request updated (offline)', data: updatedRequest });
     }
 
     const updateData = {
@@ -2030,37 +1721,19 @@ app.put('/api/requests/:id', authMiddleware, async (req, res) => {
       ...(status && { status }),
       ...(priority && { priority }),
       ...(assignedTo !== undefined && { assignedTo }),
-      ...(notes && { notes }),
-      ...(adminReply !== undefined && { adminReply }),
-      ...(adminReplyTime && { adminReplyTime })
+      ...(notes && { notes: (notes + '\n[' + new Date().toISOString() + '])') })
     };
 
-    // ✅ FIX 3: Single round trip
-    const result = await db.collection('requests').findOneAndUpdate(
-      { _id: parseId(id), hotelId },
-      { $set: updateData },
-      { returnDocument: 'after' }
+    const result = await db.collection('requests').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
     );
 
-    if (!result) return res.status(404).json({ success: false, error: 'Request not found' });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Request not found' });
 
-    const updatedRequest = result;
-    if (updatedRequest._id) updatedRequest._id = updatedRequest._id.toString(); // ✅ FIX 2
-
-    // ✅ FIX 8: Broadcast to hotel-wide + notify specific guest room if adminReply
+    const updatedRequest = await db.collection('requests').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'req_upd', updatedRequest, req.clientId);
-    if (adminReply && updatedRequest.roomNumber) {
-      io.to(`room_${hotelId}_${updatedRequest.roomNumber}`).emit('admin_reply', {
-        requestId: updatedRequest._id,
-        adminReply,
-        status: updatedRequest.status,
-        hotelId,
-        roomNumber: updatedRequest.roomNumber,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    res.json({ ...updatedRequest, success: true, message: 'Request updated' });
+    res.json({ success: true, message: 'Request updated', data: updatedRequest });
   } catch (error) {
     console.error('Request update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2077,7 +1750,7 @@ app.delete('/api/requests/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Request deleted (offline)' });
     }
 
-    const result = await db.collection('requests').deleteOne({ _id: parseId(id), hotelId });
+    const result = await db.collection('requests').deleteOne({ _id: new ObjectId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Request not found' });
 
     broadcast(hotelId, 'req_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -2088,8 +1761,7 @@ app.delete('/api/requests/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== SETTINGS ========================
-
+// ✅ FIXED: SETTINGS - Return object directly (not wrapped)
 app.get('/api/settings', async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2104,7 +1776,6 @@ app.get('/api/settings', async (req, res) => {
     if (!dbConnected) return res.json(defaultSettings);
 
     const settings = await db.collection('settings').findOne({ hotelId });
-    if (settings && settings._id) settings._id = settings._id.toString(); // ✅ FIX 2
     res.json(settings || defaultSettings);
   } catch (error) {
     console.error('Settings fetch error:', error);
@@ -2126,21 +1797,13 @@ app.put('/api/settings', authMiddleware, async (req, res) => {
         language: updatedSettings.language,
         theme: updatedSettings.theme
       }, req.clientId);
-      return res.json({ ...updatedSettings, success: true, message: 'Settings saved (offline)' });
+      return res.json({ success: true, message: 'Settings saved (offline)', data: updatedSettings });
     }
 
     const updateData = { ...settings, hotelId, updatedAt: new Date() };
+    await db.collection('settings').updateOne({ hotelId }, { $set: updateData }, { upsert: true });
 
-    // ✅ FIX 2: upsert ensures settings always persist
-    const result = await db.collection('settings').findOneAndUpdate(
-      { hotelId },
-      { $set: updateData },
-      { upsert: true, returnDocument: 'after' }
-    );
-
-    const updatedSettings = result || updateData;
-    if (updatedSettings._id) updatedSettings._id = updatedSettings._id.toString();
-
+    const updatedSettings = await db.collection('settings').findOne({ hotelId });
     broadcast(hotelId, 'cfg_upd', {
       hotelName: updatedSettings.hotelName,
       currencySymbol: updatedSettings.currencySymbol,
@@ -2148,29 +1811,19 @@ app.put('/api/settings', authMiddleware, async (req, res) => {
       language: updatedSettings.language,
       theme: updatedSettings.theme
     }, req.clientId);
-    // ✅ FIX 8: Notify guest devices about settings change (wifi, language, etc.)
-    io.to(`guest_${hotelId}`).emit('settings_updated', {
-      hotelId,
-      language: updatedSettings.language,
-      currencySymbol: updatedSettings.currencySymbol,
-      hotelName: updatedSettings.hotelName,
-      syncToken: Date.now()
-    });
-    res.json({ ...updatedSettings, success: true, message: 'Settings saved' });
+    res.json({ success: true, message: 'Settings saved', data: updatedSettings });
   } catch (error) {
     console.error('Settings save error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ======================== BOOKINGS ========================
-
+// ✅ FIXED: BOOKINGS - Return array directly
 app.get('/api/bookings', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const bookings = await db.collection('bookings').find({ hotelId }).sort({ createdAt: -1 }).toArray();
-    bookings.forEach(b => { if (b._id) b._id = b._id.toString(); }); // ✅ FIX 2
     res.json(bookings);
   } catch (error) {
     console.error('Bookings fetch error:', error);
@@ -2198,15 +1851,13 @@ app.post('/api/bookings', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       booking._id = 'bk_'+Date.now();
       broadcast(hotelId, 'booking_new', booking, req.clientId);
-      return res.status(201).json({ ...booking, success: true, message: 'Booking added (offline)' });
+      return res.status(201).json({ success: true, message: 'Booking added (offline)', data: booking });
     }
 
     const result = await db.collection('bookings').insertOne(booking);
-    booking._id = result.insertedId.toString(); // ✅ FIX 2
+    booking._id = result.insertedId;
     broadcast(hotelId, 'booking_new', booking, req.clientId);
-    // ✅ FIX 8: Notify guest room about their booking confirmation
-    broadcastToGuestRoom(hotelId, parseInt(roomNumber), 'booking_confirmed', booking);
-    res.status(201).json({ ...booking, success: true, message: 'Booking added' });
+    res.status(201).json({ success: true, message: 'Booking added', data: booking });
   } catch (error) {
     console.error('Booking create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2228,7 +1879,7 @@ app.put('/api/bookings/:id', authMiddleware, async (req, res) => {
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'booking_upd', updatedBooking, req.clientId);
-      return res.json({ ...updatedBooking, success: true, message: 'Booking updated (offline)' });
+      return res.json({ success: true, message: 'Booking updated (offline)', data: updatedBooking });
     }
 
     const updateData = {
@@ -2240,23 +1891,16 @@ app.put('/api/bookings/:id', authMiddleware, async (req, res) => {
       ...(totalPriceSAR !== undefined && { totalPriceSAR: parseFloat(totalPriceSAR) })
     };
 
-    // ✅ FIX 3: Single round trip
-    const result = await db.collection('bookings').findOneAndUpdate(
-      { _id: parseId(id), hotelId },
-      { $set: updateData },
-      { returnDocument: 'after' }
+    const result = await db.collection('bookings').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
     );
 
-    if (!result) return res.status(404).json({ success: false, error: 'Booking not found' });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Booking not found' });
 
-    const updatedBooking = result;
-    if (updatedBooking._id) updatedBooking._id = updatedBooking._id.toString(); // ✅ FIX 2
+    const updatedBooking = await db.collection('bookings').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'booking_upd', updatedBooking, req.clientId);
-    // ✅ FIX 8: Notify guest about booking status change
-    if (updatedBooking.roomNumber) {
-      broadcastToGuestRoom(hotelId, updatedBooking.roomNumber, 'booking_status_changed', updatedBooking);
-    }
-    res.json({ ...updatedBooking, success: true, message: 'Booking updated' });
+    res.json({ success: true, message: 'Booking updated', data: updatedBooking });
   } catch (error) {
     console.error('Booking update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2273,7 +1917,7 @@ app.delete('/api/bookings/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Booking deleted (offline)' });
     }
 
-    const result = await db.collection('bookings').deleteOne({ _id: parseId(id), hotelId });
+    const result = await db.collection('bookings').deleteOne({ _id: new ObjectId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Booking not found' });
 
     broadcast(hotelId, 'booking_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -2284,14 +1928,12 @@ app.delete('/api/bookings/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== BLACKLIST ========================
-
+// ✅ FIXED: BLACKLIST - Return array directly
 app.get('/api/blacklist', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const blacklist = await db.collection('blacklist').find({ hotelId }).sort({ date: -1 }).toArray();
-    blacklist.forEach(b => { if (b._id) b._id = b._id.toString(); }); // ✅ FIX 2
     res.json(blacklist);
   } catch (error) {
     console.error('Blacklist fetch error:', error);
@@ -2314,13 +1956,13 @@ app.post('/api/blacklist', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       entry._id = 'bl_'+Date.now();
       broadcast(hotelId, 'blacklist_upd', entry, req.clientId);
-      return res.status(201).json({ ...entry, success: true, message: 'Guest blocked (offline)' });
+      return res.status(201).json({ success: true, message: 'Guest blocked (offline)', data: entry });
     }
 
     const result = await db.collection('blacklist').insertOne(entry);
-    entry._id = result.insertedId.toString(); // ✅ FIX 2
+    entry._id = result.insertedId;
     broadcast(hotelId, 'blacklist_upd', entry, req.clientId);
-    res.status(201).json({ ...entry, success: true, message: 'Guest blocked' });
+    res.status(201).json({ success: true, message: 'Guest blocked', data: entry });
   } catch (error) {
     console.error('Blacklist create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2337,7 +1979,7 @@ app.delete('/api/blacklist/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Unblocked (offline)' });
     }
 
-    const result = await db.collection('blacklist').deleteOne({ _id: parseId(id), hotelId });
+    const result = await db.collection('blacklist').deleteOne({ _id: new ObjectId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Entry not found' });
 
     broadcast(hotelId, 'blacklist_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -2348,14 +1990,12 @@ app.delete('/api/blacklist/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== MAINTENANCE ========================
-
+// ✅ FIXED: MAINTENANCE - Return array directly
 app.get('/api/maintenance', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const maintenance = await db.collection('maintenance').find({ hotelId }).sort({ scheduled: 1 }).toArray();
-    maintenance.forEach(m => { if (m._id) m._id = m._id.toString(); }); // ✅ FIX 2
     res.json(maintenance);
   } catch (error) {
     console.error('Maintenance fetch error:', error);
@@ -2380,13 +2020,13 @@ app.post('/api/maintenance', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       item._id = 'm_'+Date.now();
       broadcast(hotelId, 'maintenance_upd', item, req.clientId);
-      return res.status(201).json({ ...item, success: true, message: 'Task added (offline)' });
+      return res.status(201).json({ success: true, message: 'Task added (offline)', data: item });
     }
 
     const result = await db.collection('maintenance').insertOne(item);
-    item._id = result.insertedId.toString(); // ✅ FIX 2
+    item._id = result.insertedId;
     broadcast(hotelId, 'maintenance_upd', item, req.clientId);
-    res.status(201).json({ ...item, success: true, message: 'Task added' });
+    res.status(201).json({ success: true, message: 'Task added', data: item });
   } catch (error) {
     console.error('Maintenance create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2402,7 +2042,7 @@ app.put('/api/maintenance/:id', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       const updated = { _id: id, hotelId, status, assigned, priority, updatedAt: new Date().toISOString() };
       broadcast(hotelId, 'maintenance_upd', updated, req.clientId);
-      return res.json({ ...updated, success: true, message: 'Task updated (offline)' });
+      return res.json({ success: true, message: 'Task updated (offline)', data: updated });
     }
 
     const updateData = {
@@ -2412,19 +2052,16 @@ app.put('/api/maintenance/:id', authMiddleware, async (req, res) => {
       ...(priority && { priority })
     };
 
-    // ✅ FIX 3: Single round trip
-    const result = await db.collection('maintenance').findOneAndUpdate(
-      { _id: parseId(id), hotelId },
-      { $set: updateData },
-      { returnDocument: 'after' }
+    const result = await db.collection('maintenance').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
     );
 
-    if (!result) return res.status(404).json({ success: false, error: 'Task not found' });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Task not found' });
 
-    const updated = result;
-    if (updated._id) updated._id = updated._id.toString(); // ✅ FIX 2
+    const updated = await db.collection('maintenance').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'maintenance_upd', updated, req.clientId);
-    res.json({ ...updated, success: true, message: 'Task updated' });
+    res.json({ success: true, message: 'Task updated', data: updated });
   } catch (error) {
     console.error('Maintenance update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2441,7 +2078,7 @@ app.delete('/api/maintenance/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Task deleted (offline)' });
     }
 
-    const result = await db.collection('maintenance').deleteOne({ _id: parseId(id), hotelId });
+    const result = await db.collection('maintenance').deleteOne({ _id: new ObjectId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Task not found' });
 
     broadcast(hotelId, 'maintenance_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -2452,14 +2089,12 @@ app.delete('/api/maintenance/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== REVIEWS ========================
-
+// ✅ FIXED: REVIEWS - Return array directly
 app.get('/api/reviews', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const reviews = await db.collection('reviews').find({ hotelId }).sort({ date: -1 }).toArray();
-    reviews.forEach(r => { if (r._id) r._id = r._id.toString(); }); // ✅ FIX 2
     res.json(reviews);
   } catch (error) {
     console.error('Reviews fetch error:', error);
@@ -2486,29 +2121,25 @@ app.post('/api/reviews', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       review._id = 'rev_'+Date.now();
       broadcast(hotelId, 'review_new', review, req.clientId);
-      return res.status(201).json({ ...review, success: true, message: 'Review added (offline)' });
+      return res.status(201).json({ success: true, message: 'Review added (offline)', data: review });
     }
 
     const result = await db.collection('reviews').insertOne(review);
-    review._id = result.insertedId.toString(); // ✅ FIX 2
+    review._id = result.insertedId;
     broadcast(hotelId, 'review_new', review, req.clientId);
-    // ✅ FIX 8: Notify admins about new review
-    broadcastToAdminRoom(hotelId, 'new_guest_review', review);
-    res.status(201).json({ ...review, success: true, message: 'Review added' });
+    res.status(201).json({ success: true, message: 'Review added', data: review });
   } catch (error) {
     console.error('Review create error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ======================== STAFF ========================
-
+// ✅ FIXED: STAFF - Return array directly
 app.get('/api/staff', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const staff = await db.collection('staff').find({ hotelId }).sort({ name: 1 }).toArray();
-    staff.forEach(s => { if (s._id) s._id = s._id.toString(); }); // ✅ FIX 2
     res.json(staff);
   } catch (error) {
     console.error('Staff fetch error:', error);
@@ -2535,13 +2166,13 @@ app.post('/api/staff', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       s._id = 's_'+Date.now();
       broadcast(hotelId, 'staff_upd', s, req.clientId);
-      return res.status(201).json({ ...s, success: true, message: 'Staff added (offline)' });
+      return res.status(201).json({ success: true, message: 'Staff added (offline)', data: s });
     }
 
     const result = await db.collection('staff').insertOne(s);
-    s._id = result.insertedId.toString(); // ✅ FIX 2
+    s._id = result.insertedId;
     broadcast(hotelId, 'staff_upd', s, req.clientId);
-    res.status(201).json({ ...s, success: true, message: 'Staff added' });
+    res.status(201).json({ success: true, message: 'Staff added', data: s });
   } catch (error) {
     console.error('Staff create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2562,7 +2193,7 @@ app.put('/api/staff/:id', authMiddleware, async (req, res) => {
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'staff_upd', updated, req.clientId);
-      return res.json({ ...updated, success: true, message: 'Staff updated (offline)' });
+      return res.json({ success: true, message: 'Staff updated (offline)', data: updated });
     }
 
     const updateData = {
@@ -2575,19 +2206,16 @@ app.put('/api/staff/:id', authMiddleware, async (req, res) => {
       ...(tasks !== undefined && { tasks: parseInt(tasks) })
     };
 
-    // ✅ FIX 3: Single round trip
-    const result = await db.collection('staff').findOneAndUpdate(
-      { _id: parseId(id), hotelId },
-      { $set: updateData },
-      { returnDocument: 'after' }
+    const result = await db.collection('staff').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
     );
 
-    if (!result) return res.status(404).json({ success: false, error: 'Staff not found' });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Staff not found' });
 
-    const updated = result;
-    if (updated._id) updated._id = updated._id.toString(); // ✅ FIX 2
+    const updated = await db.collection('staff').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'staff_upd', updated, req.clientId);
-    res.json({ ...updated, success: true, message: 'Staff updated' });
+    res.json({ success: true, message: 'Staff updated', data: updated });
   } catch (error) {
     console.error('Staff update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2604,7 +2232,7 @@ app.delete('/api/staff/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Staff removed (offline)' });
     }
 
-    const result = await db.collection('staff').deleteOne({ _id: parseId(id), hotelId });
+    const result = await db.collection('staff').deleteOne({ _id: new ObjectId(id), hotelId });
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Staff not found' });
 
     broadcast(hotelId, 'staff_upd', { _id: id, hotelId, deleted: true }, req.clientId);
@@ -2615,14 +2243,12 @@ app.delete('/api/staff/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== LOGS ========================
-
+// ✅ FIXED: LOGS - Return array directly
 app.get('/api/logs', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const logs = await db.collection('logs').find({ hotelId }).sort({ timestamp: -1 }).limit(100).toArray();
-    logs.forEach(l => { if (l._id) l._id = l._id.toString(); }); // ✅ FIX 2
     res.json(logs);
   } catch (error) {
     console.error('Logs fetch error:', error);
@@ -2644,12 +2270,12 @@ app.post('/api/logs', authMiddleware, async (req, res) => {
 
     if (!dbConnected) {
       log._id = 'log_'+Date.now();
-      return res.status(201).json({ ...log, success: true, message: 'Log added (offline)' });
+      return res.status(201).json({ success: true, message: 'Log added (offline)', data: log });
     }
 
     const result = await db.collection('logs').insertOne(log);
-    log._id = result.insertedId.toString(); // ✅ FIX 2
-    res.status(201).json({ ...log, success: true, message: 'Log added' });
+    log._id = result.insertedId;
+    res.status(201).json({ success: true, message: 'Log added', data: log });
   } catch (error) {
     console.error('Log create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2668,18 +2294,17 @@ app.delete('/api/logs', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== CONFIG ========================
-
+// ✅ FIXED: CONFIG - Return object directly (matches frontend HotelCfg structure)
 app.get('/api/config', async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    const defaultConfig = {
+    const defaultConfig = { 
       _id: `config_${hotelId}`,
-      hotelId,
-      name: 'Crown Plaza Hotel',
-      currency: 'SAR',
-      wifi: 'CrownPlaza@2024',
-      airportPrice: 115,
+      hotelId, 
+      name: 'Crown Plaza Hotel', 
+      currency: 'SAR', 
+      wifi: 'CrownPlaza@2024', 
+      airportPrice: 115, 
       localPrice: 60,
       _version: 1,
       updatedAt: new Date()
@@ -2688,7 +2313,6 @@ app.get('/api/config', async (req, res) => {
     if (!dbConnected) return res.json(defaultConfig);
 
     const config = await db.collection('config').findOne({ hotelId });
-    if (config && config._id) config._id = config._id.toString(); // ✅ FIX 2
     res.json(config || defaultConfig);
   } catch (error) {
     console.error('Config fetch error:', error);
@@ -2696,40 +2320,39 @@ app.get('/api/config', async (req, res) => {
   }
 });
 
+// ✅ NEW: POST /api/config - ADDED FOR FIRST-TIME SAVE
 app.post('/api/config', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    const config = {
-      ...req.body,
-      hotelId,
+    const config = { 
+      ...req.body, 
+      hotelId, 
       _id: req.body._id || `config_${hotelId}`,
       _version: 1,
-      updatedAt: new Date()
+      updatedAt: new Date() 
     };
 
     if (!dbConnected) {
       broadcast(hotelId, 'cfg_upd', config, req.clientId);
-      return res.status(201).json({ ...config, success: true });
+      return res.status(201).json({ success: true, data: config });
     }
 
-    // ✅ FIX 2: Always upsert to ensure data persists
     const result = await db.collection('config').findOneAndUpdate(
       { hotelId },
       { $set: config },
       { upsert: true, returnDocument: 'after' }
     );
 
-    const saved = result || config;
-    if (saved && saved._id) saved._id = saved._id.toString(); // ✅ FIX 2
+    const saved = result.value || result;
     broadcast(hotelId, 'cfg_upd', saved, req.clientId);
-    io.to(`guest_${hotelId}`).emit('config_updated', { hotelId, config: saved, syncToken: Date.now() });
-    res.status(201).json({ ...saved, success: true });
+    res.status(201).json({ success: true, data: saved });
   } catch (error) {
     console.error('Config POST error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
+// ✅ FIXED: CONFIG PUT - Save with correct structure
 app.put('/api/config', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
@@ -2738,44 +2361,38 @@ app.put('/api/config', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       const updated = { ...config, hotelId, _id: `config_${hotelId}`, updatedAt: new Date() };
       broadcast(hotelId, 'cfg_upd', updated, req.clientId);
-      return res.json({ ...updated, success: true, message: 'Config saved (offline)' });
+      return res.json({ success: true, message: 'Config saved (offline)', data: updated });
     }
 
-    const updateData = {
-      ...config,
-      hotelId,
+    const updateData = { 
+      ...config, 
+      hotelId, 
       _id: `config_${hotelId}`,
       _version: (config._version || 0) + 1,
-      updatedAt: new Date()
+      updatedAt: new Date() 
     };
 
-    // ✅ FIX 2: upsert guarantees persistence
-    const result = await db.collection('config').findOneAndUpdate(
-      { hotelId },
-      { $set: updateData },
-      { upsert: true, returnDocument: 'after' }
+    await db.collection('config').updateOne(
+      { hotelId }, 
+      { $set: updateData }, 
+      { upsert: true }
     );
 
-    const updated = result || updateData;
-    if (updated && updated._id) updated._id = updated._id.toString(); // ✅ FIX 2
+    const updated = await db.collection('config').findOne({ hotelId });
     broadcast(hotelId, 'cfg_upd', updated, req.clientId);
-    // ✅ FIX 8: Push config update to all guest devices
-    io.to(`guest_${hotelId}`).emit('config_updated', { hotelId, config: updated, syncToken: Date.now() });
-    res.json({ ...updated, success: true, message: 'Config saved' });
+    res.json({ success: true, message: 'Config saved', data: updated });
   } catch (error) {
     console.error('Config save error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ======================== ANNOUNCEMENTS ========================
-
+// ✅ FIXED: ANNOUNCEMENTS - Return array directly
 app.get('/api/announcements', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const announcements = await db.collection('announcements').find({ hotelId }).sort({ createdAt: -1 }).toArray();
-    announcements.forEach(a => { if (a._id) a._id = a._id.toString(); }); // ✅ FIX 2
     res.json(announcements);
   } catch (error) {
     console.error('Announcements fetch error:', error);
@@ -2795,19 +2412,24 @@ app.post('/api/announcements', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       const announcement = {
         _id: 'ann_' + Date.now(),
-        hotelId, category, title, message,
+        hotelId,
+        category,
+        title,
+        message,
         isActive: isActive !== undefined ? isActive : true,
         _version: 1,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'announcement_upd', announcement, req.clientId);
-      io.to(`guest_${hotelId}`).emit('new_announcement', { hotelId, announcement, syncToken: Date.now() });
-      return res.status(201).json({ ...announcement, success: true, message: 'Announcement added (offline)' });
+      return res.status(201).json({ success: true, message: 'Announcement added (offline)', data: announcement });
     }
 
     const announcement = {
-      hotelId, category, title, message,
+      hotelId,
+      category,
+      title,
+      message,
       isActive: isActive !== undefined ? isActive : true,
       _version: 1,
       createdAt: new Date().toISOString(),
@@ -2815,11 +2437,9 @@ app.post('/api/announcements', authMiddleware, async (req, res) => {
     };
 
     const result = await db.collection('announcements').insertOne(announcement);
-    announcement._id = result.insertedId.toString(); // ✅ FIX 2
+    announcement._id = result.insertedId;
     broadcast(hotelId, 'announcement_upd', announcement, req.clientId);
-    // ✅ FIX 8: Push announcements to ALL guest devices in real-time
-    io.to(`guest_${hotelId}`).emit('new_announcement', { hotelId, announcement, syncToken: Date.now() });
-    res.status(201).json({ ...announcement, success: true, message: 'Announcement created' });
+    res.status(201).json({ success: true, message: 'Announcement created', data: announcement });
   } catch (error) {
     console.error('Announcement create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2834,11 +2454,16 @@ app.put('/api/announcements/:id', authMiddleware, async (req, res) => {
 
     if (!dbConnected) {
       const updated = {
-        _id: id, hotelId, category, title, message, isActive,
+        _id: id,
+        hotelId,
+        category,
+        title,
+        message,
+        isActive,
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'announcement_upd', updated, req.clientId);
-      return res.json({ ...updated, success: true, message: 'Announcement updated (offline)' });
+      return res.json({ success: true, message: 'Announcement updated (offline)', data: updated });
     }
 
     const updateData = {
@@ -2849,25 +2474,18 @@ app.put('/api/announcements/:id', authMiddleware, async (req, res) => {
       ...(isActive !== undefined && { isActive })
     };
 
-    // ✅ FIX 3: Single round trip
-    const result = await db.collection('announcements').findOneAndUpdate(
-      { _id: parseId(id), hotelId },
-      { $set: updateData },
-      { returnDocument: 'after' }
+    const result = await db.collection('announcements').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
     );
 
-    if (!result) {
+    if (result.matchedCount === 0) {
       return res.status(404).json({ success: false, error: 'Announcement not found' });
     }
 
-    const updated = result;
-    if (updated._id) updated._id = updated._id.toString(); // ✅ FIX 2
+    const updated = await db.collection('announcements').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'announcement_upd', updated, req.clientId);
-    // ✅ FIX 8: Push to guests
-    if (updated.isActive) {
-      io.to(`guest_${hotelId}`).emit('announcement_changed', { hotelId, announcement: updated, syncToken: Date.now() });
-    }
-    res.json({ ...updated, success: true, message: 'Announcement updated' });
+    res.json({ success: true, message: 'Announcement updated', data: updated });
   } catch (error) {
     console.error('Announcement update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2884,13 +2502,12 @@ app.delete('/api/announcements/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Announcement deleted (offline)' });
     }
 
-    const result = await db.collection('announcements').deleteOne({ _id: parseId(id), hotelId });
+    const result = await db.collection('announcements').deleteOne({ _id: new ObjectId(id), hotelId });
     if (result.deletedCount === 0) {
       return res.status(404).json({ success: false, error: 'Announcement not found' });
     }
 
     broadcast(hotelId, 'announcement_upd', { _id: id, hotelId, deleted: true }, req.clientId);
-    io.to(`guest_${hotelId}`).emit('announcement_deleted', { hotelId, id, syncToken: Date.now() });
     res.json({ success: true, message: 'Announcement deleted' });
   } catch (error) {
     console.error('Announcement delete error:', error);
@@ -2898,14 +2515,12 @@ app.delete('/api/announcements/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== POLICIES ========================
-
+// ✅ FIXED: POLICIES - Return array directly
 app.get('/api/policies', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected) return res.json([]);
     const policies = await db.collection('policies').find({ hotelId }).toArray();
-    policies.forEach(p => { if (p._id) p._id = p._id.toString(); }); // ✅ FIX 2
     res.json(policies);
   } catch (error) {
     console.error('Policies fetch error:', error);
@@ -2925,18 +2540,22 @@ app.post('/api/policies', authMiddleware, async (req, res) => {
     if (!dbConnected) {
       const policy = {
         _id: 'pol_' + Date.now(),
-        hotelId, type, content,
+        hotelId,
+        type,
+        content,
         isEnabled: isEnabled !== undefined ? isEnabled : true,
         _version: 1,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'policy_upd', policy, req.clientId);
-      return res.status(201).json({ ...policy, success: true, message: 'Policy added (offline)' });
+      return res.status(201).json({ success: true, message: 'Policy added (offline)', data: policy });
     }
 
     const policy = {
-      hotelId, type, content,
+      hotelId,
+      type,
+      content,
       isEnabled: isEnabled !== undefined ? isEnabled : true,
       _version: 1,
       createdAt: new Date().toISOString(),
@@ -2944,11 +2563,9 @@ app.post('/api/policies', authMiddleware, async (req, res) => {
     };
 
     const result = await db.collection('policies').insertOne(policy);
-    policy._id = result.insertedId.toString(); // ✅ FIX 2
+    policy._id = result.insertedId;
     broadcast(hotelId, 'policy_upd', policy, req.clientId);
-    // ✅ FIX 8: Push policy changes to guest devices
-    io.to(`guest_${hotelId}`).emit('policy_updated', { hotelId, policy, syncToken: Date.now() });
-    res.status(201).json({ ...policy, success: true, message: 'Policy created' });
+    res.status(201).json({ success: true, message: 'Policy created', data: policy });
   } catch (error) {
     console.error('Policy create error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -2963,11 +2580,15 @@ app.put('/api/policies/:id', authMiddleware, async (req, res) => {
 
     if (!dbConnected) {
       const updated = {
-        _id: id, hotelId, type, content, isEnabled,
+        _id: id,
+        hotelId,
+        type,
+        content,
+        isEnabled,
         updatedAt: new Date().toISOString()
       };
       broadcast(hotelId, 'policy_upd', updated, req.clientId);
-      return res.json({ ...updated, success: true, message: 'Policy updated (offline)' });
+      return res.json({ success: true, message: 'Policy updated (offline)', data: updated });
     }
 
     const updateData = {
@@ -2977,22 +2598,18 @@ app.put('/api/policies/:id', authMiddleware, async (req, res) => {
       ...(isEnabled !== undefined && { isEnabled })
     };
 
-    // ✅ FIX 3: Single round trip
-    const result = await db.collection('policies').findOneAndUpdate(
-      { _id: parseId(id), hotelId },
-      { $set: updateData },
-      { returnDocument: 'after' }
+    const result = await db.collection('policies').updateOne(
+      { _id: new ObjectId(id), hotelId },
+      { $set: updateData }
     );
 
-    if (!result) {
+    if (result.matchedCount === 0) {
       return res.status(404).json({ success: false, error: 'Policy not found' });
     }
 
-    const updated = result;
-    if (updated._id) updated._id = updated._id.toString(); // ✅ FIX 2
+    const updated = await db.collection('policies').findOne({ _id: new ObjectId(id) });
     broadcast(hotelId, 'policy_upd', updated, req.clientId);
-    io.to(`guest_${hotelId}`).emit('policy_updated', { hotelId, policy: updated, syncToken: Date.now() });
-    res.json({ ...updated, success: true, message: 'Policy updated' });
+    res.json({ success: true, message: 'Policy updated', data: updated });
   } catch (error) {
     console.error('Policy update error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -3009,13 +2626,12 @@ app.delete('/api/policies/:id', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Policy deleted (offline)' });
     }
 
-    const result = await db.collection('policies').deleteOne({ _id: parseId(id), hotelId });
+    const result = await db.collection('policies').deleteOne({ _id: new ObjectId(id), hotelId });
     if (result.deletedCount === 0) {
       return res.status(404).json({ success: false, error: 'Policy not found' });
     }
 
     broadcast(hotelId, 'policy_upd', { _id: id, hotelId, deleted: true }, req.clientId);
-    io.to(`guest_${hotelId}`).emit('policy_deleted', { hotelId, id, syncToken: Date.now() });
     res.json({ success: true, message: 'Policy deleted' });
   } catch (error) {
     console.error('Policy delete error:', error);
@@ -3023,14 +2639,11 @@ app.delete('/api/policies/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== DASHBOARD ========================
-
 app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
     if (!dbConnected || !db) return res.status(503).json({ success: false, error: 'Database connecting...' });
 
-    // ✅ FIX 3: All queries in parallel for maximum speed
     const [rooms, bookings, requests, guests, food, inventory, announcements, policies] = await Promise.all([
       db.collection('rooms').find({ hotelId }).toArray(),
       db.collection('bookings').find({ hotelId }).toArray(),
@@ -3049,14 +2662,6 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
     const openRequests = requests.filter(r => r.status === 'open').length;
     const emergencyRequests = requests.filter(r => r.priority === 'emergency' && r.status !== 'completed').length;
 
-    // ✅ FIX 6: Include live online count in dashboard stats
-    const hotelRoomClients = io.sockets.adapter.rooms.get(`hotel_${hotelId}`);
-    const onlineDevices = hotelRoomClients ? hotelRoomClients.size : 0;
-    const adminRoomClients = io.sockets.adapter.rooms.get(`admin_${hotelId}`);
-    const onlineAdmins = adminRoomClients ? adminRoomClients.size : 0;
-    const guestRoomClients = io.sockets.adapter.rooms.get(`guest_${hotelId}`);
-    const onlineGuests = guestRoomClients ? guestRoomClients.size : 0;
-
     res.json({
       success: true,
       data: {
@@ -3072,9 +2677,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
         },
         announcements: { total: announcements.length },
         policies: { total: policies.length },
-        occupancyRate: totalRooms > 0 ? ((occupiedRooms / totalRooms) * 100).toFixed(1) : 0,
-        // ✅ FIX 6: Live device counts
-        liveConnections: { total: onlineDevices, admins: onlineAdmins, guests: onlineGuests }
+        occupancyRate: totalRooms > 0 ? ((occupiedRooms / totalRooms) * 100).toFixed(1) : 0
       }
     });
   } catch (error) {
@@ -3083,13 +2686,10 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
   }
 });
 
-// ======================== PAGE STATE ========================
-
-// ✅ FIX 5: Enhanced page state with MongoDB persistence + version tracking
 app.post('/api/user/page-state', authMiddleware, async (req, res) => {
   try {
     const hotelId = req.hotelId;
-    const { page, state, version } = req.body;
+    const { page, state } = req.body;
     const email = req.user?.email;
 
     if (!email) return res.status(400).json({ success: false, error: 'User not identified' });
@@ -3098,18 +2698,9 @@ app.post('/api/user/page-state', authMiddleware, async (req, res) => {
       return res.json({ success: true, message: 'Page state saved (memory only)' });
     }
 
-    // ✅ FIX 5: Upsert with version for conflict resolution
     await db.collection('sessions').updateOne(
       { email, hotelId },
-      {
-        $set: {
-          lastPage: page,
-          pageState: state,
-          pageVersion: version || Date.now(),
-          lastActivity: new Date(),
-          updatedAt: new Date()
-        }
-      },
+      { $set: { lastPage: page, pageState: state, lastActivity: new Date() } },
       { upsert: true }
     );
 
@@ -3136,98 +2727,13 @@ app.get('/api/user/page-state', authMiddleware, async (req, res) => {
       success: true,
       data: {
         lastPage: sessionDoc?.lastPage || null,
-        pageState: sessionDoc?.pageState || null,
-        pageVersion: sessionDoc?.pageVersion || null
+        pageState: sessionDoc?.pageState || null
       }
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-
-// ✅ FIX 5+6: NEW - Guest page state (for guest dashboard page stability)
-app.post('/api/guest/page-state', async (req, res) => {
-  try {
-    const hotelId = req.hotelId;
-    const { roomNumber, page, state } = req.body;
-
-    if (!roomNumber) return res.status(400).json({ success: false, error: 'roomNumber is required' });
-
-    if (!dbConnected) {
-      return res.json({ success: true, message: 'Guest page state saved (memory only)' });
-    }
-
-    await db.collection('sessions').updateOne(
-      { guestRoom: parseInt(roomNumber), hotelId },
-      {
-        $set: {
-          lastGuestPage: page,
-          guestPageState: state,
-          lastActivity: new Date(),
-          updatedAt: new Date()
-        }
-      },
-      { upsert: true }
-    );
-
-    res.json({ success: true, message: 'Guest page state saved' });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.get('/api/guest/page-state', async (req, res) => {
-  try {
-    const hotelId = req.hotelId;
-    const { roomNumber } = req.query;
-
-    if (!roomNumber) return res.status(400).json({ success: false, error: 'roomNumber is required' });
-
-    if (!dbConnected) {
-      return res.json({ success: true, data: { lastGuestPage: null, guestPageState: null } });
-    }
-
-    const sessionDoc = await db.collection('sessions').findOne({
-      guestRoom: parseInt(roomNumber),
-      hotelId
-    });
-
-    res.json({
-      success: true,
-      data: {
-        lastGuestPage: sessionDoc?.lastGuestPage || null,
-        guestPageState: sessionDoc?.guestPageState || null
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// ✅ FIX 6: NEW - Get live connection stats for admin dashboard
-app.get('/api/live/connections', authMiddleware, async (req, res) => {
-  try {
-    const hotelId = req.hotelId;
-    const hotelRoom = io.sockets.adapter.rooms.get(`hotel_${hotelId}`);
-    const adminRoom = io.sockets.adapter.rooms.get(`admin_${hotelId}`);
-    const guestRoom = io.sockets.adapter.rooms.get(`guest_${hotelId}`);
-
-    res.json({
-      success: true,
-      data: {
-        hotelId,
-        total: hotelRoom ? hotelRoom.size : 0,
-        admins: adminRoom ? adminRoom.size : 0,
-        guests: guestRoom ? guestRoom.size : 0,
-        timestamp: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// ======================== STATIC ROUTES ========================
 
 app.get('/admin', (req, res) => {
   if (req.session.isAdmin) {
@@ -3254,8 +2760,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
-// ======================== SERVER START ========================
-
 server.listen(PORT, '0.0.0.0', async () => {
   console.log(`\n🚀 Server running on port ${PORT}`);
   console.log(`🌐 URL: http://localhost:${PORT}`);
@@ -3268,23 +2772,12 @@ server.listen(PORT, '0.0.0.0', async () => {
   console.log(`💳 Subscriptions: lifetime/monthly/trial supported`);
   console.log(`📊 Advanced: Rate limiting, compression, idempotency, page state`);
   console.log(`🔄 Auto token refresh: Enabled (threshold: ${Math.floor(TOKEN_REFRESH_THRESHOLD_MS/60000)} min)`);
-  console.log(`📍 Page stability: /api/user/page-state + /api/guest/page-state`);
+  console.log(`📍 Page stability: /api/user/page-state`);
   console.log(`🔔 Idle session logout: /api/auth/config, /api/auth/ping`);
   console.log(`📜 Policies API: /api/policies`);
   console.log(`📢 Announcements API: /api/announcements`);
   console.log(`⚙️ Config API: /api/config`);
-  console.log(`🏢 Departments API: /api/departments`);
-  console.log(`\n✅ v5.0 FIXES:`);
-  console.log(`   FIX 1: Login speed - subscription cache + fast bcrypt path`);
-  console.log(`   FIX 2: Data persistence - ObjectId→String, upsert on all configs`);
-  console.log(`   FIX 3: Add/Update speed - findOneAndUpdate (single DB round trip)`);
-  console.log(`   FIX 4: Real-time sync - hotel/admin/guest Socket.io rooms`);
-  console.log(`   FIX 5: Page stability - MongoDB-backed page state for admin+guest`);
-  console.log(`   FIX 6: Multi-device sync - room_{hotelId}_{roomNo} channels`);
-  console.log(`   FIX 7: MongoDB pool: 100 max / 20 min connections`);
-  console.log(`   FIX 8: Guest↔Admin cross-sync (new_guest_request, admin_reply)`);
-  console.log(`   FIX 9: Heartbeat ping to keep sessions alive across devices`);
-  console.log(`   FIX 10: Wire compression (zstd/zlib) for faster DB transfers`);
+  console.log(`✅ POST /api/config: ADDED (fixes settings persistence)`);
   console.log(`\n💡 NEW .env variables:`);
   console.log(`   IDLE_TIMEOUT_MS=1800000        (default: 30 min)`);
   console.log(`   TOKEN_EXPIRY=7d                 (default: 7 days)`);
@@ -3292,8 +2785,6 @@ server.listen(PORT, '0.0.0.0', async () => {
   console.log(`   SESSION_MAX_AGE=604800000       (default: 7 days)\n`);
   await connectDB();
 });
-
-// ======================== GRACEFUL SHUTDOWN ========================
 
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down gracefully...');
