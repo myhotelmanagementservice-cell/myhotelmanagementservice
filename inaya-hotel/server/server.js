@@ -161,6 +161,7 @@ async function connectDB() {
 
     await client.connect();
     db = client.db(DB_NAME);
+    app.set('db', db);  // ✅ ADD THIS LINE
     await db.command({ ping: 1 });
     dbConnected = true;
     console.log('✅ MongoDB Connected Successfully!');
