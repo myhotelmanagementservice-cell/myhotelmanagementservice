@@ -1939,37 +1939,47 @@ async function saveToMongo(collection, data) {
         };
 
         if (Array.isArray(data)) {
-            await Promise.all(data.map(async (item) => {
+            for (let item of data) {
                 const isNew = item._isNew;
                 const payload = { ...item };
                 delete payload._isNew;
                 if (isNew || !payload._id) {
                     const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-                    if (res) {
-                        const newId = res._id || res.insertedId || res.id;
-                        if (newId) item._id = newId;
-                        delete item._isNew;
+                    if (!res) {
+                        console.error(`❌ FAILED to save new ${collection} item. API returned null. Check Network tab.`);
+                        return false; // ✅ FIX: Return false if API fails!
                     }
+                    const newId = res._id || res.insertedId || res.id;
+                    if (newId) item._id = newId;
                 } else {
-                    await apiCall('PUT', getPutUrl(payload._id), payload);
-                    delete item._isNew;
+                    const res = await apiCall('PUT', getPutUrl(payload._id), payload);
+                    if (!res) {
+                        console.error(`❌ FAILED to update ${collection} item. API returned null. Check Network tab.`);
+                        return false; // ✅ FIX: Return false if API fails!
+                    }
                 }
-            }));
+                delete item._isNew;
+            }
         } else {
             const isNew = data._isNew;
             const payload = { ...data };
             delete payload._isNew;
             if (isNew || !payload._id) {
                 const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-                if (res) {
-                    const newId = res._id || res.insertedId || res.id;
-                    if (newId) data._id = newId;
-                    delete data._isNew;
+                if (!res) {
+                    console.error(`❌ FAILED to save new ${collection} item. API returned null. Check Network tab.`);
+                    return false; // ✅ FIX: Return false if API fails!
                 }
+                const newId = res._id || res.insertedId || res.id;
+                if (newId) data._id = newId;
             } else {
-                await apiCall('PUT', getPutUrl(payload._id), payload);
-                delete data._isNew;
+                const res = await apiCall('PUT', getPutUrl(payload._id), payload);
+                if (!res) {
+                    console.error(`❌ FAILED to update ${collection} item. API returned null. Check Network tab.`);
+                    return false; // ✅ FIX: Return false if API fails!
+                }
             }
+            delete data._isNew;
         }
         return true;
     } catch (e) {
@@ -2005,6 +2015,8 @@ async function save(collection, data, event = 'data_upd') {
         offlineQueue.push({ collection, data, event, timestamp: Date.now() });
         saveUIPrefs();
         updateNetBadge('queued');
+        // ✅ FIX: Show red error toast so user knows save failed
+        showToast(`⚠️ Server save failed for ${collection}. Data queued. Check console for errors.`, 'error');
         return false;
     }
 }
