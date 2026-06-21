@@ -2293,7 +2293,9 @@ body: JSON.stringify({ email: email, password: pass, hotelId: hotelId })
 });
 const data = await response.json();
 if (response.ok && data.success && data.token) {
-currentUser = { type: 'admin', email: data.user.email, role: data.user.role, token: data.token, hotelId: data.hotelId };
+HID = data.hotelId || hotelId;
+localStorage.setItem('hotel_hid', HID);
+currentUser = { type: 'admin', email: data.user.email, role: data.user.role, token: data.token, hotelId: HID };
 saveSession();
 await checkHealth();
 await loadAllData();
