@@ -1928,76 +1928,85 @@ return null;
 }
 // FIXED: Correctly captures MongoDB _id from backend response to prevent data loss on refresh
 async function saveToMongo(collection, data) {
-if (!isOnline) return false;
-try {
-if (Array.isArray(data)) {
-await Promise.all(data.map(async (item) => {
-const isNew = item._isNew;
-const payload = { ...item };
-delete payload._isNew;
-if (isNew || !payload._id) {
-const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-if (res) {
-const newId = res._id || res.insertedId || res.id;
-if (newId) item._id = newId;
-delete item._isNew;
+    if (!isOnline) return false;
+    try {
+        // ✅ FIX: 'config' aur 'settings' backend mein /:id use nahi karte hain
+        const getPutUrl = (id) => {
+            if (collection === 'config' || collection === 'settings') {
+                return `/${collection}?hotelId=${HID}`;
+            }
+            return `/${collection}/${id}?hotelId=${HID}`;
+        };
+
+        if (Array.isArray(data)) {
+            await Promise.all(data.map(async (item) => {
+                const isNew = item._isNew;
+                const payload = { ...item };
+                delete payload._isNew;
+                if (isNew || !payload._id) {
+                    const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
+                    if (res) {
+                        const newId = res._id || res.insertedId || res.id;
+                        if (newId) item._id = newId;
+                        delete item._isNew;
+                    }
+                } else {
+                    await apiCall('PUT', getPutUrl(payload._id), payload);
+                    delete item._isNew;
+                }
+            }));
+        } else {
+            const isNew = data._isNew;
+            const payload = { ...data };
+            delete payload._isNew;
+            if (isNew || !payload._id) {
+                const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
+                if (res) {
+                    const newId = res._id || res.insertedId || res.id;
+                    if (newId) data._id = newId;
+                    delete data._isNew;
+                }
+            } else {
+                await apiCall('PUT', getPutUrl(payload._id), payload);
+                delete data._isNew;
+            }
+        }
+        return true;
+    } catch (e) {
+        console.warn(`saveToMongo error for ${collection}:`, e);
+        return false;
+    }
 }
-} else {
-await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
-delete item._isNew;
-}
-}));
-} else {
-const isNew = data._isNew;
-const payload = { ...data };
-delete payload._isNew;
-if (isNew || !payload._id) {
-const res = await apiCall('POST', `/${collection}?hotelId=${HID}`, payload);
-if (res) {
-const newId = res._id || res.insertedId || res.id;
-if (newId) data._id = newId;
-delete data._isNew;
-}
-} else {
-await apiCall('PUT', `/${collection}/${payload._id}?hotelId=${HID}`, payload);
-delete data._isNew;
-}
-}
-return true;
-} catch (e) {
-console.warn(`saveToMongo error for ${collection}:`, e);
-return false;
-}
-}
+
 async function save(collection, data, event = 'data_upd') {
-if (Array.isArray(data)) {
-data.forEach(item => {
-item._version = (item._version || 0) + 1;
-item.updatedAt = new Date().toISOString();
-});
-} else {
-data._version = (data._version || 0) + 1;
-data.updatedAt = new Date().toISOString();
-}
-const success = await saveToMongo(collection, data);
-if (success) {
-if (isOnline && socket?.connected) {
-socket.emit(event, {
-hotelId: HID,
-collection,
-data,
-clientId,
-syncToken: Date.now()
-});
-}
-updateCache();
-return true;
-} else {
-offlineQueue.push({ collection, data, event, timestamp: Date.now() });
-saveUIPrefs();
-updateNetBadge('queued');
-return false;
-}
+    if (Array.isArray(data)) {
+        data.forEach(item => {
+            item._version = (item._version || 0) + 1;
+            item.updatedAt = new Date().toISOString();
+        });
+    } else {
+        data._version = (data._version || 0) + 1;
+        data.updatedAt = new Date().toISOString();
+    }
+    const success = await saveToMongo(collection, data);
+    if (success) {
+        if (isOnline && socket?.connected) {
+            socket.emit(event, {
+                hotelId: HID,
+                collection,
+                data,
+                clientId,
+                syncToken: Date.now()
+            });
+        }
+        updateCache();
+        return true;
+    } else {
+        offlineQueue.push({ collection, data, event, timestamp: Date.now() });
+        saveUIPrefs();
+        updateNetBadge('queued');
+        return false;
+    }
 }
 // ============================================================
 // LOAD DATA
