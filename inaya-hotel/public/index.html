@@ -2271,22 +2271,7 @@ e.preventDefault();
 const hotelId = document.getElementById('adminHotelIdIn').value.trim();
 const email = document.getElementById('adminEmailIn').value.trim();
 const pass = document.getElementById('adminPassIn').value;
-if (hotelId === 'HOTEL001' && email === 'admin@crownplaza.com' && pass === 'admin123') {
-const mockToken = 'mock_jwt_' + Math.random().toString(36).substring(2) + Date.now();
-currentUser = { type: 'admin', email, role: 'super_admin', token: mockToken, hotelId: hotelId };
-saveSession();
-await checkHealth();
-await loadAllData();
-buildRolePage();
-showPage('rolePage');
-speakWelcome();
-showToast('✅ Login successful!', 'success');
-hideSessionLoader();
-if (isOnline && socket?.connected) {
-socket.emit('admin_join', { hotelId: hotelId, email: email, clientId });
-}
-return;
-}
+
 showToast('🔄 Logging in...', 'info');
 try {
 const response = await fetch(API_BASE + '/admin/login', {
