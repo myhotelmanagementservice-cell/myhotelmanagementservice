@@ -2953,7 +2953,6 @@ document.body.style.fontSize = fontSize + 'px';
 localStorage.setItem('hotel_fontSize', fontSize);
 saveUIPrefs();
 }
-}
 function setBrightness(v) {
 brightness = parseFloat(v);
 document.body.style.filter = `brightness(${v})`;
@@ -4541,9 +4540,6 @@ const totalEl = document.getElementById('bookingTotalPrice');
 if (totalEl) totalEl.textContent = '0';
 const detailsEl = document.getElementById('bookRoomDetails');
 if (detailsEl) detailsEl.style.display = 'none';
-// Hide room details after booking
-const detailsEl = document.getElementById('bookRoomDetails');
-if(detailsEl) detailsEl.style.display = 'none';
 showToast('📅 ' + (t('roomBooked') || 'Room booked successfully') + '!', 'success');
 speakBookingConfirmed();
 sendGuestNotification('notifBookingTitle', 'notifBookingBody');

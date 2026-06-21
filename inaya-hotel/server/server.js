@@ -1248,17 +1248,7 @@ app.post('/api/super/admins/register', superAdminMiddleware, async (req, res) =>
   }
 });
 
-// ✅ NEW: Guest Login Route to generate real JWT for guests
-app.post('/api/guest/login', (req, res) => {
-    const { name, room, hotelId } = req.body;
-    if (!name || !room) return res.status(400).json({ success: false, error: 'Name and room required' });
-    
-    const hId = hotelId || req.headers['x-hotel-id'] || 'HOTEL001';
-    const tokenPayload = { name, room, role: 'guest', hotelId: hId };
-    const token = generateToken(tokenPayload);
-    
-    res.json({ success: true, token, user: { name, room, role: 'guest' }, hotelId: hId });
-});
+// ======================== AUTH ========================
 
 // ✅ FIX 1: OPTIMIZED LOGIN - parallel queries, fast path, non-blocking session
 app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async (req, res) => {
