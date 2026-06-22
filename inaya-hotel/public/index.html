@@ -1886,10 +1886,6 @@ document.body.style.filter = `brightness(${brightness})${hcFilter}`;
 document.documentElement.style.fontSize = fontSize + 'px';
 document.body.style.fontSize = fontSize + 'px';
 setTheme(theme);
-document.documentElement.lang = lang;
-document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-['lb-en', 'lb-hi', 'lb-ar'].forEach(id => document.getElementById(id)?.classList.remove('active'));
-document.getElementById(`lb-${lang}`)?.classList.add('active');
 }
 // ============================================================
 // API FUNCTIONS
@@ -1937,11 +1933,9 @@ return null;
 async function saveToMongo(collection, data) {
     if (!isOnline) return false;
     try {
+        // ✅ FIX: 'config' aur 'settings' backend mein /:id use nahi karte hain
         const getPutUrl = (id) => {
             if (collection === 'config' || collection === 'settings') {
-                return `/${collection}?hotelId=${HID}`;
-            }
-            if (!id || id === collection || id === 'undefined') {
                 return `/${collection}?hotelId=${HID}`;
             }
             return `/${collection}/${id}?hotelId=${HID}`;
@@ -2207,10 +2201,6 @@ isSessionChecked = true;
 hideSessionLoader();
 return;
 }
-
-// ✅ FIX 1: Pehle data load karo, phir render karo
-await loadAllData();
-
 const savedTab = sessionStorage.getItem('currentTab');
 if (currentUser.type === 'admin') {
 buildAdminTabs();
@@ -2219,7 +2209,6 @@ const rName = ROLES.find(r => r.key === currentUser.role)?.label || 'Admin';
 document.getElementById('aRole').textContent = t(rName);
 renderAll();
 updateAdminStats();
-renderDashboardAnalytics();
 if (savedTab && !savedTab.startsWith('guest_')) {
 showAdminTab(savedTab);
 } else {
@@ -2227,19 +2216,7 @@ showAdminTab('overview');
 }
 } else if (currentUser.type === 'guest') {
 showPage('guestDash');
-
-// ✅ FIX 2: gInfo element update karo
-const gInfoEl = document.getElementById('gInfo');
-if (gInfoEl) gInfoEl.textContent = `👤 ${currentUser.name} | #${currentUser.room}`;
-
-// ✅ FIX 3: Points update karo
-const guestRec = guests.find(g => g.name === currentUser.name);
-if (guestRec) currentUser.points = guestRec.points || 0;
-const pEl = document.getElementById('gPts');
-if (pEl) pEl.textContent = `⭐ ${currentUser.points || 0} pts`;
-
-// ✅ FIX 4: Pehle panes build karo phir render karo
-buildGuestPanes();
+document.getElementById('gInfo').textContent = `👤 ${currentUser.name} | #${currentUser.room}`;
 updateGuestStats();
 renderGuestFood();
 renderGuestInv();
@@ -2247,31 +2224,21 @@ renderGuestHistory();
 renderGuestBookings();
 renderGuestAnnouncements();
 renderGuestPolicies();
-
-// ✅ FIX 5: Saved tab restore karo
 if (savedTab && savedTab.startsWith('guest_')) {
 showGuestTab(savedTab.replace('guest_', ''));
 } else {
 showGuestTab('reqTab');
 }
 }
-
-showToast(`✅ Welcome back, ${currentUser.name || currentUser.email}!`, 'success');
+showToast("✅ Session restored — Welcome back!", 'success');
 isSessionChecked = true;
 hideSessionLoader();
-
 if (isOnline && socket?.connected) {
-socket.emit('guest_join', {
-hotelId: HID,
-name: currentUser?.name,
-room: currentUser?.room,
-clientId
-});
+socket.emit('guest_join', { hotelId: HID, name: currentUser?.name, room: currentUser?.room, clientId });
 }
 } catch (e) {
 console.warn('Session restore error:', e);
 sessionStorage.removeItem('hotel_session');
-localStorage.removeItem(`h_${HID}_session`);
 isSessionChecked = true;
 hideSessionLoader();
 }
@@ -2291,38 +2258,16 @@ e.preventDefault();
 const name = document.getElementById('guestNameIn').value.trim();
 const room = document.getElementById('guestRoomIn').value.trim();
 if (!name || !room) { showToast('Fill all fields', 'error'); return; }
-
 if (blacklist.find(b => b.name.toLowerCase() === name.toLowerCase())) {
 showToast('❌ Access denied', 'error');
 return;
 }
-
-// ✅ FIX 1: currentUser pehle set karo
-currentUser = { type: 'guest', name, room, points: 0, hotelId: HID };
-
-// ✅ FIX 2: Session save karo
+currentUser = { type: 'guest', name, room, points: 0 };
 saveSession();
-
 await checkHealth();
 await loadAllData();
-
-// ✅ FIX 3: Points MongoDB se lo
-const guestRec = guests.find(g =>
-g.name === name &&
-String(g.room) === String(room)
-);
-if (guestRec) {
-currentUser.points = guestRec.points || 0;
-saveSession(); // Updated points ke saath session save karo
-}
-
 showPage('guestDash');
-
-const gInfoEl = document.getElementById('gInfo');
-if (gInfoEl) gInfoEl.textContent = `👤 ${name} | #${room}`;
-
-// ✅ FIX 4: Panes build karo phir render karo
-buildGuestPanes();
+document.getElementById('gInfo').textContent = `👤 ${name} | #${room}`;
 updateGuestStats();
 renderGuestFood();
 renderGuestInv();
@@ -2331,14 +2276,10 @@ renderGuestBookings();
 renderGuestAnnouncements();
 renderGuestPolicies();
 showGuestTab('reqTab');
-
 showToast(`Welcome, ${name}! 🌟`, 'success');
 speakWelcome();
 hideSessionLoader();
-
-if (isOnline && socket?.connected) {
-socket.emit('guest_join', { hotelId: HID, name, room, clientId });
-}
+if (isOnline && socket?.connected) socket.emit('guest_join', { hotelId: HID, name, room, clientId });
 }
 async function adminLogin(e) {   
 e.preventDefault();
@@ -2960,7 +2901,9 @@ saveUIPrefs();
 }
 function setBrightness(v) {
 brightness = parseFloat(v);
-document.body.style.filter = `brightness(${v})`;
+localStorage.setItem('hotel_brightness', brightness);
+const hcFilter = highContrast ? ' contrast(1.4) saturate(1.3)' : '';
+document.body.style.filter = `brightness(${v})${hcFilter}`;
 const slider = document.getElementById('brightSlider');
 if (slider) slider.value = v;
 saveUIPrefs();
@@ -3881,29 +3824,15 @@ const el = id => document.getElementById(id);
 }
 function updateGuestStats() {
 if (!currentUser) return;
-
-// ✅ FIX: room number aur hotelId bhi match karo
-const myReqs = requests.filter(r =>
-r.guestName === currentUser.name &&
-String(r.roomNumber) === String(currentUser.room) &&
-r.hotelId === HID
-);
-
+const myReqs = requests.filter(r => r.guestName === currentUser.name);
 const el = id => document.getElementById(id);
 if (el('gTotReq')) el('gTotReq').textContent = myReqs.length;
 if (el('gPendReq')) el('gPendReq').textContent = myReqs.filter(r => r.status !== 'completed').length;
 if (el('gDoneReq')) el('gDoneReq').textContent = myReqs.filter(r => r.status === 'completed').length;
-
-// ✅ FIX: Points MongoDB se lo, session se bhi fallback karo
-const guestRec = guests.find(g =>
-g.name === currentUser.name &&
-String(g.room) === String(currentUser.room)
-);
+const guestRec = guests.find(g => g.name === currentUser.name);
 const pts = guestRec?.points || currentUser.points || 0;
-if (guestRec) currentUser.points = pts;
-
-const pEl = el('gPts');
-const pdEl = el('gPtsDisplay');
+const pEl = el('gPts'),
+pdEl = el('gPtsDisplay');
 if (pEl) pEl.textContent = `⭐ ${pts} pts`;
 if (pdEl) pdEl.textContent = pts;
 }
@@ -4169,60 +4098,35 @@ el.innerHTML = inventory.map(i =>
 function renderGuestHistory() {
 const el = document.getElementById('gHistList');
 if (!el || !currentUser) return;
-
-// ✅ FIX: Room number string/number dono match karo
-const myReqs = requests.filter(r =>
-r.guestName === currentUser.name &&
-String(r.roomNumber) === String(currentUser.room) &&
-r.hotelId === HID
-);
-
-if (myReqs.length === 0) {
-el.innerHTML = '<p style="text-align:center;opacity:.5;padding:12px">No requests yet</p>';
-return;
-}
-
+const myReqs = requests.filter(r => r.guestName === currentUser.name && r.roomNumber == currentUser.room);
 el.innerHTML = myReqs.map(r =>
 `<div class="req-card" data-id="${r._id}">
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+<div style="display:flex;justify-content:center;align-items:flex-start;gap:8px;flex-wrap:wrap">
 <div style="flex:1">
 <strong style="font-size:12px">${getDeptLabel(r.department)}</strong>
 <div style="font-size:13px;opacity:.6;margin-top:2px">${r.description}</div>
 <div style="font-size:11px;opacity:.7;margin-top:4px;font-weight:600">📅 ${new Date(r.createdAt || Date.now()).toLocaleString()}</div>
-${r.adminReply ? `<div style="margin-top:8px;padding:8px;background:var(--card2);border-radius:6px;border-left:3px solid var(--p1)">
+${r.adminReply ? `<div class="admin-reply" style="margin-top:8px;padding:8px;background:var(--card2);border-radius:6px;border-left:3px solid var(--p1)">
 <strong style="font-size:11px;color:var(--p1)">👑 ${t('adminReply') || 'Admin Reply'}:</strong>
 <div style="font-size:12px;margin-top:2px">${r.adminReply}</div>
 <div style="font-size:10px;opacity:.6;margin-top:2px">🕒 ${new Date(r.adminReplyTime || Date.now()).toLocaleString()}</div>
-</div>` : `<div style="font-size:11px;opacity:.5;margin-top:4px;font-style:italic">${t('noReply') || 'No reply yet'}</div>`}
+</div>` : ''}
 </div>
 <span class="badge badge-${r.status}">${getStatusLabel(r.status)}</span>
 </div>
 </div>`
-).join('');
+).join('') || '<p style="text-align:center;opacity:.5;padding:12px">No requests yet</p>';
 }
 function renderGuestBookings() {
 const el = document.getElementById('guestBookingList');
 if (!el || !currentUser) return;
-
-// ✅ FIX: hotelId aur name dono se match karo
-const myBookings = bookings.filter(b =>
-b.guestName === currentUser.name &&
-b.hotelId === HID
-);
-
-if (myBookings.length === 0) {
-el.innerHTML = '<p style="text-align:center;opacity:.5;padding:12px">No bookings yet</p>';
-return;
-}
-
-el.innerHTML = myBookings
-.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-.map(b =>
+const myBookings = bookings.filter(b => b.guestName === currentUser.name);
+el.innerHTML = myBookings.map(b =>
 `<div class="booking-card" data-id="${b._id}">
 <div class="booking-header">
 <div>
 <div class="booking-room">Room #${b.roomNumber} - ${getRoomTypeLabel(b.roomType)}</div>
-<div class="booking-dates">📅 ${b.checkIn} → ${b.checkOut}</div>
+<div class="booking-dates">${b.checkIn} → ${b.checkOut}</div>
 </div>
 <span class="booking-status ${b.status}">${getStatusLabel(b.status)}</span>
 </div>
@@ -4230,9 +4134,9 @@ el.innerHTML = myBookings
 <span>👥 ${b.guests} guest(s)</span>
 <span class="booking-price">${formatPrice(b.totalPriceSAR)}</span>
 </div>
-<div style="font-size:10px;opacity:.5;margin-top:4px">🆔 ${b._id}</div>
+<div style="font-size:10px;opacity:.5">ID: ${b._id}</div>
 </div>`
-).join('');
+).join('') || '<p style="text-align:center;opacity:.5;padding:12px">No bookings yet</p>';
 }
 function renderAdminBookings() {
 const el = document.getElementById('adminBookingGrid');
@@ -4333,46 +4237,28 @@ function submitGuestReq(e) {
 e.preventDefault();
 const deptKey = document.getElementById('gDept')?.value;
 const svcKey = document.getElementById('gService')?.value;
-const prio = document.getElementById('gPriority')?.value || 'low';
+const prio = document.getElementById('gPriority')?.value || 'normal';
 const desc = document.getElementById('gDesc')?.value || '';
 if (!deptKey || !svcKey) { showToast('Select department & service', 'error'); return; }
 const dept = departments.find(d => d.key === deptKey);
 const cat = dept?.categories.find(c => c.key === svcKey);
 const deptName = dept ? (dept.name[lang] || dept.name.en) : deptKey;
 const svcName = cat ? (cat.name[lang] || cat.name.en) : svcKey;
-
 const req = {
 _id: 'req_' + Date.now(),
 _isNew: true,
 guestName: currentUser.name,
-roomNumber: String(currentUser.room), // ✅ FIX: String mein save karo
+roomNumber: currentUser.room,
 department: deptKey,
-description: `${svcName}${desc ? ': ' + desc : ''}`,
+description: `${svcName}: ${desc}`,
 priority: prio,
 status: 'open',
 createdAt: new Date().toISOString(),
 hotelId: HID,
 _version: 1
 };
-
 requests.unshift(req);
-
-// ✅ FIX: Cache bhi update karo taaki refresh ke baad mile
-cacheData('requests', requests);
-
 save('requests', req, 'req_new');
-
-// ✅ FIX: Socket se admin ko directly notify karo
-if (isOnline && socket?.connected) {
-socket.emit('req_new', {
-hotelId: HID,
-collection: 'requests',
-data: req,
-clientId,
-syncToken: Date.now()
-});
-}
-
 renderRequests();
 updateGuestStats();
 renderGuestHistory();
@@ -4380,7 +4266,6 @@ e.target.reset();
 updateServices();
 showToast('✅ ' + (t('reqSubmitted') || 'Request submitted successfully'), 'success');
 speakRequestSubmitted();
-sendGuestNotification('notifRequestTitle', 'notifRequestBody');
 addLog('New Request', `${currentUser.name} - ${deptName}`);
 if (prio === 'emergency') showToast('🚨 Emergency alert sent to staff!', 'error');
 }
@@ -4413,26 +4298,10 @@ hotelId: HID,
 _version: 1
 };
 requests.unshift(req);
-
-// ✅ FIX: Cache update karo
-cacheData('requests', requests);
-
 save('requests', req, 'req_new');
-
-// ✅ FIX: Socket emit karo
-if (isOnline && socket?.connected) {
-socket.emit('req_new', {
-hotelId: HID,
-collection: 'requests',
-data: req,
-clientId,
-syncToken: Date.now()
-});
-}
-
 cart = [];
-const cEl = document.getElementById('cartItems');
-const tEl = document.getElementById('cartTotal');
+const cEl = document.getElementById('cartItems'),
+tEl = document.getElementById('cartTotal');
 if (cEl) cEl.innerHTML = '';
 if (tEl) tEl.textContent = '0';
 renderRequests();
@@ -4521,30 +4390,14 @@ createdAt: new Date().toISOString(),
 _version: 1
 };
 bookings.unshift(booking);
-
-// ✅ FIX: Cache update karo
-cacheData('bookings', bookings);
-
 save('bookings', booking, 'booking_new');
-
-// ✅ FIX: Socket emit karo
-if (isOnline && socket?.connected) {
-socket.emit('booking_new', {
-hotelId: HID,
-collection: 'bookings',
-data: booking,
-clientId,
-syncToken: Date.now()
-});
-}
-
 renderGuestBookings();
 renderAdminBookings();
 e.target.reset();
-const totalEl = document.getElementById('bookingTotalPrice');
-if (totalEl) totalEl.textContent = '0';
+document.getElementById('bookingTotalPrice').textContent = '0';
+// Hide room details after booking
 const detailsEl = document.getElementById('bookRoomDetails');
-if (detailsEl) detailsEl.style.display = 'none';
+if(detailsEl) detailsEl.style.display = 'none';
 showToast('📅 ' + (t('roomBooked') || 'Room booked successfully') + '!', 'success');
 speakBookingConfirmed();
 sendGuestNotification('notifBookingTitle', 'notifBookingBody');
@@ -5793,13 +5646,12 @@ return false;
 // ============================================================
 async function init() {
 loadUIPrefs();
-setLang(lang);
 buildModals();
 buildRolePage();
 tickClock();
 initSocket();
 await loadAllData();
-buildGuestPanes();
+buildGuestPanes(); // Moved after loadAllData to ensure departments are loaded
 await checkSession();
 renderAll();
 updateWeather();
