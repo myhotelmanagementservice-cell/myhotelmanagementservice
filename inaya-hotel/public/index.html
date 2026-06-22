@@ -2278,7 +2278,7 @@ speakWelcome();
 hideSessionLoader();
 if (isOnline && socket?.connected) socket.emit('guest_join', { hotelId: HID, name, room, clientId });
 }
-async function adminLogin(e) {   
+async function adminLogin(e) {
 e.preventDefault();
 const hotelId = document.getElementById('adminHotelIdIn').value.trim();
 const email = document.getElementById('adminEmailIn').value.trim();
