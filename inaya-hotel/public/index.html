@@ -2254,32 +2254,60 @@ setTimeout(() => { loader.style.display = 'none'; }, 400);
 // LOGIN FUNCTIONS
 // ============================================================
 async function guestLogin(e) {
-e.preventDefault();
-const name = document.getElementById('guestNameIn').value.trim();
-const room = document.getElementById('guestRoomIn').value.trim();
-if (!name || !room) { showToast('Fill all fields', 'error'); return; }
-if (blacklist.find(b => b.name.toLowerCase() === name.toLowerCase())) {
-showToast('❌ Access denied', 'error');
-return;
-}
-currentUser = { type: 'guest', name, room, points: 0 };
-saveSession();
-await checkHealth();
-await loadAllData();
-showPage('guestDash');
-document.getElementById('gInfo').textContent = `👤 ${name} | #${room}`;
-updateGuestStats();
-renderGuestFood();
-renderGuestInv();
-renderGuestHistory();
-renderGuestBookings();
-renderGuestAnnouncements();
-renderGuestPolicies();
-showGuestTab('reqTab');
-showToast(`Welcome, ${name}! 🌟`, 'success');
-speakWelcome();
-hideSessionLoader();
-if (isOnline && socket?.connected) socket.emit('guest_join', { hotelId: HID, name, room, clientId });
+    e.preventDefault();
+    const name = document.getElementById('guestNameIn').value.trim();
+    const room = document.getElementById('guestRoomIn').value.trim();
+    if (!name || !room) { showToast('Fill all fields', 'error'); return; }
+    if (blacklist.find(b => b.name.toLowerCase() === name.toLowerCase())) {
+        showToast('❌ Access denied', 'error');
+        return;
+    }
+    
+    showToast('🔄 Logging in...', 'info');
+    try {
+        // ✅ Call backend guest login API
+        const response = await fetch(API_BASE + '/guest/login', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-hotel-id': HID
+            },
+            body: JSON.stringify({ name, room, hotelId: HID })
+        });
+        const data = await response.json();
+        if (response.ok && data.success && data.token) {
+            HID = data.hotelId || HID;
+            localStorage.setItem('hotel_hid', HID);
+            
+            // Save token
+            localStorage.setItem('hotel_token', data.token);
+            sessionStorage.setItem('hotel_token', data.token);
+            
+            currentUser = { type: 'guest', name, room, points: 0, token: data.token };
+            saveSession();
+            await checkHealth();
+            await loadAllData();
+            showPage('guestDash');
+            document.getElementById('gInfo').textContent = `👤 ${name} | #${room}`;
+            updateGuestStats();
+            renderGuestFood();
+            renderGuestInv();
+            renderGuestHistory();
+            renderGuestBookings();
+            renderGuestAnnouncements();
+            renderGuestPolicies();
+            showGuestTab('reqTab');
+            showToast(`Welcome, ${name}! 🌟`, 'success');
+            speakWelcome();
+            hideSessionLoader();
+            if (isOnline && socket?.connected) socket.emit('guest_join', { hotelId: HID, name, room, clientId });
+        } else {
+            showToast('❌ Login failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+    } catch (err) {
+        console.error('Guest login error:', err);
+        showToast('❌ Login error: ' + err.message, 'error');
+    }
 }
 async function adminLogin(e) {   
 e.preventDefault();
