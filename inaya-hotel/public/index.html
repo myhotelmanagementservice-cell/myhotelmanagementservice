@@ -2413,6 +2413,57 @@ syncToken: item.timestamp
 });
 }
 });
+// ============================================================
+// SOCKET LISTENERS
+// ============================================================
+function registerSocketListeners() {
+    if (!socket) return;
+
+    // Remove old listeners to avoid duplicates
+    socket.off('req_new');
+    socket.off('booking_new');
+    socket.off('food_upd');
+
+    // Listen for new requests from guests
+    socket.on('req_new', (payload) => {
+        if (payload.clientId === clientId) return;
+        console.log('📥 New request received:', payload);
+        if (payload.data) {
+            const exists = requests.some(r => r._id === payload.data._id);
+            if (!exists) {
+                requests.unshift(payload.data);
+                renderRequests();
+                updateGuestStats();
+                renderGuestHistory();
+                showToast('🆕 New guest request received!', 'info');
+            }
+        }
+    });
+
+    // Listen for booking updates
+    socket.on('booking_new', (payload) => {
+        if (payload.clientId === clientId) return;
+        console.log('📥 New booking received:', payload);
+        if (payload.data) {
+            const exists = bookings.some(b => b._id === payload.data._id);
+            if (!exists) {
+                bookings.unshift(payload.data);
+                renderGuestBookings();
+                renderAdminBookings();
+                showToast('📅 New booking received!', 'info');
+            }
+        }
+    });
+
+    // Listen for food orders
+    socket.on('food_upd', (payload) => {
+        if (payload.clientId === clientId) return;
+        console.log('📥 Food order received:', payload);
+        if (payload.data) {
+            showToast('🍽️ New food order received!', 'info');
+        }
+    });
+}    
 updateNetBadge('online');
 }
 syncBack();
@@ -2429,6 +2480,8 @@ socket.on('reconnecting', () => {
 setSockStatus('connecting');
 updateNetBadge('reconnecting');
 });
+    // ✅ Register all socket listeners
+    registerSocketListeners();    
     // Listen for new requests from guests
     socket.on('req_new', (payload) => {
         if (payload.clientId === clientId) return;
@@ -2554,6 +2607,37 @@ const idx = announcements.findIndex(x => x._id === a._id);
 if (idx > -1) announcements[idx] = safeMerge(announcements[idx], a, 'announcements');
 else announcements.push(a);
 }
+// Listen for new requests from guests (GLOBAL listener)
+socket.on('req_new', (payload) => {
+    if (payload.clientId === clientId) return;
+    console.log('📥 New request received (GLOBAL):', payload);
+    if (payload.data) {
+        // Check if request already exists
+        const exists = requests.some(r => r._id === payload.data._id);
+        if (!exists) {
+            requests.unshift(payload.data);
+            renderRequests();
+            updateGuestStats();
+            renderGuestHistory();
+            showToast('🆕 New guest request received!', 'info');
+        }
+    }
+});
+
+// Listen for booking updates (GLOBAL listener)
+socket.on('booking_new', (payload) => {
+    if (payload.clientId === clientId) return;
+    console.log('📥 New booking received (GLOBAL):', payload);
+    if (payload.data) {
+        const exists = bookings.some(b => b._id === payload.data._id);
+        if (!exists) {
+            bookings.unshift(payload.data);
+            renderGuestBookings();
+            renderAdminBookings();
+            showToast('📅 New booking received!', 'info');
+        }
+    }
+});    
 renderAnnouncements();
 renderGuestAnnouncements();
 if (currentUser?.type === 'guest') showToast('📢 New announcement from Admin', 'socket');
