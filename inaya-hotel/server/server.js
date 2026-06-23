@@ -351,9 +351,28 @@ app.use('/api', tenantMiddleware);
 app.use('/api', clientInfoMiddleware);
 app.use('/api', idempotencyMiddleware);
 
+// ======================== NEW ROUTES IMPORTS ========================
+const logsRoutes = require('./routes/logs');
+const loyaltyRoutes = require('./routes/loyalty');
+const reportsRoutes = require('./routes/reports');
+const reviewsRoutes = require('./routes/reviews');
+const cabRoutes = require('./routes/cab');
+const historyRoutes = require('./routes/history');
+const infoRoutes = require('./routes/info');
 const departmentRoutes = require('./routes/department.routes');
 app.set('io', io);
 app.use('/api/departments', departmentRoutes);
+
+
+// ======================== NEW ROUTES USE ========================
+app.use('/api/logs', logsRoutes);
+app.use('/api/loyalty', loyaltyRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/reviews', reviewsRoutes);
+app.use('/api/cab', cabRoutes);
+app.use('/api/history', historyRoutes);
+app.use('/api/info', infoRoutes);
+
 
 // ✅ FIX 1: Optimized checkSubscription with caching - no DB hit on cached hotels
 const checkSubscription = async (req, res, next) => {
