@@ -2429,6 +2429,39 @@ socket.on('reconnecting', () => {
 setSockStatus('connecting');
 updateNetBadge('reconnecting');
 });
+    // Listen for new requests from guests
+    socket.on('req_new', (payload) => {
+        if (payload.clientId === clientId) return;
+        console.log('📥 New request received:', payload);
+        if (payload.data) {
+            requests.unshift(payload.data);
+            renderRequests();
+            updateGuestStats();
+            renderGuestHistory();
+            showToast('🆕 New guest request received!', 'info');
+        }
+    });
+
+    // Listen for booking updates
+    socket.on('booking_new', (payload) => {
+        if (payload.clientId === clientId) return;
+        console.log('📥 New booking received:', payload);
+        if (payload.data) {
+            bookings.unshift(payload.data);
+            renderGuestBookings();
+            renderAdminBookings();
+            showToast('📅 New booking received!', 'info');
+        }
+    });
+
+    // Listen for food orders
+    socket.on('food_upd', (payload) => {
+        if (payload.clientId === clientId) return;
+        console.log('📥 Food order received:', payload);
+        if (payload.data) {
+            showToast('🍽️ New food order received!', 'info');
+        }
+    });    
 socket.on('dept_upd', (payload) => {
 if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if (payload.syncToken) processedEvents.add(payload.syncToken);
