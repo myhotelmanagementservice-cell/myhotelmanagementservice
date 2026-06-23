@@ -1690,7 +1690,7 @@ let rooms = [];
 let guests = [];
 let food = [];
 let inventory = [];
-let requests = [];
+var requests = [];
 let blacklist = [];
 let maintenance = [];
 let reviews = [];
@@ -4375,9 +4375,9 @@ hotelId: HID,
 _version: 1
 };
 
-console.log('🔍 Before unshift - requests length:', requests.length);
-console.log('🔍 req object:', JSON.stringify(req));
-    
+console.log('🔍 req object keys:', Object.keys(req));
+console.log('🔍 req object values:', Object.values(req));
+   
 requests.unshift(req);
 save('requests', req, 'req_new');
 renderRequests();
