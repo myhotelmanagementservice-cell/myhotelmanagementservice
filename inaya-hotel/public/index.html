@@ -2512,7 +2512,6 @@ function registerSocketListeners() {
 updateNetBadge('online');
 }
 syncBack();
-});
 socket.on('disconnect', () => {
 setSockStatus('disconnected');
 updateNetBadge('offline');
