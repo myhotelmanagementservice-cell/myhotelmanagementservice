@@ -3551,13 +3551,14 @@ if (filter === 'completed') list = requests.filter(r => r.status === 'completed'
 if (filter === 'emergency') list = requests.filter(r => r.priority === 'emergency');
 el.innerHTML = list.map(r =>
 `<div class="req-card ${r.priority === 'emergency' ? 'emergency' : ''}" data-id="${r._id}">
-<div style="display:flex;justify-content:center;align-items:flex-start;gap:8px;flex-wrap:wrap">
-<div>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+<div style="flex:1">
 <strong>${r.guestName}</strong> — Room ${r.roomNumber}
 <div style="font-size:13px;opacity:.7;margin-top:2px">${getDeptLabel(r.department)} • ${r.description}</div>
-<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center">
 <span class="badge badge-${r.status}">${getStatusLabel(r.status)}</span>
 <span style="font-size:10px;color:${r.priority === 'emergency' ? '#ef4444' : r.priority === 'urgent' ? '#f59e0b' : '#9ca3af'}">${getPriorityLabel(r.priority)}</span>
+<span style="font-size:10px;opacity:.6;margin-left:4px">🕐 ${r.createdAt ? new Date(r.createdAt).toLocaleString() : '—'}</span>
 </div>
 </div>
 <div style="display:flex;flex-direction:column;gap:4px;min-width:140px">
@@ -4800,14 +4801,14 @@ let chartsInitialized = false;
 function initDashCharts() {
     // Prevent multiple initialization
     if (chartsInitialized) return;
-    
+
     try {
         const dCtx = document.getElementById('dashDeptChart');
         const oCtx = document.getElementById('dashOccChart');
-        
+
         // Check if containers exist
         if (!dCtx && !oCtx) return;
-        
+
         // ✅ FIX 1: Safely destroy old charts (prevent memory leak & blinking)
         if (window.dashDeptChart) {
             try { 
@@ -4821,7 +4822,7 @@ function initDashCharts() {
                 window.dashOccChart = null;
             } catch(e) { window.dashOccChart = null; }
         }
-        
+
         // ✅ FIX 2: Reset canvas inline styles (Chart.js manages these internally)
         if (dCtx) {
             dCtx.style.height = '';
@@ -4835,7 +4836,7 @@ function initDashCharts() {
             oCtx.removeAttribute('height');
             oCtx.removeAttribute('width');
         }
-        
+
         // ✅ FIX 3: Ensure parent containers have FIXED height (CRITICAL for responsive charts)
         if (dCtx && dCtx.parentElement) {
             dCtx.parentElement.style.position = 'relative';
@@ -4847,7 +4848,7 @@ function initDashCharts() {
             oCtx.parentElement.style.height = '250px';  // ✅ Fixed height on PARENT, not canvas
             oCtx.parentElement.style.width = '100%';
         }
-        
+
         // ✅ FIX 4: Use animation: false (not duration:0) to prevent flickering
         const opts = { 
             responsive: true, 
@@ -4859,13 +4860,13 @@ function initDashCharts() {
             animations: {},    // ✅ Disable all animations
             transitions: {}    // ✅ Disable transitions
         };
-        
+
         if (dCtx) {
             const byDept = {};
             requests.forEach(r => { byDept[r.department] = (byDept[r.department] || 0) + 1; });
             const labels = Object.keys(byDept).length ? Object.keys(byDept).map(k => getDeptLabel(k)) : ['HK', 'Maint', 'Rest', 'IT', 'Laundry'];
             const vals = Object.keys(byDept).length ? Object.values(byDept) : [8, 5, 6, 3, 4];
-            
+
             window.dashDeptChart = new Chart(dCtx, {
                 type: 'doughnut',
                 data: { 
@@ -4878,11 +4879,11 @@ function initDashCharts() {
                 options: opts
             });
         }
-        
+
         if (oCtx) {
             const occupied = rooms.filter(r => r.status === 'Occupied').length;
             const total = rooms.length || 1;
-            
+
             window.dashOccChart = new Chart(oCtx, {
                 type: 'bar',
                 data: { 
@@ -4911,7 +4912,7 @@ function initDashCharts() {
                 }
             });
         }
-        
+
         chartsInitialized = true;
     } catch(e) {
         console.warn('Chart init error:', e);
