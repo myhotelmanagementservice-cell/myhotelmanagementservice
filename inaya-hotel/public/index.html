@@ -2262,7 +2262,7 @@ async function guestLogin(e) {
         showToast('❌ Access denied', 'error');
         return;
     }
-    
+
     showToast('🔄 Logging in...', 'info');
     try {
         // ✅ Call backend guest login API
@@ -2278,11 +2278,11 @@ async function guestLogin(e) {
         if (response.ok && data.success && data.token) {
             HID = data.hotelId || HID;
             localStorage.setItem('hotel_hid', HID);
-            
+
             // Save token
             localStorage.setItem('hotel_token', data.token);
             sessionStorage.setItem('hotel_token', data.token);
-            
+
             currentUser = { type: 'guest', name, room, points: 0, token: data.token };
             saveSession();
             await checkHealth();
@@ -2491,27 +2491,11 @@ function registerSocketListeners() {
             showToast('🍽️ New food order received!', 'info');
         }
     });
-
-    // Listen for new guest requests (admin notification)
-    socket.on('new_guest_request', (payload) => {
-        if (payload.clientId === clientId) return;
-        console.log('👑 New guest request for admin:', payload);
-        if (payload.data) {
-            const exists = requests.some(r => r._id === payload.data._id);
-            if (!exists) {
-                requests.unshift(payload.data);
-                renderRequests();
-                updateAdminStats();
-                showToast('🆕 New guest request received!', 'info');
-                // Play notification sound
-                playNotificationSound();
-            }
-        }
-    });
-     
+}    
 updateNetBadge('online');
 }
 syncBack();
+});
 socket.on('disconnect', () => {
 setSockStatus('disconnected');
 updateNetBadge('offline');
@@ -2907,6 +2891,7 @@ if (payload.action === 'delete') {
 logs = [];
 } else {
 if (!logs.find(x => x._id === l._id)) logs.unshift(l);
+}
 renderLogs();
 updateCache();
 });
@@ -4420,7 +4405,7 @@ _version: 1
 alert('🚀 submitGuestReq called!');
 console.log('🔍 req object keys:', Object.keys(req));
 console.log('🔍 req object values:', Object.values(req));
-   
+
 requests.unshift(req);
 save('requests', req, 'req_new');
 renderRequests();
