@@ -4805,26 +4805,59 @@ function initDashCharts() {
         const dCtx = document.getElementById('dashDeptChart');
         const oCtx = document.getElementById('dashOccChart');
         
-        // Check if containers exist and are visible
+        // Check if containers exist
         if (!dCtx && !oCtx) return;
         
-        // Safely destroy old charts
+        // ✅ FIX 1: Safely destroy old charts (prevent memory leak & blinking)
         if (window.dashDeptChart) {
-            try { window.dashDeptChart.destroy(); } catch(e) {}
-            window.dashDeptChart = null;
+            try { 
+                window.dashDeptChart.destroy(); 
+                window.dashDeptChart = null;
+            } catch(e) { window.dashDeptChart = null; }
         }
         if (window.dashOccChart) {
-            try { window.dashOccChart.destroy(); } catch(e) {}
-            window.dashOccChart = null;
+            try { 
+                window.dashOccChart.destroy(); 
+                window.dashOccChart = null;
+            } catch(e) { window.dashOccChart = null; }
         }
         
+        // ✅ FIX 2: Reset canvas inline styles (Chart.js manages these internally)
+        if (dCtx) {
+            dCtx.style.height = '';
+            dCtx.style.width = '';
+            dCtx.removeAttribute('height');
+            dCtx.removeAttribute('width');
+        }
+        if (oCtx) {
+            oCtx.style.height = '';
+            oCtx.style.width = '';
+            oCtx.removeAttribute('height');
+            oCtx.removeAttribute('width');
+        }
+        
+        // ✅ FIX 3: Ensure parent containers have FIXED height (CRITICAL for responsive charts)
+        if (dCtx && dCtx.parentElement) {
+            dCtx.parentElement.style.position = 'relative';
+            dCtx.parentElement.style.height = '250px';  // ✅ Fixed height on PARENT, not canvas
+            dCtx.parentElement.style.width = '100%';
+        }
+        if (oCtx && oCtx.parentElement) {
+            oCtx.parentElement.style.position = 'relative';
+            oCtx.parentElement.style.height = '250px';  // ✅ Fixed height on PARENT, not canvas
+            oCtx.parentElement.style.width = '100%';
+        }
+        
+        // ✅ FIX 4: Use animation: false (not duration:0) to prevent flickering
         const opts = { 
             responsive: true, 
             maintainAspectRatio: false, 
-            plugins: { legend: { display: false } },
-            animation: {
-                duration: 0 // Disable animation for smoother load
-            }
+            plugins: { 
+                legend: { display: false } 
+            },
+            animation: false,  // ✅ Completely disable animation
+            animations: {},    // ✅ Disable all animations
+            transitions: {}    // ✅ Disable transitions
         };
         
         if (dCtx) {
@@ -4833,13 +4866,15 @@ function initDashCharts() {
             const labels = Object.keys(byDept).length ? Object.keys(byDept).map(k => getDeptLabel(k)) : ['HK', 'Maint', 'Rest', 'IT', 'Laundry'];
             const vals = Object.keys(byDept).length ? Object.values(byDept) : [8, 5, 6, 3, 4];
             
-            // Set fixed height to prevent reflow
-            dCtx.style.height = '250px';
-            dCtx.style.width = '100%';
-            
             window.dashDeptChart = new Chart(dCtx, {
                 type: 'doughnut',
-                data: { labels, datasets: [{ data: vals, backgroundColor: ['#6c63ff', '#a78bfa', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'] }] },
+                data: { 
+                    labels, 
+                    datasets: [{ 
+                        data: vals, 
+                        backgroundColor: ['#6c63ff', '#a78bfa', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'] 
+                    }] 
+                },
                 options: opts
             });
         }
@@ -4848,20 +4883,39 @@ function initDashCharts() {
             const occupied = rooms.filter(r => r.status === 'Occupied').length;
             const total = rooms.length || 1;
             
-            // Set fixed height to prevent reflow
-            oCtx.style.height = '250px';
-            oCtx.style.width = '100%';
-            
             window.dashOccChart = new Chart(oCtx, {
                 type: 'bar',
-                data: { labels: ['W1', 'W2', 'W3', 'W4'], datasets: [{ label: '%', data: [68, 75, 82, Math.round(occupied / total * 100)], backgroundColor: '#6c63ff', borderRadius: 6 }] },
-                options: { ...opts, scales: { y: { beginAtZero: true, max: 100, ticks: { color: 'var(--fg)' }, grid: { color: 'var(--border)' } }, x: { ticks: { color: 'var(--fg)' }, grid: { display: false } } } }
+                data: { 
+                    labels: ['W1', 'W2', 'W3', 'W4'], 
+                    datasets: [{ 
+                        label: '%', 
+                        data: [68, 75, 82, Math.round(occupied / total * 100)], 
+                        backgroundColor: '#6c63ff', 
+                        borderRadius: 6 
+                    }] 
+                },
+                options: { 
+                    ...opts, 
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            max: 100, 
+                            ticks: { color: getComputedStyle(document.body).getPropertyValue('--fg') || '#1e1b4b' }, 
+                            grid: { color: getComputedStyle(document.body).getPropertyValue('--border') || '#e0deff' } 
+                        }, 
+                        x: { 
+                            ticks: { color: getComputedStyle(document.body).getPropertyValue('--fg') || '#1e1b4b' }, 
+                            grid: { display: false } 
+                        } 
+                    } 
+                }
             });
         }
         
         chartsInitialized = true;
     } catch(e) {
         console.warn('Chart init error:', e);
+        chartsInitialized = false; // ✅ Reset flag on error so it can retry
     }
 }
 // ============================================================
