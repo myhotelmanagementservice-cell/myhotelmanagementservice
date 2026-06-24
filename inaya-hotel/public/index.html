@@ -4291,17 +4291,20 @@ if (id === 'announceTab') renderGuestAnnouncements();
 if (id === 'policyTab') renderGuestPolicies();
 sessionStorage.setItem('currentTab', 'guest_' + id);
 }
-function renderGuestFood() {
-const el = document.getElementById('gFoodGrid');
+function renderGuestInv() {
+const el = document.getElementById('gInvGrid');
 if (!el) return;
-el.innerHTML = food.map(f =>
-`<div class="food-card" onclick="addToCart('${f._id}','${f.name}',${f.basePriceSAR})" data-id="${f._id}">
-<div class="food-emoji">${f.emoji || '🍽️'}</div>
-<div class="food-name">${f.name}</div>
-<div class="food-cat">${getCategoryLabel(f.category)}</div>
-<div class="food-price">${formatPrice(f.basePriceSAR)}</div>
+el.innerHTML = inventory.map(i =>
+`<div class="inv-card" data-id="${i._id}">
+<div style="font-size:22px">📦</div>
+<div style="font-weight:600;font-size:12px;margin-top:2px">${i.name}</div>
+<div style="font-size:10px;opacity:.6">${i.stock} ${i.unit}</div>
+<div style="display:flex;gap:4px;margin-top:6px">
+<button class="btn-primary" style="padding:4px 8px;font-size:10px" onclick="reqInvItem('${i.name}')">📋 Request</button>
+<button class="btn-ghost" style="padding:4px 8px;font-size:10px;color:#ef4444;border:1px solid #ef4444;border-radius:4px" onclick="cancelGuestInventoryOrder('${i._id}')">✕ Cancel</button>
+</div>
 </div>`
-).join('') || '<p style="opacity:.5;text-align:center;padding:12px">No items available</p>';
+).join('') || '<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
 }
 function renderGuestInv() {
 const el = document.getElementById('gInvGrid');
