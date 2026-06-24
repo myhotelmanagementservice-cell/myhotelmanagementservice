@@ -689,7 +689,9 @@ removeFromCart: 'Remove',
 clearCart: 'Clear Cart',
 emptyCart: 'Cart is empty',
 itemAddedCart: 'Item added',
-itemRemoved: 'Item removed'
+itemRemoved: 'Item removed',
+addBtn: 'Add',
+cancelBtn: 'Cancel'
 },
 hi: {
 hotelName: 'क्राउन प्लाज़ा होटल',
@@ -1084,7 +1086,9 @@ removeFromCart: 'हटाएं',
 clearCart: 'कार्ट खाली करें',
 emptyCart: 'कार्ट खाली है',
 itemAddedCart: 'आइटम जोड़ा गया',
-itemRemoved: 'आइटम हटा दिया गया'
+itemRemoved: 'आइटम हटा दिया गया',
+addBtn: 'जोड़ें',
+cancelBtn: 'रद्द करें'
 },
 ar: {
 hotelName: 'فندق كراون بلازا',
@@ -1479,7 +1483,9 @@ removeFromCart: 'إزالة',
 clearCart: 'مسح السلة',
 emptyCart: 'السلة فارغة',
 itemAddedCart: 'تمت إضافة العنصر',
-itemRemoved: 'تمت إزالة العنصر'
+itemRemoved: 'تمت إزالة العنصر',
+addBtn: 'إضافة',
+cancelBtn: 'إلغاء'
 }
 };
 // ============================================================
@@ -4329,14 +4335,21 @@ onclick="event.stopPropagation(); addToCart('${f._id}','${f.name.replace(/'/g, "
 function renderGuestInv() {
 const el = document.getElementById('gInvGrid');
 if (!el) return;
-el.innerHTML = inventory.map(i =>
-`<div class="inv-card" data-id="${i._id}">
+el.innerHTML = inventory.map(i => `
+<div class="inv-card" data-id="${i._id}">
 <div style="font-size:22px">📦</div>
 <div style="font-weight:600;font-size:12px;margin-top:2px">${i.name}</div>
 <div style="font-size:10px;opacity:.6">${i.stock} ${i.unit}</div>
-<button class="btn-primary" style="margin-top:6px;padding:4px 8px;font-size:10px" onclick="reqInvItem('${i.name}')" data-i18n="requestMore">Request</button>
-</div>`
-).join('') || '<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
+<div style="display:flex;gap:4px;margin-top:6px">
+<button class="btn-primary" style="flex:1;padding:4px 8px;font-size:10px" onclick="reqInvItem('${i.name.replace(/'/g, "\\'")}')">
+➕ ${t('addBtn')}
+</button>
+<button class="btn-ghost" style="flex:1;padding:4px 8px;font-size:10px;border-color:#ef4444;color:#ef4444" onclick="showToast(t('cancelBtn'), 'warning')">
+✖️ ${t('cancelBtn')}
+</button>
+</div>
+</div>
+`).join('') || '<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
 }
 function renderGuestHistory() {
 const el = document.getElementById('gHistList');
