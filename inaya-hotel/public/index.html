@@ -2244,11 +2244,11 @@ const rejoinSocket = () => {
     startAdminPolling();
   }
 };
-if (isOnline && socket?.connected) {
+if (socket?.connected) {
   rejoinSocket();
 } else if (socket) {
-  socket.connect();
   socket.once('connect', rejoinSocket);
+  if (!socket.connected) socket.connect();
 }
 } catch (e) {
 console.warn('Session restore error:', e);
@@ -2637,40 +2637,45 @@ if (currentUser?.type === 'guest') showToast('📢 New announcement from Admin',
 updateCache();
 });
 socket.on('req_new', (payload) => {
-if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
-if (payload.syncToken) processedEvents.add(payload.syncToken);
+try {
+if (payload.syncToken && processedEvents.has(String(payload.syncToken))) return;
+if (payload.syncToken) processedEvents.add(String(payload.syncToken));
 if (payload.clientId === clientId) return;
 const req = payload.data;
 if (!req) return;
-if (!requests.find(r => r._id === req._id)) requests.unshift(req);
-renderRequests();
-updateAdminStats();
+if (!requests.find(r => String(r._id) === String(req._id))) requests.unshift(req);
 if (currentUser?.type === 'admin') {
 const urgency = req.priority === 'emergency' ? '🚨 ' : '';
 showToast(`${urgency}📋 New request from ${req.guestName} - ${getDeptLabel(req.department)}`, 'socket');
 if (req.priority === 'emergency') speakText(`Emergency request from ${req.guestName}`);
-renderDashboardAnalytics();
+renderRequests(); updateAdminStats();
+try { renderDashboardAnalytics(); } catch(e) {}
+} else {
+renderRequests(); updateAdminStats();
 }
 if (currentUser?.type === 'guest' && req.guestName === currentUser.name) {
 showToast('✅ ' + (t('reqSubmitted') || 'Request submitted'), 'success');
 }
 updateCache();
+} catch(e) { console.error('req_new handler error:', e); }
 });
 // Admin-room-specific handler for new guest requests/orders/bookings
 socket.on('new_guest_request', (payload) => {
+try {
 if (!currentUser || currentUser.type !== 'admin') return;
 const req = payload.data || payload;
 if (!req || !req._id) return;
-if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
-if (payload.syncToken) processedEvents.add(payload.syncToken);
-if (!requests.find(r => r._id === req._id)) requests.unshift(req);
-renderRequests();
-updateAdminStats();
-renderDashboardAnalytics();
+const tok = payload.syncToken;
+if (tok && processedEvents.has(String(tok))) return;
+if (tok) processedEvents.add(String(tok));
+if (!requests.find(r => String(r._id) === String(req._id))) requests.unshift(req);
 const urgency = req.priority === 'emergency' ? '🚨 ' : '';
 showToast(`${urgency}📋 New request from ${req.guestName} - Room #${req.roomNumber}`, 'socket');
 if (req.priority === 'emergency') speakText(`Emergency request from ${req.guestName}`);
+renderRequests(); updateAdminStats();
+try { renderDashboardAnalytics(); } catch(e) {}
 updateCache();
+} catch(e) { console.error('new_guest_request error:', e); }
 });
 socket.on('req_upd', (payload) => {
 if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -2753,33 +2758,38 @@ if (currentUser?.type === 'admin') showToast('🍽️ ' + (t('menuUpdatedLive') 
 updateCache();
 });
 socket.on('review_new', (payload) => {
-if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
-if (payload.syncToken) processedEvents.add(payload.syncToken);
+try {
+if (payload.syncToken && processedEvents.has(String(payload.syncToken))) return;
+if (payload.syncToken) processedEvents.add(String(payload.syncToken));
 if (payload.clientId === clientId) return;
 const rev = payload.data;
+if (!rev) return;
 if (!reviews.find(r => r._id === rev._id)) reviews.unshift(rev);
 renderReviews();
 if (currentUser?.type === 'admin') {
 const rating = rev.overall || 0;
 const stars = '⭐'.repeat(Math.min(rating, 5));
 showToast(`⭐ New review from ${rev.guest}: ${stars}`, 'socket');
-renderDashboardAnalytics();
+try { renderDashboardAnalytics(); } catch(e) {}
 }
 updateCache();
+} catch(e) { console.error('review_new error:', e); }
 });
 socket.on('booking_new', (payload) => {
-if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
-if (payload.syncToken) processedEvents.add(payload.syncToken);
+try {
+if (payload.syncToken && processedEvents.has(String(payload.syncToken))) return;
+if (payload.syncToken) processedEvents.add(String(payload.syncToken));
 if (payload.clientId === clientId) return;
 const booking = payload.data;
-if (!bookings.find(b => b._id === booking._id)) bookings.unshift(booking);
-renderGuestBookings();
-renderAdminBookings();
+if (!booking) return;
+if (!bookings.find(b => String(b._id) === String(booking._id))) bookings.unshift(booking);
 if (currentUser?.type === 'admin') {
 showToast(`📅 New booking: ${booking.guestName} - Room #${booking.roomNumber}`, 'socket');
-renderDashboardAnalytics();
 }
+renderGuestBookings(); renderAdminBookings();
+try { if (currentUser?.type === 'admin') renderDashboardAnalytics(); } catch(e) {}
 updateCache();
+} catch(e) { console.error('booking_new error:', e); }
 });
 socket.on('booking_upd', (payload) => {
 if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
@@ -2878,73 +2888,86 @@ renderLogs();
 updateCache();
 });
 socket.on('guest_action', (payload) => {
+try {
 if (!currentUser || currentUser.type !== 'admin') return;
 const d = payload.data || payload;
 if (!d || !d._id) return;
 const tok = payload.syncToken || payload.timestamp;
-if (tok && processedEvents.has(tok)) return;
-if (tok) processedEvents.add(tok);
+if (tok && processedEvents.has(String(tok))) return;
+if (tok) processedEvents.add(String(tok));
 const type = payload.type || '';
 if (type === 'req_new' || payload.collection === 'requests') {
-if (!requests.find(r => r._id === d._id)) requests.unshift(d);
-renderRequests(); updateAdminStats(); renderDashboardAnalytics();
+if (!requests.find(r => String(r._id) === String(d._id))) requests.unshift(d);
 const urgency = d.priority === 'emergency' ? '🚨 ' : '';
-showToast(`${urgency}📋 New request: ${d.guestName} - Room #${d.roomNumber}`, 'socket');
+showToast(`${urgency}📋 New request: ${d.guestName || '?'} - Room #${d.roomNumber || '?'}`, 'socket');
 if (d.priority === 'emergency') speakText(`Emergency request from ${d.guestName}`);
+renderRequests(); updateAdminStats();
+try { renderDashboardAnalytics(); } catch(e) {}
 } else if (type === 'booking_new' || payload.collection === 'bookings') {
-if (!bookings.find(b => b._id === d._id)) bookings.unshift(d);
-renderAdminBookings(); renderDashboardAnalytics();
-showToast(`📅 New booking: ${d.guestName} - Room #${d.roomNumber}`, 'socket');
+if (!bookings.find(b => String(b._id) === String(d._id))) bookings.unshift(d);
+showToast(`📅 New booking: ${d.guestName || '?'} - Room #${d.roomNumber || '?'}`, 'socket');
+renderAdminBookings();
+try { renderDashboardAnalytics(); } catch(e) {}
 }
 updateCache();
+} catch(e) { console.error('guest_action handler error:', e); }
 });
 socket.on('admin_action', (payload) => {
+try {
 if (!currentUser || currentUser.type !== 'guest') return;
 const d = payload.data || payload;
 if (!d || !d._id) return;
 const tok = payload.syncToken || payload.timestamp;
-if (tok && processedEvents.has(tok)) return;
-if (tok) processedEvents.add(tok);
+if (tok && processedEvents.has(String(tok))) return;
+if (tok) processedEvents.add(String(tok));
 const type = payload.type || '';
 if (type === 'req_upd' || payload.collection === 'requests') {
-const idx = requests.findIndex(r => r._id === d._id);
+const idx = requests.findIndex(r => String(r._id) === String(d._id));
 if (idx > -1) requests[idx] = { ...requests[idx], ...d };
 else requests.unshift(d);
 renderGuestHistory(); updateGuestStats();
 if (d.adminReply) showToast('👑 New reply from Admin: ' + d.adminReply, 'success');
 else showToast('🔔 Your request status updated: ' + (d.status || ''), 'socket');
 } else if (type === 'announcement_upd' || payload.collection === 'announcements') {
-const idx = announcements.findIndex(a => a._id === d._id);
+const idx = announcements.findIndex(a => String(a._id) === String(d._id));
 if (idx > -1) announcements[idx] = { ...announcements[idx], ...d };
 else announcements.push(d);
 renderGuestAnnouncements();
 showToast('📢 New announcement from Admin', 'socket');
+} else if (type === 'food_upd' || payload.collection === 'food') {
+renderGuestFood();
+showToast('🍽️ Menu updated by hotel', 'socket');
 }
 updateCache();
+} catch(e) { console.error('admin_action error:', e); }
 });
 socket.on('request_updated', (payload) => {
+try {
 if (!currentUser || currentUser.type !== 'guest') return;
 const d = payload.data || payload;
 if (!d || !d._id) return;
-const idx = requests.findIndex(r => r._id === d._id);
+const idx = requests.findIndex(r => String(r._id) === String(d._id));
 if (idx > -1) requests[idx] = { ...requests[idx], ...d };
 else requests.unshift(d);
 renderGuestHistory(); updateGuestStats();
 if (d.adminReply) showToast('👑 Admin replied: ' + d.adminReply, 'success');
 else showToast('🔔 Request updated: ' + (d.status || ''), 'socket');
 updateCache();
+} catch(e) { console.error('request_updated error:', e); }
 });
 socket.on('admin_reply', (payload) => {
+try {
 if (!currentUser || currentUser.type !== 'guest') return;
 const d = payload.data || payload;
 if (!d) return;
 const reqId = d.requestId || d._id;
 if (reqId) {
-const idx = requests.findIndex(r => r._id === reqId);
+const idx = requests.findIndex(r => String(r._id) === String(reqId));
 if (idx > -1) { requests[idx].adminReply = d.reply || d.adminReply; requests[idx].status = d.status || requests[idx].status; }
 renderGuestHistory(); updateGuestStats();
 }
 showToast('👑 Admin replied to your request!', 'success');
+} catch(e) { console.error('admin_reply error:', e); }
 });
 } catch (e) {
 console.warn('Socket unavailable, offline mode');
@@ -4775,10 +4798,10 @@ sessionStorage.setItem('currentTab', id);
 function initDashCharts() {
 const dCtx = document.getElementById('dashDeptChart');
 const oCtx = document.getElementById('dashOccChart');
-if (window.dashDeptChart) { window.dashDeptChart.destroy();
-window.dashDeptChart = null; }
-if (window.dashOccChart) { window.dashOccChart.destroy();
-window.dashOccChart = null; }
+if (window.dashDeptChart && typeof window.dashDeptChart.destroy === 'function') { window.dashDeptChart.destroy(); }
+window.dashDeptChart = null;
+if (window.dashOccChart && typeof window.dashOccChart.destroy === 'function') { window.dashOccChart.destroy(); }
+window.dashOccChart = null;
 const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
 if (dCtx) {
 const byDept = {};
