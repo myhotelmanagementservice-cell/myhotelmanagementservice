@@ -4797,40 +4797,59 @@ sessionStorage.setItem('currentTab', id);
 }
 function initDashCharts() {
     try {
-        const dCtx = document.getElementById('dashDeptChart');
-        const oCtx = document.getElementById('dashOccChart');
-        
-        // Safely destroy old charts
-        if (window.dashDeptChart) {
-            try { window.dashDeptChart.destroy(); } catch(e) {}
-            window.dashDeptChart = null;
-        }
-        if (window.dashOccChart) {
-            try { window.dashOccChart.destroy(); } catch(e) {}
-            window.dashOccChart = null;
-        }
-        
-        const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
-        if (dCtx) {
-            const byDept = {};
-            requests.forEach(r => { byDept[r.department] = (byDept[r.department] || 0) + 1; });
-            const labels = Object.keys(byDept).length ? Object.keys(byDept).map(k => getDeptLabel(k)) : ['HK', 'Maint', 'Rest', 'IT', 'Laundry'];
-            const vals = Object.keys(byDept).length ? Object.values(byDept) : [8, 5, 6, 3, 4];
-            window.dashDeptChart = new Chart(dCtx, {
-                type: 'doughnut',
-                data: { labels, datasets: [{ data: vals, backgroundColor: ['#6c63ff', '#a78bfa', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'] }] },
-                options: opts
-            });
-        }
-        if (oCtx) {
-            const occupied = rooms.filter(r => r.status === 'Occupied').length;
-            const total = rooms.length || 1;
-            window.dashOccChart = new Chart(oCtx, {
-                type: 'bar',
-                data: { labels: ['W1', 'W2', 'W3', 'W4'], datasets: [{ label: '%', data: [68, 75, 82, Math.round(occupied / total * 100)], backgroundColor: '#6c63ff', borderRadius: 6 }] },
-                options: { ...opts, scales: { y: { beginAtZero: true, max: 100, ticks: { color: 'var(--fg)' }, grid: { color: 'var(--border)' } }, x: { ticks: { color: 'var(--fg)' }, grid: { display: false } } } }
-            });
-        }
+        // Wait for container to be fully visible
+        setTimeout(() => {
+            const dCtx = document.getElementById('dashDeptChart');
+            const oCtx = document.getElementById('dashOccChart');
+            
+            // Safely destroy old charts
+            if (window.dashDeptChart) {
+                try { window.dashDeptChart.destroy(); } catch(e) {}
+                window.dashDeptChart = null;
+            }
+            if (window.dashOccChart) {
+                try { window.dashOccChart.destroy(); } catch(e) {}
+                window.dashOccChart = null;
+            }
+            
+            const opts = { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } } 
+            };
+            
+            if (dCtx) {
+                const byDept = {};
+                requests.forEach(r => { byDept[r.department] = (byDept[r.department] || 0) + 1; });
+                const labels = Object.keys(byDept).length ? Object.keys(byDept).map(k => getDeptLabel(k)) : ['HK', 'Maint', 'Rest', 'IT', 'Laundry'];
+                const vals = Object.keys(byDept).length ? Object.values(byDept) : [8, 5, 6, 3, 4];
+                
+                // Force parent container height
+                const parent = dCtx.parentElement;
+                if (parent) parent.style.minHeight = '250px';
+                
+                window.dashDeptChart = new Chart(dCtx, {
+                    type: 'doughnut',
+                    data: { labels, datasets: [{ data: vals, backgroundColor: ['#6c63ff', '#a78bfa', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'] }] },
+                    options: opts
+                });
+            }
+            
+            if (oCtx) {
+                const occupied = rooms.filter(r => r.status === 'Occupied').length;
+                const total = rooms.length || 1;
+                
+                // Force parent container height
+                const parent = oCtx.parentElement;
+                if (parent) parent.style.minHeight = '250px';
+                
+                window.dashOccChart = new Chart(oCtx, {
+                    type: 'bar',
+                    data: { labels: ['W1', 'W2', 'W3', 'W4'], datasets: [{ label: '%', data: [68, 75, 82, Math.round(occupied / total * 100)], backgroundColor: '#6c63ff', borderRadius: 6 }] },
+                    options: { ...opts, scales: { y: { beginAtZero: true, max: 100, ticks: { color: 'var(--fg)' }, grid: { color: 'var(--border)' } }, x: { ticks: { color: 'var(--fg)' }, grid: { display: false } } } }
+                });
+            }
+        }, 300);
     } catch(e) {
         console.warn('Chart init error:', e);
     }
