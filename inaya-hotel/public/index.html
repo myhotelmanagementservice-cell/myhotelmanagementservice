@@ -2234,7 +2234,11 @@ showToast("✅ Session restored — Welcome back!", 'success');
 isSessionChecked = true;
 hideSessionLoader();
 if (isOnline && socket?.connected) {
-socket.emit('guest_join', { hotelId: HID, name: currentUser?.name, room: currentUser?.room, clientId });
+  if (currentUser.type === 'guest') {
+    socket.emit('join_guest', { hotelId: HID, roomNumber: currentUser.room, guestName: currentUser.name });
+  } else {
+    socket.emit('join_admin', HID);
+  }
 }
 } catch (e) {
 console.warn('Session restore error:', e);
@@ -2300,7 +2304,7 @@ async function guestLogin(e) {
             showToast(`Welcome, ${name}! 🌟`, 'success');
             speakWelcome();
             hideSessionLoader();
-            if (isOnline && socket?.connected) socket.emit('guest_join', { hotelId: HID, name, room, clientId });
+            if (isOnline && socket?.connected) socket.emit('join_guest', { hotelId: HID, roomNumber: room, guestName: name });
         } else {
             showToast('❌ Login failed: ' + (data.error || 'Unknown error'), 'error');
         }
@@ -2336,7 +2340,9 @@ speakWelcome();
 showToast('✅ Login successful!', 'success');
 hideSessionLoader();
 if (isOnline && socket?.connected) {
-socket.emit('admin_join', { hotelId: data.hotelId, email: email, clientId });
+if (isOnline && socket?.connected) {
+socket.emit('join_admin', HID);
+}
 }
 } else {
 showToast('❌ ' + (data.error || 'Invalid credentials'), 'error');
@@ -2422,6 +2428,11 @@ reconnectionDelayMax: 5000
 socket.on('connect', () => {
 setSockStatus('connected');
 updateNetBadge('online');
+if (currentUser?.type === 'guest') {
+  socket.emit('join_guest', { hotelId: HID, roomNumber: currentUser.room, guestName: currentUser.name });
+} else if (currentUser?.type === 'admin') {
+  socket.emit('join_admin', HID);
+}
 socket.emit('join_hotel', HID);
 showToast('🔗 Connected to Server', 'socket');
 if (offlineQueue.length) {
