@@ -2468,41 +2468,6 @@ socket.on('reconnecting', () => {
 setSockStatus('connecting');
 updateNetBadge('reconnecting');
 });
-    // ✅ Register all socket listeners
-    registerSocketListeners();    
-    // Listen for new requests from guests
-    socket.on('req_new', (payload) => {
-        if (payload.clientId === clientId) return;
-        console.log('📥 New request received:', payload);
-        if (payload.data) {
-            requests.unshift(payload.data);
-            renderRequests();
-            updateGuestStats();
-            renderGuestHistory();
-            showToast('🆕 New guest request received!', 'info');
-        }
-    });
-
-    // Listen for booking updates
-    socket.on('booking_new', (payload) => {
-        if (payload.clientId === clientId) return;
-        console.log('📥 New booking received:', payload);
-        if (payload.data) {
-            bookings.unshift(payload.data);
-            renderGuestBookings();
-            renderAdminBookings();
-            showToast('📅 New booking received!', 'info');
-        }
-    });
-
-    // Listen for food orders
-    socket.on('food_upd', (payload) => {
-        if (payload.clientId === clientId) return;
-        console.log('📥 Food order received:', payload);
-        if (payload.data) {
-            showToast('🍽️ New food order received!', 'info');
-        }
-    });    
 socket.on('dept_upd', (payload) => {
 if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if (payload.syncToken) processedEvents.add(payload.syncToken);
@@ -2595,37 +2560,6 @@ const idx = announcements.findIndex(x => x._id === a._id);
 if (idx > -1) announcements[idx] = safeMerge(announcements[idx], a, 'announcements');
 else announcements.push(a);
 }
-// Listen for new requests from guests (GLOBAL listener)
-socket.on('req_new', (payload) => {
-    if (payload.clientId === clientId) return;
-    console.log('📥 New request received (GLOBAL):', payload);
-    if (payload.data) {
-        // Check if request already exists
-        const exists = requests.some(r => r._id === payload.data._id);
-        if (!exists) {
-            requests.unshift(payload.data);
-            renderRequests();
-            updateGuestStats();
-            renderGuestHistory();
-            showToast('🆕 New guest request received!', 'info');
-        }
-    }
-});
-
-// Listen for booking updates (GLOBAL listener)
-socket.on('booking_new', (payload) => {
-    if (payload.clientId === clientId) return;
-    console.log('📥 New booking received (GLOBAL):', payload);
-    if (payload.data) {
-        const exists = bookings.some(b => b._id === payload.data._id);
-        if (!exists) {
-            bookings.unshift(payload.data);
-            renderGuestBookings();
-            renderAdminBookings();
-            showToast('📅 New booking received!', 'info');
-        }
-    }
-});    
 renderAnnouncements();
 renderGuestAnnouncements();
 if (currentUser?.type === 'guest') showToast('📢 New announcement from Admin', 'socket');
@@ -2636,6 +2570,7 @@ if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
 if (payload.syncToken) processedEvents.add(payload.syncToken);
 if (payload.clientId === clientId) return;
 const req = payload.data;
+if (!req) return;
 if (!requests.find(r => r._id === req._id)) requests.unshift(req);
 renderRequests();
 updateAdminStats();
@@ -2648,6 +2583,22 @@ renderDashboardAnalytics();
 if (currentUser?.type === 'guest' && req.guestName === currentUser.name) {
 showToast('✅ ' + (t('reqSubmitted') || 'Request submitted'), 'success');
 }
+updateCache();
+});
+// Admin-room-specific handler for new guest requests/orders/bookings
+socket.on('new_guest_request', (payload) => {
+if (!currentUser || currentUser.type !== 'admin') return;
+const req = payload.data || payload;
+if (!req || !req._id) return;
+if (payload.syncToken && processedEvents.has(payload.syncToken)) return;
+if (payload.syncToken) processedEvents.add(payload.syncToken);
+if (!requests.find(r => r._id === req._id)) requests.unshift(req);
+renderRequests();
+updateAdminStats();
+renderDashboardAnalytics();
+const urgency = req.priority === 'emergency' ? '🚨 ' : '';
+showToast(`${urgency}📋 New request from ${req.guestName} - Room #${req.roomNumber}`, 'socket');
+if (req.priority === 'emergency') speakText(`Emergency request from ${req.guestName}`);
 updateCache();
 });
 socket.on('req_upd', (payload) => {
@@ -4362,10 +4313,6 @@ createdAt: new Date().toISOString(),
 hotelId: HID,
 _version: 1
 };
-alert('🚀 submitGuestReq called!');
-console.log('🔍 req object keys:', Object.keys(req));
-console.log('🔍 req object values:', Object.values(req));
-
 requests.unshift(req);
 save('requests', req, 'req_new');
 renderRequests();
