@@ -4294,11 +4294,15 @@ function renderGuestFood() {
 const el = document.getElementById('gFoodGrid');
 if (!el) return;
 el.innerHTML = food.map(f =>
-`<div class="food-card" onclick="addToCart('${f._id}','${f.name}',${f.basePriceSAR})" data-id="${f._id}">
+`<div class="food-card" data-id="${f._id}">
 <div class="food-emoji">${f.emoji || '🍽️'}</div>
 <div class="food-name">${f.name}</div>
 <div class="food-cat">${getCategoryLabel(f.category)}</div>
 <div class="food-price">${formatPrice(f.basePriceSAR)}</div>
+<div style="display:flex;gap:4px;margin-top:6px">
+<button class="btn-primary" style="padding:4px 8px;font-size:10px" onclick="addToCart('${f._id}','${f.name}',${f.basePriceSAR})">🛒 Add</button>
+<button class="btn-ghost" style="padding:4px 8px;font-size:10px;color:#ef4444;border:1px solid #ef4444;border-radius:4px" onclick="cancelGuestFoodOrder('${f._id}')">✕ Cancel</button>
+</div>
 </div>`
 ).join('') || '<p style="opacity:.5;text-align:center;padding:12px">No items available</p>';
 }
