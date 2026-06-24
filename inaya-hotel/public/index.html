@@ -2233,12 +2233,21 @@ showGuestTab('reqTab');
 showToast("✅ Session restored — Welcome back!", 'success');
 isSessionChecked = true;
 hideSessionLoader();
-if (isOnline && socket?.connected) {
+const rejoinSocket = () => {
   if (currentUser.type === 'guest') {
+    socket.emit('join_hotel', HID);
     socket.emit('join_guest', { hotelId: HID, roomNumber: currentUser.room, guestName: currentUser.name });
   } else {
+    socket.emit('join_hotel', HID);
     socket.emit('join_admin', HID);
+    startAdminPolling();
   }
+};
+if (isOnline && socket?.connected) {
+  rejoinSocket();
+} else if (socket) {
+  socket.connect();
+  socket.once('connect', rejoinSocket);
 }
 } catch (e) {
 console.warn('Session restore error:', e);
@@ -2304,7 +2313,16 @@ async function guestLogin(e) {
             showToast(`Welcome, ${name}! 🌟`, 'success');
             speakWelcome();
             hideSessionLoader();
-            if (isOnline && socket?.connected) socket.emit('join_guest', { hotelId: HID, roomNumber: room, guestName: name });
+            if (isOnline && socket?.connected) {
+                socket.emit('join_hotel', HID);
+                socket.emit('join_guest', { hotelId: HID, roomNumber: room, guestName: name });
+            } else if (socket) {
+                socket.connect();
+                socket.once('connect', () => {
+                    socket.emit('join_hotel', HID);
+                    socket.emit('join_guest', { hotelId: HID, roomNumber: room, guestName: name });
+                });
+            }
         } else {
             showToast('❌ Login failed: ' + (data.error || 'Unknown error'), 'error');
         }
@@ -2340,9 +2358,14 @@ speakWelcome();
 showToast('✅ Login successful!', 'success');
 hideSessionLoader();
 if (isOnline && socket?.connected) {
-if (isOnline && socket?.connected) {
+socket.emit('join_hotel', HID);
 socket.emit('join_admin', HID);
-}
+} else if (socket) {
+socket.connect();
+socket.once('connect', () => {
+socket.emit('join_hotel', HID);
+socket.emit('join_admin', HID);
+});
 }
 } else {
 showToast('❌ ' + (data.error || 'Invalid credentials'), 'error');
@@ -2359,6 +2382,7 @@ document.getElementById('guestTabBtn').classList.toggle('active', type === 'gues
 document.getElementById('adminTabBtn').classList.toggle('active', type === 'admin');
 }
 function logout() {
+if (_adminPollInterval) { clearInterval(_adminPollInterval); _adminPollInterval = null; }
 if (socket?.connected) socket.emit('leave_hotel', HID);
 currentUser = null;
 sessionStorage.clear();
@@ -2413,6 +2437,47 @@ updateAdminStats();
 showAdminTab('overview');
 showToast(`Logged in as ${t(rName)}`, 'success');
 hideSessionLoader();
+startAdminPolling();
+}
+let _adminPollInterval = null;
+function startAdminPolling() {
+if (_adminPollInterval) clearInterval(_adminPollInterval);
+_adminPollInterval = setInterval(async () => {
+if (!currentUser || currentUser.type !== 'admin' || !isOnline) return;
+if (socket?.connected) {
+socket.emit('join_hotel', HID);
+socket.emit('join_admin', HID);
+}
+try {
+const [newReqs, newBks] = await Promise.all([
+apiCall('GET', `/requests?hotelId=${HID}`),
+apiCall('GET', `/bookings?hotelId=${HID}`)
+]);
+if (newReqs && Array.isArray(newReqs)) {
+const prevCount = requests.length;
+const existingIds = new Set(requests.map(r => String(r._id)));
+let added = 0;
+newReqs.forEach(r => {
+if (!existingIds.has(String(r._id))) { requests.unshift(r); added++; }
+});
+if (added > 0) {
+requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+renderRequests();
+updateAdminStats();
+renderDashboardAnalytics();
+showToast(`🔄 ${added} new request(s) synced`, 'socket');
+}
+}
+if (newBks && Array.isArray(newBks)) {
+const existingIds = new Set(bookings.map(b => String(b._id)));
+let added = 0;
+newBks.forEach(b => {
+if (!existingIds.has(String(b._id))) { bookings.unshift(b); added++; }
+});
+if (added > 0) { renderAdminBookings(); renderDashboardAnalytics(); }
+}
+} catch(e) {}
+}, 10000);
 }
 // ============================================================
 // SOCKET.IO
