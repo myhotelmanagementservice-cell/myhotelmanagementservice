@@ -2468,37 +2468,47 @@ function registerSocketListeners() {
         }
     });
 
-// Listen for booking updates
-socket.on('booking_new', (payload) => {
-    if (payload.clientId === clientId) return;
-    console.log('📥 New booking received:', payload);
-
-    if (payload.data) {
-        const exists = bookings.some(b => b._id === payload.data._id);
-
-        if (!exists) {
-            bookings.unshift(payload.data);
-            renderGuestBookings();
-            renderAdminBookings();
-            showToast('📅 New booking received!', 'info');
+    // Listen for booking updates
+    socket.on('booking_new', (payload) => {
+        if (payload.clientId === clientId) return;
+        console.log('📥 New booking received:', payload);
+        if (payload.data) {
+            const exists = bookings.some(b => b._id === payload.data._id);
+            if (!exists) {
+                bookings.unshift(payload.data);
+                renderGuestBookings();
+                renderAdminBookings();
+                showToast('📅 New booking received!', 'info');
+            }
         }
-    }
+    });
+
+    // Listen for food orders
+    socket.on('food_upd', (payload) => {
+        if (payload.clientId === clientId) return;
+        console.log('📥 Food order received:', payload);
+        if (payload.data) {
+            showToast('🍽️ New food order received!', 'info');
+        }
+    });
+}    
+updateNetBadge('online');
+}
+syncBack();
 });
-
-// Listen for food orders
-socket.on('food_upd', (payload) => {
-    if (payload.clientId === clientId) return;
-    console.log('📥 Food order received:', payload);
-
-    if (payload.data) {
-        showToast('🍽️ New food order received!', 'info');
-    }
+socket.on('disconnect', () => {
+setSockStatus('disconnected');
+updateNetBadge('offline');
 });
-
-} // End of registerSocketListeners()
-
-// ✅ Register all socket listeners
-registerSocketListeners();   
+socket.on('connect_error', () => {
+setSockStatus('error');
+updateNetBadge('offline');
+});
+socket.on('reconnecting', () => {
+setSockStatus('connecting');
+updateNetBadge('reconnecting');
+});
+    // ✅ Register all socket listeners
     registerSocketListeners();    
     // Listen for new requests from guests
     socket.on('req_new', (payload) => {
@@ -2886,7 +2896,6 @@ renderLogs();
 updateCache();
 });
 } catch (e) {
-console.error('SOCKET ERROR:', e);    
 console.warn('Socket unavailable, offline mode');
 setSockStatus('error');
 updateNetBadge('offline');
@@ -2898,37 +2907,7 @@ const map = {
 connected: { cls: 'connected', text: t('serverConnected') || 'Live' },
 disconnected: { cls: 'error', text: t('serverOffline') || 'Offline' },
 connecting: { cls: 'connecting', text: t('serverConnecting') || 'Connecting…' },
-// Listen for booking updates
-socket.on('booking_new', (payload) => {
-    if (payload.clientId === clientId) return;
-    console.log('📥 New booking received:', payload);
-
-    if (payload.data) {
-        const exists = bookings.some(b => b._id === payload.data._id);
-
-        if (!exists) {
-            bookings.unshift(payload.data);
-            renderGuestBookings();
-            renderAdminBookings();
-            showToast('📅 New booking received!', 'info');
-        }
-    }
-});
-
-// Listen for food orders
-socket.on('food_upd', (payload) => {
-    if (payload.clientId === clientId) return;
-    console.log('📥 Food order received:', payload);
-
-    if (payload.data) {
-        showToast('🍽️ New food order received!', 'info');
-    }
-});
-
-} // End of registerSocketListeners()
-
-// ✅ Register all socket listeners
-registerSocketListeners();error: { cls: 'error', text: t('serverOffline') || 'Offline' }
+error: { cls: 'error', text: t('serverOffline') || 'Offline' }
 };
 const m = map[s] || map.disconnected;
 if (dot) dot.className = 'sock-dot ' + m.cls;
