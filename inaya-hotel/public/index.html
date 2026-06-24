@@ -238,6 +238,7 @@ font-size: 14px;
 <button class="login-tab" id="adminTabBtn" onclick="switchLogin('admin')" data-i18n="adminTab">👑 Admin</button>
 </div>
 <form id="guestLoginForm" onsubmit="guestLogin(event)">
+<div class="form-row"><label class="lbl" data-i18n="hotelIdLbl">Hotel ID</label><input class="inp" id="guestHotelIdIn" type="text" placeholder="Enter Hotel ID" required></div>
 <div class="form-row"><label class="lbl" data-i18n="yourName">Your Name</label><input class="inp" id="guestNameIn" data-i18n-ph="enterName" placeholder="Enter your name" required></div>
 <div class="form-row"><label class="lbl" data-i18n="roomNumber">Room Number</label><input class="inp" id="guestRoomIn" type="number" placeholder="e.g. 101" required></div>
 <button class="btn-primary" style="width:100%;padding:11px" type="submit" data-i18n="loginGuest">🔐 Login as Guest</button>
@@ -2004,13 +2005,13 @@ async function save(collection, data, event = 'data_upd') {
     const success = await saveToMongo(collection, data);
     if (success) {
         if (isOnline && socket?.connected) {
-            socket.emit(event, {
-                hotelId: HID,
-                collection,
-                data,
-                clientId,
-                syncToken: Date.now()
-            });
+            const syncToken = Date.now();
+            socket.emit(event, { hotelId: HID, collection, data, clientId, syncToken });
+            if (currentUser?.type === 'guest') {
+                socket.emit('guest_action', { hotelId: HID, type: event, collection, data, clientId, syncToken });
+            } else if (currentUser?.type === 'admin') {
+                socket.emit('admin_action', { hotelId: HID, type: event, collection, data, clientId, syncToken });
+            }
         }
         updateCache();
         return true;
@@ -2268,13 +2269,16 @@ setTimeout(() => { loader.style.display = 'none'; }, 400);
 // ============================================================
 async function guestLogin(e) {
     e.preventDefault();
+    const hotelIdIn = (document.getElementById('guestHotelIdIn')?.value || '').trim();
     const name = document.getElementById('guestNameIn').value.trim();
     const room = document.getElementById('guestRoomIn').value.trim();
-    if (!name || !room) { showToast('Fill all fields', 'error'); return; }
+    if (!hotelIdIn || !name || !room) { showToast('Fill all fields including Hotel ID', 'error'); return; }
     if (blacklist.find(b => b.name.toLowerCase() === name.toLowerCase())) {
         showToast('❌ Access denied', 'error');
         return;
     }
+    HID = hotelIdIn;
+    localStorage.setItem('hotel_hid', HID);
 
     showToast('🔄 Logging in...', 'info');
     try {
@@ -2348,6 +2352,8 @@ const data = await response.json();
 if (response.ok && data.success && data.token) {
 HID = data.hotelId || hotelId;
 localStorage.setItem('hotel_hid', HID);
+localStorage.setItem('hotel_token', data.token);
+sessionStorage.setItem('hotel_token', data.token);
 currentUser = { type: 'admin', email: data.user.email, role: data.user.role, token: data.token, hotelId: HID };
 saveSession();
 await checkHealth();
@@ -2389,7 +2395,7 @@ sessionStorage.clear();
 localStorage.removeItem(`h_${HID}_session`);
 localStorage.removeItem(`h_${HID}_token`);
 localStorage.removeItem('hotel_token');
-['adminEmailIn', 'adminPassIn', 'adminHotelIdIn', 'guestNameIn', 'guestRoomIn'].forEach(id => {
+['adminEmailIn', 'adminPassIn', 'adminHotelIdIn', 'guestNameIn', 'guestRoomIn', 'guestHotelIdIn'].forEach(id => {
 const el = document.getElementById(id);
 if (el) el.value = '';
 });
@@ -2870,6 +2876,75 @@ if (!logs.find(x => x._id === l._id)) logs.unshift(l);
 }
 renderLogs();
 updateCache();
+});
+socket.on('guest_action', (payload) => {
+if (!currentUser || currentUser.type !== 'admin') return;
+const d = payload.data || payload;
+if (!d || !d._id) return;
+const tok = payload.syncToken || payload.timestamp;
+if (tok && processedEvents.has(tok)) return;
+if (tok) processedEvents.add(tok);
+const type = payload.type || '';
+if (type === 'req_new' || payload.collection === 'requests') {
+if (!requests.find(r => r._id === d._id)) requests.unshift(d);
+renderRequests(); updateAdminStats(); renderDashboardAnalytics();
+const urgency = d.priority === 'emergency' ? '🚨 ' : '';
+showToast(`${urgency}📋 New request: ${d.guestName} - Room #${d.roomNumber}`, 'socket');
+if (d.priority === 'emergency') speakText(`Emergency request from ${d.guestName}`);
+} else if (type === 'booking_new' || payload.collection === 'bookings') {
+if (!bookings.find(b => b._id === d._id)) bookings.unshift(d);
+renderAdminBookings(); renderDashboardAnalytics();
+showToast(`📅 New booking: ${d.guestName} - Room #${d.roomNumber}`, 'socket');
+}
+updateCache();
+});
+socket.on('admin_action', (payload) => {
+if (!currentUser || currentUser.type !== 'guest') return;
+const d = payload.data || payload;
+if (!d || !d._id) return;
+const tok = payload.syncToken || payload.timestamp;
+if (tok && processedEvents.has(tok)) return;
+if (tok) processedEvents.add(tok);
+const type = payload.type || '';
+if (type === 'req_upd' || payload.collection === 'requests') {
+const idx = requests.findIndex(r => r._id === d._id);
+if (idx > -1) requests[idx] = { ...requests[idx], ...d };
+else requests.unshift(d);
+renderGuestHistory(); updateGuestStats();
+if (d.adminReply) showToast('👑 New reply from Admin: ' + d.adminReply, 'success');
+else showToast('🔔 Your request status updated: ' + (d.status || ''), 'socket');
+} else if (type === 'announcement_upd' || payload.collection === 'announcements') {
+const idx = announcements.findIndex(a => a._id === d._id);
+if (idx > -1) announcements[idx] = { ...announcements[idx], ...d };
+else announcements.push(d);
+renderGuestAnnouncements();
+showToast('📢 New announcement from Admin', 'socket');
+}
+updateCache();
+});
+socket.on('request_updated', (payload) => {
+if (!currentUser || currentUser.type !== 'guest') return;
+const d = payload.data || payload;
+if (!d || !d._id) return;
+const idx = requests.findIndex(r => r._id === d._id);
+if (idx > -1) requests[idx] = { ...requests[idx], ...d };
+else requests.unshift(d);
+renderGuestHistory(); updateGuestStats();
+if (d.adminReply) showToast('👑 Admin replied: ' + d.adminReply, 'success');
+else showToast('🔔 Request updated: ' + (d.status || ''), 'socket');
+updateCache();
+});
+socket.on('admin_reply', (payload) => {
+if (!currentUser || currentUser.type !== 'guest') return;
+const d = payload.data || payload;
+if (!d) return;
+const reqId = d.requestId || d._id;
+if (reqId) {
+const idx = requests.findIndex(r => r._id === reqId);
+if (idx > -1) { requests[idx].adminReply = d.reply || d.adminReply; requests[idx].status = d.status || requests[idx].status; }
+renderGuestHistory(); updateGuestStats();
+}
+showToast('👑 Admin replied to your request!', 'success');
 });
 } catch (e) {
 console.warn('Socket unavailable, offline mode');
@@ -5781,6 +5856,8 @@ const onlineBtn = document.getElementById('onlineBtn');
 if (onlineBtn) onlineBtn.textContent = isOnline ? t('online') : t('offline');
 setInterval(saveUIPrefs, 15000);
 window.addEventListener('beforeunload', saveUIPrefs);
+const ghi = document.getElementById('guestHotelIdIn');
+if (ghi && HID && HID !== 'default') ghi.value = HID;
 }
 document.addEventListener('click', e => {
 if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
