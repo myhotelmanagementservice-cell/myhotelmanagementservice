@@ -2896,6 +2896,7 @@ renderLogs();
 updateCache();
 });
 } catch (e) {
+console.error('SOCKET ERROR:', e);    
 console.warn('Socket unavailable, offline mode');
 setSockStatus('error');
 updateNetBadge('offline');
