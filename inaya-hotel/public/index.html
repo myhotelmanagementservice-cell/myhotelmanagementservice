@@ -2483,7 +2483,7 @@ function registerSocketListeners() {
         }
     });
 
-    // Listen for food orders
+// Listen for food orders
     socket.on('food_upd', (payload) => {
         if (payload.clientId === clientId) return;
         console.log('📥 Food order received:', payload);
@@ -2491,7 +2491,26 @@ function registerSocketListeners() {
             showToast('🍽️ New food order received!', 'info');
         }
     });
-}    
+
+    // Listen for new guest requests (admin notification)
+    socket.on('new_guest_request', (payload) => {
+        if (payload.clientId === clientId) return;
+        console.log('👑 New guest request for admin:', payload);
+        if (payload.data) {
+            const exists = requests.some(r => r._id === payload.data._id);
+            if (!exists) {
+                requests.unshift(payload.data);
+                renderRequests();
+                updateAdminStats();
+                showToast('🆕 New guest request received!', 'info');
+                // Play notification sound
+                playNotificationSound();
+            }
+        }
+    });
+
+}  ← registerSocketListeners function ka closing brace
+    
 updateNetBadge('online');
 }
 syncBack();
