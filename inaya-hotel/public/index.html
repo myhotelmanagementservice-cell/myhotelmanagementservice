@@ -3551,14 +3551,13 @@ if (filter === 'completed') list = requests.filter(r => r.status === 'completed'
 if (filter === 'emergency') list = requests.filter(r => r.priority === 'emergency');
 el.innerHTML = list.map(r =>
 `<div class="req-card ${r.priority === 'emergency' ? 'emergency' : ''}" data-id="${r._id}">
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
-<div style="flex:1">
+<div style="display:flex;justify-content:center;align-items:flex-start;gap:8px;flex-wrap:wrap">
+<div>
 <strong>${r.guestName}</strong> — Room ${r.roomNumber}
 <div style="font-size:13px;opacity:.7;margin-top:2px">${getDeptLabel(r.department)} • ${r.description}</div>
-<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center">
+<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
 <span class="badge badge-${r.status}">${getStatusLabel(r.status)}</span>
 <span style="font-size:10px;color:${r.priority === 'emergency' ? '#ef4444' : r.priority === 'urgent' ? '#f59e0b' : '#9ca3af'}">${getPriorityLabel(r.priority)}</span>
-<span style="font-size:10px;opacity:.6;margin-left:4px">🕐 ${r.createdAt ? new Date(r.createdAt).toLocaleString() : '—'}</span>
 </div>
 </div>
 <div style="display:flex;flex-direction:column;gap:4px;min-width:140px">
@@ -4291,20 +4290,17 @@ if (id === 'announceTab') renderGuestAnnouncements();
 if (id === 'policyTab') renderGuestPolicies();
 sessionStorage.setItem('currentTab', 'guest_' + id);
 }
-function renderGuestInv() {
-const el = document.getElementById('gInvGrid');
+function renderGuestFood() {
+const el = document.getElementById('gFoodGrid');
 if (!el) return;
-el.innerHTML = inventory.map(i =>
-`<div class="inv-card" data-id="${i._id}">
-<div style="font-size:22px">📦</div>
-<div style="font-weight:600;font-size:12px;margin-top:2px">${i.name}</div>
-<div style="font-size:10px;opacity:.6">${i.stock} ${i.unit}</div>
-<div style="display:flex;gap:4px;margin-top:6px">
-<button class="btn-primary" style="padding:4px 8px;font-size:10px" onclick="reqInvItem('${i.name}')">📋 Request</button>
-<button class="btn-ghost" style="padding:4px 8px;font-size:10px;color:#ef4444;border:1px solid #ef4444;border-radius:4px" onclick="cancelGuestInventoryOrder('${i._id}')">✕ Cancel</button>
-</div>
+el.innerHTML = food.map(f =>
+`<div class="food-card" onclick="addToCart('${f._id}','${f.name}',${f.basePriceSAR})" data-id="${f._id}">
+<div class="food-emoji">${f.emoji || '🍽️'}</div>
+<div class="food-name">${f.name}</div>
+<div class="food-cat">${getCategoryLabel(f.category)}</div>
+<div class="food-price">${formatPrice(f.basePriceSAR)}</div>
 </div>`
-).join('') || '<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
+).join('') || '<p style="opacity:.5;text-align:center;padding:12px">No items available</p>';
 }
 function renderGuestInv() {
 const el = document.getElementById('gInvGrid');
