@@ -691,7 +691,15 @@ emptyCart: 'Cart is empty',
 itemAddedCart: 'Item added',
 itemRemoved: 'Item removed',
 addBtn: 'Add',
-cancelBtn: 'Cancel'
+cancelBtn: 'Cancel',
+addToPending: 'Add to List',
+removeFromPending: 'Remove',
+submitPending: 'Submit Request',
+pendingItems: 'Pending Items',
+pendingListEmpty: 'No items in list',
+itemAddedToList: 'Item added to list',
+itemRemovedFromList: 'Item removed from list',
+requestSent: 'Request sent successfully'
 },
 hi: {
 hotelName: 'क्राउन प्लाज़ा होटल',
@@ -1088,7 +1096,15 @@ emptyCart: 'कार्ट खाली है',
 itemAddedCart: 'आइटम जोड़ा गया',
 itemRemoved: 'आइटम हटा दिया गया',
 addBtn: 'जोड़ें',
-cancelBtn: 'रद्द करें'
+cancelBtn: 'रद्द करें',
+addToPending: 'लिस्ट में जोड़ें',
+removeFromPending: 'हटाएं',
+submitPending: 'अनुरोध भेजें',
+pendingItems: 'लंबित आइटम',
+pendingListEmpty: 'लिस्ट खाली है',
+itemAddedToList: 'आइटम लिस्ट में जोड़ा गया',
+itemRemovedFromList: 'आइटम लिस्ट से हटाया गया',
+requestSent: 'अनुरोध सफलतापूर्वक भेजा गया'
 },
 ar: {
 hotelName: 'فندق كراون بلازا',
@@ -1485,7 +1501,15 @@ emptyCart: 'السلة فارغة',
 itemAddedCart: 'تمت إضافة العنصر',
 itemRemoved: 'تمت إزالة العنصر',
 addBtn: 'إضافة',
-cancelBtn: 'إلغاء'
+cancelBtn: 'إلغاء',
+addToPending: 'إضافة إلى القائمة',
+removeFromPending: 'إزالة',
+submitPending: 'إرسال الطلب',
+pendingItems: 'العناصر المعلقة',
+pendingListEmpty: 'القائمة فارغة',
+itemAddedToList: 'تمت إضافة العنصر إلى القائمة',
+itemRemovedFromList: 'تمت إزالة العنصر من القائمة',
+requestSent: 'تم إرسال الطلب بنجاح'
 }
 };
 // ============================================================
@@ -1726,7 +1750,7 @@ let bookings = [];
 let policies = [];
 let announcements = [];
 let departments = DEFAULT_DEPARTMENTS.map(d => ({...d, _id: d.key, hotelId: HID, _version: 1, isEnabled: true}));
-let cart = [];
+let pendingInvItems = [];
 let ratingData = { overall: 0, service: 0, clean: 0 };
 let socket = null;
 let clientId = 'client_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
@@ -4133,8 +4157,9 @@ ${renderOptionsWithEmoji(DROPDOWN_TRANSLATIONS.maintenancePriority)}
 </div>
 </div>
 <div class="card hidden" id="gp-invTab">
-<h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="invItems">📦 Available Items</h3>
+<h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="invItems"> Available Items</h3>
 <div class="inv-grid" id="gInvGrid"></div>
+<div id="pendingInvContainer" style="margin-top:12px"></div>
 <p style="text-align:center;font-size:13px;opacity:.5;margin-top:10px">💡 Items delivered within 10 minutes</p>
 </div>
 <div class="card hidden" id="gp-cabTab">
@@ -4335,21 +4360,101 @@ onclick="event.stopPropagation(); addToCart('${f._id}','${f.name.replace(/'/g, "
 function renderGuestInv() {
 const el = document.getElementById('gInvGrid');
 if (!el) return;
-el.innerHTML = inventory.map(i => `
-<div class="inv-card" data-id="${i._id}">
+el.innerHTML = inventory.map(i => {
+const isPending = pendingInvItems.find(p => p.name === i.name);
+return `<div class="inv-card" data-id="${i._id}">
 <div style="font-size:22px">📦</div>
 <div style="font-weight:600;font-size:12px;margin-top:2px">${i.name}</div>
 <div style="font-size:10px;opacity:.6">${i.stock} ${i.unit}</div>
 <div style="display:flex;gap:4px;margin-top:6px">
-<button class="btn-primary" style="flex:1;padding:4px 8px;font-size:10px" onclick="reqInvItem('${i.name.replace(/'/g, "\\'")}')">
-➕ ${t('addBtn')}
+<button class="btn-primary" style="flex:1;padding:4px 8px;font-size:10px" onclick="addToPendingInv('${i.name.replace(/'/g, "\\'")}','${i.unit}')">
+➕ ${t('addToPending')}
 </button>
-<button class="btn-ghost" style="flex:1;padding:4px 8px;font-size:10px;border-color:#ef4444;color:#ef4444" onclick="showToast(t('cancelBtn'), 'warning')">
-✖️ ${t('cancelBtn')}
+<button class="btn-ghost" style="flex:1;padding:4px 8px;font-size:10px;border-color:#ef4444;color:#ef4444" onclick="removeFromPendingInv('${i.name.replace(/'/g, "\\'")}')">
+✖️ ${t('removeFromPending')}
 </button>
 </div>
+${isPending ? '<div style="margin-top:4px;font-size:10px;color:#10b981;font-weight:600">✓ In List</div>' : ''}
+</div>`;
+}).join('') || '<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
+
+// Render pending items section
+renderPendingInvSection();
+}
+
+function addToPendingInv(name, unit) {
+const existing = pendingInvItems.find(p => p.name === name);
+if (existing) {
+existing.quantity += 1;
+} else {
+pendingInvItems.push({ name, unit, quantity: 1 });
+}
+renderGuestInv();
+showToast(`✅ ${name} - ${t('itemAddedToList')}`, 'success');
+}
+
+function removeFromPendingInv(name) {
+pendingInvItems = pendingInvItems.filter(p => p.name !== name);
+renderGuestInv();
+showToast(`🗑️ ${name} - ${t('itemRemovedFromList')}`, 'warning');
+}
+
+function submitPendingInv() {
+if (pendingInvItems.length === 0) {
+showToast(t('pendingListEmpty'), 'warning');
+return;
+}
+const itemsList = pendingInvItems.map(p => `${p.name} (${p.quantity} ${p.unit})`).join(', ');
+const req = {
+_id: 'req_' + Date.now(),
+_isNew: true,
+guestName: currentUser.name,
+roomNumber: currentUser.room,
+department: 'housekeeping',
+description: `Item Request: ${itemsList}`,
+priority: 'normal',
+status: 'open',
+createdAt: new Date().toISOString(),
+hotelId: HID,
+_version: 1
+};
+requests.unshift(req);
+save('requests', req, 'req_new');
+pendingInvItems = [];
+renderGuestInv();
+renderRequests();
+updateGuestStats();
+showToast(`📦 ${t('requestSent')} - ${pendingInvItems.length} items`, 'success');
+speakRequestSubmitted();
+sendGuestNotification('notifInventoryTitle', 'notifInventoryBody');
+}
+
+function renderPendingInvSection() {
+const container = document.getElementById('pendingInvContainer');
+if (!container) return;
+if (pendingInvItems.length === 0) {
+container.innerHTML = `<p style="text-align:center;opacity:.5;padding:8px;font-size:12px">${t('pendingListEmpty')}</p>`;
+return;
+}
+container.innerHTML = `
+<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+<h4 style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--fg)">📋 ${t('pendingItems')} (${pendingInvItems.length})</h4>
+<div style="max-height:200px;overflow-y:auto">
+${pendingInvItems.map(p => `
+<div style="display:flex;justify-content:space-between;align-items:center;padding:6px;margin-bottom:4px;background:var(--card2);border-radius:6px;border:1px solid var(--border)">
+<div style="flex:1">
+<div style="font-weight:600;font-size:12px">${p.name}</div>
+<div style="font-size:10px;opacity:.7">${p.quantity} ${p.unit}</div>
 </div>
-`).join('') || '<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
+<button onclick="removeFromPendingInv('${p.name.replace(/'/g, "\\'")}')" style="padding:3px 8px;border-radius:4px;border:none;background:#ef4444;color:#fff;cursor:pointer;font-size:10px">️</button>
+</div>
+`).join('')}
+</div>
+<button class="btn-primary" style="width:100%;margin-top:8px;padding:8px;font-size:12px" onclick="submitPendingInv()">
+📤 ${t('submitPending')} (${pendingInvItems.length} items)
+</button>
+</div>
+`;
 }
 function renderGuestHistory() {
 const el = document.getElementById('gHistList');
