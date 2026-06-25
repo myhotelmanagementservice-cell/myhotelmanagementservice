@@ -460,7 +460,9 @@ status: 'Status',
 guest: 'Guest',
 actions: 'Actions',
 nameLbl: 'Name',
-room: 'Room',
+emailAddress: 'Email',
+phoneLbl: 'Phone',    
+room: 'Room',    
 points: 'Points',
 reason: 'Reason',
 date: 'Date',
@@ -857,6 +859,8 @@ status: 'स्थिति',
 guest: 'अतिथि',
 actions: 'कार्य',
 nameLbl: 'नाम',
+emailAddress: 'ईमेल',
+phoneLbl: 'फोन',    
 room: 'कमरा',
 points: 'अंक',
 reason: 'कारण',
@@ -1254,6 +1258,8 @@ status: 'الحالة',
 guest: 'الضيف',
 actions: 'الإجراءات',
 nameLbl: 'الاسم',
+emailAddress: 'البريد الإلكتروني',
+phoneLbl: 'الهاتف',    
 room: 'الغرفة',
 points: 'النقاط',
 reason: 'السبب',
@@ -3522,15 +3528,18 @@ if (!tbody) return;
 tbody.innerHTML = guests.map(g =>
 `<tr data-id="${g._id}">
 <td><strong>${g.name}</strong></td>
+<td>${g.email || '—'}</td>
+<td>${g.phone || '—'}</td>
 <td>${g.room}</td>
 <td>⭐${g.points || 0}</td>
 <td><span class="badge badge-${g.status}">${getStatusLabel(g.status)}</span></td>
 <td>
+<button class="tbl-action" onclick="openGuestModal('${g._id}')" title="${t('edit')}">✏️</button>
 <button class="tbl-action" onclick="toggleBlock('${g._id}')">${g.status === 'blocked' ? '✅' : '🚫'}</button>
-<button class="tbl-action" onclick="delGuest('${g._id}')">🗑️</button>
+<button class="tbl-action" onclick="delGuest('${g._id}')" title="${t('delete')}">🗑️</button>
 </td>
 </tr>`
-).join('') || '<tr><td colspan="5" style="text-align:center;padding:12px">No guests</td></tr>';
+).join('') || '<tr><td colspan="7" style="text-align:center;padding:12px">No guests</td></tr>';
 }
 function renderFood() {
 const el = document.getElementById('foodAdminList');
@@ -4877,7 +4886,7 @@ return `<div class="card"><h3 style="font-size:16px;font-weight:700;color:var(--
 case 'rooms':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabRooms">🏨 Rooms</h3><button class="btn-primary" onclick="openModal('roomModal')" data-i18n="addRoom">+ Add Room</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th data-i18n="roomNum">#</th><th data-i18n="roomType">Type</th><th data-i18n="price">Price</th><th data-i18n="status">Status</th><th data-i18n="guest">Guest</th><th data-i18n="actions">Actions</th></tr></thead><tbody id="roomsTbody"></tbody></table></div></div>`;
 case 'guests':
-return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabGuests">👥 Guests</h3><button class="btn-primary" onclick="openModal('guestModal')" data-i18n="addGuest">+ Add Guest</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th data-i18n="nameLbl">Name</th><th data-i18n="room">Room</th><th data-i18n="points">Pts</th><th data-i18n="status">Status</th><th data-i18n="actions">Actions</th></tr></thead><tbody id="guestsTbody"></tbody></table></div></div>`;
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabGuests">👥 Guests</h3><button class="btn-primary" onclick="openGuestModal()" data-i18n="addGuest">+ Add Guest</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th data-i18n="nameLbl">Name</th><th data-i18n="emailAddress">Email</th><th data-i18n="phoneLbl">Phone</th><th data-i18n="room">Room</th><th data-i18n="points">Pts</th><th data-i18n="status">Status</th><th data-i18n="actions">Actions</th></tr></thead><tbody id="guestsTbody"></tbody></table></div></div>`;
 case 'food':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabFood">🍽️ Food Menu</h3><button class="btn-primary" onclick="openModal('foodModal')" data-i18n="addDish">+ Add Dish</button></div><div id="foodAdminList"></div></div>`;
 case 'inventory':
@@ -5287,12 +5296,20 @@ ${lang === 'hi' ? a.hi : lang === 'ar' ? a.ar : a.en}
 </div>
 <div class="modal-overlay" id="guestModal">
 <div class="modal-box">
-<div class="modal-h" data-i18n="addGuest">Add Guest</div>
-<form onsubmit="addGuest(event)">
+<div class="modal-h" id="guestModalTitle" data-i18n="addGuest">Add Guest</div>
+<form onsubmit="saveGuest(event)">
+<input type="hidden" id="mGEditId">
 <div class="form-row"><label class="lbl" data-i18n="nameLbl">Name</label><input class="inp" id="mGName" required></div>
-<div class="form-2"><div class="form-row"><label class="lbl" data-i18n="room">Room</label><input class="inp" id="mGRoom" type="number" required></div>
-<div class="form-row"><label class="lbl" data-i18n="points">Points</label><input class="inp" id="mGPts" type="number" value="0"></div></div>
+<div class="form-row"><label class="lbl" data-i18n="emailAddress">Email</label><input class="inp" id="mGEmail" type="email" placeholder="john@gmail.com"></div>
+<div class="form-row"><label class="lbl" data-i18n="phoneLbl">Phone</label><input class="inp" id="mGPhone" type="tel" placeholder="+971501234567"></div>
+<div class="form-2">
+<div class="form-row"><label class="lbl" data-i18n="room">Room</label><input class="inp" id="mGRoom" type="number" required></div>
+<div class="form-row"><label class="lbl" data-i18n="points">Points</label><input class="inp" id="mGPts" type="number" value="0"></div>
+</div>
+<div class="form-2">
 <div class="form-row"><label class="lbl">Check-in</label><input class="inp" id="mGCheckin" type="date"></div>
+<div class="form-row"><label class="lbl">Check-out</label><input class="inp" id="mGCheckout" type="date"></div>
+</div>
 <div class="form-row"><label class="lbl" data-i18n="status">Status</label>
 <select class="inp" id="mGStatus">
 ${renderOptionsWithEmoji(DROPDOWN_TRANSLATIONS.guestStatus)}
@@ -5509,26 +5526,69 @@ updateAdminStats();
 showToast('✅ ' + (t('roomDeleted') || 'Room deleted successfully'), 'success');
 }
 }
-function addGuest(e) {
+function openGuestModal(editId = null) {
+closeModal('guestModal');
+const modal = document.getElementById('guestModal');
+const title = document.getElementById('guestModalTitle');
+if (editId) {
+const g = guests.find(x => x._id === editId);
+if (!g) return;
+title.textContent = t('edit') + ' Guest';
+document.getElementById('mGEditId').value = g._id;
+document.getElementById('mGName').value = g.name;
+document.getElementById('mGEmail').value = g.email || '';
+document.getElementById('mGPhone').value = g.phone || '';
+document.getElementById('mGRoom').value = g.room;
+document.getElementById('mGPts').value = g.points || 0;
+document.getElementById('mGCheckin').value = g.checkin || '';
+document.getElementById('mGCheckout').value = g.checkout || '';
+document.getElementById('mGStatus').value = g.status;
+} else {
+title.textContent = t('addGuest');
+document.getElementById('mGEditId').value = '';
+document.getElementById('mGName').value = '';
+document.getElementById('mGEmail').value = '';
+document.getElementById('mGPhone').value = '';
+document.getElementById('mGRoom').value = '';
+document.getElementById('mGPts').value = '0';
+document.getElementById('mGCheckin').value = '';
+document.getElementById('mGCheckout').value = '';
+document.getElementById('mGStatus').value = 'active';
+}
+openModal('guestModal');
+}
+
+function saveGuest(e) {
 e.preventDefault();
-const guest = {
-_id: 'g_' + Date.now(),
-_isNew: true,
+const editId = document.getElementById('mGEditId').value;
+const guestData = {
 name: document.getElementById('mGName').value,
+email: document.getElementById('mGEmail').value,
+phone: document.getElementById('mGPhone').value,
 room: document.getElementById('mGRoom').value,
 points: parseInt(document.getElementById('mGPts').value) || 0,
 status: document.getElementById('mGStatus').value,
 checkin: document.getElementById('mGCheckin').value,
-hotelId: HID,
-_version: 1
+checkout: document.getElementById('mGCheckout').value,
+hotelId: HID
 };
+if (editId) {
+const idx = guests.findIndex(g => g._id === editId);
+if (idx > -1) {
+guests[idx] = { ...guests[idx], ...guestData, _version: (guests[idx]._version || 0) + 1, updatedAt: new Date().toISOString() };
+save('guests', guests[idx], 'guest_upd');
+showToast('✅ ' + (t('guestUpdated') || 'Guest updated successfully'), 'success');
+}
+} else {
+const guest = { _id: 'g_' + Date.now(), _isNew: true, ...guestData, _version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
 guests.push(guest);
 save('guests', guest, 'guest_upd');
+showToast('✅ ' + (t('guestAdded') || 'Guest added successfully'), 'success');
+speakItemAdded();
+}
 closeModal('guestModal');
 renderGuests();
 renderLoyalty();
-showToast('✅ ' + (t('guestAdded') || 'Guest added successfully'), 'success');
-speakItemAdded();
 }
 function toggleBlock(id) {
 const g = guests.find(x => x._id === id);
