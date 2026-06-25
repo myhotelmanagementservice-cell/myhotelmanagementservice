@@ -22,7 +22,6 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { OAuth2Client } = require('google-auth-library');
 
 let compression, helmet, rateLimit;
 try { compression = require('compression'); } catch(e) { compression = null; }
@@ -1295,6 +1294,7 @@ app.post('/api/auth/google', async (req, res) => {
             return res.status(400).json({ error: 'Credential missing' });
         }
 
+        const { OAuth2Client } = require('google-auth-library');
         const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
         const ticket = await client.verifyIdToken({
             idToken: credential,
@@ -1333,6 +1333,13 @@ app.post('/api/auth/google', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// ======================== ADMIN LOGIN ========================
+app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async (req, res) => {
+  const startTime = Date.now();
+  try {
+    const { email, password, hotelId } = req.body;
+    console.log(`🔐 [${Date.now()}] Admin login attempt: ${email} for hotel: ${hotelId}`);
     
     // ✅ FIX 1: FAST PATH - hardcoded admin, zero DB queries needed
     if (email === 'admin@crownplaza.com' && password === 'admin123') {
