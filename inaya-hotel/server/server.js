@@ -1286,30 +1286,7 @@ app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async
     const { email, password, hotelId } = req.body;
     console.log(`🔐 [${Date.now()}] Admin login attempt: ${email} for hotel: ${hotelId}`);
 
-    // ✅ FIX 1: FAST PATH - hardcoded admin, zero DB queries needed
-    if (email === 'admin@crownplaza.com' && password === 'admin123') {
-      const tokenPayload = {
-        email, name: 'Admin', role: 'super_admin',
-        hotelId: hotelId || 'HOTEL001',
-        permissions: ['rooms', 'guests', 'food', 'inventory', 'requests', 'settings']
-      };
-      const token = generateToken(tokenPayload);
-      const sessionKey = token.substring(token.length - 32);
-      activeSessions.set(sessionKey, { lastActivity: Date.now(), hotelId: hotelId || 'HOTEL001', email });
-
-      req.session.isAdmin = true;
-      req.session.adminEmail = email;
-      req.session.hotelId = hotelId || 'HOTEL001';
-
-      console.log(`✅ [${Date.now()}] Fast login in ${Date.now() - startTime}ms`);
-      return res.json({
-        success: true, token,
-        user: { email, name: 'Admin', role: 'super_admin', permissions: ['all'] },
-        hotelId: hotelId || 'HOTEL001',
-        idleTimeoutMs: IDLE_TIMEOUT_MS
-      });
-    }
-
+ 
     if (!dbConnected) {
       return res.status(503).json({ success: false, error: 'Database connecting...' });
     }
