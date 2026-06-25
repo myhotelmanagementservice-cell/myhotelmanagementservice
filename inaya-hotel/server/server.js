@@ -22,6 +22,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
 
 let compression, helmet, rateLimit;
 try { compression = require('compression'); } catch(e) { compression = null; }
@@ -1286,6 +1287,53 @@ app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async
     const { email, password, hotelId } = req.body;
     console.log(`🔐 [${Date.now()}] Admin login attempt: ${email} for hotel: ${hotelId}`);
 
+// ======================== GOOGLE AUTH ========================
+app.post('/api/auth/google', async (req, res) => {
+    try {
+        const { credential } = req.body;
+        if (!credential) {
+            return res.status(400).json({ error: 'Credential missing' });
+        }
+
+        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+        const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+        const payload = ticket.getPayload();
+        const { email, name, picture } = payload;
+
+        let user = await db.collection('users').findOne({ email });
+        if (!user) {
+            const newUser = {
+                email,
+                name: name || email.split('@')[0],
+                role: 'guest',
+                picture,
+                hotelId: req.headers['x-hotel-id'] || 'HOTEL001',
+                createdAt: new Date()
+            };
+            const result = await db.collection('users').insertOne(newUser);
+            user = { ...newUser, _id: result.insertedId };
+        }
+
+        const token = jwt.sign(
+            { email: user.email, name: user.name, role: user.role, hotelId: user.hotelId },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.json({
+            success: true,
+            token,
+            user: { email: user.email, name: user.name, role: user.role, picture: user.picture }
+        });
+    } catch (err) {
+        console.error('Google auth error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+    
     // ✅ FIX 1: FAST PATH - hardcoded admin, zero DB queries needed
     if (email === 'admin@crownplaza.com' && password === 'admin123') {
       const tokenPayload = {
