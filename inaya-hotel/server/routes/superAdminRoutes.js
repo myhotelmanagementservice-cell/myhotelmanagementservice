@@ -6,7 +6,6 @@ const jwt = require('jsonwebtoken');
 
 // ======================== DATABASE CONNECTION ========================
 const getDb = () => {
-    // Assuming db is set in app
     return require('../server').db;
 };
 
@@ -27,6 +26,9 @@ const superAdminMiddleware = async (req, res, next) => {
     }
 };
 
+// Apply middleware to all routes
+router.use(superAdminMiddleware);
+
 // ======================== ROUTES ========================
 
 // ✅ HOTEL REGISTER (with admin user creation)
@@ -38,8 +40,12 @@ router.post('/tenants/register', async (req, res) => {
             subscriptionType, theme, logo, timezone
         } = req.body;
 
+        // Validation
         if (!hotelId || !hotelName || !adminEmail || !adminPassword) {
-            return res.status(400).json({ success: false, error: 'hotelId, hotelName, adminEmail, and adminPassword are required' });
+            return res.status(400).json({ 
+                success: false, 
+                error: 'hotelId, hotelName, adminEmail, and adminPassword are required' 
+            });
         }
 
         const db = req.app.get('db');
@@ -47,26 +53,53 @@ router.post('/tenants/register', async (req, res) => {
 
         // Check if hotel already exists
         const existing = await db.collection('tenants').findOne({ hotelId });
-        if (existing) return res.status(400).json({ success: false, error: 'Hotel ID already registered' });
+        if (existing) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Hotel ID already registered' 
+            });
+        }
+
+        // Check if admin email already exists
+        const existingAdmin = await db.collection('users').findOne({ email: adminEmail });
+        if (existingAdmin) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Admin email already exists' 
+            });
+        }
 
         // Hash password
         const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
         // Calculate subscription expiry
         let subscriptionExpiry;
-        if (subscriptionType === 'lifetime') subscriptionExpiry = null;
-        else if (subscriptionType === 'enterprise') subscriptionExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
-        else if (subscriptionType === 'pro') subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-        else subscriptionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        if (subscriptionType === 'lifetime') {
+            subscriptionExpiry = null;
+        } else if (subscriptionType === 'enterprise') {
+            subscriptionExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+        } else if (subscriptionType === 'pro') {
+            subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        } else {
+            subscriptionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        }
 
         // 1️⃣ CREATE TENANT
         const tenant = {
-            hotelId, hotelName, logo: logo || null,
-            currency: currency || 'USD', currencySymbol: currencySymbol || '$',
-            language: language || 'en', country: country || 'Unknown',
-            timezone: timezone || 'UTC', active: true,
-            theme: theme || 'HOTEL001', subscriptionType: subscriptionType || 'basic',
-            subscriptionExpiry, createdAt: new Date(), updatedAt: new Date()
+            hotelId,
+            hotelName,
+            logo: logo || null,
+            currency: currency || 'USD',
+            currencySymbol: currencySymbol || '$',
+            language: language || 'en',
+            country: country || 'Unknown',
+            timezone: timezone || 'UTC',
+            active: true,
+            theme: theme || 'default',
+            subscriptionType: subscriptionType || 'basic',
+            subscriptionExpiry,
+            createdAt: new Date(),
+            updatedAt: new Date()
         };
         await db.collection('tenants').insertOne(tenant);
         console.log('✅ Tenant created:', hotelId);
@@ -100,7 +133,7 @@ router.post('/tenants/register', async (req, res) => {
         });
         console.log('✅ Config created for:', hotelId);
 
-        // ✅ RETURN WITH EMAIL & PASSWORD
+        // ✅ RETURN WITH EMAIL & PASSWORD (for display)
         res.status(201).json({
             success: true,
             message: 'Hotel registered successfully',
@@ -108,11 +141,14 @@ router.post('/tenants/register', async (req, res) => {
                 hotelId,
                 hotelName,
                 adminEmail,      // ✅ Email show karega
-                adminPassword,   // ✅ Password show karega
+                adminPassword,   // ✅ Password show karega (plain text for display only)
                 currency,
+                currencySymbol,
                 country,
+                language,
                 subscriptionType,
-                expiryDate: subscriptionExpiry
+                expiryDate: subscriptionExpiry,
+                active: true
             }
         });
     } catch (error) {
@@ -142,12 +178,43 @@ router.get('/tenants', async (req, res) => {
                 db.collection('requests').countDocuments({ hotelId: t.hotelId, status: 'open' }),
                 db.collection('bookings').countDocuments({ hotelId: t.hotelId })
             ]);
-            return { ...t, stats: { rooms, guests, openRequests: requests, totalBookings: bookings } };
+            return { 
+                ...t, 
+                stats: { 
+                    rooms, 
+                    guests, 
+                    openRequests: requests, 
+                    totalBookings: bookings 
+                } 
+            };
         }));
 
-        res.json({ success: true, data: tenantsWithStats, count: tenantsWithStats.length });
+        res.json({ 
+            success: true, 
+            data: tenantsWithStats, 
+            count: tenantsWithStats.length 
+        });
     } catch (error) {
         console.error('List tenants error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ✅ GET SINGLE HOTEL
+router.get('/tenants/:hotelId', async (req, res) => {
+    try {
+        const { hotelId } = req.params;
+        const db = req.app.get('db');
+        if (!db) return res.status(503).json({ success: false, error: 'Database not connected' });
+
+        const tenant = await db.collection('tenants').findOne({ hotelId });
+        if (!tenant) {
+            return res.status(404).json({ success: false, error: 'Hotel not found' });
+        }
+
+        res.json({ success: true, data: tenant });
+    } catch (error) {
+        console.error('Get tenant error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -158,21 +225,80 @@ router.put('/tenants/:hotelId', async (req, res) => {
         const { hotelId } = req.params;
         const updates = req.body;
         const db = req.app.get('db');
-        if (!db) return res.json({ success: true, message: 'Hotel updated (offline mode)' });
+
+        if (!db) {
+            return res.json({ success: true, message: 'Hotel updated (offline mode)' });
+        }
+
+        // Remove _id from updates if present
+        delete updates._id;
+        delete updates.hotelId; // Don't allow changing hotelId
 
         const result = await db.collection('tenants').updateOne(
             { hotelId },
-            { $set: { ...updates, updatedAt: new Date() } }
+            { 
+                $set: { 
+                    ...updates, 
+                    updatedAt: new Date() 
+                } 
+            }
         );
 
-        if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Hotel not found' });
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ success: false, error: 'Hotel not found' });
+        }
 
-        // Invalidate subscription cache
-        // broadcast(hotelId, 'cfg_upd', { hotelName: updates.hotelName, currency: updates.currency }, req.clientId);
-
-        res.json({ success: true, message: 'Hotel updated' });
+        res.json({ 
+            success: true, 
+            message: 'Hotel updated successfully' 
+        });
     } catch (error) {
         console.error('Update tenant error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ✅ TOGGLE HOTEL STATUS (Activate/Deactivate)
+router.patch('/tenants/:hotelId/toggle-status', async (req, res) => {
+    try {
+        const { hotelId } = req.params;
+        const { active } = req.body;
+
+        const db = req.app.get('db');
+        if (!db) {
+            return res.status(503).json({ success: false, error: 'Database not connected' });
+        }
+
+        // Get current tenant
+        const tenant = await db.collection('tenants').findOne({ hotelId });
+        if (!tenant) {
+            return res.status(404).json({ success: false, error: 'Hotel not found' });
+        }
+
+        // Toggle status
+        const newStatus = active !== undefined ? active : !tenant.active;
+
+        const result = await db.collection('tenants').updateOne(
+            { hotelId },
+            { 
+                $set: { 
+                    active: newStatus,
+                    updatedAt: new Date()
+                } 
+            }
+        );
+
+        if (result.modifiedCount === 0) {
+            return res.status(400).json({ success: false, error: 'Failed to update status' });
+        }
+
+        res.json({ 
+            success: true, 
+            message: `Hotel ${newStatus ? 'activated' : 'deactivated'} successfully`,
+            data: { hotelId, active: newStatus }
+        });
+    } catch (error) {
+        console.error('Toggle status error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -182,8 +308,18 @@ router.delete('/tenants/:hotelId', async (req, res) => {
     try {
         const { hotelId } = req.params;
         const db = req.app.get('db');
-        if (!db) return res.json({ success: true, message: 'Hotel deleted (offline mode)' });
 
+        if (!db) {
+            return res.json({ success: true, message: 'Hotel deleted (offline mode)' });
+        }
+
+        // Check if hotel exists
+        const tenant = await db.collection('tenants').findOne({ hotelId });
+        if (!tenant) {
+            return res.status(404).json({ success: false, error: 'Hotel not found' });
+        }
+
+        // Delete all related data
         await Promise.all([
             db.collection('rooms').deleteMany({ hotelId }),
             db.collection('guests').deleteMany({ hotelId }),
@@ -198,14 +334,21 @@ router.delete('/tenants/:hotelId', async (req, res) => {
             db.collection('users').deleteMany({ hotelId }),
             db.collection('announcements').deleteMany({ hotelId }),
             db.collection('policies').deleteMany({ hotelId }),
-            db.collection('departments').deleteMany({ hotelId })
+            db.collection('departments').deleteMany({ hotelId }),
+            db.collection('reviews').deleteMany({ hotelId }),
+            db.collection('maintenance').deleteMany({ hotelId }),
+            db.collection('blacklist').deleteMany({ hotelId })
         ]);
 
+        // Delete tenant
         await db.collection('tenants').deleteOne({ hotelId });
 
-        // io.to(`hotel_${hotelId}`).emit('hotel_deleted', { message: 'This hotel has been deactivated' });
+        console.log(`✅ Hotel deleted: ${hotelId}`);
 
-        res.json({ success: true, message: 'Hotel and all data deleted' });
+        res.json({ 
+            success: true, 
+            message: 'Hotel and all data deleted permanently' 
+        });
     } catch (error) {
         console.error('Delete tenant error:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -217,10 +360,18 @@ router.get('/countries', async (req, res) => {
     try {
         const db = req.app.get('db');
         if (!db) return res.json({ success: true, data: [] });
+
         const countries = await db.collection('tenants').aggregate([
-            { $group: { _id: '$country', count: { $sum: 1 }, activeCount: { $sum: { $cond: ['$active', 1, 0] } } } },
+            { 
+                $group: { 
+                    _id: '$country', 
+                    count: { $sum: 1 }, 
+                    activeCount: { $sum: { $cond: ['$active', 1, 0] } } 
+                } 
+            },
             { $sort: { count: -1 } }
         ]).toArray();
+
         res.json({ success: true, data: countries });
     } catch (error) {
         console.error('Countries fetch error:', error);
@@ -232,27 +383,46 @@ router.get('/countries', async (req, res) => {
 router.post('/admins/register', async (req, res) => {
     try {
         const { email, password, name, hotelId, role, permissions } = req.body;
-        if (!email || !password || !hotelId) return res.status(400).json({ success: false, error: 'email, password, and hotelId are required' });
+
+        if (!email || !password || !hotelId) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'email, password, and hotelId are required' 
+            });
+        }
 
         const db = req.app.get('db');
         if (!db) return res.status(503).json({ success: false, error: 'Database not connected' });
 
         const existing = await db.collection('users').findOne({ email, hotelId });
-        if (existing) return res.status(400).json({ success: false, error: 'User already exists for this hotel' });
+        if (existing) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'User already exists for this hotel' 
+            });
+        }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = {
-            email, password: hashedPassword,
+            email,
+            password: hashedPassword,
             name: name || email.split('@')[0],
-            role: role || 'admin', hotelId,
+            role: role || 'admin',
+            hotelId,
             permissions: permissions || ['rooms', 'guests', 'food', 'inventory', 'requests'],
-            active: true, createdAt: new Date()
+            active: true,
+            createdAt: new Date()
         };
 
         const result = await db.collection('users').insertOne(user);
         user._id = result.insertedId;
         delete user.password;
-        res.status(201).json({ success: true, message: 'Admin created', data: user });
+
+        res.status(201).json({ 
+            success: true, 
+            message: 'Admin created successfully',
+            data: user 
+        });
     } catch (error) {
         console.error('Admin register error:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -264,7 +434,19 @@ router.get('/stats', async (req, res) => {
     try {
         const db = req.app.get('db');
         if (!db) {
-            return res.json({ success: true, data: { totalHotels: 0, totalRevenue: 0, activeSubscriptions: 0, totalGuests: 0, hotelsGrowth: 0, revenueGrowth: 0, churnRate: 0, guestsGrowth: 0 } });
+            return res.json({ 
+                success: true, 
+                data: { 
+                    totalHotels: 0, 
+                    totalRevenue: 0, 
+                    activeSubscriptions: 0, 
+                    totalGuests: 0, 
+                    hotelsGrowth: 0, 
+                    revenueGrowth: 0, 
+                    churnRate: 0, 
+                    guestsGrowth: 0 
+                } 
+            });
         }
 
         const tenants = await db.collection('tenants').find({}).toArray();
@@ -277,6 +459,7 @@ router.get('/stats', async (req, res) => {
             const plan = (t.subscriptionType || '').toLowerCase();
             if (plan === 'enterprise') totalRevenue += 499;
             else if (plan === 'pro') totalRevenue += 99;
+            else if (plan === 'basic') totalRevenue += 29;
         });
 
         const guestsAgg = await db.collection('guests').aggregate([
@@ -286,15 +469,31 @@ router.get('/stats', async (req, res) => {
 
         const now = new Date();
         const lastMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        const lastMonthTenants = tenants.filter(t => t.createdAt && new Date(t.createdAt) < lastMonth);
+        const lastMonthTenants = tenants.filter(t => 
+            t.createdAt && new Date(t.createdAt) < lastMonth
+        );
         const hotelsGrowth = lastMonthTenants.length > 0
             ? Math.round(((totalHotels - lastMonthTenants.length) / lastMonthTenants.length) * 100)
             : (totalHotels > 0 ? 100 : 0);
 
         const inactiveTenants = tenants.filter(t => t.active === false);
-        const churnRate = totalHotels > 0 ? Math.round((inactiveTenants.length / totalHotels) * 100) : 0;
+        const churnRate = totalHotels > 0 
+            ? Math.round((inactiveTenants.length / totalHotels) * 100) 
+            : 0;
 
-        res.json({ success: true, data: { totalHotels, totalRevenue, activeSubscriptions, totalGuests, hotelsGrowth, revenueGrowth: 8, churnRate, guestsGrowth: 12 } });
+        res.json({ 
+            success: true, 
+            data: { 
+                totalHotels, 
+                totalRevenue, 
+                activeSubscriptions, 
+                totalGuests, 
+                hotelsGrowth, 
+                revenueGrowth: 8, 
+                churnRate, 
+                guestsGrowth: 12 
+            } 
+        });
     } catch (error) {
         console.error('Super stats error:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -315,12 +514,16 @@ router.get('/transactions', async (req, res) => {
                 let amount = 0, type = 'subscription';
                 if (plan === 'enterprise') amount = 499;
                 else if (plan === 'pro') amount = 99;
+                else if (plan === 'basic') amount = 29;
                 else { amount = 0; type = 'trial'; }
 
                 return {
                     _id: t._id?.toString() || `tx_${t.hotelId}`,
-                    hotelId: t.hotelId, hotelName: t.hotelName || t.hotelId,
-                    type, amount, currency: t.currency || 'USD',
+                    hotelId: t.hotelId,
+                    hotelName: t.hotelName || t.hotelId,
+                    type,
+                    amount,
+                    currency: t.currency || 'USD',
                     date: t.createdAt ? new Date(t.createdAt).toISOString() : new Date().toISOString(),
                     status: t.active !== false ? 'completed' : 'cancelled',
                     subscriptionType: t.subscriptionType,
@@ -329,7 +532,11 @@ router.get('/transactions', async (req, res) => {
             })
             .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        res.json({ success: true, data: transactions, count: transactions.length });
+        res.json({ 
+            success: true, 
+            data: transactions, 
+            count: transactions.length 
+        });
     } catch (error) {
         console.error('Super transactions error:', error);
         res.status(500).json({ success: false, error: error.message });
