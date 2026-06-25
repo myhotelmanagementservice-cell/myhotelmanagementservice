@@ -4367,11 +4367,41 @@ ${r.adminReply ? `<div class="admin-reply" style="margin-top:8px;padding:8px;bac
 <div style="font-size:12px;margin-top:2px">${r.adminReply}</div>
 <div style="font-size:10px;opacity:.6;margin-top:2px">🕒 ${new Date(r.adminReplyTime || Date.now()).toLocaleString()}</div>
 </div>` : ''}
+${r.status === 'open' ? `
+<div style="display:flex;gap:4px;margin-top:6px">
+<button class="btn-ghost" style="font-size:10px;padding:3px 8px" onclick="editGuestRequest('${r._id}')">✏️ ${t('edit')}</button>
+<button class="btn-ghost" style="font-size:10px;padding:3px 8px;border-color:#ef4444;color:#ef4444" onclick="deleteGuestRequest('${r._id}')">🗑️ ${t('delete')}</button>
+</div>` : ''}
 </div>
 <span class="badge badge-${r.status}">${getStatusLabel(r.status)}</span>
 </div>
 </div>`
 ).join('') || '<p style="text-align:center;opacity:.5;padding:12px">No requests yet</p>';
+}
+
+function editGuestRequest(id) {
+const req = requests.find(r => r._id === id);
+if (!req) return;
+const newDesc = prompt('Edit your request:', req.description);
+if (newDesc !== null && newDesc.trim() !== '') {
+req.description = newDesc.trim();
+req.updatedAt = new Date().toISOString();
+save('requests', req, 'req_upd');
+renderGuestHistory();
+showToast('✅ ' + (t('changesSaved') || 'Changes saved'), 'success');
+}
+}
+
+function deleteGuestRequest(id) {
+if (!confirm('Delete this request?')) return;
+const req = requests.find(r => r._id === id);
+if (!req) return;
+requests = requests.filter(r => r._id !== id);
+if (isOnline) apiCall('DELETE', `/requests/${id}?hotelId=${HID}`);
+if (socket?.connected) socket.emit('req_upd', { hotelId: HID, collection: 'requests', data: req, clientId, syncToken: Date.now(), action: 'delete' });
+renderGuestHistory();
+updateGuestStats();
+showToast('✅ ' + (t('delete') || 'Deleted') + ' successfully', 'success');
 }
 function renderGuestBookings() {
 const el = document.getElementById('guestBookingList');
