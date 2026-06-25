@@ -1291,58 +1291,89 @@ app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async
       return res.status(503).json({ success: false, error: 'Database connecting...' });
     }
 
-    // ✅ FIX 1: Single optimized query
-    const user = await db.collection('users').findOne({
-      email,
-      $or: [{ hotelId }, { hotelId: { $exists: false } }]
-    });
+// 🔒 SECURITY FIX: Strict hotelId validation - user must belong to the requested hotel
+const user = await db.collection('users').findOne({
+  email: email,
+  hotelId: hotelId  // STRICT MATCH - no fallback
+});
 
-    if (!user) {
-      console.log(`❌ [${Date.now()}] User not found: ${email}`);
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
-    }
+if (!user) {
+  console.log(`❌ [${Date.now()}] User not found for hotel ${hotelId}: ${email}`);
+  return res.status(401).json({ 
+    success: false, 
+    error: 'Invalid credentials for this hotel. Please check your Hotel ID and credentials.' 
+  });
+}
 
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      console.log(`❌ [${Date.now()}] Wrong password for: ${email}`);
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
-    }
-    if (!user.active) return res.status(403).json({ success: false, error: 'Account is inactive' });
+// 🔒 SECURITY FIX: Verify user belongs to this hotel (double-check)
+if (user.hotelId && user.hotelId !== hotelId) {
+  console.log(`🚨 [${Date.now()}] SECURITY ALERT: User ${email} tried to access hotel ${hotelId} but belongs to ${user.hotelId}`);
+  return res.status(403).json({ 
+    success: false, 
+    error: 'Access denied. This account belongs to a different hotel.' 
+  });
+}
 
-    const tokenPayload = {
-      email: user.email, name: user.name, role: user.role,
-      hotelId: hotelId || user.hotelId || 'HOTEL001',
-      permissions: user.permissions
-    };
-    const token = generateToken(tokenPayload);
+const validPassword = await bcrypt.compare(password, user.password);
+if (!validPassword) {
+  console.log(`❌ [${Date.now()}] Wrong password for: ${email}`);
+  return res.status(401).json({ success: false, error: 'Invalid credentials' });
+}
+if (!user.active) return res.status(403).json({ success: false, error: 'Account is inactive' });
 
-    const sessionKey = token.substring(token.length - 32);
-    activeSessions.set(sessionKey, {
-      lastActivity: Date.now(),
-      hotelId: hotelId || user.hotelId || 'HOTEL001',
-      email: user.email
-    });
+// 🔒 SECURITY FIX: Use ONLY user's actual hotelId - no fallbacks
+const userHotelId = user.hotelId || hotelId;
 
-    // ✅ FIX 3: Non-blocking session save
-    db.collection('sessions').updateOne(
-      { sessionKey },
-      { $set: { lastActivity: new Date(), hotelId: hotelId || user.hotelId || 'HOTEL001', email: user.email } },
-      { upsert: true }
-    ).catch(err => console.warn('Session save warning:', err.message));
+const tokenPayload = {
+  email: user.email, 
+  name: user.name, 
+  role: user.role,
+  hotelId: userHotelId,  // STRICT: Use user's actual hotelId
+  permissions: user.permissions
+};
+const token = generateToken(tokenPayload);
 
-    req.session.isAdmin = true;
-    req.session.adminEmail = email;
-    req.session.hotelId = hotelId || user.hotelId || 'HOTEL001';
-    req.session.user = { email: user.email, name: user.name, role: user.role, permissions: user.permissions };
+const sessionKey = token.substring(token.length - 32);
+activeSessions.set(sessionKey, {
+  lastActivity: Date.now(),
+  hotelId: userHotelId,  // STRICT: Use user's actual hotelId
+  email: user.email
+});
 
-    console.log(`✅ [${Date.now()}] Login successful in ${Date.now() - startTime}ms: ${email}`);
+// ✅ FIX 3: Non-blocking session save
+db.collection('sessions').updateOne(
+  { sessionKey },
+  { $set: { lastActivity: new Date(), hotelId: userHotelId, email: user.email } },
+  { upsert: true }
+).catch(err => console.warn('Session save warning:', err.message));
 
-    res.json({
-      success: true, token,
-      user: { email: user.email, name: user.name, role: user.role, permissions: user.permissions },
-      hotelId: hotelId || user.hotelId || 'HOTEL001',
-      idleTimeoutMs: IDLE_TIMEOUT_MS
-    });
+req.session.isAdmin = true;
+req.session.adminEmail = email;
+req.session.hotelId = userHotelId;  // STRICT: Use user's actual hotelId
+req.session.user = { 
+  email: user.email, 
+  name: user.name, 
+  role: user.role, 
+  hotelId: userHotelId,
+  permissions: user.permissions 
+};
+
+console.log(`✅ [${Date.now()}] Login successful for hotel ${userHotelId}: ${email} in ${Date.now() - startTime}ms`);
+
+res.json({
+  success: true, 
+  token,
+  user: { 
+    email: user.email, 
+    name: user.name, 
+    role: user.role, 
+    hotelId: userHotelId,
+    permissions: user.permissions 
+  },
+  hotelId: userHotelId,  // STRICT: Return user's actual hotelId
+  idleTimeoutMs: IDLE_TIMEOUT_MS
+});
+    
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, error: error.message });
