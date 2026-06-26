@@ -362,7 +362,9 @@ const infoRoutes = require('./routes/info');
 const departmentRoutes = require('./routes/department.routes');
 app.set('io', io);
 app.use('/api/departments', departmentRoutes);
-
+// Auth routes
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
 
 // ======================== NEW ROUTES USE ========================
 app.use('/api/logs', logsRoutes);
