@@ -447,7 +447,7 @@
         let subChart = null;
         let maintenanceMode = false;
         let emailNotifs = true;
-        let isDashboardInitialized = false; // ✅ Prevent double init
+        let isDashboardInitialized = false;
 
         const translations = {
             en: {
@@ -550,7 +550,6 @@
                 throw new Error(t('networkError'));
             }
 
-            // Handle 401 - token expired
             if (response.status === 401) {
                 localStorage.removeItem('superAdminToken');
                 authToken = null;
@@ -590,7 +589,6 @@
                 return;
             }
 
-            // Show loading state
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<span class="spinner"></span> <span>' + t('loading') + '</span>';
 
@@ -637,22 +635,18 @@
 
         async function checkAuth() {
             if (!authToken) {
-                // No token - show login
                 document.getElementById('loginPage').classList.remove('hidden');
                 document.getElementById('dashboard').classList.add('hidden');
                 return;
             }
 
-            // ✅ Validate token by calling a protected endpoint
             try {
                 await apiCall('GET', '/super/stats');
-                // Token valid - show dashboard
                 document.getElementById('loginPage').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
                 await initDashboard();
             } catch (error) {
                 console.warn('Token validation failed:', error.message);
-                // Token invalid - clear and show login
                 localStorage.removeItem('superAdminToken');
                 authToken = null;
                 document.getElementById('loginPage').classList.remove('hidden');
@@ -670,10 +664,9 @@
 
         // ================= DASHBOARD LOGIC =================
         async function initDashboard() {
-            if (isDashboardInitialized) return; // ✅ Prevent double init
+            if (isDashboardInitialized) return;
             isDashboardInitialized = true;
 
-            // ✅ SEQUENTIAL loading - no parallel calls, no flicker
             try {
                 await loadHotels();
             } catch (e) { console.error('loadHotels failed:', e); }
@@ -705,7 +698,6 @@
             document.getElementById('pageTitle').setAttribute('data-i18n', titles[sectionId]);
             applyLang();
 
-            // ✅ Only reload data if needed - no unnecessary re-renders
             if (sectionId === 'hotels' && hotels.length === 0) {
                 loadHotels();
             }
@@ -720,7 +712,6 @@
             } catch (error) {
                 console.error('Failed to load hotels:', error);
                 hotels = [];
-                // ✅ Don't show toast on initial load - only on user actions
             }
             renderHotelsTable();
         }
@@ -903,7 +894,6 @@
                 }
 
                 closeModal('hotelModal');
-                // ✅ Reload data AFTER successful save - no page refresh
                 await loadHotels();
                 await loadStats();
                 renderCharts();
@@ -1052,7 +1042,6 @@
                 updateStats(stats);
             } catch (error) {
                 console.warn('Stats API failed, calculating from hotels:', error.message);
-                // ✅ Calculate from real hotels data (not mock)
                 updateStats({
                     totalHotels: hotels.length,
                     totalRevenue: hotels.reduce((sum, h) => {
@@ -1074,12 +1063,10 @@
         }
 
         function renderCharts() {
-            // ✅ Revenue Chart - NO hardcoded data, uses real stats
             const ctx1 = document.getElementById('revenueChart');
             if (!ctx1) return;
             if (revenueChart) revenueChart.destroy();
 
-            // Calculate monthly revenue from hotels (real data)
             const monthlyRevenue = calculateMonthlyRevenue();
 
             revenueChart = new Chart(ctx1, {
@@ -1113,7 +1100,6 @@
                 }
             });
 
-            // Subscription Chart - uses real hotels data
             const ctx2 = document.getElementById('subChart');
             if (!ctx2) return;
             if (subChart) subChart.destroy();
@@ -1147,27 +1133,23 @@
             });
         }
 
-        // ✅ Calculate real monthly revenue from hotels (NO hardcoded data)
         function calculateMonthlyRevenue() {
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const currentMonth = new Date().getMonth();
             const labels = [];
             const data = [];
 
-            // Show last 6 months
             for (let i = 5; i >= 0; i--) {
                 const monthIndex = (currentMonth - i + 12) % 12;
                 labels.push(months[monthIndex]);
-                data.push(0); // Will be updated if backend provides monthly data
+                data.push(0);
             }
 
-            // If we have hotels, show current monthly recurring revenue
             if (hotels.length > 0) {
                 const monthlyRevenue = hotels.reduce((sum, h) => {
                     const plan = h.subscriptionType || h.plan;
                     return sum + (plan === 'enterprise' ? 499 : plan === 'pro' ? 99 : 0);
                 }, 0);
-                // Show revenue in current month
                 data[data.length - 1] = monthlyRevenue;
             }
 
@@ -1232,7 +1214,6 @@
             document.getElementById('langBtn').innerText = currentLang.toUpperCase();
         }
 
-        // Close modals on outside click
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
