@@ -1,4 +1,4 @@
-const bcrypt = require('bcryptjs');
+*const bcrypt = require('bcryptjs');
 const { getDB, isConnected } = require('../config/db');
 const { generateToken } = require('../middleware/auth');
 const { success, error } = require('../utils/apiResponse');
@@ -9,79 +9,87 @@ exports.adminLogin = async (req, res) => {
     const { email, password, hotelId } = req.body;
     console.log('🔐 Admin login attempt:', email, 'for hotel:', hotelId);
 
+    // ✅ VALIDATION
+    if (!email || !password) {
+      return error(res, 'Email and password are required', 400);
+    }
+
+    if (!hotelId) {
+      return error(res, 'Hotel ID is required', 400);
+    }
+
     if (!isConnected()) {
-      if (email === 'admin@crownplaza.com' && password === 'admin123') {
-        const token = generateToken({
-          email,
-          name: 'Admin',
-          role: 'super_admin',
-          hotelId: hotelId || 'default',
-          permissions: ['rooms', 'guests', 'food', 'inventory', 'requests', 'settings']
-        });
-        req.session.isAdmin = true;
-        req.session.adminEmail = email;
-        req.session.hotelId = hotelId || 'default';
-        return success(res, {
-          token,
-          user: { email, name: 'Admin', role: 'super_admin', permissions: ['all'] },
-          hotelId: hotelId || 'default'
-        }, 'Login successful');
-      }
       return error(res, 'Database connecting...', 503);
     }
 
     const db = getDB();
 
-    if (hotelId && hotelId !== 'default') {
-      const tenant = await db.collection('tenants').findOne({ hotelId });
-      if (!tenant) {
-        await db.collection('tenants').insertOne({
-          hotelId,
-          hotelName: 'New Hotel',
-          currency: 'USD',
-          currencySymbol: '$',
-          language: 'en',
-          country: 'Unknown',
-          active: true,
-          theme: 'default',
-          subscriptionType: 'basic',
-          createdAt: new Date()
-        });
-      }
+    // ✅ STEP 1: Verify hotel exists and is active
+    const tenant = await db.collection('tenants').findOne({ hotelId });
+    if (!tenant) {
+      console.log('❌ Hotel not found:', hotelId);
+      return error(res, 'Hotel not found. Please check Hotel ID.', 404);
     }
+
+    if (tenant.active === false) {
+      console.log('❌ Hotel is inactive:', hotelId);
+      return error(res, 'Hotel account is inactive. Please contact support.', 403);
+    }
+
+    // ✅ STEP 2: Find user with STRICT hotelId match
+    console.log('🔍 Looking for user:', email, 'in hotel:', hotelId);
 
     const user = await db.collection('users').findOne({ 
       email: email,
-      $or: [{ hotelId }, { hotelId: { $exists: false } }]
+      hotelId: hotelId  // ✅ STRICT MATCH - no $or, no fallback
     });
 
     if (!user) {
-      return error(res, 'Invalid credentials', 401);
+      console.log('❌ User not found for hotel', hotelId, ':', email);
+
+      // Helpful debug info
+      const userAnyHotel = await db.collection('users').findOne({ email: email });
+      if (userAnyHotel) {
+        console.log('⚠️ User exists but belongs to different hotel:', userAnyHotel.hotelId);
+        return error(res, `This account belongs to hotel ${userAnyHotel.hotelId}, not ${hotelId}`, 403);
+      }
+
+      return error(res, 'Invalid credentials for this hotel', 401);
     }
 
+    // ✅ STEP 3: Verify password
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return error(res, 'Invalid credentials', 401);
+      console.log('❌ Wrong password for:', email);
+      return error(res, 'Invalid password', 401);
     }
 
-    if (!user.active) {
+    // ✅ STEP 4: Check if user is active
+    if (user.active === false) {
       return error(res, 'Account is inactive', 403);
     }
 
+    // ✅ STEP 5: Generate token with correct hotelId
     const token = generateToken({
       email: user.email,
       name: user.name,
       role: user.role,
-      hotelId: hotelId || user.hotelId || 'default',
+      hotelId: hotelId,  // ✅ Use the requested hotelId
       permissions: user.permissions
     });
 
+    // ✅ STEP 6: Set session
     req.session.isAdmin = true;
     req.session.adminEmail = email;
-    req.session.hotelId = hotelId || user.hotelId || 'default';
-    req.session.user = { email: user.email, name: user.name, role: user.role, permissions: user.permissions };
+    req.session.hotelId = hotelId;
+    req.session.user = { 
+      email: user.email, 
+      name: user.name, 
+      role: user.role, 
+      permissions: user.permissions 
+    };
 
-    console.log('✅ Admin login successful:', email);
+    console.log('✅ Admin login successful:', email, 'for hotel:', hotelId);
 
     return success(res, {
       token,
@@ -89,14 +97,16 @@ exports.adminLogin = async (req, res) => {
         email: user.email, 
         name: user.name, 
         role: user.role,
+        hotelId: hotelId,
         permissions: user.permissions
       },
-      hotelId: hotelId || user.hotelId || 'default'
+      hotelId: hotelId,
+      hotelName: tenant.hotelName || 'Hotel'
     }, 'Login successful');
 
   } catch (err) {
-    console.error('Login error:', err);
-    return error(res, err.message, 500);
+    console.error('❌ Login error:', err);
+    return error(res, 'Login failed: ' + err.message, 500);
   }
 };
 
@@ -113,7 +123,9 @@ exports.checkSession = (req, res) => {
         hotelId: decoded.hotelId,
         role: decoded.role
       });
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Token verification failed:', e.message);
+    }
   }
 
   if (req.session.isAdmin) {

@@ -1,134 +1,164 @@
-// server/config/db.js - Enhanced MongoDB Connection for Multi-Tenant SaaS
-const mongoose = require('mongoose');
+// server/config/db.js - Native MongoDB Driver Connection
+const { MongoClient } = require('mongodb');
 
-// Connection configuration for high-scale multi-tenant environment
+// ========== CONNECTION STATE ==========
+let client = null;
+let db = null;
+let isConnected = false;
+
+// ========== CONNECTION OPTIONS ==========
 const connectionOptions = {
-  // Connection Pool Settings (for 1000+ concurrent guests)
-  maxPoolSize: parseInt(process.env.MONGO_MAX_POOL_SIZE) || 50,    // Max connections
-  minPoolSize: parseInt(process.env.MONGO_MIN_POOL_SIZE) || 10,    // Min connections to keep alive
-  maxIdleTimeMS: parseInt(process.env.MONGO_MAX_IDLE_TIME) || 30000, // Close idle connections after 30s
+  // Connection Pool Settings
+  maxPoolSize: parseInt(process.env.MONGO_MAX_POOL_SIZE) || 100,
+  minPoolSize: parseInt(process.env.MONGO_MIN_POOL_SIZE) || 20,
+  maxIdleTimeMS: parseInt(process.env.MONGO_MAX_IDLE_TIME) || 30000,
 
   // Timeout Settings
-  serverSelectionTimeoutMS: 10000,  // Timeout for server selection
-  socketTimeoutMS: 45000,           // Close sockets after 45s of inactivity
-  connectTimeoutMS: 10000,          // Initial connection timeout
+  serverSelectionTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 30000,
 
-  // Retry Settings for resilience
+  // Retry Settings
   retryWrites: true,
   retryReads: true,
 
-  // Network Settings
-  family: 4, // Use IPv4, skip IPv6 for better compatibility
+  // Compression (faster data transfer)
+  compressors: ['zstd', 'zlib'],
 
-  // Multi-tenant: Ensure proper read/write concerns
-  readPreference: process.env.MONGO_READ_PREF || 'primary',
-  writeConcern: { w: 'majority', j: true, wtimeout: 5000 }
+  // Network
+  family: 4
 };
 
 /**
- * Connect to MongoDB with enhanced error handling & monitoring
- * @param {string} uri - MongoDB connection URI from environment
- * @param {Object} options - Additional mongoose options (optional)
- * @returns {Promise<mongoose.Connection>} - Mongoose connection instance
+ * Connect to MongoDB with native driver
+ * @param {string} uri - MongoDB connection URI
+ * @param {string} dbName - Database name
+ * @returns {Promise<Object>} - Database instance
  */
-const connectDB = async (uri, options = {}) => {
-  const mergedOptions = { ...connectionOptions, ...options };
-
+const connectDB = async (uri, dbName = 'inaya_hotel') => {
   try {
-    // Establish connection
-    await mongoose.connect(uri, mergedOptions);
+    if (client && isConnected) {
+      console.log('✅ MongoDB already connected');
+      return db;
+    }
 
-    const conn = mongoose.connection;
+    console.log('🔄 Connecting to MongoDB...');
 
-    console.log(`✅ MongoDB Connected: ${conn.host}`);
-    console.log(`📦 Database: ${conn.name}`);
-    console.log(`🔗 Pool: ${mergedOptions.minPoolSize}-${mergedOptions.maxPoolSize} connections`);
+    client = new MongoClient(uri, connectionOptions);
+    await client.connect();
 
-    // ========== EVENT LISTENERS FOR MONITORING ==========
+    db = client.db(dbName);
+    isConnected = true;
 
-    // Connection error handler
-    conn.on('error', (err) => {
-      console.error('❌ MongoDB Connection Error:', err.message);
-      // Log to external monitoring service here (e.g., Sentry, Datadog)
+    console.log(`✅ MongoDB Connected: ${client.s.options.hosts[0]}`);
+    console.log(`📦 Database: ${dbName}`);
+    console.log(`🔗 Pool: ${connectionOptions.minPoolSize}-${connectionOptions.maxPoolSize} connections`);
+
+    // ========== EVENT LISTENERS ==========
+    client.on('close', () => {
+      console.warn('⚠️ MongoDB connection closed');
+      isConnected = false;
     });
 
-    // Disconnection handler (network issues, DB restart)
-    conn.on('disconnected', () => {
-      console.warn('⚠️ MongoDB Disconnected. Attempting auto-reconnect...');
-      // Could trigger alert to ops team here
+    client.on('error', (err) => {
+      console.error('❌ MongoDB client error:', err.message);
+      isConnected = false;
     });
 
-    // Reconnection success handler
-    conn.on('reconnected', () => {
-      console.log('🔄 MongoDB Reconnected Successfully');
-      // Could log reconnection metrics here
+    client.on('timeout', () => {
+      console.warn('⚠️ MongoDB connection timeout');
     });
 
-    // Connection opened (initial or after reconnect)
-    conn.on('open', () => {
-      console.log('🔓 MongoDB Connection Open');
-    });
-
-    // Connection closed (graceful shutdown)
-    conn.on('close', () => {
-      console.log('🔒 MongoDB Connection Closed');
-    });
-
-    // Connection pool events (for monitoring scale)
-    conn.on('connected', () => {
-      console.log(`👥 Active Connections: ${conn.readyState}`);
-    });
-
-    return conn;
+    return db;
 
   } catch (error) {
     console.error('❌ MongoDB Connection Failed:', error.message);
-
-    // Log detailed error for debugging
-    if (error.code) console.error(`Error Code: ${error.code}`);
-    if (error.errmsg) console.error(`Error Message: ${error.errmsg}`);
-
-    // Exit process on startup failure (let process manager restart)
-    // In production, use PM2/Docker for auto-restart
-    process.exit(1);
+    isConnected = false;
+    throw error;
   }
 };
 
 /**
- * Gracefully close MongoDB connection (for shutdown hooks)
+ * Get database instance
+ * @returns {Object|null} - MongoDB database instance
+ */
+const getDB = () => {
+  if (!db || !isConnected) {
+    console.warn('⚠️ getDB() called but database not connected');
+    return null;
+  }
+  return db;
+};
+
+/**
+ * Check if database is connected
+ * @returns {boolean} - Connection status
+ */
+const isDBConnected = () => {
+  return isConnected && db !== null;
+};
+
+/**
+ * Get MongoDB client instance (for advanced operations)
+ * @returns {MongoClient|null}
+ */
+const getClient = () => {
+  return client;
+};
+
+/**
+ * Gracefully disconnect from MongoDB
  * @returns {Promise<void>}
  */
 const disconnectDB = async () => {
   try {
-    if (mongoose.connection.readyState !== 0) { // 0 = disconnected
-      await mongoose.disconnect();
+    if (client) {
+      await client.close();
+      client = null;
+      db = null;
+      isConnected = false;
       console.log('🔌 MongoDB Disconnected Gracefully');
     }
   } catch (error) {
-    console.error('❌ Error during MongoDB disconnect:', error.message);
+    console.error('❌ Error during disconnect:', error.message);
   }
 };
 
 /**
- * Get current connection status
- * @returns {Object} - Connection status info
+ * Get connection status info
+ * @returns {Object} - Connection status
  */
 const getConnectionStatus = () => {
-  const conn = mongoose.connection;
   return {
-    readyState: conn.readyState, // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
-    host: conn.host,
-    name: conn.name,
-    port: conn.port,
-    collections: Object.keys(conn.collections || {}),
-    ready: conn.readyState === 1
+    connected: isConnected,
+    database: db ? db.databaseName : null,
+    client: client ? 'initialized' : 'not initialized'
   };
 };
 
-// Export for use in server startup and tests
+/**
+ * Test database connection
+ * @returns {Promise<boolean>}
+ */
+const testConnection = async () => {
+  try {
+    if (!db) return false;
+    await db.command({ ping: 1 });
+    return true;
+  } catch (error) {
+    console.error('❌ Connection test failed:', error.message);
+    return false;
+  }
+};
+
+// ========== EXPORTS ==========
 module.exports = {
   connectDB,
+  getDB,
+  getClient,
   disconnectDB,
   getConnectionStatus,
-  mongoose // Export mongoose itself for schema definitions
+  testConnection,
+  // ✅ Alias for backward compatibility
+  isConnected: isDBConnected
 };

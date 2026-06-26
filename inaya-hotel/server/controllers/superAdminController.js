@@ -21,23 +21,32 @@ exports.registerHotel = async (req, res) => {
       timezone
     } = req.body;
 
+    console.log('🔄 Hotel registration started:', { hotelId, hotelName, adminEmail });
+
     if (!hotelId || !hotelName || !adminEmail || !adminPassword) {
+      console.error('❌ Missing required fields');
       return error(res, 'hotelId, hotelName, adminEmail, and adminPassword are required', 400);
     }
 
     if (!isConnected()) {
+      console.error('❌ Database not connected');
       return error(res, 'Database not connected', 503);
     }
 
     const db = getDB();
 
+    // Check if hotel already exists
     const existing = await db.collection('tenants').findOne({ hotelId });
     if (existing) {
+      console.error('❌ Hotel ID already registered:', hotelId);
       return error(res, 'Hotel ID already registered', 400);
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    console.log('✅ Password hashed successfully');
 
+    // Calculate subscription expiry
     let subscriptionExpiry;
     if (subscriptionType === 'lifetime') {
       subscriptionExpiry = null;
@@ -49,6 +58,7 @@ exports.registerHotel = async (req, res) => {
       subscriptionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     }
 
+    // 1️⃣ Create tenant
     const tenant = {
       hotelId,
       hotelName,
@@ -66,8 +76,10 @@ exports.registerHotel = async (req, res) => {
       updatedAt: new Date()
     };
 
-    await db.collection('tenants').insertOne(tenant);
+    const tenantResult = await db.collection('tenants').insertOne(tenant);
+    console.log('✅ Tenant created:', tenantResult.insertedId);
 
+    // 2️⃣ Create admin user
     const adminUser = {
       email: adminEmail,
       password: hashedPassword,
@@ -79,8 +91,24 @@ exports.registerHotel = async (req, res) => {
       createdAt: new Date()
     };
 
-    await db.collection('users').insertOne(adminUser);
+    const userResult = await db.collection('users').insertOne(adminUser);
+    console.log('✅ Admin user created:', userResult.insertedId);
 
+    // Verify user was created
+    const verifyUser = await db.collection('users').findOne({ 
+      email: adminEmail, 
+      hotelId: hotelId 
+    });
+
+    if (!verifyUser) {
+      console.error('❌ User verification failed - user not found after creation!');
+      // Rollback tenant creation
+      await db.collection('tenants').deleteOne({ hotelId });
+      return error(res, 'Failed to create admin user', 500);
+    }
+    console.log('✅ User verification successful');
+
+    // 3️⃣ Create settings
     await db.collection('settings').insertOne({
       hotelId,
       hotelName,
@@ -94,11 +122,15 @@ exports.registerHotel = async (req, res) => {
       transport: { airport: 30, local: 15 },
       updatedAt: new Date()
     });
+    console.log('✅ Settings created');
+
+    console.log('✅✅✅ Hotel registration complete:', hotelId);
 
     return created(res, { 
       hotelId, 
       hotelName, 
       adminEmail,
+      adminPassword, // ✅ Return plain password for display
       currency,
       country,
       subscriptionType,
@@ -106,7 +138,8 @@ exports.registerHotel = async (req, res) => {
     }, 'Hotel registered successfully');
 
   } catch (err) {
-    console.error('Hotel registration error:', err);
+    console.error('❌ Hotel registration error:', err);
+    console.error('Error stack:', err.stack);
     return error(res, err.message, 500);
   }
 };
