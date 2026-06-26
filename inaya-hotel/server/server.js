@@ -1010,15 +1010,20 @@ app.post('/api/super/tenants/register', superAdminMiddleware, async (req, res) =
     else if (subscriptionType === 'pro') subscriptionExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     else subscriptionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    const tenant = {
-      hotelId, hotelName, logo: logo || null,
-      currency: currency || 'USD', currencySymbol: currencySymbol || '$',
-      language: language || 'en', country: country || 'Unknown',
-      timezone: timezone || 'UTC', active: true,
-      theme: theme || 'HOTEL001', subscriptionType: subscriptionType || 'basic',
-      subscriptionExpiry, createdAt: new Date(), updatedAt: new Date()
-    };
+// ✅ NAYA CODE - adminEmail aur adminPassword bhi tenants mein save hoga
+const tenant = {
+  hotelId, hotelName, logo: logo || null,
+  currency: currency || 'USD', currencySymbol: currencySymbol || '$',
+  language: language || 'en', country: country || 'Unknown',
+  timezone: timezone || 'UTC', active: true,
+  theme: theme || 'HOTEL001', subscriptionType: subscriptionType || 'basic',
+  subscriptionExpiry,
+  adminEmail: adminEmail,           // ✅ ADD KIYA
+  adminPassword: adminPassword,     // ✅ ADD KIYA (plain text - sirf reference ke liye)
+  createdAt: new Date(), updatedAt: new Date()
+};
 
+await db.collection('tenants').insertOne(tenant);
     await db.collection('tenants').insertOne(tenant);
 
     const adminUser = {
