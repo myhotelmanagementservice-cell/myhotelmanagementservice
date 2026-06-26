@@ -1301,13 +1301,13 @@ if (!user) {
   console.log(`❌ [${Date.now()}] User not found for hotel ${hotelId}: ${email}`);
   return res.status(401).json({ 
     success: false, 
-    error: 'Invalid credentials for this hotel. Please check your Hotel ID and credentials.' 
+    error: 'Invalid credentials for this hotel' 
   });
 }
 
-// 🔒 SECURITY FIX: Verify user belongs to this hotel (double-check)
+// 🔒 EXTRA CHECK: User ka hotelId match karna zaroori hai
 if (user.hotelId && user.hotelId !== hotelId) {
-  console.log(`🚨 [${Date.now()}] SECURITY ALERT: User ${email} tried to access hotel ${hotelId} but belongs to ${user.hotelId}`);
+  console.log(`🚨 SECURITY: User ${email} tried to access hotel ${hotelId} but belongs to ${user.hotelId}`);
   return res.status(403).json({ 
     success: false, 
     error: 'Access denied. This account belongs to a different hotel.' 
@@ -1328,7 +1328,7 @@ const tokenPayload = {
   email: user.email, 
   name: user.name, 
   role: user.role,
-  hotelId: userHotelId,  // STRICT: Use user's actual hotelId
+  hotelId: user.hotelId || hotelId,  // 🔒 User ka actual hotelId use karo
   permissions: user.permissions
 };
 const token = generateToken(tokenPayload);
