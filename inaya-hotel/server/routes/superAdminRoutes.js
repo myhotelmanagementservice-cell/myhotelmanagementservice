@@ -5,8 +5,13 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // ======================== DATABASE CONNECTION ========================
-const getDb = () => {
-    return require('../server').db;
+const getDb = (req) => {
+    // Try multiple ways to get db
+    const db = req.app.get('db') || req.app.locals.db || global.db;
+    if (!db) {
+        console.error('❌ Database not found in app');
+    }
+    return db;
 };
 
 // ======================== MIDDLEWARE ========================
@@ -22,6 +27,7 @@ const superAdminMiddleware = async (req, res, next) => {
         req.user = decoded;
         next();
     } catch (error) {
+        console.error('Super admin middleware error:', error);
         return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 };
@@ -31,8 +37,11 @@ router.use(superAdminMiddleware);
 
 // ======================== ROUTES ========================
 
-// ✅ HOTEL REGISTER (with admin user creation)
+// ✅ HOTEL REGISTER (with admin user creation) - ENHANCED VERSION
 router.post('/tenants/register', async (req, res) => {
+    console.log('🔄 Starting hotel registration...');
+    console.log('Request body:', req.body);
+
     try {
         const {
             hotelId, hotelName, adminEmail, adminPassword,
@@ -42,35 +51,46 @@ router.post('/tenants/register', async (req, res) => {
 
         // Validation
         if (!hotelId || !hotelName || !adminEmail || !adminPassword) {
+            console.error('❌ Validation failed: Missing required fields');
             return res.status(400).json({ 
                 success: false, 
                 error: 'hotelId, hotelName, adminEmail, and adminPassword are required' 
             });
         }
 
-        const db = req.app.get('db');
-        if (!db) return res.status(503).json({ success: false, error: 'Database not connected' });
+        const db = getDb(req);
+        if (!db) {
+            console.error('❌ Database not connected');
+            return res.status(503).json({ success: false, error: 'Database not connected' });
+        }
+
+        console.log('✅ Database connected, checking existing hotel...');
 
         // Check if hotel already exists
         const existing = await db.collection('tenants').findOne({ hotelId });
         if (existing) {
+            console.error('❌ Hotel ID already exists:', hotelId);
             return res.status(400).json({ 
                 success: false, 
                 error: 'Hotel ID already registered' 
             });
         }
 
-        // Check if admin email already exists
+        // Check if admin email already exists (globally)
         const existingAdmin = await db.collection('users').findOne({ email: adminEmail });
         if (existingAdmin) {
+            console.error('❌ Admin email already exists:', adminEmail);
             return res.status(400).json({ 
                 success: false, 
-                error: 'Admin email already exists' 
+                error: 'Admin email already exists. Please use a different email.' 
             });
         }
 
+        console.log('✅ Validation passed, creating tenant...');
+
         // Hash password
         const hashedPassword = await bcrypt.hash(adminPassword, 10);
+        console.log('✅ Password hashed successfully');
 
         // Calculate subscription expiry
         let subscriptionExpiry;
@@ -101,10 +121,12 @@ router.post('/tenants/register', async (req, res) => {
             createdAt: new Date(),
             updatedAt: new Date()
         };
-        await db.collection('tenants').insertOne(tenant);
-        console.log('✅ Tenant created:', hotelId);
 
-        // 2️⃣ CREATE ADMIN USER
+        const tenantResult = await db.collection('tenants').insertOne(tenant);
+        console.log('✅ Tenant created:', hotelId, 'ID:', tenantResult.insertedId);
+
+        // 2️⃣ CREATE ADMIN USER - CRITICAL STEP
+        console.log('🔄 Creating admin user...');
         const adminUser = {
             email: adminEmail,
             password: hashedPassword,
@@ -115,52 +137,100 @@ router.post('/tenants/register', async (req, res) => {
             active: true,
             createdAt: new Date()
         };
-        await db.collection('users').insertOne(adminUser);
-        console.log('✅ Admin user created:', adminEmail);
+
+        try {
+            const userResult = await db.collection('users').insertOne(adminUser);
+            console.log('✅✅✅ ADMIN USER CREATED SUCCESSFULLY ✅✅✅');
+            console.log('User ID:', userResult.insertedId);
+            console.log('User Email:', adminEmail);
+            console.log('User Hotel ID:', hotelId);
+
+            // Verify user was created
+            const verifyUser = await db.collection('users').findOne({ 
+                email: adminEmail, 
+                hotelId: hotelId 
+            });
+            if (verifyUser) {
+                console.log('✅ User verification successful - user exists in database');
+            } else {
+                console.error('❌ User verification FAILED - user not found after insertion!');
+            }
+        } catch (userError) {
+            console.error('❌❌❌ FAILED TO CREATE ADMIN USER ❌❌❌');
+            console.error('Error:', userError.message);
+            console.error('Stack:', userError.stack);
+
+            // Try to rollback tenant creation
+            try {
+                await db.collection('tenants').deleteOne({ hotelId });
+                console.log('✅ Rolled back tenant creation');
+            } catch (rollbackError) {
+                console.error('❌ Failed to rollback tenant:', rollbackError.message);
+            }
+
+            return res.status(500).json({ 
+                success: false, 
+                error: 'Failed to create admin user: ' + userError.message 
+            });
+        }
 
         // 3️⃣ CREATE CONFIG
-        await db.collection('config').insertOne({
-            hotelId,
-            name: hotelName,
-            currency: currency || 'SAR',
-            currencySymbol: currencySymbol || '﷼',
-            wifi: `${hotelName.replace(/\s+/g, '_')}_Guest`,
-            airportPrice: 115,
-            localPrice: 60,
-            language: language || 'en',
-            theme: { primaryColor: '#667eea' },
-            updatedAt: new Date()
-        });
-        console.log('✅ Config created for:', hotelId);
+        console.log('🔄 Creating config...');
+        try {
+            await db.collection('config').insertOne({
+                hotelId,
+                name: hotelName,
+                currency: currency || 'SAR',
+                currencySymbol: currencySymbol || '﷼',
+                wifi: `${hotelName.replace(/\s+/g, '_')}_Guest`,
+                airportPrice: 115,
+                localPrice: 60,
+                language: language || 'en',
+                theme: { primaryColor: '#667eea' },
+                updatedAt: new Date()
+            });
+            console.log('✅ Config created for:', hotelId);
+        } catch (configError) {
+            console.error('⚠️ Config creation failed (non-critical):', configError.message);
+            // Don't fail the entire request if config fails
+        }
+
+        console.log('✅✅✅ HOTEL REGISTRATION COMPLETE ✅✅✅');
 
         // ✅ RETURN WITH EMAIL & PASSWORD (for display)
         res.status(201).json({
             success: true,
-            message: 'Hotel registered successfully',
+            message: 'Hotel registered successfully with admin user',
             data: {
                 hotelId,
                 hotelName,
-                adminEmail,      // ✅ Email show karega
-                adminPassword,   // ✅ Password show karega (plain text for display only)
+                adminEmail,
+                adminPassword,
                 currency,
                 currencySymbol,
                 country,
                 language,
                 subscriptionType,
                 expiryDate: subscriptionExpiry,
-                active: true
+                active: true,
+                adminCreated: true
             }
         });
     } catch (error) {
-        console.error('Hotel registration error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        console.error('❌❌❌ HOTEL REGISTRATION FAILED ❌❌❌');
+        console.error('Error:', error.message);
+        console.error('Stack:', error.stack);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Hotel registration failed: ' + error.message 
+        });
     }
 });
 
 // ✅ LIST HOTELS
 router.get('/tenants', async (req, res) => {
     try {
-        const db = req.app.get('db');
+        const db = getDb(req);
         if (!db) return res.json({ success: true, data: [], count: 0 });
 
         const { active, subscriptionType, country } = req.query;
@@ -204,7 +274,7 @@ router.get('/tenants', async (req, res) => {
 router.get('/tenants/:hotelId', async (req, res) => {
     try {
         const { hotelId } = req.params;
-        const db = req.app.get('db');
+        const db = getDb(req);
         if (!db) return res.status(503).json({ success: false, error: 'Database not connected' });
 
         const tenant = await db.collection('tenants').findOne({ hotelId });
@@ -224,15 +294,14 @@ router.put('/tenants/:hotelId', async (req, res) => {
     try {
         const { hotelId } = req.params;
         const updates = req.body;
-        const db = req.app.get('db');
+        const db = getDb(req);
 
         if (!db) {
             return res.json({ success: true, message: 'Hotel updated (offline mode)' });
         }
 
-        // Remove _id from updates if present
         delete updates._id;
-        delete updates.hotelId; // Don't allow changing hotelId
+        delete updates.hotelId;
 
         const result = await db.collection('tenants').updateOne(
             { hotelId },
@@ -258,24 +327,22 @@ router.put('/tenants/:hotelId', async (req, res) => {
     }
 });
 
-// ✅ TOGGLE HOTEL STATUS (Activate/Deactivate)
+// ✅ TOGGLE HOTEL STATUS
 router.patch('/tenants/:hotelId/toggle-status', async (req, res) => {
     try {
         const { hotelId } = req.params;
         const { active } = req.body;
 
-        const db = req.app.get('db');
+        const db = getDb(req);
         if (!db) {
             return res.status(503).json({ success: false, error: 'Database not connected' });
         }
 
-        // Get current tenant
         const tenant = await db.collection('tenants').findOne({ hotelId });
         if (!tenant) {
             return res.status(404).json({ success: false, error: 'Hotel not found' });
         }
 
-        // Toggle status
         const newStatus = active !== undefined ? active : !tenant.active;
 
         const result = await db.collection('tenants').updateOne(
@@ -307,19 +374,17 @@ router.patch('/tenants/:hotelId/toggle-status', async (req, res) => {
 router.delete('/tenants/:hotelId', async (req, res) => {
     try {
         const { hotelId } = req.params;
-        const db = req.app.get('db');
+        const db = getDb(req);
 
         if (!db) {
             return res.json({ success: true, message: 'Hotel deleted (offline mode)' });
         }
 
-        // Check if hotel exists
         const tenant = await db.collection('tenants').findOne({ hotelId });
         if (!tenant) {
             return res.status(404).json({ success: false, error: 'Hotel not found' });
         }
 
-        // Delete all related data
         await Promise.all([
             db.collection('rooms').deleteMany({ hotelId }),
             db.collection('guests').deleteMany({ hotelId }),
@@ -340,7 +405,6 @@ router.delete('/tenants/:hotelId', async (req, res) => {
             db.collection('blacklist').deleteMany({ hotelId })
         ]);
 
-        // Delete tenant
         await db.collection('tenants').deleteOne({ hotelId });
 
         console.log(`✅ Hotel deleted: ${hotelId}`);
@@ -358,7 +422,7 @@ router.delete('/tenants/:hotelId', async (req, res) => {
 // ✅ GET COUNTRIES
 router.get('/countries', async (req, res) => {
     try {
-        const db = req.app.get('db');
+        const db = getDb(req);
         if (!db) return res.json({ success: true, data: [] });
 
         const countries = await db.collection('tenants').aggregate([
@@ -379,7 +443,7 @@ router.get('/countries', async (req, res) => {
     }
 });
 
-// ✅ REGISTER ADMIN
+// ✅ REGISTER ADMIN (for existing hotels)
 router.post('/admins/register', async (req, res) => {
     try {
         const { email, password, name, hotelId, role, permissions } = req.body;
@@ -391,7 +455,7 @@ router.post('/admins/register', async (req, res) => {
             });
         }
 
-        const db = req.app.get('db');
+        const db = getDb(req);
         if (!db) return res.status(503).json({ success: false, error: 'Database not connected' });
 
         const existing = await db.collection('users').findOne({ email, hotelId });
@@ -432,7 +496,7 @@ router.post('/admins/register', async (req, res) => {
 // ✅ GET STATS
 router.get('/stats', async (req, res) => {
     try {
-        const db = req.app.get('db');
+        const db = getDb(req);
         if (!db) {
             return res.json({ 
                 success: true, 
@@ -503,7 +567,7 @@ router.get('/stats', async (req, res) => {
 // ✅ GET TRANSACTIONS
 router.get('/transactions', async (req, res) => {
     try {
-        const db = req.app.get('db');
+        const db = getDb(req);
         if (!db) return res.json({ success: true, data: [] });
 
         const tenants = await db.collection('tenants').find({}).toArray();
