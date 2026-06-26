@@ -100,6 +100,9 @@
                 <button onclick="showSection('subscriptions')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-subscriptions">
                     <i class="fas fa-credit-card w-5"></i> <span data-i18n="subscriptions">Subscriptions</span>
                 </button>
+                <button onclick="showSection('currencies')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-currencies">
+                    <i class="fas fa-coins w-5"></i> <span data-i18n="currencies">Currencies</span>
+                </button>
                 <button onclick="showSection('settings')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-settings">
                     <i class="fas fa-cogs w-5"></i> <span data-i18n="settings">System Settings</span>
                 </button>
@@ -289,6 +292,36 @@
                 </div>
              </section>
 
+            <!-- SECTION: CURRENCIES -->
+            <section id="currencies" class="section-content hidden fade-in">
+                <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center flex-wrap gap-4">
+                        <h3 class="font-bold" data-i18n="manageCurrencies">💱 Manage Currencies</h3>
+                        <button onclick="openAddCurrencyModal()" class="p-2 bg-primary text-white rounded-lg shadow hover:bg-blue-600 transition flex items-center gap-2">
+                            <i class="fas fa-plus"></i> <span data-i18n="addCurrency">Add Currency</span>
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 dark:bg-gray-700 text-gray-500">
+                                <tr>
+                                    <th class="p-4">Code</th>
+                                    <th class="p-4">Symbol</th>
+                                    <th class="p-4">Name</th>
+                                    <th class="p-4">Rate (per 1 USD)</th>
+                                    <th class="p-4">Type</th>
+                                    <th class="p-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="currenciesTableBody" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                        </table>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
+                        <p class="text-xs text-gray-500">💡 <span data-i18n="currencyInfo">Custom currencies are saved locally and will appear in hotel currency dropdowns.</span></p>
+                    </div>
+                </div>
+            </section>
+
              <section id="settings" class="section-content hidden fade-in">
                 <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 max-w-2xl">
                     <h3 class="font-bold mb-6" data-i18n="systemSettings">System Settings</h3>
@@ -363,11 +396,7 @@
                     <div>
                         <label class="block text-sm font-medium mb-1">Currency</label>
                         <select id="currency" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600">
-                            <option value="USD">$ USD</option>
-                            <option value="EUR">€ EUR</option>
-                            <option value="GBP">£ GBP</option>
-                            <option value="INR">₹ INR</option>
-                            <option value="AED">د.إ AED</option>
+                            <!-- Will be populated dynamically -->
                         </select>
                     </div>
                     <div>
@@ -391,6 +420,44 @@
                     <button type="button" onclick="closeModal('hotelModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
                     <button type="submit" id="hotelSubmitBtn" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2">
                         <span id="modalSubmitText">Add Hotel</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Currency Modal -->
+    <div id="currencyModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg" id="currencyModalTitle">Add Currency</h3>
+                <button onclick="closeModal('currencyModal')" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="currencyForm" class="space-y-4">
+                <input type="hidden" id="editCurrencyCode">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Currency Code *</label>
+                    <input type="text" id="curCode" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="e.g., SAR" required maxlength="3" pattern="[A-Za-z]{3}">
+                    <p class="text-xs text-gray-500 mt-1">3-letter code (e.g., SAR, EUR, GBP)</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Symbol *</label>
+                    <input type="text" id="curSymbol" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="e.g., ﷼" required maxlength="5">
+                    <p class="text-xs text-gray-500 mt-1">Currency symbol (e.g., $, €, ﷼, ₹)</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Currency Name *</label>
+                    <input type="text" id="curName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="e.g., Saudi Riyal" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Exchange Rate (per 1 USD) *</label>
+                    <input type="number" id="curRate" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="e.g., 3.75" required step="0.0001" min="0">
+                    <p class="text-xs text-gray-500 mt-1">How many units = 1 USD</p>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeModal('currencyModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
+                    <button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-save"></i> <span data-i18n="save">Save</span>
                     </button>
                 </div>
             </form>
@@ -449,12 +516,182 @@
         let emailNotifs = true;
         let isDashboardInitialized = false;
 
+        // ================= CURRENCY MANAGEMENT =================
+        // Built-in currencies (cannot be deleted)
+        const BUILT_IN_CURRENCIES = {
+            USD: { symbol: '$', name: 'US Dollar', rate: 1.00, flag: '🇺🇸', custom: false },
+            EUR: { symbol: '€', name: 'Euro', rate: 0.92, flag: '🇪🇺', custom: false },
+            GBP: { symbol: '£', name: 'British Pound', rate: 0.79, flag: '🇬🇧', custom: false },
+            INR: { symbol: '₹', name: 'Indian Rupee', rate: 83.50, flag: '🇮🇳', custom: false },
+            AED: { symbol: 'د.إ', name: 'UAE Dirham', rate: 3.67, flag: '🇦🇪', custom: false },
+            SAR: { symbol: '﷼', name: 'Saudi Riyal', rate: 3.75, flag: '🇸🇦', custom: false },
+            KWD: { symbol: 'د.ك', name: 'Kuwaiti Dinar', rate: 0.31, flag: '🇰🇼', custom: false }
+        };
+
+        // Custom currencies (stored in localStorage)
+        function getCustomCurrencies() {
+            try {
+                return JSON.parse(localStorage.getItem('customCurrencies') || '{}');
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveCustomCurrencies(currencies) {
+            localStorage.setItem('customCurrencies', JSON.stringify(currencies));
+        }
+
+        function getAllCurrencies() {
+            return { ...BUILT_IN_CURRENCIES, ...getCustomCurrencies() };
+        }
+
+        function populateCurrencyDropdown() {
+            const select = document.getElementById('currency');
+            if (!select) return;
+
+            const allCurrencies = getAllCurrencies();
+            select.innerHTML = '';
+
+            Object.entries(allCurrencies).forEach(([code, data]) => {
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = `${data.symbol} ${code} - ${data.name}`;
+                select.appendChild(option);
+            });
+        }
+
+        function renderCurrenciesTable() {
+            const tbody = document.getElementById('currenciesTableBody');
+            if (!tbody) return;
+
+            const allCurrencies = getAllCurrencies();
+
+            tbody.innerHTML = Object.entries(allCurrencies).map(([code, data]) => {
+                const isCustom = data.custom === true;
+                const typeBadge = isCustom 
+                    ? '<span class="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200">Custom</span>'
+                    : '<span class="px-2 py-1 rounded text-xs font-bold bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-200">Built-in</span>';
+
+                const actions = isCustom 
+                    ? `<div class="flex gap-2">
+                        <button onclick="editCurrency('${code}')" class="p-2 text-blue-500 hover:text-blue-700 transition" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteCurrency('${code}')" class="p-2 text-red-500 hover:text-red-700 transition" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                       </div>`
+                    : '<span class="text-xs text-gray-400">—</span>';
+
+                return `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                        <td class="p-4 font-bold">${data.flag || ''} ${code}</td>
+                        <td class="p-4 text-2xl">${data.symbol}</td>
+                        <td class="p-4 text-gray-500">${data.name}</td>
+                        <td class="p-4 font-mono">${data.rate}</td>
+                        <td class="p-4">${typeBadge}</td>
+                        <td class="p-4">${actions}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openAddCurrencyModal() {
+            document.getElementById('currencyModalTitle').textContent = 'Add Currency';
+            document.getElementById('currencyForm').reset();
+            document.getElementById('editCurrencyCode').value = '';
+            document.getElementById('curCode').disabled = false;
+            document.getElementById('currencyModal').classList.add('active');
+        }
+
+        function editCurrency(code) {
+            const allCurrencies = getAllCurrencies();
+            const currency = allCurrencies[code];
+            if (!currency || !currency.custom) return;
+
+            document.getElementById('currencyModalTitle').textContent = 'Edit Currency';
+            document.getElementById('editCurrencyCode').value = code;
+            document.getElementById('curCode').value = code;
+            document.getElementById('curCode').disabled = true;
+            document.getElementById('curSymbol').value = currency.symbol;
+            document.getElementById('curName').value = currency.name;
+            document.getElementById('curRate').value = currency.rate;
+            document.getElementById('currencyModal').classList.add('active');
+        }
+
+        function deleteCurrency(code) {
+            const allCurrencies = getAllCurrencies();
+            const currency = allCurrencies[code];
+
+            if (!currency || !currency.custom) {
+                showToast('Cannot delete built-in currency', 'error');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete ${code} (${currency.name})?`)) {
+                return;
+            }
+
+            const customCurrencies = getCustomCurrencies();
+            delete customCurrencies[code];
+            saveCustomCurrencies(customCurrencies);
+
+            renderCurrenciesTable();
+            populateCurrencyDropdown();
+            showToast(`${code} deleted successfully`, 'success');
+        }
+
+        document.getElementById('currencyForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const editCode = document.getElementById('editCurrencyCode').value;
+            const code = document.getElementById('curCode').value.toUpperCase().trim();
+            const symbol = document.getElementById('curSymbol').value.trim();
+            const name = document.getElementById('curName').value.trim();
+            const rate = parseFloat(document.getElementById('curRate').value);
+
+            if (!code || !symbol || !name || isNaN(rate)) {
+                showToast('All fields are required', 'error');
+                return;
+            }
+
+            const customCurrencies = getCustomCurrencies();
+            const allCurrencies = getAllCurrencies();
+
+            // Check if code already exists
+            if (!editCode && allCurrencies[code]) {
+                showToast(`Currency ${code} already exists`, 'error');
+                return;
+            }
+
+            // If editing, remove old entry first
+            if (editCode && editCode !== code) {
+                delete customCurrencies[editCode];
+            }
+
+            // Add/update currency
+            customCurrencies[code] = {
+                symbol,
+                name,
+                rate,
+                custom: true
+            };
+
+            saveCustomCurrencies(customCurrencies);
+            closeModal('currencyModal');
+            renderCurrenciesTable();
+            populateCurrencyDropdown();
+            showToast(editCode ? 'Currency updated!' : 'Currency added!', 'success');
+        });
+
         const translations = {
             en: {
                 superAdminLogin: 'Super Admin Login', loginSubtitle: 'Access Platform Control Center',
                 email: 'Email', password: 'Password', login: 'Login', logout: 'Logout',
                 dashboard: 'Dashboard', overview: 'Overview', hotels: 'All Hotels',
                 revenue: 'Revenue', subscriptions: 'Subscriptions', settings: 'System Settings',
+                currencies: 'Currencies', manageCurrencies: '💱 Manage Currencies', addCurrency: 'Add Currency',
+                currencyInfo: 'Custom currencies are saved locally and will appear in hotel currency dropdowns.',
                 totalHotels: 'Total Hotels', totalRevenue: 'Total Revenue',
                 activeSubs: 'Active Subscriptions', totalGuests: 'Total Guests',
                 revenueChart: 'Revenue Overview', subChart: 'Subscription Distribution',
@@ -480,6 +717,8 @@
                 email: 'ईमेल', password: 'पासवर्ड', login: 'लॉगिन', logout: 'लॉगआउट',
                 dashboard: 'डैशबोर्ड', overview: 'अवलोकन', hotels: 'सभी होटल',
                 revenue: 'राजस्व', subscriptions: 'सब्सक्रिप्शन', settings: 'सिस्टम सेटिंग्स',
+                currencies: 'मुद्राएं', manageCurrencies: '💱 मुद्राएं प्रबंधित करें', addCurrency: 'मुद्रा जोड़ें',
+                currencyInfo: 'कस्टम मुद्राएं स्थानीय रूप से सेव की जाती हैं और होटल मुद्रा ड्रॉपडाउन में दिखाई देंगी।',
                 totalHotels: 'कुल होटल', totalRevenue: 'कुल राजस्व',
                 activeSubs: 'सक्रिय सदस्यता', totalGuests: 'कुल अतिथि',
                 revenueChart: 'राजस्व अवलोकन', subChart: 'सदस्यता वितरण',
@@ -505,6 +744,8 @@
                 email: 'البريد الإلكتروني', password: 'كلمة المرور', login: 'تسجيل دخول', logout: 'تسجيل خروج',
                 dashboard: 'لوحة القيادة', overview: 'نظرة عامة', hotels: 'جميع الفنادق',
                 revenue: 'الإيرادات', subscriptions: 'الاشتراكات', settings: 'إعدادات النظام',
+                currencies: 'العملات', manageCurrencies: '💱 إدارة العملات', addCurrency: 'إضافة عملة',
+                currencyInfo: 'يتم حفظ العملات المخصصة محليًا وستظهر في قوائم العملات للفنادق.',
                 totalHotels: 'إجمالي الفنادق', totalRevenue: 'إجمالي الإيرادات',
                 activeSubs: 'الاشتراكات النشطة', totalGuests: 'إجمالي الضيوف',
                 revenueChart: 'نظرة عامة على الإيرادات', subChart: 'توزيع الاشتراكات',
@@ -531,6 +772,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             applyTheme();
             applyLang();
+            populateCurrencyDropdown();
             await checkAuth();
         });
 
@@ -676,6 +918,7 @@
             } catch (e) { console.error('loadStats failed:', e); }
 
             renderCharts();
+            renderCurrenciesTable();
 
             try {
                 await loadTransactions();
@@ -693,13 +936,17 @@
 
             const titles = {
                 overview: 'dashboard', hotels: 'registeredHotels',
-                revenue: 'recentTransactions', subscriptions: 'subscriptions', settings: 'systemSettings'
+                revenue: 'recentTransactions', subscriptions: 'subscriptions',
+                currencies: 'manageCurrencies', settings: 'systemSettings'
             };
             document.getElementById('pageTitle').setAttribute('data-i18n', titles[sectionId]);
             applyLang();
 
             if (sectionId === 'hotels' && hotels.length === 0) {
                 loadHotels();
+            }
+            if (sectionId === 'currencies') {
+                renderCurrenciesTable();
             }
         }
 
@@ -809,6 +1056,7 @@
             document.getElementById('adminPassword').required = true;
             document.getElementById('pwdRequired').style.display = 'inline';
             document.getElementById('pwdHint').textContent = 'Minimum 8 characters';
+            populateCurrencyDropdown();
             document.getElementById('hotelModal').classList.add('active');
         }
 
@@ -827,6 +1075,7 @@
             document.getElementById('adminPassword').required = false;
             document.getElementById('pwdRequired').style.display = 'none';
             document.getElementById('pwdHint').textContent = 'Leave blank to keep current password';
+            populateCurrencyDropdown();
             document.getElementById('currency').value = hotel.currency || 'USD';
             document.getElementById('language').value = hotel.language || 'en';
             document.getElementById('subscriptionType').value = hotel.subscriptionType || hotel.plan || 'basic';
