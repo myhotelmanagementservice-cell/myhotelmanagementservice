@@ -19,6 +19,27 @@ router.post('/admin/login', async (req, res) => {
   try {
     const { email, password, hotelId } = req.body;
 
+    // ========== DEBUG LOGS ==========
+    console.log('========== LOGIN DEBUG ==========');
+    console.log('EMAIL:', email);
+    console.log('PASSWORD:', password);
+    console.log('HOTEL ID:', hotelId);
+
+    const db = getDB(req);
+    if (db) {
+      const allTenants = await db.collection('tenants').find({}).toArray();
+      console.log('ALL TENANTS:', allTenants.map(t => ({ hotelId: t.hotelId, adminEmail: t.adminEmail })));
+
+      const tenant = await db.collection('tenants').findOne({
+        adminEmail: email.toLowerCase().trim(),
+        hotelId: hotelId,
+        active: true
+      });
+      console.log('FOUND TENANT:', tenant ? { hotelId: tenant.hotelId, adminEmail: tenant.adminEmail } : 'NOT FOUND');
+    }
+    console.log('=================================');
+    // ========== END DEBUG ==========
+
     if (!email || !password) {
       return res.status(400).json({ 
         success: false, 
@@ -26,7 +47,6 @@ router.post('/admin/login', async (req, res) => {
       });
     }
 
-    const db = getDB(req);
     if (!db) {
       // Fallback for demo mode
       if (email === 'admin@crownplaza.com' && password === 'admin123') {
