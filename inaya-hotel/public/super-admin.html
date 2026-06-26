@@ -23,7 +23,22 @@
             }
         }
     </script>
-    <style>
+    <style id="customThemeStyle">
+        :root {
+            --custom-primary: #3b82f6;
+            --custom-bg: #f1f5f9;
+            --custom-card: #ffffff;
+            --custom-text: #1e293b;
+            --custom-sidebar: #ffffff;
+            --custom-border: #e2e8f0;
+        }
+        body.dark {
+            --custom-bg: #0f172a;
+            --custom-card: #1e293b;
+            --custom-text: #e2e8f0;
+            --custom-sidebar: #1e293b;
+            --custom-border: #334155;
+        }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
@@ -46,6 +61,16 @@
         .skeleton { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }
         .dark .skeleton { background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%); background-size: 200% 100%; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* Custom Theme Styles */
+        .color-picker-group { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; border-radius: 0.5rem; transition: background 0.2s; }
+        .color-picker-group:hover { background: rgba(59, 130, 246, 0.05); }
+        .color-picker-group label { flex: 1; font-size: 0.875rem; font-weight: 500; }
+        .color-picker-group input[type="color"] { width: 50px; height: 40px; border: 2px solid var(--custom-border); border-radius: 0.5rem; cursor: pointer; padding: 2px; background: transparent; }
+        .color-picker-group .color-hex { font-family: monospace; font-size: 0.75rem; color: #64748b; min-width: 70px; }
+        .theme-preset { width: 40px; height: 40px; border-radius: 0.5rem; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; position: relative; }
+        .theme-preset:hover { transform: scale(1.1); border-color: var(--custom-primary); }
+        .theme-preset.active { border-color: var(--custom-primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-darkBg text-gray-800 dark:text-gray-200 transition-colors duration-300 font-sans">
@@ -79,7 +104,7 @@
 
     <!-- ================= DASHBOARD LAYOUT ================= -->
     <div id="dashboard" class="hidden min-h-screen flex flex-col md:flex-row">
-        <aside class="w-full md:w-64 bg-white dark:bg-darkCard border-r border-gray-200 dark:border-gray-700 flex flex-col sticky top-0 md:h-screen z-20">
+        <aside id="sidebarEl" class="w-full md:w-64 bg-white dark:bg-darkCard border-r border-gray-200 dark:border-gray-700 flex flex-col sticky top-0 md:h-screen z-20">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
                 <i class="fas fa-crown text-accent text-2xl"></i>
                 <div>
@@ -102,6 +127,9 @@
                 </button>
                 <button onclick="showSection('currencies')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-currencies">
                     <i class="fas fa-coins w-5"></i> <span data-i18n="currencies">Currencies</span>
+                </button>
+                <button onclick="showSection('themeCustomizer')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-themeCustomizer">
+                    <i class="fas fa-palette w-5"></i> <span data-i18n="themeCustomizer">Theme Customizer</span>
                 </button>
                 <button onclick="showSection('settings')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-settings">
                     <i class="fas fa-cogs w-5"></i> <span data-i18n="settings">System Settings</span>
@@ -322,6 +350,113 @@
                 </div>
             </section>
 
+            <!-- SECTION: THEME CUSTOMIZER (NEW) -->
+            <section id="themeCustomizer" class="section-content hidden fade-in">
+                <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-xl font-bold flex items-center gap-2">
+                                <i class="fas fa-palette text-primary"></i>
+                                <span data-i18n="themeCustomizerTitle">Theme Customizer</span>
+                            </h3>
+                            <p class="text-sm text-gray-500 mt-1">Customize every color of your dashboard</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="resetCustomTheme()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm">
+                                <i class="fas fa-undo mr-1"></i> Reset
+                            </button>
+                            <button onclick="applyCustomTheme()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition text-sm">
+                                <i class="fas fa-check mr-1"></i> Apply & Save
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Theme Presets -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-3 flex items-center gap-2">
+                            <i class="fas fa-swatchbook text-primary"></i> Quick Presets
+                        </h4>
+                        <div class="flex flex-wrap gap-3">
+                            <div class="theme-preset active" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);" onclick="applyPreset('default')" title="Default Blue"></div>
+                            <div class="theme-preset" style="background: linear-gradient(135deg, #ef4444, #f97316);" onclick="applyPreset('red')" title="Red Fire"></div>
+                            <div class="theme-preset" style="background: linear-gradient(135deg, #10b981, #059669);" onclick="applyPreset('green')" title="Green Forest"></div>
+                            <div class="theme-preset" style="background: linear-gradient(135deg, #8b5cf6, #ec4899);" onclick="applyPreset('purple')" title="Purple Royal"></div>
+                            <div class="theme-preset" style="background: linear-gradient(135deg, #f59e0b, #ef4444);" onclick="applyPreset('orange')" title="Orange Sunset"></div>
+                            <div class="theme-preset" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);" onclick="applyPreset('cyan')" title="Cyan Ocean"></div>
+                            <div class="theme-preset" style="background: linear-gradient(135deg, #1e293b, #475569);" onclick="applyPreset('dark')" title="Dark Mode"></div>
+                            <div class="theme-preset" style="background: linear-gradient(135deg, #d4af37, #f4e5b0);" onclick="applyPreset('gold')" title="Gold Luxury"></div>
+                        </div>
+                    </div>
+
+                    <!-- Color Pickers -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                            <h4 class="font-semibold mb-3 text-sm text-gray-600 dark:text-gray-400">🎨 PRIMARY COLORS</h4>
+                            <div class="color-picker-group">
+                                <label>Primary Color</label>
+                                <input type="color" id="cpPrimary" value="#3b82f6" onchange="previewTheme()">
+                                <span class="color-hex" id="hexPrimary">#3b82f6</span>
+                            </div>
+                            <div class="color-picker-group">
+                                <label>Accent Color</label>
+                                <input type="color" id="cpAccent" value="#8b5cf6" onchange="previewTheme()">
+                                <span class="color-hex" id="hexAccent">#8b5cf6</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                            <h4 class="font-semibold mb-3 text-sm text-gray-600 dark:text-gray-400">🖼️ BACKGROUND</h4>
+                            <div class="color-picker-group">
+                                <label>Page Background</label>
+                                <input type="color" id="cpBg" value="#f1f5f9" onchange="previewTheme()">
+                                <span class="color-hex" id="hexBg">#f1f5f9</span>
+                            </div>
+                            <div class="color-picker-group">
+                                <label>Card Background</label>
+                                <input type="color" id="cpCard" value="#ffffff" onchange="previewTheme()">
+                                <span class="color-hex" id="hexCard">#ffffff</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                            <h4 class="font-semibold mb-3 text-sm text-gray-600 dark:text-gray-400">📝 TEXT & BORDERS</h4>
+                            <div class="color-picker-group">
+                                <label>Text Color</label>
+                                <input type="color" id="cpText" value="#1e293b" onchange="previewTheme()">
+                                <span class="color-hex" id="hexText">#1e293b</span>
+                            </div>
+                            <div class="color-picker-group">
+                                <label>Border Color</label>
+                                <input type="color" id="cpBorder" value="#e2e8f0" onchange="previewTheme()">
+                                <span class="color-hex" id="hexBorder">#e2e8f0</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                            <h4 class="font-semibold mb-3 text-sm text-gray-600 dark:text-gray-400">📊 SIDEBAR</h4>
+                            <div class="color-picker-group">
+                                <label>Sidebar Background</label>
+                                <input type="color" id="cpSidebar" value="#ffffff" onchange="previewTheme()">
+                                <span class="color-hex" id="hexSidebar">#ffffff</span>
+                            </div>
+                            <div class="color-picker-group">
+                                <label>Sidebar Text</label>
+                                <input type="color" id="cpSidebarText" value="#1e293b" onchange="previewTheme()">
+                                <span class="color-hex" id="hexSidebarText">#1e293b</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Button -->
+                    <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p class="text-sm text-blue-700 dark:text-blue-300">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <strong>Live Preview:</strong> Colors apply instantly as you pick them. Click "Apply & Save" to save permanently.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
              <section id="settings" class="section-content hidden fade-in">
                 <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 max-w-2xl">
                     <h3 class="font-bold mb-6" data-i18n="systemSettings">System Settings</h3>
@@ -396,7 +531,6 @@
                     <div>
                         <label class="block text-sm font-medium mb-1">Currency</label>
                         <select id="currency" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600">
-                            <!-- Will be populated dynamically -->
                         </select>
                     </div>
                     <div>
@@ -517,7 +651,6 @@
         let isDashboardInitialized = false;
 
         // ================= CURRENCY MANAGEMENT =================
-        // Built-in currencies (cannot be deleted)
         const BUILT_IN_CURRENCIES = {
             USD: { symbol: '$', name: 'US Dollar', rate: 1.00, flag: '🇺🇸', custom: false },
             EUR: { symbol: '€', name: 'Euro', rate: 0.92, flag: '🇪🇺', custom: false },
@@ -528,13 +661,9 @@
             KWD: { symbol: 'د.ك', name: 'Kuwaiti Dinar', rate: 0.31, flag: '🇰🇼', custom: false }
         };
 
-        // Custom currencies (stored in localStorage)
         function getCustomCurrencies() {
-            try {
-                return JSON.parse(localStorage.getItem('customCurrencies') || '{}');
-            } catch (e) {
-                return {};
-            }
+            try { return JSON.parse(localStorage.getItem('customCurrencies') || '{}'); }
+            catch (e) { return {}; }
         }
 
         function saveCustomCurrencies(currencies) {
@@ -548,10 +677,8 @@
         function populateCurrencyDropdown() {
             const select = document.getElementById('currency');
             if (!select) return;
-
             const allCurrencies = getAllCurrencies();
             select.innerHTML = '';
-
             Object.entries(allCurrencies).forEach(([code, data]) => {
                 const option = document.createElement('option');
                 option.value = code;
@@ -563,26 +690,18 @@
         function renderCurrenciesTable() {
             const tbody = document.getElementById('currenciesTableBody');
             if (!tbody) return;
-
             const allCurrencies = getAllCurrencies();
-
             tbody.innerHTML = Object.entries(allCurrencies).map(([code, data]) => {
                 const isCustom = data.custom === true;
                 const typeBadge = isCustom 
                     ? '<span class="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200">Custom</span>'
                     : '<span class="px-2 py-1 rounded text-xs font-bold bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-200">Built-in</span>';
-
                 const actions = isCustom 
                     ? `<div class="flex gap-2">
-                        <button onclick="editCurrency('${code}')" class="p-2 text-blue-500 hover:text-blue-700 transition" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="deleteCurrency('${code}')" class="p-2 text-red-500 hover:text-red-700 transition" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <button onclick="editCurrency('${code}')" class="p-2 text-blue-500 hover:text-blue-700 transition" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteCurrency('${code}')" class="p-2 text-red-500 hover:text-red-700 transition" title="Delete"><i class="fas fa-trash"></i></button>
                        </div>`
                     : '<span class="text-xs text-gray-400">—</span>';
-
                 return `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                         <td class="p-4 font-bold">${data.flag || ''} ${code}</td>
@@ -591,8 +710,7 @@
                         <td class="p-4 font-mono">${data.rate}</td>
                         <td class="p-4">${typeBadge}</td>
                         <td class="p-4">${actions}</td>
-                    </tr>
-                `;
+                    </tr>`;
             }).join('');
         }
 
@@ -608,7 +726,6 @@
             const allCurrencies = getAllCurrencies();
             const currency = allCurrencies[code];
             if (!currency || !currency.custom) return;
-
             document.getElementById('currencyModalTitle').textContent = 'Edit Currency';
             document.getElementById('editCurrencyCode').value = code;
             document.getElementById('curCode').value = code;
@@ -622,20 +739,11 @@
         function deleteCurrency(code) {
             const allCurrencies = getAllCurrencies();
             const currency = allCurrencies[code];
-
-            if (!currency || !currency.custom) {
-                showToast('Cannot delete built-in currency', 'error');
-                return;
-            }
-
-            if (!confirm(`Are you sure you want to delete ${code} (${currency.name})?`)) {
-                return;
-            }
-
+            if (!currency || !currency.custom) { showToast('Cannot delete built-in currency', 'error'); return; }
+            if (!confirm(`Are you sure you want to delete ${code} (${currency.name})?`)) return;
             const customCurrencies = getCustomCurrencies();
             delete customCurrencies[code];
             saveCustomCurrencies(customCurrencies);
-
             renderCurrenciesTable();
             populateCurrencyDropdown();
             showToast(`${code} deleted successfully`, 'success');
@@ -643,46 +751,175 @@
 
         document.getElementById('currencyForm').addEventListener('submit', (e) => {
             e.preventDefault();
-
             const editCode = document.getElementById('editCurrencyCode').value;
             const code = document.getElementById('curCode').value.toUpperCase().trim();
             const symbol = document.getElementById('curSymbol').value.trim();
             const name = document.getElementById('curName').value.trim();
             const rate = parseFloat(document.getElementById('curRate').value);
-
-            if (!code || !symbol || !name || isNaN(rate)) {
-                showToast('All fields are required', 'error');
-                return;
-            }
-
+            if (!code || !symbol || !name || isNaN(rate)) { showToast('All fields are required', 'error'); return; }
             const customCurrencies = getCustomCurrencies();
             const allCurrencies = getAllCurrencies();
-
-            // Check if code already exists
-            if (!editCode && allCurrencies[code]) {
-                showToast(`Currency ${code} already exists`, 'error');
-                return;
-            }
-
-            // If editing, remove old entry first
-            if (editCode && editCode !== code) {
-                delete customCurrencies[editCode];
-            }
-
-            // Add/update currency
-            customCurrencies[code] = {
-                symbol,
-                name,
-                rate,
-                custom: true
-            };
-
+            if (!editCode && allCurrencies[code]) { showToast(`Currency ${code} already exists`, 'error'); return; }
+            if (editCode && editCode !== code) delete customCurrencies[editCode];
+            customCurrencies[code] = { symbol, name, rate, custom: true };
             saveCustomCurrencies(customCurrencies);
             closeModal('currencyModal');
             renderCurrenciesTable();
             populateCurrencyDropdown();
             showToast(editCode ? 'Currency updated!' : 'Currency added!', 'success');
         });
+
+        // ================= THEME CUSTOMIZER =================
+        const THEME_PRESETS = {
+            default: { primary: '#3b82f6', accent: '#8b5cf6', bg: '#f1f5f9', card: '#ffffff', text: '#1e293b', border: '#e2e8f0', sidebar: '#ffffff', sidebarText: '#1e293b' },
+            red: { primary: '#ef4444', accent: '#f97316', bg: '#fef2f2', card: '#ffffff', text: '#1e293b', border: '#fecaca', sidebar: '#ffffff', sidebarText: '#1e293b' },
+            green: { primary: '#10b981', accent: '#059669', bg: '#f0fdf4', card: '#ffffff', text: '#1e293b', border: '#bbf7d0', sidebar: '#ffffff', sidebarText: '#1e293b' },
+            purple: { primary: '#8b5cf6', accent: '#ec4899', bg: '#faf5ff', card: '#ffffff', text: '#1e293b', border: '#e9d5ff', sidebar: '#ffffff', sidebarText: '#1e293b' },
+            orange: { primary: '#f59e0b', accent: '#ef4444', bg: '#fffbeb', card: '#ffffff', text: '#1e293b', border: '#fed7aa', sidebar: '#ffffff', sidebarText: '#1e293b' },
+            cyan: { primary: '#06b6d4', accent: '#3b82f6', bg: '#ecfeff', card: '#ffffff', text: '#1e293b', border: '#a5f3fc', sidebar: '#ffffff', sidebarText: '#1e293b' },
+            dark: { primary: '#60a5fa', accent: '#a78bfa', bg: '#0f172a', card: '#1e293b', text: '#e2e8f0', border: '#334155', sidebar: '#1e293b', sidebarText: '#e2e8f0' },
+            gold: { primary: '#d4af37', accent: '#b8860b', bg: '#fffef5', card: '#ffffff', text: '#1e293b', border: '#f4e5b0', sidebar: '#ffffff', sidebarText: '#1e293b' }
+        };
+
+        function applyPreset(presetName) {
+            const preset = THEME_PRESETS[presetName];
+            if (!preset) return;
+            document.getElementById('cpPrimary').value = preset.primary;
+            document.getElementById('cpAccent').value = preset.accent;
+            document.getElementById('cpBg').value = preset.bg;
+            document.getElementById('cpCard').value = preset.card;
+            document.getElementById('cpText').value = preset.text;
+            document.getElementById('cpBorder').value = preset.border;
+            document.getElementById('cpSidebar').value = preset.sidebar;
+            document.getElementById('cpSidebarText').value = preset.sidebarText;
+
+            document.querySelectorAll('.theme-preset').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+
+            previewTheme();
+            showToast(`🎨 ${presetName.charAt(0).toUpperCase() + presetName.slice(1)} preset applied!`, 'success');
+        }
+
+        function previewTheme() {
+            const primary = document.getElementById('cpPrimary').value;
+            const accent = document.getElementById('cpAccent').value;
+            const bg = document.getElementById('cpBg').value;
+            const card = document.getElementById('cpCard').value;
+            const text = document.getElementById('cpText').value;
+            const border = document.getElementById('cpBorder').value;
+            const sidebar = document.getElementById('cpSidebar').value;
+            const sidebarText = document.getElementById('cpSidebarText').value;
+
+            // Update hex displays
+            document.getElementById('hexPrimary').textContent = primary;
+            document.getElementById('hexAccent').textContent = accent;
+            document.getElementById('hexBg').textContent = bg;
+            document.getElementById('hexCard').textContent = card;
+            document.getElementById('hexText').textContent = text;
+            document.getElementById('hexBorder').textContent = border;
+            document.getElementById('hexSidebar').textContent = sidebar;
+            document.getElementById('hexSidebarText').textContent = sidebarText;
+
+            // Apply CSS variables
+            document.documentElement.style.setProperty('--custom-primary', primary);
+            document.documentElement.style.setProperty('--custom-accent', accent);
+            document.documentElement.style.setProperty('--custom-bg', bg);
+            document.documentElement.style.setProperty('--custom-card', card);
+            document.documentElement.style.setProperty('--custom-text', text);
+            document.documentElement.style.setProperty('--custom-border', border);
+            document.documentElement.style.setProperty('--custom-sidebar', sidebar);
+            document.documentElement.style.setProperty('--custom-sidebar-text', sidebarText);
+
+            // Apply to body and elements
+            document.body.style.background = bg;
+            document.body.style.color = text;
+
+            // Apply to sidebar
+            const sidebarEl = document.getElementById('sidebarEl');
+            if (sidebarEl) {
+                sidebarEl.style.background = sidebar;
+                sidebarEl.style.color = sidebarText;
+            }
+
+            // Apply to all cards
+            document.querySelectorAll('.bg-white.dark\\:bg-darkCard, .bg-white').forEach(el => {
+                if (!el.closest('#sidebarEl') && !el.closest('#loginPage')) {
+                    el.style.background = card;
+                    el.style.color = text;
+                    el.style.borderColor = border;
+                }
+            });
+
+            // Apply to primary buttons
+            document.querySelectorAll('.bg-primary, .bg-blue-600').forEach(el => {
+                el.style.background = primary;
+            });
+
+            // Apply to borders
+            document.querySelectorAll('.border-gray-200, .border-gray-300').forEach(el => {
+                el.style.borderColor = border;
+            });
+        }
+
+        function applyCustomTheme() {
+            const theme = {
+                primary: document.getElementById('cpPrimary').value,
+                accent: document.getElementById('cpAccent').value,
+                bg: document.getElementById('cpBg').value,
+                card: document.getElementById('cpCard').value,
+                text: document.getElementById('cpText').value,
+                border: document.getElementById('cpBorder').value,
+                sidebar: document.getElementById('cpSidebar').value,
+                sidebarText: document.getElementById('cpSidebarText').value
+            };
+            localStorage.setItem('customTheme', JSON.stringify(theme));
+            previewTheme();
+            showToast('✅ Theme saved successfully!', 'success');
+        }
+
+        function loadCustomTheme() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('customTheme'));
+                if (!saved) return;
+                document.getElementById('cpPrimary').value = saved.primary || '#3b82f6';
+                document.getElementById('cpAccent').value = saved.accent || '#8b5cf6';
+                document.getElementById('cpBg').value = saved.bg || '#f1f5f9';
+                document.getElementById('cpCard').value = saved.card || '#ffffff';
+                document.getElementById('cpText').value = saved.text || '#1e293b';
+                document.getElementById('cpBorder').value = saved.border || '#e2e8f0';
+                document.getElementById('cpSidebar').value = saved.sidebar || '#ffffff';
+                document.getElementById('cpSidebarText').value = saved.sidebarText || '#1e293b';
+                previewTheme();
+            } catch (e) { console.warn('Failed to load custom theme:', e); }
+        }
+
+        function resetCustomTheme() {
+            if (!confirm('Reset to default theme? All custom colors will be lost.')) return;
+            localStorage.removeItem('customTheme');
+            document.getElementById('cpPrimary').value = '#3b82f6';
+            document.getElementById('cpAccent').value = '#8b5cf6';
+            document.getElementById('cpBg').value = '#f1f5f9';
+            document.getElementById('cpCard').value = '#ffffff';
+            document.getElementById('cpText').value = '#1e293b';
+            document.getElementById('cpBorder').value = '#e2e8f0';
+            document.getElementById('cpSidebar').value = '#ffffff';
+            document.getElementById('cpSidebarText').value = '#1e293b';
+
+            // Remove inline styles
+            document.body.removeAttribute('style');
+            const sidebarEl = document.getElementById('sidebarEl');
+            if (sidebarEl) sidebarEl.removeAttribute('style');
+
+            document.querySelectorAll('[style]').forEach(el => {
+                if (el.style.background || el.style.color || el.style.borderColor) {
+                    el.style.background = '';
+                    el.style.color = '';
+                    el.style.borderColor = '';
+                }
+            });
+
+            showToast('🔄 Theme reset to default', 'info');
+        }
 
         const translations = {
             en: {
@@ -692,6 +929,7 @@
                 revenue: 'Revenue', subscriptions: 'Subscriptions', settings: 'System Settings',
                 currencies: 'Currencies', manageCurrencies: '💱 Manage Currencies', addCurrency: 'Add Currency',
                 currencyInfo: 'Custom currencies are saved locally and will appear in hotel currency dropdowns.',
+                themeCustomizer: 'Theme Customizer', themeCustomizerTitle: 'Theme Customizer',
                 totalHotels: 'Total Hotels', totalRevenue: 'Total Revenue',
                 activeSubs: 'Active Subscriptions', totalGuests: 'Total Guests',
                 revenueChart: 'Revenue Overview', subChart: 'Subscription Distribution',
@@ -718,7 +956,8 @@
                 dashboard: 'डैशबोर्ड', overview: 'अवलोकन', hotels: 'सभी होटल',
                 revenue: 'राजस्व', subscriptions: 'सब्सक्रिप्शन', settings: 'सिस्टम सेटिंग्स',
                 currencies: 'मुद्राएं', manageCurrencies: '💱 मुद्राएं प्रबंधित करें', addCurrency: 'मुद्रा जोड़ें',
-                currencyInfo: 'कस्टम मुद्राएं स्थानीय रूप से सेव की जाती हैं और होटल मुद्रा ड्रॉपडाउन में दिखाई देंगी।',
+                currencyInfo: 'कस्टम मुद्राएं स्थानीय रूप से सेव की जाती हैं।',
+                themeCustomizer: 'थीम कस्टमाइज़र', themeCustomizerTitle: 'थीम कस्टमाइज़र',
                 totalHotels: 'कुल होटल', totalRevenue: 'कुल राजस्व',
                 activeSubs: 'सक्रिय सदस्यता', totalGuests: 'कुल अतिथि',
                 revenueChart: 'राजस्व अवलोकन', subChart: 'सदस्यता वितरण',
@@ -732,12 +971,12 @@
                 maintenanceEnabled: 'मेंटेनेंस मोड चालू', maintenanceDisabled: 'मेंटेनेंस मोड बंद',
                 emailEnabled: 'ईमेल नोटिफिकेशन चालू', emailDisabled: 'ईमेल नोटिफिकेशन बंद',
                 apiKeyCopied: 'API की कॉपी कर ली गई!',
-                invalidCredentials: 'अमान्य क्रेडेंशियल्स। कृपया पुनः प्रयास करें।',
-                loginFailed: 'लॉगिन विफल। कृपया सर्वर कनेक्शन जांचें।',
-                apiError: 'सर्वर त्रुटि। कृपया बाद में पुनः प्रयास करें।',
-                adminUpdated: 'एडमिन क्रेडेंशियल्स सफलतापूर्वक अपडेट किए गए!',
-                networkError: 'नेटवर्क त्रुटि। बैकएंड चल रहा है जांचें।',
-                sessionExpired: 'सत्र समाप्त। कृपया फिर से लॉगिन करें।'
+                invalidCredentials: 'अमान्य क्रेडेंशियल्स।',
+                loginFailed: 'लॉगिन विफल।',
+                apiError: 'सर्वर त्रुटि।',
+                adminUpdated: 'एडमिन अपडेट!',
+                networkError: 'नेटवर्क त्रुटि।',
+                sessionExpired: 'सत्र समाप्त।'
             },
             ar: {
                 superAdminLogin: 'تسجيل دخول المسؤول الرئيسي', loginSubtitle: 'الوصول إلى مركز التحكم',
@@ -745,7 +984,8 @@
                 dashboard: 'لوحة القيادة', overview: 'نظرة عامة', hotels: 'جميع الفنادق',
                 revenue: 'الإيرادات', subscriptions: 'الاشتراكات', settings: 'إعدادات النظام',
                 currencies: 'العملات', manageCurrencies: '💱 إدارة العملات', addCurrency: 'إضافة عملة',
-                currencyInfo: 'يتم حفظ العملات المخصصة محليًا وستظهر في قوائم العملات للفنادق.',
+                currencyInfo: 'يتم حفظ العملات المخصصة محليًا.',
+                themeCustomizer: 'مخصص السمة', themeCustomizerTitle: 'مخصص السمة',
                 totalHotels: 'إجمالي الفنادق', totalRevenue: 'إجمالي الإيرادات',
                 activeSubs: 'الاشتراكات النشطة', totalGuests: 'إجمالي الضيوف',
                 revenueChart: 'نظرة عامة على الإيرادات', subChart: 'توزيع الاشتراكات',
@@ -759,12 +999,12 @@
                 maintenanceEnabled: 'تم تفعيل وضع الصيانة', maintenanceDisabled: 'تم تعطيل وضع الصيانة',
                 emailEnabled: 'تم تفعيل إشعارات البريد', emailDisabled: 'تم تعطيل إشعارات البريد',
                 apiKeyCopied: 'تم نسخ مفتاح API!',
-                invalidCredentials: 'بيانات اعتماد غير صالحة. يرجى المحاولة مرة أخرى.',
-                loginFailed: 'فشل تسجيل الدخول. يرجى التحقق من اتصال الخادم.',
-                apiError: 'خطأ في الخادم. يرجى المحاولة لاحقًا.',
-                adminUpdated: 'تم تحديث بيانات المسؤول بنجاح!',
-                networkError: 'خطأ في الشبكة. تحقق من تشغيل الخادم.',
-                sessionExpired: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.'
+                invalidCredentials: 'بيانات اعتماد غير صالحة.',
+                loginFailed: 'فشل تسجيل الدخول.',
+                apiError: 'خطأ في الخادم.',
+                adminUpdated: 'تم تحديث المسؤول!',
+                networkError: 'خطأ في الشبكة.',
+                sessionExpired: 'انتهت الجلسة.'
             }
         };
 
@@ -773,6 +1013,7 @@
             applyTheme();
             applyLang();
             populateCurrencyDropdown();
+            loadCustomTheme(); // Load saved custom theme
             await checkAuth();
         });
 
@@ -780,10 +1021,8 @@
         async function apiCall(method, endpoint, body = null) {
             const headers = { 'Content-Type': 'application/json' };
             if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
             const config = { method, headers };
             if (body) config.body = JSON.stringify(body);
-
             let response;
             try {
                 response = await fetch(`${API_BASE}${endpoint}`, config);
@@ -791,7 +1030,6 @@
                 console.error('Network error:', networkError);
                 throw new Error(t('networkError'));
             }
-
             if (response.status === 401) {
                 localStorage.removeItem('superAdminToken');
                 authToken = null;
@@ -799,18 +1037,14 @@
                 setTimeout(() => location.reload(), 1500);
                 throw new Error(t('sessionExpired'));
             }
-
             const contentType = response.headers.get('content-type') || '';
             if (!contentType.includes('application/json')) {
                 const text = await response.text();
                 console.error('Non-JSON response:', text.substring(0, 200));
                 throw new Error(`${t('apiError')} (Status: ${response.status})`);
             }
-
             const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || data.message || `${t('apiError')} (Status: ${response.status})`);
-            }
+            if (!response.ok) throw new Error(data.error || data.message || `${t('apiError')} (Status: ${response.status})`);
             return data;
         }
 
@@ -821,40 +1055,25 @@
             const pass = document.getElementById('saPass').value;
             const loginBtn = document.getElementById('loginBtn');
             const loginError = document.getElementById('loginError');
-
             loginError.classList.add('hidden');
             loginError.textContent = '';
-
-            if (!email || !pass) {
-                loginError.textContent = t('invalidCredentials');
-                loginError.classList.remove('hidden');
-                return;
-            }
-
+            if (!email || !pass) { loginError.textContent = t('invalidCredentials'); loginError.classList.remove('hidden'); return; }
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<span class="spinner"></span> <span>' + t('loading') + '</span>';
-
             try {
                 const response = await fetch(`${API_BASE}/admin/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password: pass, hotelId: 'SUPER_ADMIN' })
                 });
-
                 const contentType = response.headers.get('content-type') || '';
-                if (!contentType.includes('application/json')) {
-                    throw new Error(t('loginFailed') + ' (Invalid server response)');
-                }
-
+                if (!contentType.includes('application/json')) throw new Error(t('loginFailed') + ' (Invalid server response)');
                 const data = await response.json();
-
                 if (response.ok && data.token) {
                     authToken = data.token;
                     localStorage.setItem('superAdminToken', authToken);
-
                     document.getElementById('loginPage').classList.add('hidden');
                     document.getElementById('dashboard').classList.remove('hidden');
-
                     showToast(t('success'), 'success');
                     await initDashboard();
                 } else {
@@ -881,7 +1100,6 @@
                 document.getElementById('dashboard').classList.add('hidden');
                 return;
             }
-
             try {
                 await apiCall('GET', '/super/stats');
                 document.getElementById('loginPage').classList.add('hidden');
@@ -908,46 +1126,30 @@
         async function initDashboard() {
             if (isDashboardInitialized) return;
             isDashboardInitialized = true;
-
-            try {
-                await loadHotels();
-            } catch (e) { console.error('loadHotels failed:', e); }
-
-            try {
-                await loadStats();
-            } catch (e) { console.error('loadStats failed:', e); }
-
+            try { await loadHotels(); } catch (e) { console.error('loadHotels failed:', e); }
+            try { await loadStats(); } catch (e) { console.error('loadStats failed:', e); }
             renderCharts();
             renderCurrenciesTable();
-
-            try {
-                await loadTransactions();
-            } catch (e) { console.error('loadTransactions failed:', e); }
+            try { await loadTransactions(); } catch (e) { console.error('loadTransactions failed:', e); }
         }
 
         function showSection(sectionId) {
             document.querySelectorAll('.section-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(sectionId).classList.remove('hidden');
-
             document.querySelectorAll('.nav-btn').forEach(el => {
                 el.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'active-nav');
             });
             document.getElementById('nav-' + sectionId).classList.add('bg-gray-100', 'dark:bg-gray-700', 'active-nav');
-
             const titles = {
                 overview: 'dashboard', hotels: 'registeredHotels',
                 revenue: 'recentTransactions', subscriptions: 'subscriptions',
-                currencies: 'manageCurrencies', settings: 'systemSettings'
+                currencies: 'manageCurrencies', settings: 'systemSettings',
+                themeCustomizer: 'themeCustomizerTitle'
             };
             document.getElementById('pageTitle').setAttribute('data-i18n', titles[sectionId]);
             applyLang();
-
-            if (sectionId === 'hotels' && hotels.length === 0) {
-                loadHotels();
-            }
-            if (sectionId === 'currencies') {
-                renderCurrenciesTable();
-            }
+            if (sectionId === 'hotels' && hotels.length === 0) loadHotels();
+            if (sectionId === 'currencies') renderCurrenciesTable();
         }
 
         // ================= HOTEL MANAGEMENT =================
@@ -956,10 +1158,7 @@
                 const response = await apiCall('GET', '/super/tenants');
                 hotels = response.data || response.hotels || response || [];
                 if (!Array.isArray(hotels)) hotels = [];
-            } catch (error) {
-                console.error('Failed to load hotels:', error);
-                hotels = [];
-            }
+            } catch (error) { console.error('Failed to load hotels:', error); hotels = []; }
             renderHotelsTable();
         }
 
@@ -967,13 +1166,7 @@
             const tbody = document.getElementById('hotelsTableBody');
             const emptyState = document.getElementById('hotelsEmpty');
             const list = filteredHotels || hotels;
-
-            if (list.length === 0) {
-                tbody.innerHTML = '';
-                emptyState.classList.remove('hidden');
-                return;
-            }
-
+            if (list.length === 0) { tbody.innerHTML = ''; emptyState.classList.remove('hidden'); return; }
             emptyState.classList.add('hidden');
             tbody.innerHTML = list.map(hotel => {
                 const expiryDate = hotel.subscriptionExpiry ? new Date(hotel.subscriptionExpiry).toLocaleDateString() : 'N/A';
@@ -982,38 +1175,21 @@
                 const statusText = isActive ? 'Active' : 'Trial';
                 const hotelId = (hotel.hotelId || hotel._id || '').toString().replace(/'/g, "\\'");
                 const hotelName = (hotel.hotelName || hotel.name || '').toString().replace(/'/g, "\\'");
-
                 return `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                         <td class="p-4 font-medium">${hotel.hotelName || hotel.name || 'N/A'}</td>
                         <td class="p-4 text-gray-500">${hotel.adminEmail || hotel.email || 'N/A'}</td>
-                        <td class="p-4">
-                            <span class="px-2 py-1 rounded text-xs font-bold ${getPlanBadge(hotel.subscriptionType || hotel.plan)}">
-                                ${(hotel.subscriptionType || hotel.plan || 'BASIC').toUpperCase()}
-                            </span>
-                        </td>
+                        <td class="p-4"><span class="px-2 py-1 rounded text-xs font-bold ${getPlanBadge(hotel.subscriptionType || hotel.plan)}">${(hotel.subscriptionType || hotel.plan || 'BASIC').toUpperCase()}</span></td>
                         <td class="p-4 text-gray-500">${expiryDate}</td>
-                        <td class="p-4">
-                            <span class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full ${statusClass}"></span>
-                                ${statusText}
-                            </span>
-                        </td>
+                        <td class="p-4"><span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full ${statusClass}"></span>${statusText}</span></td>
                         <td class="p-4">
                             <div class="flex gap-2">
-                                <button onclick="editHotel('${hotelId}')" class="p-2 text-blue-500 hover:text-blue-700 transition" title="${t('editHotel')}">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="openDeleteModal('${hotelId}', '${hotelName}')" class="p-2 text-red-500 hover:text-red-700 transition" title="${t('deleteHotel')}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                <button onclick="openAdminModal('${hotelId}')" class="p-2 text-purple-500 hover:text-purple-700 transition" title="Update Admin">
-                                    <i class="fas fa-user-cog"></i>
-                                </button>
+                                <button onclick="editHotel('${hotelId}')" class="p-2 text-blue-500 hover:text-blue-700 transition" title="${t('editHotel')}"><i class="fas fa-edit"></i></button>
+                                <button onclick="openDeleteModal('${hotelId}', '${hotelName}')" class="p-2 text-red-500 hover:text-red-700 transition" title="${t('deleteHotel')}"><i class="fas fa-trash"></i></button>
+                                <button onclick="openAdminModal('${hotelId}')" class="p-2 text-purple-500 hover:text-purple-700 transition" title="Update Admin"><i class="fas fa-user-cog"></i></button>
                             </div>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
             }).join('');
         }
 
@@ -1030,17 +1206,13 @@
         function filterHotels() {
             const searchTerm = document.getElementById('hotelSearch').value.toLowerCase();
             const statusFilter = document.getElementById('hotelFilter').value;
-
             const filtered = hotels.filter(hotel => {
                 const name = (hotel.hotelName || hotel.name || '').toLowerCase();
                 const email = (hotel.adminEmail || hotel.email || '').toLowerCase();
                 const id = (hotel.hotelId || hotel._id || '').toLowerCase();
                 const matchesSearch = name.includes(searchTerm) || email.includes(searchTerm) || id.includes(searchTerm);
                 const isActive = hotel.active !== false;
-                const matchesStatus = statusFilter === 'all' ||
-                    (statusFilter === 'Active' && isActive) ||
-                    (statusFilter === 'Trial' && !isActive) ||
-                    (statusFilter === 'Inactive' && !isActive);
+                const matchesStatus = statusFilter === 'all' || (statusFilter === 'Active' && isActive) || (statusFilter === 'Trial' && !isActive) || (statusFilter === 'Inactive' && !isActive);
                 return matchesSearch && matchesStatus;
             });
             renderHotelsTable(filtered);
@@ -1063,7 +1235,6 @@
         function editHotel(hotelId) {
             const hotel = hotels.find(h => (h.hotelId === hotelId || h._id === hotelId));
             if (!hotel) return;
-
             document.getElementById('modalTitle').textContent = t('editHotel');
             document.getElementById('modalSubmitText').textContent = t('save');
             document.getElementById('editHotelId').value = hotel.hotelId || hotel._id;
@@ -1103,10 +1274,8 @@
         // ================= FORM HANDLERS =================
         document.getElementById('hotelForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const editId = document.getElementById('editHotelId').value;
             const adminPassword = document.getElementById('adminPassword').value;
-
             const hotelData = {
                 hotelId: document.getElementById('hotelId').value.trim(),
                 hotelName: document.getElementById('hotelName').value.trim(),
@@ -1115,24 +1284,15 @@
                 language: document.getElementById('language').value,
                 subscriptionType: document.getElementById('subscriptionType').value
             };
-
             if (adminPassword) hotelData.adminPassword = adminPassword;
-
             if (!hotelData.hotelId || !hotelData.hotelName || !hotelData.adminEmail) {
-                showToast(t('error') + 'All required fields must be filled', 'error');
-                return;
+                showToast(t('error') + 'All required fields must be filled', 'error'); return;
             }
-
-            if (!editId && !adminPassword) {
-                showToast(t('error') + 'Password is required for new hotels', 'error');
-                return;
-            }
-
+            if (!editId && !adminPassword) { showToast(t('error') + 'Password is required for new hotels', 'error'); return; }
             const submitBtn = document.getElementById('hotelSubmitBtn');
             const originalText = document.getElementById('modalSubmitText').textContent;
             submitBtn.disabled = true;
             document.getElementById('modalSubmitText').innerHTML = '<span class="spinner"></span> ' + (editId ? t('saving') : t('loading'));
-
             try {
                 if (editId) {
                     await apiCall('PUT', `/super/tenants/${editId}`, hotelData);
@@ -1141,12 +1301,10 @@
                     await apiCall('POST', '/super/tenants/register', hotelData);
                     showToast(t('hotelAdded'), 'success');
                 }
-
                 closeModal('hotelModal');
                 await loadHotels();
                 await loadStats();
                 renderCharts();
-
             } catch (error) {
                 console.error('Hotel save error:', error);
                 showToast(t('error') + (error.message || 'Unknown error'), 'error');
@@ -1158,25 +1316,17 @@
 
         document.getElementById('adminForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const hotelId = document.getElementById('editAdminHotelId').value;
             const newEmail = document.getElementById('newAdminEmail').value.trim();
             const newPassword = document.getElementById('newAdminPassword').value;
-
-            if (!newEmail && !newPassword) {
-                showToast(t('error') + 'Please provide email or password', 'error');
-                return;
-            }
-
+            if (!newEmail && !newPassword) { showToast(t('error') + 'Please provide email or password', 'error'); return; }
             const submitBtn = document.getElementById('adminSubmitBtn');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner"></span> ' + t('saving');
-
             try {
                 const payload = { hotelId: hotelId, role: 'admin' };
                 if (newEmail) payload.email = newEmail;
                 if (newPassword) payload.password = newPassword;
-
                 await apiCall('POST', '/super/admins/register', payload);
                 showToast(t('adminUpdated'), 'success');
                 closeModal('adminModal');
@@ -1194,7 +1344,6 @@
             const deleteBtn = document.getElementById('deleteConfirmBtn');
             deleteBtn.disabled = true;
             deleteBtn.innerHTML = '<span class="spinner"></span> ' + t('deleting');
-
             try {
                 await apiCall('DELETE', `/super/tenants/${hotelId}`);
                 showToast(t('hotelDeleted'), 'success');
@@ -1212,49 +1361,34 @@
             }
         }
 
-        // ================= SUBSCRIPTION MANAGEMENT =================
         function managePlan(plan) {
             const planNames = { free: 'Free', basic: 'Free', pro: 'Pro', enterprise: 'Enterprise' };
             const filtered = hotels.filter(h => (h.subscriptionType || h.plan) === plan);
-
-            if (filtered.length === 0) {
-                showToast(`No hotels on ${planNames[plan] || plan} plan`, 'info');
-                return;
-            }
-
+            if (filtered.length === 0) { showToast(`No hotels on ${planNames[plan] || plan} plan`, 'info'); return; }
             renderHotelsTable(filtered);
             showSection('hotels');
             showToast(`Showing ${filtered.length} ${planNames[plan] || plan} plan hotels`, 'info');
         }
 
-        // ================= TRANSACTIONS =================
         async function loadTransactions() {
             const tbody = document.getElementById('revenueTableBody');
             if (!tbody) return;
-
             try {
                 const response = await apiCall('GET', '/super/transactions');
                 const transactions = response.data || response.transactions || response || [];
-
                 if (!Array.isArray(transactions) || transactions.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">No transactions yet</td></tr>';
-                    return;
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">No transactions yet</td></tr>'; return;
                 }
-
                 tbody.innerHTML = transactions.map(tx => {
                     const date = (tx.date || tx.createdAt) ? new Date(tx.date || tx.createdAt).toLocaleDateString() : 'N/A';
                     const amount = tx.amount ? `$${Number(tx.amount).toLocaleString()}` : '$0';
                     const typeClass = tx.type === 'subscription' ? 'text-blue-500' : tx.type === 'payment' ? 'text-green-500' : 'text-gray-500';
-
-                    return `
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                            <td class="p-4 font-mono text-xs">${tx._id || tx.id || 'N/A'}</td>
-                            <td class="p-4">${tx.hotelName || tx.hotelId || 'N/A'}</td>
-                            <td class="p-4"><span class="${typeClass} font-medium">${tx.type || 'N/A'}</span></td>
-                            <td class="p-4 font-bold text-green-500">${amount}</td>
-                            <td class="p-4 text-gray-500">${date}</td>
-                        </tr>
-                    `;
+                    return `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                        <td class="p-4 font-mono text-xs">${tx._id || tx.id || 'N/A'}</td>
+                        <td class="p-4">${tx.hotelName || tx.hotelId || 'N/A'}</td>
+                        <td class="p-4"><span class="${typeClass} font-medium">${tx.type || 'N/A'}</span></td>
+                        <td class="p-4 font-bold text-green-500">${amount}</td>
+                        <td class="p-4 text-gray-500">${date}</td></tr>`;
                 }).join('');
             } catch (error) {
                 console.error('Failed to load transactions:', error);
@@ -1262,14 +1396,11 @@
             }
         }
 
-        // ================= SETTINGS =================
         function toggleMaintenance() {
             const enabled = document.getElementById('maintenanceToggle').checked;
             maintenanceMode = enabled;
             showToast(enabled ? t('maintenanceEnabled') : t('maintenanceDisabled'), enabled ? 'warning' : 'success');
-            apiCall('PUT', '/super/settings', { maintenanceMode: enabled }).catch(err => {
-                console.warn('Failed to sync maintenance mode:', err);
-            });
+            apiCall('PUT', '/super/settings', { maintenanceMode: enabled }).catch(err => console.warn('Failed to sync maintenance mode:', err));
         }
 
         function toggleEmailNotifs() {
@@ -1283,7 +1414,6 @@
             navigator.clipboard.writeText(apiKey).then(() => showToast(t('apiKeyCopied'), 'success'));
         }
 
-        // ================= STATS & CHARTS =================
         async function loadStats() {
             try {
                 const response = await apiCall('GET', '/super/stats');
@@ -1293,10 +1423,7 @@
                 console.warn('Stats API failed, calculating from hotels:', error.message);
                 updateStats({
                     totalHotels: hotels.length,
-                    totalRevenue: hotels.reduce((sum, h) => {
-                        const plan = h.subscriptionType || h.plan;
-                        return sum + (plan === 'enterprise' ? 499 : plan === 'pro' ? 99 : 0);
-                    }, 0),
+                    totalRevenue: hotels.reduce((sum, h) => { const plan = h.subscriptionType || h.plan; return sum + (plan === 'enterprise' ? 499 : plan === 'pro' ? 99 : 0); }, 0),
                     activeSubscriptions: hotels.filter(h => h.active !== false).length,
                     totalGuests: hotels.reduce((sum, h) => sum + (h.stats?.guests || h.totalGuests || 0), 0)
                 });
@@ -1315,97 +1442,36 @@
             const ctx1 = document.getElementById('revenueChart');
             if (!ctx1) return;
             if (revenueChart) revenueChart.destroy();
-
             const monthlyRevenue = calculateMonthlyRevenue();
-
             revenueChart = new Chart(ctx1, {
                 type: 'line',
-                data: {
-                    labels: monthlyRevenue.labels,
-                    datasets: [{
-                        label: 'Revenue ($)',
-                        data: monthlyRevenue.data,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { color: isDark ? '#94a3b8' : '#64748b' },
-                            grid: { color: isDark ? '#334155' : '#e2e8f0' }
-                        },
-                        x: {
-                            ticks: { color: isDark ? '#94a3b8' : '#64748b' },
-                            grid: { display: false }
-                        }
-                    }
-                }
+                data: { labels: monthlyRevenue.labels, datasets: [{ label: 'Revenue ($)', data: monthlyRevenue.data, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', tension: 0.4, fill: true }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: isDark ? '#94a3b8' : '#64748b' }, grid: { color: isDark ? '#334155' : '#e2e8f0' } }, x: { ticks: { color: isDark ? '#94a3b8' : '#64748b' }, grid: { display: false } } } }
             });
-
             const ctx2 = document.getElementById('subChart');
             if (!ctx2) return;
             if (subChart) subChart.destroy();
-
             const planCounts = { basic: 0, free: 0, pro: 0, enterprise: 0 };
-            hotels.forEach(h => {
-                const plan = h.subscriptionType || h.plan || 'basic';
-                planCounts[plan] = (planCounts[plan] || 0) + 1;
-            });
-
+            hotels.forEach(h => { const plan = h.subscriptionType || h.plan || 'basic'; planCounts[plan] = (planCounts[plan] || 0) + 1; });
             subChart = new Chart(ctx2, {
                 type: 'doughnut',
-                data: {
-                    labels: ['Free/Basic', 'Pro', 'Enterprise'],
-                    datasets: [{
-                        data: [planCounts.basic + (planCounts.free || 0), planCounts.pro, planCounts.enterprise],
-                        backgroundColor: ['#94a3b8', '#3b82f6', '#8b5cf6'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: isDark ? '#94a3b8' : '#64748b' }
-                        }
-                    }
-                }
+                data: { labels: ['Free/Basic', 'Pro', 'Enterprise'], datasets: [{ data: [planCounts.basic + (planCounts.free || 0), planCounts.pro, planCounts.enterprise], backgroundColor: ['#94a3b8', '#3b82f6', '#8b5cf6'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: isDark ? '#94a3b8' : '#64748b' } } } }
             });
         }
 
         function calculateMonthlyRevenue() {
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const currentMonth = new Date().getMonth();
-            const labels = [];
-            const data = [];
-
-            for (let i = 5; i >= 0; i--) {
-                const monthIndex = (currentMonth - i + 12) % 12;
-                labels.push(months[monthIndex]);
-                data.push(0);
-            }
-
+            const labels = []; const data = [];
+            for (let i = 5; i >= 0; i--) { const monthIndex = (currentMonth - i + 12) % 12; labels.push(months[monthIndex]); data.push(0); }
             if (hotels.length > 0) {
-                const monthlyRevenue = hotels.reduce((sum, h) => {
-                    const plan = h.subscriptionType || h.plan;
-                    return sum + (plan === 'enterprise' ? 499 : plan === 'pro' ? 99 : 0);
-                }, 0);
+                const monthlyRevenue = hotels.reduce((sum, h) => { const plan = h.subscriptionType || h.plan; return sum + (plan === 'enterprise' ? 499 : plan === 'pro' ? 99 : 0); }, 0);
                 data[data.length - 1] = monthlyRevenue;
             }
-
             return { labels, data };
         }
 
-        // ================= UI HELPERS =================
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
@@ -1413,18 +1479,10 @@
             const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle';
             toast.innerHTML = `<i class="fas fa-${icon}"></i> <span>${message}</span>`;
             container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(100%)';
-                toast.style.transition = 'all 0.3s ease';
-                setTimeout(() => toast.remove(), 300);
-            }, 3500);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(100%)'; toast.style.transition = 'all 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 3500);
         }
 
-        function t(key) {
-            return translations[currentLang]?.[key] || translations.en[key] || key;
-        }
+        function t(key) { return translations[currentLang]?.[key] || translations.en[key] || key; }
 
         function toggleTheme() {
             isDark = !isDark;
@@ -1435,13 +1493,8 @@
 
         function applyTheme() {
             const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'light') {
-                isDark = false;
-                document.documentElement.classList.remove('dark');
-            } else {
-                isDark = true;
-                document.documentElement.classList.add('dark');
-            }
+            if (savedTheme === 'light') { isDark = false; document.documentElement.classList.remove('dark'); }
+            else { isDark = true; document.documentElement.classList.add('dark'); }
         }
 
         function toggleLang() {
@@ -1465,10 +1518,7 @@
 
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.classList.remove('active');
-                    document.getElementById('hotelId').disabled = false;
-                }
+                if (e.target === modal) { modal.classList.remove('active'); document.getElementById('hotelId').disabled = false; }
             });
         });
 
