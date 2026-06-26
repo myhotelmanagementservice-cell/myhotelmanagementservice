@@ -47,20 +47,64 @@ router.post('/admin/login', async (req, res) => {
       return res.status(503).json({ success: false, error: 'Database not connected' });
     }
 
-    // Find user with email and hotelId scope
-    const user = await db.collection('users').findOne({ 
-      email,
-      $or: [{ hotelId }, { hotelId: { $exists: false } }]
+    // =====================================================
+    // STEP 1: Check user in users collection
+    // =====================================================
+    let user = await db.collection('users').findOne({
+      email: email.toLowerCase().trim(),
+      hotelId: hotelId
     });
 
+    // =====================================================
+    // STEP 2: If not found, check tenants collection
+    // =====================================================
     if (!user) {
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
-    }
 
-    // Verify password with bcrypt
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
+      const tenant = await db.collection('tenants').findOne({
+        adminEmail: email.toLowerCase().trim(),
+        hotelId: hotelId,
+        active: true
+      });
+
+      if (!tenant) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid credentials for this hotel'
+        });
+      }
+
+      // Plain text password check
+      if (tenant.adminPassword !== password) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid password'
+        });
+      }
+
+      // Create temporary user object from tenant
+      user = {
+        email: tenant.adminEmail,
+        name: tenant.hotelName || 'Hotel Admin',
+        role: 'hotel_admin',
+        hotelId: tenant.hotelId,
+        permissions: ['all'],
+        active: true
+      };
+    }
+    else {
+
+      // Existing users collection password check
+      const validPassword = await bcrypt.compare(
+        password,
+        user.password
+      );
+
+      if (!validPassword) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid credentials'
+        });
+      }
     }
 
     // Check if account is active
@@ -77,11 +121,13 @@ router.post('/admin/login', async (req, res) => {
       permissions: user.permissions || []
     });
 
-    // Update last login
-    await db.collection('users').updateOne(
-      { _id: user._id },
-      { $set: { lastLogin: new Date() } }
-    );
+    // Update last login (only if user exists in users collection)
+    if (user._id) {
+      await db.collection('users').updateOne(
+        { _id: user._id },
+        { $set: { lastLogin: new Date() } }
+      );
+    }
 
     // Log the login
     await db.collection('logs').insertOne({
@@ -97,7 +143,7 @@ router.post('/admin/login', async (req, res) => {
       success: true,
       token,
       user: {
-        id: user._id,
+        id: user._id || 'tenant_' + user.hotelId,
         email: user.email,
         name: user.name,
         role: user.role,
