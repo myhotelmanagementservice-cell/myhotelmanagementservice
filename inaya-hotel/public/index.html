@@ -2366,7 +2366,7 @@ async function guestLogin(e) {
 }
 async function adminLogin(e) {   
 e.preventDefault();
-const hotelId = document.getElementById('adminHotelIdIn').value.trim();
+const hotelId = HID;
 const email = document.getElementById('adminEmailIn').value.trim();
 const pass = document.getElementById('adminPassIn').value;
 
@@ -6181,7 +6181,12 @@ if (onlineBtn) onlineBtn.textContent = isOnline ? t('online') : t('offline');
 setInterval(saveUIPrefs, 15000);
 window.addEventListener('beforeunload', saveUIPrefs);
 const ahi = document.getElementById('adminHotelIdIn');
-if (ahi && HID && HID !== 'default') ahi.value = HID;
+if (ahi && HID && HID !== 'default') {
+  ahi.value = HID;
+  ahi.readOnly = true;
+  ahi.style.background = 'var(--card2)';
+  ahi.style.cursor = 'not-allowed';
+}
 }
 document.addEventListener('click', e => {
 if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
