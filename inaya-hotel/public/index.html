@@ -4040,7 +4040,12 @@ const availableRooms = rooms.filter(r => r.status === 'Vacant').length;
 const totalGuests = guests.length;
 const activeGuests = guests.filter(g => g.status === 'active').length;
 const checkins = bookings.filter(b => b.status === 'checked-in' || b.status === 'confirmed').length;
-const checkouts = bookings.filter(b => b.status === 'checked-out').length;
+const checkouts = bookings.filter(b => 
+  b.status === 'checked-out' || 
+  b.status === 'checkedOut' || 
+  b.status === 'Checked Out' ||
+  b.status === 'checked_out'
+).length;
 const orders = requests.filter(r => r.department === 'restaurant').length; // Updated to use key
 const serviceRequests = requests.filter(r => r.status !== 'completed').length;
 const revenue = bookings.filter(b => b.status === 'checked-out' || b.status === 'confirmed').reduce((sum, b) => sum + (b.totalPriceSAR || 0), 0);
