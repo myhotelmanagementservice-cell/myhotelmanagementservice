@@ -15,8 +15,8 @@
 <script src="/socket.io/socket.io.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-* {
-font-size: inherit !important;
+*, *::before, *::after {
+font-size: inherit;
 }
 /* Prevent text selection across the webapp */
 body, * {
@@ -3145,14 +3145,8 @@ showToast('Font Decreased', 'success');
 fontSize = Math.min(24, fontSize + 2);
 showToast('Font Increased', 'success');
 }
-// ✅ FIX: Sab elements pe font apply karo
-document.documentElement.style.fontSize = fontSize + 'px';
-document.body.style.fontSize = fontSize + 'px';
-document.querySelectorAll('*').forEach(el => {
-const computed = window.getComputedStyle(el).fontSize;
-if (computed) el.style.fontSize = '';
-});
-document.documentElement.style.setProperty('--base-font', fontSize + 'px');
+document.documentElement.style.setProperty('font-size', fontSize + 'px', 'important');
+document.body.style.setProperty('font-size', fontSize + 'px', 'important');
 localStorage.setItem('hotel_fontSize', fontSize);
 saveUIPrefs();
 }
