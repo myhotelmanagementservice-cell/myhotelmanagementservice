@@ -13,163 +13,141 @@ const generateToken = (payload) => {
 };
 
 // ============================================
-// ADMIN LOGIN
+// ADMIN LOGIN — FIXED: Strict hotelId isolation
 // ============================================
 router.post('/admin/login', async (req, res) => {
   try {
     const { email, password, hotelId } = req.body;
 
-    // ========== DEBUG LOGS ==========
-    console.log('========== LOGIN DEBUG ==========');
-    console.log('EMAIL:', email);
-    console.log('PASSWORD:', password);
-    console.log('HOTEL ID:', hotelId);
+    // ✅ FIX 1: Teeno fields zaroori hain
+    if (!email || !password || !hotelId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email, password, and hotelId are required'
+      });
+    }
 
     const db = getDB(req);
-    if (db) {
-      const allTenants = await db.collection('tenants').find({}).toArray();
-      console.log('ALL TENANTS:', allTenants.map(t => ({ hotelId: t.hotelId, adminEmail: t.adminEmail })));
-
-      const tenant = await db.collection('tenants').findOne({
-        adminEmail: email.toLowerCase().trim(),
-        hotelId: hotelId,
-        active: true
-      });
-      console.log('FOUND TENANT:', tenant ? { hotelId: tenant.hotelId, adminEmail: tenant.adminEmail } : 'NOT FOUND');
-    }
-    console.log('=================================');
-    // ========== END DEBUG ==========
-
-    if (!email || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Email and password are required' 
-      });
-    }
 
     if (!db) {
-      // Fallback for demo mode
-      if (email === 'admin@crownplaza.com' && password === 'admin123') {
-        const token = generateToken({
-          email,
-          name: 'Admin',
-          role: 'super_admin',
-          hotelId: hotelId || 'default',
-          permissions: ['all']
-        });
-        return res.json({
-          success: true,
-          token,
-          user: { email, name: 'Admin', role: 'super_admin', permissions: ['all'] },
-          hotelId: hotelId || 'default'
-        });
-      }
       return res.status(503).json({ success: false, error: 'Database not connected' });
     }
 
     // =====================================================
-    // STEP 1: Check user in users collection
+    // STEP 1: Pehle tenants collection check karo
+    // STRICT: hotelId + email + active — teeno match hone chahiye
     // =====================================================
-    let user = await db.collection('users').findOne({
-      email: email.toLowerCase().trim(),
-      hotelId: hotelId
+    const tenant = await db.collection('tenants').findOne({
+      hotelId: hotelId.trim(),
+      adminEmail: email.toLowerCase().trim(),
+      active: true
     });
 
-    // =====================================================
-    // STEP 2: If not found, check tenants collection
-    // =====================================================
-    if (!user) {
-
-      const tenant = await db.collection('tenants').findOne({
-        adminEmail: email.toLowerCase().trim(),
-        hotelId: hotelId,
-        active: true
-      });
-
-      if (!tenant) {
+    if (tenant) {
+      // ✅ FIX 2: Plain text password check (aapka current system)
+      if (tenant.adminPassword !== password) {
         return res.status(401).json({
           success: false,
           error: 'Invalid credentials for this hotel'
         });
       }
 
-      // Plain text password check
-      if (tenant.adminPassword !== password) {
-        return res.status(401).json({
-          success: false,
-          error: 'Invalid password'
-        });
-      }
-
-      // Create temporary user object from tenant
-      user = {
+      // ✅ FIX 3: Token mein SIRF tenant.hotelId — frontend input NAHI
+      const token = generateToken({
         email: tenant.adminEmail,
         name: tenant.hotelName || 'Hotel Admin',
         role: 'hotel_admin',
+        hotelId: tenant.hotelId,   // ✅ DB se verified hotelId
+        permissions: ['all']
+      });
+
+      // Log the login
+      await db.collection('logs').insertOne({
         hotelId: tenant.hotelId,
-        permissions: ['all'],
-        active: true
-      };
-    }
-    else {
+        user: tenant.adminEmail,
+        action: 'admin_login',
+        details: `Hotel Admin ${tenant.adminEmail} logged in via tenant`,
+        ip: req.ip,
+        timestamp: new Date()
+      }).catch(() => {});
 
-      // Existing users collection password check
-      const validPassword = await bcrypt.compare(
-        password,
-        user.password
-      );
-
-      if (!validPassword) {
-        return res.status(401).json({
-          success: false,
-          error: 'Invalid credentials'
-        });
-      }
-    }
-
-    // Check if account is active
-    if (user.active === false) {
-      return res.status(403).json({ success: false, error: 'Account is inactive' });
+      return res.json({
+        success: true,
+        token,
+        user: {
+          id: 'tenant_' + tenant.hotelId,
+          email: tenant.adminEmail,
+          name: tenant.hotelName || 'Hotel Admin',
+          role: 'hotel_admin',
+          permissions: ['all']
+        },
+        hotelId: tenant.hotelId   // ✅ Frontend ko bhi verified hotelId bhejo
+      });
     }
 
-    // Generate JWT token
+    // =====================================================
+    // STEP 2: Agar tenant nahi mila, users collection check karo
+    // STRICT: email + hotelId dono match hone chahiye
+    // =====================================================
+    const user = await db.collection('users').findOne({
+      email: email.toLowerCase().trim(),
+      hotelId: hotelId.trim(),
+      active: true                  // ✅ FIX 4: Inactive users block
+    });
+
+    if (!user) {
+      // ✅ FIX 5: Dono collections mein nahi mila — same error message (security)
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials for this hotel'
+      });
+    }
+
+    // Password verify karo (bcrypt)
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials for this hotel'
+      });
+    }
+
+    // ✅ FIX 6: Token mein SIRF user.hotelId — frontend input NAHI
     const token = generateToken({
       email: user.email,
       name: user.name,
       role: user.role,
-      hotelId: hotelId || user.hotelId || 'default',
+      hotelId: user.hotelId,       // ✅ DB se verified hotelId
       permissions: user.permissions || []
     });
 
-    // Update last login (only if user exists in users collection)
-    if (user._id) {
-      await db.collection('users').updateOne(
-        { _id: user._id },
-        { $set: { lastLogin: new Date() } }
-      );
-    }
+    // Update last login
+    await db.collection('users').updateOne(
+      { _id: user._id },
+      { $set: { lastLogin: new Date() } }
+    );
 
     // Log the login
     await db.collection('logs').insertOne({
-      hotelId: hotelId || user.hotelId,
-      user: email,
+      hotelId: user.hotelId,
+      user: user.email,
       action: 'admin_login',
-      details: `Admin ${email} logged in`,
+      details: `Admin ${user.email} logged in`,
       ip: req.ip,
       timestamp: new Date()
     }).catch(() => {});
 
-    res.json({
+    return res.json({
       success: true,
       token,
       user: {
-        id: user._id || 'tenant_' + user.hotelId,
+        id: user._id,
         email: user.email,
         name: user.name,
         role: user.role,
         permissions: user.permissions || []
       },
-      hotelId: hotelId || user.hotelId || 'default'
+      hotelId: user.hotelId        // ✅ Frontend ko bhi verified hotelId bhejo
     });
 
   } catch (error) {
@@ -186,9 +164,9 @@ router.post('/admin/register', async (req, res) => {
     const { name, email, password, role, hotelId, permissions } = req.body;
 
     if (!email || !password || !hotelId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'email, password, and hotelId are required' 
+      return res.status(400).json({
+        success: false,
+        error: 'email, password, and hotelId are required'
       });
     }
 
@@ -198,7 +176,11 @@ router.post('/admin/register', async (req, res) => {
     }
 
     // Check if user already exists for this hotel
-    const existingUser = await db.collection('users').findOne({ email, hotelId });
+    const existingUser = await db.collection('users').findOne({
+      email: email.toLowerCase().trim(),
+      hotelId: hotelId.trim()
+    });
+
     if (existingUser) {
       return res.status(400).json({ success: false, error: 'User already exists for this hotel' });
     }
@@ -207,11 +189,11 @@ router.post('/admin/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = {
-      email,
+      email: email.toLowerCase().trim(),
       password: hashedPassword,
       name: name || email.split('@')[0],
       role: role || 'staff',
-      hotelId,
+      hotelId: hotelId.trim(),
       permissions: permissions || ['rooms', 'guests', 'food', 'inventory', 'requests'],
       active: true,
       createdAt: new Date(),
@@ -231,16 +213,16 @@ router.post('/admin/register', async (req, res) => {
       timestamp: new Date()
     }).catch(() => {});
 
-    res.status(201).json({ 
-      success: true, 
-      message: 'User created successfully', 
-      user: { 
-        id: user._id, 
-        name: user.name, 
-        email: user.email, 
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
         role: user.role,
-        hotelId: user.hotelId 
-      } 
+        hotelId: user.hotelId
+      }
     });
 
   } catch (error) {
@@ -266,25 +248,44 @@ router.get('/me', async (req, res) => {
     const db = getDB(req);
     if (!db) {
       // Return decoded token info for offline mode
-      return res.json({ 
-        success: true, 
-        user: { 
+      return res.json({
+        success: true,
+        user: {
           id: decoded.userId || decoded.id,
           email: decoded.email,
           name: decoded.name,
           role: decoded.role,
-          hotelId: decoded.hotelId 
-        } 
+          hotelId: decoded.hotelId
+        }
       });
     }
 
-    const user = await db.collection('users').findOne(
-      { _id: new ObjectId(decoded.userId || decoded.id) },
-      { projection: { password: 0 } }
-    );
+    // ✅ Pehle users collection mein dhundho
+    let user = null;
 
+    if (decoded.userId || decoded.id) {
+      try {
+        user = await db.collection('users').findOne(
+          { _id: new ObjectId(decoded.userId || decoded.id) },
+          { projection: { password: 0 } }
+        );
+      } catch (e) {
+        // ObjectId invalid ho sakta hai tenant users ke liye — ignore karo
+      }
+    }
+
+    // ✅ Agar users mein nahi mila, token info return karo (tenant admin ke liye)
     if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
+      return res.json({
+        success: true,
+        user: {
+          email: decoded.email,
+          name: decoded.name,
+          role: decoded.role,
+          hotelId: decoded.hotelId,
+          permissions: decoded.permissions || []
+        }
+      });
     }
 
     res.json({ success: true, user });
@@ -293,25 +294,22 @@ router.get('/me', async (req, res) => {
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
       return res.status(401).json({ success: false, error: 'Invalid or expired token' });
     }
-    if (error.name === 'ObjectId') {
-      return res.status(400).json({ success: false, error: 'Invalid user ID format' });
-    }
     console.error('Get user error:', error.message);
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
 
 // ============================================
-// GUEST LOGIN (Create or Find Guest)
+// GUEST LOGIN
 // ============================================
 router.post('/guest/login', async (req, res) => {
   try {
     const { name, room, hotelId } = req.body;
 
     if (!name || !room) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Name and room number are required' 
+      return res.status(400).json({
+        success: false,
+        error: 'Name and room number are required'
       });
     }
 
@@ -319,7 +317,6 @@ router.post('/guest/login', async (req, res) => {
     const effectiveHotelId = hotelId || req.headers['x-hotel-id'] || 'default';
 
     if (!db) {
-      // Offline mode: return guest object without DB
       const guest = {
         _id: 'guest_' + Date.now(),
         name,
@@ -332,29 +329,28 @@ router.post('/guest/login', async (req, res) => {
       return res.json({ success: true, guest });
     }
 
-    // Check blacklist first
-    const blacklisted = await db.collection('blacklist').findOne({ 
+    // Check blacklist
+    const blacklisted = await db.collection('blacklist').findOne({
       name: { $regex: new RegExp(`^${name}$`, 'i') },
-      hotelId: effectiveHotelId 
+      hotelId: effectiveHotelId
     });
 
     if (blacklisted) {
-      return res.status(403).json({ 
-        success: false, 
+      return res.status(403).json({
+        success: false,
         error: 'Access denied: Guest is blacklisted',
-        reason: blacklisted.reason 
+        reason: blacklisted.reason
       });
     }
 
-    // Find or create guest with hotelId scope
-    let guest = await db.collection('guests').findOne({ 
-      room: parseInt(room), 
+    // Find or create guest
+    let guest = await db.collection('guests').findOne({
+      room: parseInt(room),
       status: 'active',
-      hotelId: effectiveHotelId 
+      hotelId: effectiveHotelId
     });
 
     if (!guest) {
-      // Create new guest
       guest = {
         name,
         room: parseInt(room),
@@ -368,7 +364,6 @@ router.post('/guest/login', async (req, res) => {
       const result = await db.collection('guests').insertOne(guest);
       guest._id = result.insertedId;
     } else {
-      // Update existing guest name if changed
       if (guest.name !== name) {
         await db.collection('guests').updateOne(
           { _id: guest._id },
@@ -378,7 +373,15 @@ router.post('/guest/login', async (req, res) => {
       }
     }
 
-    // Log guest login
+    // ✅ Guest ke liye bhi token generate karo
+    const token = generateToken({
+      name: guest.name,
+      room: guest.room,
+      role: 'guest',
+      hotelId: effectiveHotelId
+    });
+
+    // Log
     await db.collection('logs').insertOne({
       hotelId: effectiveHotelId,
       user: name,
@@ -389,6 +392,8 @@ router.post('/guest/login', async (req, res) => {
 
     res.json({
       success: true,
+      token,
+      hotelId: effectiveHotelId,
       guest: {
         id: guest._id,
         name: guest.name,
@@ -406,16 +411,14 @@ router.post('/guest/login', async (req, res) => {
 });
 
 // ============================================
-// LOGOUT (Invalidate token client-side)
+// LOGOUT
 // ============================================
 router.post('/logout', (req, res) => {
-  // JWT is stateless, so logout is handled client-side by removing token
-  // We can optionally maintain a token blacklist in Redis for immediate invalidation
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // ============================================
-// REFRESH TOKEN (Optional)
+// REFRESH TOKEN
 // ============================================
 router.post('/refresh', async (req, res) => {
   try {
@@ -430,22 +433,25 @@ router.post('/refresh', async (req, res) => {
     // Check if user still exists and is active
     const db = getDB(req);
     if (db && decoded.userId) {
-      const user = await db.collection('users').findOne({ 
-        _id: new ObjectId(decoded.userId) 
-      });
-
-      if (!user || user.active === false) {
-        return res.status(401).json({ success: false, error: 'User not found or inactive' });
+      try {
+        const user = await db.collection('users').findOne({
+          _id: new ObjectId(decoded.userId)
+        });
+        if (!user || user.active === false) {
+          return res.status(401).json({ success: false, error: 'User not found or inactive' });
+        }
+      } catch (e) {
+        // Tenant user — ObjectId nahi hoga, ignore karo
       }
     }
 
-    // Generate new token with same payload
+    // ✅ FIX 7: Refresh mein bhi hotelId decoded se aaye — frontend se NAHI
     const newToken = generateToken({
       userId: decoded.userId || decoded.id,
       email: decoded.email,
       name: decoded.name,
       role: decoded.role,
-      hotelId: decoded.hotelId,
+      hotelId: decoded.hotelId,    // ✅ Token se verified hotelId
       permissions: decoded.permissions
     });
 

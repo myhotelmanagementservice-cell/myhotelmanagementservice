@@ -1705,8 +1705,7 @@ return `<option value="${opt.value}" ${selected}>${displayText}</option>`;
 const API_BASE = window.API_BASE || (window.location.origin + '/api');
 const SOCKET_URL = window.location.origin;
 const urlParams = new URLSearchParams(location.search);
-let HID = urlParams.get('hotel') || localStorage.getItem('hotel_hid') || 'default';
-if (urlParams.get('hotel')) localStorage.setItem('hotel_hid', HID);
+let HID = urlParams.get('hotel') || 'default';
 let lang = 'en';
 let dark = false;
 let fontSize = 16;
@@ -2227,6 +2226,9 @@ return;
 }
 try {
 currentUser = JSON.parse(s);
+if (currentUser && currentUser.hotelId) {
+  HID = currentUser.hotelId;
+}
 if (!currentUser) {
 isSessionChecked = true;
 hideSessionLoader();
@@ -2307,8 +2309,6 @@ async function guestLogin(e) {
         showToast('❌ Access denied', 'error');
         return;
     }
-    HID = hotelIdIn;
-    localStorage.setItem('hotel_hid', HID);
 
     showToast('🔄 Logging in...', 'info');
     try {
@@ -2323,8 +2323,7 @@ async function guestLogin(e) {
         });
         const data = await response.json();
         if (response.ok && data.success && data.token) {
-            HID = data.hotelId || HID;
-            localStorage.setItem('hotel_hid', HID);
+            HID = data.hotelId;
 
             // Save token
             localStorage.setItem('hotel_token', data.token);
@@ -2380,8 +2379,7 @@ body: JSON.stringify({ email: email, password: pass, hotelId: hotelId })
 });
 const data = await response.json();
 if (response.ok && data.success && data.token) {
-HID = data.hotelId || hotelId;
-localStorage.setItem('hotel_hid', HID);
+HID = data.hotelId;
 localStorage.setItem('hotel_token', data.token);
 sessionStorage.setItem('hotel_token', data.token);
 currentUser = { type: 'admin', email: data.user.email, role: data.user.role, token: data.token, hotelId: HID };
@@ -2425,6 +2423,7 @@ sessionStorage.clear();
 localStorage.removeItem(`h_${HID}_session`);
 localStorage.removeItem(`h_${HID}_token`);
 localStorage.removeItem('hotel_token');
+localStorage.removeItem('hotel_hid');
 ['adminEmailIn', 'adminPassIn', 'adminHotelIdIn', 'guestNameIn', 'guestRoomIn', 'guestHotelIdIn'].forEach(id => {
 const el = document.getElementById(id);
 if (el) el.value = '';
