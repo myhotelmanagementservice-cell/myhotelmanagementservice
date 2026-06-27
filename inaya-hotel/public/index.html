@@ -15,6 +15,9 @@
 <script src="/socket.io/socket.io.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+* {
+font-size: inherit !important;
+}
 /* Prevent text selection across the webapp */
 body, * {
 -webkit-user-select: none;
@@ -3134,16 +3137,22 @@ function adjustFont(d) {
 fontSize = parseInt(localStorage.getItem('hotel_fontSize')) || fontSize || 16;
 if (d === 0) {
 fontSize = 16;
-showToast(t('fontReset') || 'Font reset to 16px', 'success');
+showToast('Font Reset', 'success');
 } else if (d === -1) {
 fontSize = Math.max(12, fontSize - 2);
-showToast(t('fontDecreased') || 'Font decreased', 'success');
+showToast('Font Decreased', 'success');
 } else if (d === 1) {
 fontSize = Math.min(24, fontSize + 2);
-showToast(t('fontIncreased') || 'Font increased', 'success');
+showToast('Font Increased', 'success');
 }
+// ✅ FIX: Sab elements pe font apply karo
 document.documentElement.style.fontSize = fontSize + 'px';
 document.body.style.fontSize = fontSize + 'px';
+document.querySelectorAll('*').forEach(el => {
+const computed = window.getComputedStyle(el).fontSize;
+if (computed) el.style.fontSize = '';
+});
+document.documentElement.style.setProperty('--base-font', fontSize + 'px');
 localStorage.setItem('hotel_fontSize', fontSize);
 saveUIPrefs();
 }
