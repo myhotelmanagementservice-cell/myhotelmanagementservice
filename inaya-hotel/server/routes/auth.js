@@ -19,7 +19,7 @@ router.post('/admin/login', async (req, res) => {
   try {
     const { email, password, hotelId } = req.body;
 
-    // ✅ FIX 1: Teeno fields zaroori hain
+    // Teeno fields zaroori hain
     if (!email || !password || !hotelId) {
       return res.status(400).json({
         success: false,
@@ -34,17 +34,17 @@ router.post('/admin/login', async (req, res) => {
     }
 
     // =====================================================
-    // STEP 1: Pehle tenants collection check karo
-    // STRICT: hotelId + email + active — teeno match hone chahiye
+    // STEP 1: Tenants collection mein check karo
+    // FIXED: active field NAHI check karte — kyunki tenants mein active field nahi hoti
+    // STRICT: sirf hotelId + adminEmail dono match hone chahiye
     // =====================================================
     const tenant = await db.collection('tenants').findOne({
       hotelId: hotelId.trim(),
-      adminEmail: email.toLowerCase().trim(),
-      active: true
+      adminEmail: email.toLowerCase().trim()
     });
 
     if (tenant) {
-      // ✅ FIX 2: Plain text password check (aapka current system)
+      // Plain text password check
       if (tenant.adminPassword !== password) {
         return res.status(401).json({
           success: false,
@@ -52,12 +52,12 @@ router.post('/admin/login', async (req, res) => {
         });
       }
 
-      // ✅ FIX 3: Token mein SIRF tenant.hotelId — frontend input NAHI
+      // Token mein SIRF tenant.hotelId — frontend input NAHI
       const token = generateToken({
         email: tenant.adminEmail,
         name: tenant.hotelName || 'Hotel Admin',
         role: 'hotel_admin',
-        hotelId: tenant.hotelId,   // ✅ DB se verified hotelId
+        hotelId: tenant.hotelId,
         permissions: ['all']
       });
 
@@ -66,7 +66,7 @@ router.post('/admin/login', async (req, res) => {
         hotelId: tenant.hotelId,
         user: tenant.adminEmail,
         action: 'admin_login',
-        details: `Hotel Admin ${tenant.adminEmail} logged in via tenant`,
+        details: `Hotel Admin ${tenant.adminEmail} logged in`,
         ip: req.ip,
         timestamp: new Date()
       }).catch(() => {});
@@ -81,7 +81,7 @@ router.post('/admin/login', async (req, res) => {
           role: 'hotel_admin',
           permissions: ['all']
         },
-        hotelId: tenant.hotelId   // ✅ Frontend ko bhi verified hotelId bhejo
+        hotelId: tenant.hotelId
       });
     }
 
@@ -91,15 +91,21 @@ router.post('/admin/login', async (req, res) => {
     // =====================================================
     const user = await db.collection('users').findOne({
       email: email.toLowerCase().trim(),
-      hotelId: hotelId.trim(),
-      active: true                  // ✅ FIX 4: Inactive users block
+      hotelId: hotelId.trim()
     });
 
     if (!user) {
-      // ✅ FIX 5: Dono collections mein nahi mila — same error message (security)
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials for this hotel'
+      });
+    }
+
+    // Active check
+    if (user.active === false) {
+      return res.status(403).json({
+        success: false,
+        error: 'Account is inactive'
       });
     }
 
@@ -112,12 +118,12 @@ router.post('/admin/login', async (req, res) => {
       });
     }
 
-    // ✅ FIX 6: Token mein SIRF user.hotelId — frontend input NAHI
+    // Token mein SIRF user.hotelId — frontend input NAHI
     const token = generateToken({
       email: user.email,
       name: user.name,
       role: user.role,
-      hotelId: user.hotelId,       // ✅ DB se verified hotelId
+      hotelId: user.hotelId,
       permissions: user.permissions || []
     });
 
@@ -147,7 +153,7 @@ router.post('/admin/login', async (req, res) => {
         role: user.role,
         permissions: user.permissions || []
       },
-      hotelId: user.hotelId        // ✅ Frontend ko bhi verified hotelId bhejo
+      hotelId: user.hotelId
     });
 
   } catch (error) {
@@ -247,7 +253,6 @@ router.get('/me', async (req, res) => {
 
     const db = getDB(req);
     if (!db) {
-      // Return decoded token info for offline mode
       return res.json({
         success: true,
         user: {
@@ -260,7 +265,6 @@ router.get('/me', async (req, res) => {
       });
     }
 
-    // ✅ Pehle users collection mein dhundho
     let user = null;
 
     if (decoded.userId || decoded.id) {
@@ -270,11 +274,11 @@ router.get('/me', async (req, res) => {
           { projection: { password: 0 } }
         );
       } catch (e) {
-        // ObjectId invalid ho sakta hai tenant users ke liye — ignore karo
+        // Tenant user ke liye ObjectId nahi hoga — ignore karo
       }
     }
 
-    // ✅ Agar users mein nahi mila, token info return karo (tenant admin ke liye)
+    // Agar users mein nahi mila, token info return karo (tenant admin ke liye)
     if (!user) {
       return res.json({
         success: true,
@@ -373,7 +377,7 @@ router.post('/guest/login', async (req, res) => {
       }
     }
 
-    // ✅ Guest ke liye bhi token generate karo
+    // Guest ke liye bhi token generate karo
     const token = generateToken({
       name: guest.name,
       room: guest.room,
@@ -430,7 +434,6 @@ router.post('/refresh', async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Check if user still exists and is active
     const db = getDB(req);
     if (db && decoded.userId) {
       try {
@@ -441,17 +444,17 @@ router.post('/refresh', async (req, res) => {
           return res.status(401).json({ success: false, error: 'User not found or inactive' });
         }
       } catch (e) {
-        // Tenant user — ObjectId nahi hoga, ignore karo
+        // Tenant user — ignore karo
       }
     }
 
-    // ✅ FIX 7: Refresh mein bhi hotelId decoded se aaye — frontend se NAHI
+    // Refresh mein bhi hotelId decoded se aaye — frontend se NAHI
     const newToken = generateToken({
       userId: decoded.userId || decoded.id,
       email: decoded.email,
       name: decoded.name,
       role: decoded.role,
-      hotelId: decoded.hotelId,    // ✅ Token se verified hotelId
+      hotelId: decoded.hotelId,
       permissions: decoded.permissions
     });
 
