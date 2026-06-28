@@ -166,6 +166,10 @@ async function connectDB() {
     dbConnected = true;
     console.log('✅ MongoDB Connected Successfully!');
 
+// Server start hone ke baad, database connection ke andar:
+const Subscription = require('./models/Subscription');
+await Subscription.createIndexes();    
+
     client.on('close', () => {
       console.warn('⚠️ MongoDB connection closed. Attempting reconnect...');
       dbConnected = false;
@@ -362,6 +366,9 @@ const infoRoutes = require('./routes/info');
 const departmentRoutes = require('./routes/department.routes');
 app.set('io', io);
 app.use('/api/departments', departmentRoutes);
+// Subscription routes
+const subscriptionRoutes = require('./routes/subscription');
+app.use('/api/subscription', subscriptionRoutes);
 // Auth routes
 const authRoutes = require('./routes/auth');
 app.use('/api', authRoutes);

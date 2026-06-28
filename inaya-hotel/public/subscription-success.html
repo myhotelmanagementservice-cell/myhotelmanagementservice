@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Success</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .success-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #4caf50;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .loading {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="loading">
+            <h2>Verifying Payment...</h2>
+            <p>Please wait while we confirm your payment</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin + '/api';
+        const hotelId = localStorage.getItem('hotelId');
+        const authToken = localStorage.getItem('authToken');
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('order_id');
+
+        async function verifyPayment() {
+            try {
+                const response = await fetch(`${API_BASE}/subscription/verify/${orderId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'x-hotel-id': hotelId
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.data.status === 'PAID') {
+                    document.querySelector('.container').innerHTML = `
+                        <div class="success-icon">✅</div>
+                        <h1>Payment Successful!</h1>
+                        <p>Your subscription has been activated.</p>
+                        <a href="/admin-dashboard.html" class="btn">Go to Dashboard</a>
+                    `;
+                } else {
+                    document.querySelector('.container').innerHTML = `
+                        <div class="success-icon">⚠️</div>
+                        <h1>Payment Pending</h1>
+                        <p>${data.data.message || 'Your payment is being processed.'}</p>
+                        <a href="/subscribe.html" class="btn">Try Again</a>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.querySelector('.container').innerHTML = `
+                    <div class="success-icon">❌</div>
+                    <h1>Verification Failed</h1>
+                    <p>Please contact support.</p>
+                    <a href="/subscribe.html" class="btn">Go Back</a>
+                `;
+            }
+        }
+
+        // Verify payment on page load
+        setTimeout(verifyPayment, 2000);
+    </script>
+</body>
+</html>
