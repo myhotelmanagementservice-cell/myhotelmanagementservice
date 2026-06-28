@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Plans - Hotel Management</title>
+    <script src="https://sdk.cashfree.com/js/ui/1.0.26/cashfree-sdk.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; color: white; margin-bottom: 40px; }
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+        .plan-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+            position: relative;
+        }
+        .plan-card:hover { transform: translateY(-10px); }
+        .plan-card.popular { border: 3px solid #ffd700; }
+        .popular-badge {
+            position: absolute;
+            top: 20px;
+            right: -30px;
+            background: #ffd700;
+            color: #333;
+            padding: 5px 40px;
+            transform: rotate(45deg);
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        .plan-name { font-size: 1.8rem; color: #333; margin-bottom: 10px; font-weight: bold; }
+        .plan-price { font-size: 3rem; color: #667eea; margin-bottom: 5px; font-weight: bold; }
+        .plan-duration { color: #999; margin-bottom: 20px; font-size: 0.9rem; }
+        .plan-features { list-style: none; margin-bottom: 30px; }
+        .plan-features li { padding: 8px 0; color: #555; }
+        .plan-features li:before { content: "✓ "; color: #4caf50; font-weight: bold; }
+        .subscribe-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .subscribe-btn:hover { opacity: 0.9; }
+        .alert { padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/index.html" class="back-btn">← Back to Dashboard</a>
+        
+        <div class="header">
+            <h1>🏨 Choose Your Plan</h1>
+            <p>Select the perfect subscription for your hotel</p>
+        </div>
+
+        <div id="currentPlanAlert"></div>
+
+        <div class="plans-grid" id="plansGrid">
+            <div style="text-align:center;color:white;padding:40px">Loading plans...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin + '/api';
+        const hotelId = localStorage.getItem('hotelId') || localStorage.getItem('h_default_session') ? JSON.parse(localStorage.getItem('h_default_session') || '{}').hotelId : 'default';
+        const authToken = localStorage.getItem('hotel_token');
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCurrentSubscription();
+            await loadPlans();
+        });
+
+        async function loadCurrentSubscription() {
+            try {
+                const response = await fetch(`${API_BASE}/subscription/current`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'x-hotel-id': hotelId
+                    }
+                });
+                const data = await response.json();
+                if (data.success && data.data) {
+                    const sub = data.data;
+                    document.getElementById('currentPlanAlert').innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>Current Plan:</strong> ${sub.planName} 
+                            ${sub.expiryDate ? `(Expires: ${new Date(sub.expiryDate).toLocaleDateString()})` : '(Lifetime)'}
+                            - Status: ${sub.status}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading subscription:', error);
+            }
+        }
+
+        async function loadPlans() {
+            try {
+                const response = await fetch(`${API_BASE}/subscription/plans`);
+                const data = await response.json();
+                if (data.success) {
+                    renderPlans(data.data);
+                }
+            } catch (error) {
+                console.error('Error loading plans:', error);
+            }
+        }
+
+        function renderPlans(plans) {
+            const grid = document.getElementById('plansGrid');
+            grid.innerHTML = '';
+
+            plans.forEach(plan => {
+                const card = document.createElement('div');
+                card.className = 'plan-card' + (plan.id === 'pro' ? ' popular' : '');
+
+                const durationText = plan.duration === null 
+                    ? 'Lifetime Access' 
+                    : `${plan.duration} days`;
+
+                card.innerHTML = `
+                    ${plan.id === 'pro' ? '<div class="popular-badge">POPULAR</div>' : ''}
+                    <div class="plan-name">${plan.name}</div>
+                    <div class="plan-price">₹${plan.price}</div>
+                    <div class="plan-duration">${durationText}</div>
+                    <ul class="plan-features">
+                        ${plan.features.map(f => `<li>${f}</li>`).join('')}
+                    </ul>
+                    <button class="subscribe-btn" onclick="subscribe('${plan.id}')">
+                        ${plan.price === 0 ? 'Start Free Trial' : 'Subscribe Now'}
+                    </button>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        async function subscribe(planId) {
+            try {
+                const response = await fetch(`${API_BASE}/subscription/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`,
+                        'x-hotel-id': hotelId
+                    },
+                    body: JSON.stringify({ plan: planId })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert(data.error || 'Failed to create subscription');
+                    return;
+                }
+
+                if (data.data.subscription.paymentMethod === 'free') {
+                    alert('✅ Free trial activated successfully!');
+                    location.reload();
+                    return;
+                }
+
+                // Cashfree payment
+                const { paymentSession } = data.data;
+                
+                const cashfree = new Cashfree({
+                    mode: paymentSession.environment === 'production' ? 'production' : 'sandbox'
+                });
+
+                cashfree.checkout({
+                    paymentSessionId: paymentSession.paymentSessionId,
+                    redirectTarget: '_self',
+                    returnUrl: `${window.location.origin}/subscription-success.html?order_id=${paymentSession.orderId}`
+                });
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to initiate payment');
+            }
+        }
+    </script>
+</body>
+</html>
