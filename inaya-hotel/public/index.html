@@ -2150,7 +2150,6 @@ if (cachedDepts && cachedDepts.length > 0) {
 departments = cachedDepts;
 } else {
 departments = DEFAULT_DEPARTMENTS.map(d => ({...d, _id: d.key, hotelId: HID, _version: 1, isEnabled: true}));
-departments.forEach(d => save('departments', d, 'dept_upd'));
 }
 }
 if (cfg && typeof cfg === 'object' && cfg._id) {
@@ -4037,6 +4036,7 @@ buildGuestPanes();
 }
 function renderDashboardAnalytics() {
 const el = id => document.getElementById(id);
+console.log('ALL BOOKING STATUSES:', bookings.map(b => b.status));
 const totalRooms = rooms.length;
 const occupiedRooms = rooms.filter(r => r.status === 'Occupied').length;
 const availableRooms = rooms.filter(r => r.status === 'Vacant').length;
