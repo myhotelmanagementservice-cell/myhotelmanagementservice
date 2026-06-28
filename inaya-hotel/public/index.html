@@ -5947,14 +5947,23 @@ addLog('Admin Reply', `To ${req.guestName}: ${reply}`);
 }
 }
 function updateBookingStatus(id, status) {
-const b = bookings.find(x => x._id === id);
+const b = bookings.find(x => String(x._id) === String(id));
 if (b) {
 b.status = status;
 b.updatedAt = new Date().toISOString();
-save('bookings', b, 'booking_upd');
+// ✅ Direct API call — save() bypass karke seedha DB update
+apiCall('PUT', `/bookings/${id}?hotelId=${HID}`, { status, updatedAt: b.updatedAt })
+  .then(result => {
+    if (result) {
+      showToast('✅ Booking status updated', 'success');
+    } else {
+      showToast('⚠️ Status locally updated — sync pending', 'warning');
+    }
+  });
+if (socket?.connected) socket.emit('booking_upd', { hotelId: HID, collection: 'bookings', data: b, clientId, syncToken: Date.now() });
 renderAdminBookings();
 renderGuestBookings();
-showToast('✅ Booking status updated', 'success');
+renderDashboardAnalytics();
 addLog('Update Booking', `${b.guestName} - ${status}`);
 }
 }
