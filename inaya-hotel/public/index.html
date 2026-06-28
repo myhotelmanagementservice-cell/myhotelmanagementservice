@@ -2171,6 +2171,7 @@ const queue = JSON.parse(localStorage.getItem(`h_${HID}_queue`) || '[]');
 if (queue.length) offlineQueue.push(...queue);
 applyCfg();
 renderAll();
+renderDashboardAnalytics();
 updateCache();
 } catch (e) {
 console.warn('loadAllData error', e);
