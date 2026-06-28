@@ -38,10 +38,53 @@ router.post('/admin/login', async (req, res) => {
     // FIXED: active field NAHI check karte — kyunki tenants mein active field nahi hoti
     // STRICT: sirf hotelId + adminEmail dono match hone chahiye
     // =====================================================
-    const tenant = await db.collection('tenants').findOne({
-      hotelId: hotelId.trim(),
-      adminEmail: email.toLowerCase().trim()
+// ✅ Super Admin check — pehle users collection mein dhundho
+if (hotelId === 'SUPER_ADMIN' || hotelId === 'super_admin') {
+  const superAdmin = await db.collection('users').findOne({
+    email: email.toLowerCase().trim(),
+    role: 'super_admin'
+  });
+
+  if (!superAdmin) {
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid super admin credentials'
     });
+  }
+
+  const validPassword = await bcrypt.compare(password, superAdmin.password);
+  if (!validPassword) {
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid super admin credentials'
+    });
+  }
+
+  const token = generateToken({
+    email: superAdmin.email,
+    name: superAdmin.name,
+    role: 'super_admin',
+    hotelId: 'super_admin',
+    permissions: ['all']
+  });
+
+  return res.json({
+    success: true,
+    token,
+    user: {
+      email: superAdmin.email,
+      name: superAdmin.name,
+      role: 'super_admin',
+      permissions: ['all']
+    },
+    hotelId: 'super_admin'
+  });
+}
+
+const tenant = await db.collection('tenants').findOne({
+  hotelId: hotelId.trim(),
+  adminEmail: email.toLowerCase().trim()
+});
 
     if (tenant) {
       // Plain text password check
