@@ -1026,7 +1026,15 @@ const tenant = {
 };
 
 await db.collection('tenants').insertOne(tenant);
-    await db.collection('tenants').insertOne(tenant);
+
+    // ✅ Naye hotel ke liye automatically departments copy karo
+    const defaultDepts = await db.collection('departments').find({ hotelId: 'default' }).toArray();
+    for (const dept of defaultDepts) {
+      const newDept = { ...dept, hotelId, createdAt: new Date(), updatedAt: new Date() };
+      delete newDept._id;
+      await db.collection('departments').insertOne(newDept);
+    }
+    console.log(`✅ ${defaultDepts.length} departments created for ${hotelId}`);
 
     const adminUser = {
       email: adminEmail,

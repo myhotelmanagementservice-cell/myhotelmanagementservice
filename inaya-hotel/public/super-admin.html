@@ -511,7 +511,7 @@
                 <input type="hidden" id="editHotelId">
                 <div>
                     <label class="block text-sm font-medium mb-1">Hotel ID *</label>
-                    <input type="text" id="hotelId" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="e.g., CROWN-DXB" required pattern="[A-Z0-9\-]+">
+                    <input type="text" id="hotelId" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="e.g., CROWN-DXB or hotel001" required pattern="[A-Za-z0-9\-]+">
                     <p class="text-xs text-gray-500 mt-1">Unique identifier (letters, numbers, hyphens only)</p>
                 </div>
                 <div>
@@ -1064,7 +1064,7 @@
                 const response = await fetch(`${API_BASE}/admin/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password: pass, hotelId: 'SUPER_ADMIN' })
+                    body: JSON.stringify({ email, password: pass, hotelId: 'super_admin' })
                 });
                 const contentType = response.headers.get('content-type') || '';
                 if (!contentType.includes('application/json')) throw new Error(t('loginFailed') + ' (Invalid server response)');
