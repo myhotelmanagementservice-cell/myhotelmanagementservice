@@ -88,7 +88,7 @@ router.get('/current', authMiddleware, async (req, res) => {
 });
 
 // ============================================================
-// CREATE SUBSCRIPTION & CASHFREE ORDER (FIXED: Direct API Call)
+// CREATE SUBSCRIPTION & CASHFREE ORDER
 // ============================================================
 router.post('/create', authMiddleware, async (req, res) => {
     try {
@@ -145,7 +145,7 @@ router.post('/create', authMiddleware, async (req, res) => {
             order_currency: currency || 'INR',
             customer_details: {
                 customer_id: hotelId,
-                customer_email: req.user.email || 'admin@hotel.com',
+                customer_email: req.user?.email || req.session?.adminEmail || 'admin@hotel.com',
                 customer_phone: '9999999999'
             },
             order_meta: {
@@ -154,7 +154,7 @@ router.post('/create', authMiddleware, async (req, res) => {
             }
         };
 
-        // ✅ CORRECT CASHFREE API CALL (No Bearer Token, No Signature needed for Orders)
+        // ✅ Cashfree API call
         const cashfreeResponse = await fetch(`${CASHFREE_BASE_URL}/orders`, {
             method: 'POST',
             headers: {
@@ -190,6 +190,100 @@ router.post('/create', authMiddleware, async (req, res) => {
 
     } catch (err) {
         console.error('❌ Create subscription error:', err);
+        return error(res, err.message, 500);
+    }
+});
+
+// ============================================================
+// VERIFY PAYMENT STATUS (Manual Check)
+// ============================================================
+router.get('/verify/:orderId', authMiddleware, async (req, res) => {
+    try {
+        const db = getDB(req);
+        const { orderId } = req.params;
+        const hotelId = req.hotelId;
+
+        // Call Cashfree API to check order status
+        const cashfreeResponse = await fetch(`${CASHFREE_BASE_URL}/orders/${orderId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-version': '2023-08-01',
+                'x-client-id': CASHFREE_APP_ID,
+                'x-client-secret': CASHFREE_SECRET_KEY
+            }
+        });
+
+        const orderData = await cashfreeResponse.json();
+
+        if (!cashfreeResponse.ok) {
+            return error(res, orderData.message || 'Failed to verify payment', 500);
+        }
+
+        // Update subscription based on payment status
+        if (orderData.order_status === 'PAID') {
+            const subscription = await db.collection('subscriptions').findOne({ transactionId: orderId });
+
+            if (subscription) {
+                let expiryDate = null;
+                const planData = SUBSCRIPTION_PLANS[subscription.plan];
+                if (planData && planData.duration) {
+                    expiryDate = new Date();
+                    expiryDate.setDate(expiryDate.getDate() + planData.duration);
+                }
+
+                await db.collection('subscriptions').updateOne(
+                    { _id: subscription._id },
+                    {
+                        $set: {
+                            paymentStatus: 'completed',
+                            status: 'active',
+                            expiryDate: expiryDate,
+                            updatedAt: new Date()
+                        }
+                    }
+                );
+
+                // Update tenant
+                await db.collection('tenants').updateOne(
+                    { hotelId },
+                    {
+                        $set: {
+                            subscriptionType: subscription.plan,
+                            subscriptionExpiry: expiryDate,
+                            active: true,
+                            updatedAt: new Date()
+                        }
+                    }
+                );
+            }
+
+            return success(res, {
+                status: 'PAID',
+                orderData,
+                message: 'Payment successful! Subscription activated.'
+            });
+        } else if (orderData.order_status === 'FAILED') {
+            await db.collection('subscriptions').updateOne(
+                { transactionId: orderId },
+                { $set: { paymentStatus: 'failed', updatedAt: new Date() } }
+            );
+
+            return success(res, {
+                status: 'FAILED',
+                orderData,
+                message: 'Payment failed. Please try again.'
+            });
+        } else {
+            return success(res, {
+                status: orderData.order_status,
+                orderData,
+                message: 'Payment pending.'
+            });
+        }
+
+    } catch (err) {
+        console.error('❌ Verify payment error:', err);
         return error(res, err.message, 500);
     }
 });
@@ -265,6 +359,73 @@ router.post('/cancel', authMiddleware, async (req, res) => {
             { $set: { subscriptionType: 'free', active: false, updatedAt: new Date() } }
         );
         return success(res, null, 'Subscription cancelled');
+    } catch (err) {
+        return error(res, err.message, 500);
+    }
+});
+
+// ============================================================
+// GET ALL SUBSCRIPTIONS (Super Admin Only)
+// ============================================================
+router.get('/all', superAdminOnly, async (req, res) => {
+    try {
+        const db = getDB(req);
+        const { status, plan } = req.query;
+
+        const filter = {};
+        if (status) filter.status = status;
+        if (plan) filter.plan = plan;
+
+        const subscriptions = await db.collection('subscriptions')
+            .find(filter)
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        subscriptions.forEach(s => {
+            if (s._id) s._id = s._id.toString();
+        });
+
+        return success(res, subscriptions);
+
+    } catch (err) {
+        return error(res, err.message, 500);
+    }
+});
+
+// ============================================================
+// GET SUBSCRIPTION STATS (Super Admin Only)
+// ============================================================
+router.get('/stats', superAdminOnly, async (req, res) => {
+    try {
+        const db = getDB(req);
+
+        const byPlan = await db.collection('subscriptions').aggregate([
+            { $group: { _id: '$plan', count: { $sum: 1 }, revenue: { $sum: '$price' } } }
+        ]).toArray();
+
+        const byStatus = await db.collection('subscriptions').aggregate([
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]).toArray();
+
+        const totalResult = await db.collection('subscriptions').aggregate([
+            { $group: { _id: null, total: { $sum: 1 }, revenue: { $sum: '$price' } } }
+        ]).toArray();
+
+        const result = totalResult[0] || { total: 0, revenue: 0 };
+
+        return success(res, {
+            total: result.total,
+            revenue: result.revenue,
+            byPlan: byPlan.reduce((acc, s) => {
+                acc[s._id] = { count: s.count, revenue: s.revenue };
+                return acc;
+            }, {}),
+            byStatus: byStatus.reduce((acc, s) => {
+                acc[s._id] = s.count;
+                return acc;
+            }, {})
+        });
+
     } catch (err) {
         return error(res, err.message, 500);
     }
