@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subscription Plans - Hotel Management</title>
-    <script src="https://sdk.cashfree.com/js/ui/1.0.26/cashfree-sdk.js"></script>
+    <!-- ✅ FIXED: Correct Cashfree SDK version -->
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -184,7 +185,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- ✅ FIXED: Button with history.back() -->
         <button class="back-btn" onclick="goBackToDashboard()">← Back to Dashboard</button>
 
         <div class="header">
@@ -222,8 +222,15 @@
 
     <script>
         const API_BASE = window.location.origin + '/api';
-        
-        // ✅ Helper: Get hotelId directly from JWT Token (100% Accurate)
+
+        // ✅ FIXED: Initialize Cashfree v3 SDK correctly
+        let cashfree;
+        try {
+            cashfree = Cashfree({ mode: 'sandbox' }); // will update dynamically on payment
+        } catch(e) {
+            console.error('Cashfree SDK load error:', e);
+        }
+
         function getHotelIdFromToken() {
             const token = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
             if (!token) return null;
@@ -239,7 +246,6 @@
             }
         }
 
-        // ✅ Get hotelId from URL first, then fallback to JWT Token
         const urlParams = new URLSearchParams(window.location.search);
         let hotelId = urlParams.get('hotelId') || urlParams.get('hotel') || getHotelIdFromToken();
 
@@ -259,21 +265,15 @@
 
         const authToken = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
 
-        // Currency state
         let selectedCurrency = localStorage.getItem('preferred_currency') || 'USD';
         let plansData = [];
 
-        // ✅ FIXED: Back to Dashboard function - Uses browser history
         function goBackToDashboard() {
-            // Check if there's a previous page in history
             if (window.history.length > 1) {
-                // Go back to previous page (preserves session)
                 window.history.back();
             } else {
-                // Fallback: Go to dashboard with hotelId
                 const currentUrlParams = new URLSearchParams(window.location.search);
                 const currentHotelId = currentUrlParams.get('hotelId') || currentUrlParams.get('hotel');
-
                 if (currentHotelId && currentHotelId !== 'default') {
                     window.location.href = `/?hotel=${currentHotelId}`;
                 } else if (hotelId && hotelId !== 'default') {
@@ -284,11 +284,9 @@
             }
         }
 
-        // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('currencySelect').value = selectedCurrency;
             updateCurrencyInfo();
-
             await loadCurrentSubscription();
             await loadPlans();
         });
@@ -305,7 +303,6 @@
             const option = select.options[select.selectedIndex];
             const flag = option.dataset.flag;
             const name = option.text.split(' - ')[1];
-
             const infoEl = document.getElementById('currencyInfo');
             if (selectedCurrency === 'USDT') {
                 infoEl.innerHTML = `${flag} Paying with <strong>${name}</strong> (Cryptocurrency - 1:1 with USD)`;
@@ -320,7 +317,6 @@
             const select = document.getElementById('currencySelect');
             const option = Array.from(select.options).find(opt => opt.value === currency);
             if (!option) return usdPrice;
-
             const rate = parseFloat(option.dataset.rate) || 1;
             return (usdPrice * rate);
         }
@@ -333,19 +329,13 @@
 
         function formatPriceDisplay(amount, currency) {
             const symbol = getCurrencySymbol(currency);
-
-            if (currency === 'USDT') {
-                return { symbol, amount: amount.toFixed(2) };
-            }
-
+            if (currency === 'USDT') return { symbol, amount: amount.toFixed(2) };
             if (['INR', 'KWD'].includes(currency) && amount >= 100) {
                 return { symbol, amount: Math.round(amount).toLocaleString() };
             }
-
             if (['USD', 'EUR', 'GBP'].includes(currency)) {
                 return { symbol, amount: amount.toFixed(2) };
             }
-
             return { symbol, amount: amount.toFixed(2) };
         }
 
@@ -360,7 +350,7 @@
                 const data = await response.json();
                 if (data.success && data.data) {
                     const sub = data.data;
-                    const statusColor = sub.status === 'active' ? '#10b981' : 
+                    const statusColor = sub.status === 'active' ? '#10b981' :
                                        sub.status === 'expired' ? '#ef4444' : '#f59e0b';
                     document.getElementById('currentPlanAlert').innerHTML = `
                         <div class="alert alert-success">
@@ -390,7 +380,6 @@
                     `;
                 }
             } catch (error) {
-                console.error('Error loading plans:', error);
                 document.getElementById('plansGrid').innerHTML = `
                     <div class="loading">
                         <p style="color: #fee2e2;">❌ Network error. Please check your connection.</p>
@@ -407,16 +396,16 @@
                 const card = document.createElement('div');
                 card.className = 'plan-card' + (plan.id === 'pro' ? ' popular' : '');
 
-                const durationText = plan.duration === null 
-                    ? '♾️ Lifetime Access' 
+                const durationText = plan.duration === null
+                    ? '♾️ Lifetime Access'
                     : `📅 ${plan.duration} days`;
 
                 const basePrice = plan.price;
                 const convertedPrice = convertPrice(basePrice, selectedCurrency);
                 const { symbol, amount } = formatPriceDisplay(convertedPrice, selectedCurrency);
 
-                const originalPriceHtml = (selectedCurrency !== 'USD' && basePrice > 0) 
-                    ? `<div class="plan-original-price">$${basePrice} USD</div>` 
+                const originalPriceHtml = (selectedCurrency !== 'USD' && basePrice > 0)
+                    ? `<div class="plan-original-price">$${basePrice} USD</div>`
                     : '';
 
                 const isFree = basePrice === 0;
@@ -451,6 +440,9 @@
                 return;
             }
 
+            // Disable all buttons during processing
+            document.querySelectorAll('.subscribe-btn').forEach(btn => btn.disabled = true);
+
             try {
                 const response = await fetch(`${API_BASE}/subscription/create`, {
                     method: 'POST',
@@ -459,25 +451,25 @@
                         'Authorization': `Bearer ${authToken}`,
                         'x-hotel-id': hotelId
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         plan: planId,
                         currency: currency,
-                        amount: amount
+                        amount: Math.round(amount * 100) / 100  // ✅ Round to 2 decimal places
                     })
                 });
 
                 const data = await response.json();
 
                 if (!data.success) {
-                    alert(data.error || 'Failed to create subscription');
+                    alert('❌ ' + (data.error || 'Failed to create subscription'));
+                    document.querySelectorAll('.subscribe-btn').forEach(btn => btn.disabled = false);
                     return;
                 }
 
+                // Free plan
                 if (data.data.subscription && data.data.subscription.paymentMethod === 'free') {
                     alert('✅ Free trial activated successfully!');
-                    setTimeout(() => {
-                        goBackToDashboard();
-                    }, 1500);
+                    setTimeout(() => goBackToDashboard(), 1500);
                     return;
                 }
 
@@ -485,22 +477,24 @@
 
                 if (!paymentSession || !paymentSession.paymentSessionId) {
                     alert('❌ Payment session not created. Please try again.');
+                    document.querySelectorAll('.subscribe-btn').forEach(btn => btn.disabled = false);
                     return;
                 }
 
-                const cashfree = new Cashfree({
+                // ✅ FIXED: Correct Cashfree v3 initialization & checkout
+                const cashfreeInstance = Cashfree({
                     mode: paymentSession.environment === 'production' ? 'production' : 'sandbox'
                 });
 
-                cashfree.checkout({
+                cashfreeInstance.checkout({
                     paymentSessionId: paymentSession.paymentSessionId,
-                    redirectTarget: '_self',
-                    returnUrl: `${window.location.origin}/subscription-success.html?order_id=${paymentSession.orderId}&hotelId=${hotelId}`
+                    redirectTarget: '_self'
                 });
 
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Payment error:', error);
                 alert('❌ Failed to initiate payment: ' + error.message);
+                document.querySelectorAll('.subscribe-btn').forEach(btn => btn.disabled = false);
             }
         }
     </script>
