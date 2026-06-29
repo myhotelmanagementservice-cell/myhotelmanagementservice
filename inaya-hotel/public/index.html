@@ -266,9 +266,9 @@ font-size: 14px;
 <div class="header">
 <h1>👑 <span id="aHotelName">Crown Plaza</span> — <span id="aRole">Admin</span></h1>
 <div class="header-right">
-<a href="#" onclick="window.location.href='/subscribe.html?hotelId=' + HID" class="logout-btn" style="text-decoration:none;background:rgba(255,255,255,.3)">💳 Subscription</a>    
-    <span class="clock-badge" id="aClock"></span>
-    <button class="logout-btn" onclick="logout()" data-i18n="logout">Logout</button>
+<a href="#" onclick="window.location.href='/subscribe.html?hotelId=' + HID" class="logout-btn" style="text-decoration:none;background:rgba(255,255,255,.3)">💳 Subscription</a>
+<span class="clock-badge" id="aClock"></span>
+<button class="logout-btn" onclick="logout()" data-i18n="logout">Logout</button>
 </div>
 </div>
 <div class="tabs-bar"><div class="tabs-bar-inner" id="adminTabsBar"></div></div>
@@ -4969,7 +4969,7 @@ return `<div class="card" style="max-width:480px"><h3 style="font-size:14px;font
 <div id="subscriptionStatus" style="background:var(--card2);border-radius:8px;padding:10px;margin-bottom:14px;border-left:4px solid var(--p1)">
     <div style="font-weight:700;font-size:13px;margin-bottom:6px">💳 Subscription Status</div>
     <div id="subStatusText" style="font-size:12px">Loading...</div>
-    <button class="btn-primary" style="margin-top:8px;padding:6px 12px;font-size:11px" onclick="window.location.href='/subscribe.html'">Manage Subscription</button>
+<button class="btn-primary" style="margin-top:8px;padding:6px 12px;font-size:11px" onclick="window.location.href='/subscribe.html?hotelId=' + HID">Manage Subscription</button>    
 </div>
 <div class="form-row"><label class="lbl" data-i18n="hotelNameLbl">Hotel Name</label><div style="display:flex;gap:6px"><input class="inp" id="cfgName" value="${HotelCfg.name}"><button class="btn-primary" onclick="saveCfg('name')" data-i18n="save">Save</button></div></div>
 <div class="form-row"><label class="lbl" data-i18n="currencyLbl">Currency</label><div style="display:flex;gap:6px;align-items:center"><select class="inp" id="cfgCurrency" style="width:120px" onchange="saveCfg('currency')">${Object.keys(CURRENCIES).map(code => `<option value="${code}" ${HotelCfg.currency === code ? 'selected' : ''}>${CURRENCIES[code].flag || ''} ${code}</option>`).join('')}</select><button class="btn-primary" onclick="saveCfg('currency')" data-i18n="save">Apply</button><button class="btn-ghost" onclick="openAddCurrencyModal()" title="Add new currency">➕</button></div></div>
