@@ -17,7 +17,7 @@
         .header { text-align: center; color: white; margin-bottom: 30px; }
         .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
         .header p { font-size: 1.1rem; opacity: 0.9; }
-        
+
         .currency-selector {
             background: rgba(255,255,255,0.15);
             backdrop-filter: blur(10px);
@@ -52,7 +52,7 @@
             margin-top: 5px;
             text-align: center;
         }
-        
+
         .plans-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -107,7 +107,7 @@
         .plan-features li { padding: 8px 0; color: #555; border-bottom: 1px solid #f0f0f0; }
         .plan-features li:last-child { border-bottom: none; }
         .plan-features li:before { content: "✓ "; color: #4caf50; font-weight: bold; margin-right: 5px; }
-        
+
         .subscribe-btn {
             width: 100%;
             padding: 15px;
@@ -132,11 +132,11 @@
         .subscribe-btn.free {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         }
-        
+
         .alert { padding: 15px; border-radius: 10px; margin-bottom: 20px; }
         .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #10b981; }
         .alert-info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #06b6d4; }
-        
+
         .back-btn {
             display: inline-flex;
             align-items: center;
@@ -155,7 +155,7 @@
             font-family: inherit;
         }
         .back-btn:hover { background: rgba(255,255,255,0.3); }
-        
+
         .loading {
             text-align: center;
             color: white;
@@ -174,7 +174,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
         @media (max-width: 768px) {
             .header h1 { font-size: 2rem; }
             .plan-price { font-size: 2.5rem; }
@@ -184,9 +184,9 @@
 </head>
 <body>
     <div class="container">
-        <!-- ✅ FIXED: Button instead of link -->
+        <!-- ✅ FIXED: Button with history.back() -->
         <button class="back-btn" onclick="goBackToDashboard()">← Back to Dashboard</button>
-        
+
         <div class="header">
             <h1>🏨 Choose Your Plan</h1>
             <p>Select the perfect subscription for your hotel</p>
@@ -222,11 +222,11 @@
 
     <script>
         const API_BASE = window.location.origin + '/api';
-        
-        // ✅ Get hotelId from URL
+
+        // Get hotelId from URL
         const urlParams = new URLSearchParams(window.location.search);
         let hotelId = urlParams.get('hotelId') || urlParams.get('hotel');
-        
+
         if (!hotelId) {
             try {
                 const session = localStorage.getItem('h_default_session');
@@ -236,40 +236,43 @@
                 }
             } catch(e) {}
         }
-        
+
         if (!hotelId) {
             hotelId = localStorage.getItem('hotelId') || 'HOTEL001';
         }
-        
-        const authToken = localStorage.getItem('hotel_token');
-        
+
+        const authToken = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
+
         // Currency state
         let selectedCurrency = localStorage.getItem('preferred_currency') || 'USD';
         let plansData = [];
-        
-        // ✅ FIXED: Back to Dashboard function
+
+        // ✅ FIXED: Back to Dashboard function - Uses browser history
         function goBackToDashboard() {
-            // Get hotelId from URL or localStorage
-            const currentUrlParams = new URLSearchParams(window.location.search);
-            const currentHotelId = currentUrlParams.get('hotelId') || currentUrlParams.get('hotel');
-            
-            if (currentHotelId && currentHotelId !== 'default') {
-                // Go back with hotelId preserved
-                window.location.href = `/?hotel=${currentHotelId}`;
-            } else if (hotelId && hotelId !== 'default') {
-                window.location.href = `/?hotel=${hotelId}`;
+            // Check if there's a previous page in history
+            if (window.history.length > 1) {
+                // Go back to previous page (preserves session)
+                window.history.back();
             } else {
-                // Fallback to root
-                window.location.href = '/';
+                // Fallback: Go to dashboard with hotelId
+                const currentUrlParams = new URLSearchParams(window.location.search);
+                const currentHotelId = currentUrlParams.get('hotelId') || currentUrlParams.get('hotel');
+
+                if (currentHotelId && currentHotelId !== 'default') {
+                    window.location.href = `/?hotel=${currentHotelId}`;
+                } else if (hotelId && hotelId !== 'default') {
+                    window.location.href = `/?hotel=${hotelId}`;
+                } else {
+                    window.location.href = '/';
+                }
             }
         }
-        
+
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            // Set default currency in dropdown
             document.getElementById('currencySelect').value = selectedCurrency;
             updateCurrencyInfo();
-            
+
             await loadCurrentSubscription();
             await loadPlans();
         });
@@ -286,7 +289,7 @@
             const option = select.options[select.selectedIndex];
             const flag = option.dataset.flag;
             const name = option.text.split(' - ')[1];
-            
+
             const infoEl = document.getElementById('currencyInfo');
             if (selectedCurrency === 'USDT') {
                 infoEl.innerHTML = `${flag} Paying with <strong>${name}</strong> (Cryptocurrency - 1:1 with USD)`;
@@ -301,7 +304,7 @@
             const select = document.getElementById('currencySelect');
             const option = Array.from(select.options).find(opt => opt.value === currency);
             if (!option) return usdPrice;
-            
+
             const rate = parseFloat(option.dataset.rate) || 1;
             return (usdPrice * rate);
         }
@@ -314,19 +317,19 @@
 
         function formatPriceDisplay(amount, currency) {
             const symbol = getCurrencySymbol(currency);
-            
+
             if (currency === 'USDT') {
                 return { symbol, amount: amount.toFixed(2) };
             }
-            
+
             if (['INR', 'KWD'].includes(currency) && amount >= 100) {
                 return { symbol, amount: Math.round(amount).toLocaleString() };
             }
-            
+
             if (['USD', 'EUR', 'GBP'].includes(currency)) {
                 return { symbol, amount: amount.toFixed(2) };
             }
-            
+
             return { symbol, amount: amount.toFixed(2) };
         }
 
@@ -395,7 +398,7 @@
                 const basePrice = plan.price;
                 const convertedPrice = convertPrice(basePrice, selectedCurrency);
                 const { symbol, amount } = formatPriceDisplay(convertedPrice, selectedCurrency);
-                
+
                 const originalPriceHtml = (selectedCurrency !== 'USD' && basePrice > 0) 
                     ? `<div class="plan-original-price">$${basePrice} USD</div>` 
                     : '';
@@ -463,12 +466,12 @@
                 }
 
                 const { paymentSession } = data.data;
-                
+
                 if (!paymentSession || !paymentSession.paymentSessionId) {
                     alert('❌ Payment session not created. Please try again.');
                     return;
                 }
-                
+
                 const cashfree = new Cashfree({
                     mode: paymentSession.environment === 'production' ? 'production' : 'sandbox'
                 });
