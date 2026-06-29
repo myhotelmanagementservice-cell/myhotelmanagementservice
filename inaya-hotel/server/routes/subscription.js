@@ -1,49 +1,15 @@
 // server/routes/subscription.js
-// Subscription API Routes with Cashfree Integration
+// Subscription API Routes with Cashfree Bearer Token Authentication
 
 const express = require('express');
 const router = express.Router();
-const crypto = require('crypto');
 const Subscription = require('../models/Subscription');
 const { getDB } = require('../config/db');
 const { authMiddleware, superAdminOnly } = require('../middleware/auth');
 const { success, error } = require('../utils/apiResponse');
+const cashfree = require('../utils/cashfree');
 
-// ============================================================
-// CASHFREE CONFIGURATION
-// ============================================================
-const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
-const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
 const CASHFREE_ENVIRONMENT = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
-const CASHFREE_WEBHOOK_SECRET = process.env.CASHFREE_WEBHOOK_SECRET;
-
-const CASHFREE_BASE_URL = CASHFREE_ENVIRONMENT === 'production'
-    ? 'https://api.cashfree.com/pg'
-    : 'https://sandbox.cashfree.com/pg';
-
-// ============================================================
-// HELPER: Generate Cashfree Signature
-// ============================================================
-function generateCashfreeSignature(payload) {
-    const message = JSON.stringify(payload);
-    const signature = crypto
-        .createHmac('sha256', CASHFREE_SECRET_KEY)
-        .update(message)
-        .digest('hex');
-    return signature;
-}
-
-// ============================================================
-// HELPER: Verify Cashfree Webhook Signature
-// ============================================================
-function verifyWebhookSignature(signature, timestamp, body) {
-    const generatedSignature = crypto
-        .createHmac('sha256', CASHFREE_WEBHOOK_SECRET)
-        .update(timestamp + body)
-        .digest('hex');
-    
-    return signature === generatedSignature;
-}
 
 // ============================================================
 // GET AVAILABLE PLANS
@@ -80,7 +46,7 @@ router.get('/current', authMiddleware, async (req, res) => {
 });
 
 // ============================================================
-// CREATE SUBSCRIPTION & CASHFREE ORDER
+// CREATE SUBSCRIPTION & CASHFREE ORDER (WITH BEARER TOKEN)
 // ============================================================
 router.post('/create', authMiddleware, async (req, res) => {
     try {
@@ -126,11 +92,11 @@ router.post('/create', authMiddleware, async (req, res) => {
             paymentStatus: 'pending'
         });
 
-        // Create Cashfree order
+        // Create Cashfree order payload
         const orderPayload = {
             order_id: orderId,
             order_amount: planData.price,
-            order_currency: 'INR', // or 'USD' based on your account
+            order_currency: 'INR', // ya 'USD' based on your account
             customer_details: {
                 customer_id: hotelId,
                 customer_email: customerEmail || req.user.email,
@@ -143,24 +109,10 @@ router.post('/create', authMiddleware, async (req, res) => {
             order_note: `Subscription for ${planData.name} plan`
         };
 
-        // Call Cashfree API
-        const signature = generateCashfreeSignature(orderPayload);
+        // ✅ Call Cashfree API with Bearer Token
+        const orderData = await cashfree.createOrder(orderPayload);
 
-        const cashfreeResponse = await fetch(`${CASHFREE_BASE_URL}/orders`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-version': '2023-08-01',
-                'x-client-id': CASHFREE_APP_ID,
-                'x-client-secret': CASHFREE_SECRET_KEY,
-                'x-signature': signature
-            },
-            body: JSON.stringify(orderPayload)
-        });
-
-        const orderData = await cashfreeResponse.json();
-
-        if (!cashfreeResponse.ok) {
+        if (!orderData.order_id) {
             console.error('❌ Cashfree order creation failed:', orderData);
             return error(res, orderData.message || 'Failed to create payment order', 500);
         }
@@ -193,30 +145,17 @@ router.post('/create', authMiddleware, async (req, res) => {
 });
 
 // ============================================================
-// VERIFY PAYMENT STATUS
+// VERIFY PAYMENT STATUS (WITH BEARER TOKEN)
 // ============================================================
 router.get('/verify/:orderId', authMiddleware, async (req, res) => {
     try {
         const { orderId } = req.params;
         const hotelId = req.hotelId;
 
-        // Call Cashfree API to get order status
-        const signature = generateCashfreeSignature({ order_id: orderId });
+        // ✅ Call Cashfree API with Bearer Token
+        const orderData = await cashfree.getOrderStatus(orderId);
 
-        const cashfreeResponse = await fetch(`${CASHFREE_BASE_URL}/orders/${orderId}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-version': '2023-08-01',
-                'x-client-id': CASHFREE_APP_ID,
-                'x-client-secret': CASHFREE_SECRET_KEY,
-                'x-signature': signature
-            }
-        });
-
-        const orderData = await cashfreeResponse.json();
-
-        if (!cashfreeResponse.ok) {
+        if (!orderData.order_id) {
             return error(res, orderData.message || 'Failed to verify payment', 500);
         }
 
@@ -231,7 +170,7 @@ router.get('/verify/:orderId', authMiddleware, async (req, res) => {
             // Update tenant
             const db = getDB();
             const subscription = await Subscription.getSubscription(hotelId);
-            
+
             await db.collection('tenants').updateOne(
                 { hotelId },
                 {
@@ -274,7 +213,7 @@ router.get('/verify/:orderId', authMiddleware, async (req, res) => {
 });
 
 // ============================================================
-// CASHFREE WEBHOOK
+// CASHFREE WEBHOOK (WITH SIGNATURE VERIFICATION)
 // ============================================================
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
@@ -282,22 +221,34 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         const timestamp = req.headers['x-webhook-timestamp'];
         const body = req.body.toString('utf8');
 
-        // Verify webhook signature
-        if (!verifyWebhookSignature(signature, timestamp, body)) {
+        console.log('📥 Webhook received at:', new Date().toISOString());
+        console.log('📋 Signature:', signature?.substring(0, 20) + '...');
+        console.log('📋 Timestamp:', timestamp);
+
+        // ✅ Verify webhook signature (uses same secret key)
+        if (!cashfree.verifyWebhookSignature(signature, timestamp, body)) {
             console.error('❌ Invalid webhook signature');
             return res.status(401).json({ error: 'Invalid signature' });
         }
 
+        console.log('✅ Webhook signature verified');
+
         const event = JSON.parse(body);
-        console.log('📥 Cashfree webhook received:', event.type);
+        console.log('📥 Cashfree webhook event:', event.type);
 
         // Handle different payment events
         switch (event.type) {
             case 'PAYMENT_SUCCESS_WEBHOOK':
-                const orderId = event.data.order.order_id;
-                const hotelId = event.data.order.customer_details.customer_id;
+            case 'ORDER_PAID': {
+                const orderId = event.data?.order?.order_id;
+                const hotelId = event.data?.order?.customer_details?.customer_id;
 
-                console.log(`✅ Payment successful for order: ${orderId}`);
+                if (!orderId || !hotelId) {
+                    console.error('❌ Missing orderId or hotelId in webhook');
+                    break;
+                }
+
+                console.log(`✅ Payment successful for order: ${orderId}, hotel: ${hotelId}`);
 
                 // Update subscription
                 await Subscription.updateSubscription(hotelId, {
@@ -310,32 +261,42 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                 // Update tenant
                 const db = getDB();
                 const subscription = await Subscription.getSubscription(hotelId);
-                
-                await db.collection('tenants').updateOne(
-                    { hotelId },
-                    {
-                        $set: {
-                            subscriptionType: subscription.plan,
-                            subscriptionExpiry: subscription.expiryDate,
-                            active: true,
-                            updatedAt: new Date()
+
+                if (subscription) {
+                    await db.collection('tenants').updateOne(
+                        { hotelId },
+                        {
+                            $set: {
+                                subscriptionType: subscription.plan,
+                                subscriptionExpiry: subscription.expiryDate,
+                                active: true,
+                                updatedAt: new Date()
+                            }
                         }
-                    }
-                );
+                    );
+                }
 
                 console.log(`✅ Subscription activated for hotel: ${hotelId}`);
                 break;
+            }
 
             case 'PAYMENT_FAILED_WEBHOOK':
-                const failedOrderId = event.data.order.order_id;
-                const failedHotelId = event.data.order.customer_details.customer_id;
+            case 'ORDER_FAILED': {
+                const failedOrderId = event.data?.order?.order_id;
+                const failedHotelId = event.data?.order?.customer_details?.customer_id;
 
-                console.log(`❌ Payment failed for order: ${failedOrderId}`);
+                if (!failedOrderId || !failedHotelId) {
+                    console.error('❌ Missing orderId or hotelId in failed webhook');
+                    break;
+                }
+
+                console.log(`❌ Payment failed for order: ${failedOrderId}, hotel: ${failedHotelId}`);
 
                 await Subscription.updateSubscription(failedHotelId, {
                     paymentStatus: 'failed'
                 });
                 break;
+            }
 
             default:
                 console.log('⚠️ Unhandled webhook event:', event.type);
