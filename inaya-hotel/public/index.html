@@ -2110,41 +2110,67 @@ return { ...target, ...source };
 }
 return target;
 }
+// ✅ SUBSCRIPTION STATUS LOADER - Settings Tab ke liye
 async function loadSubscriptionStatus() {
     try {
+        const token = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
+        if (!token) {
+            console.log('No token, skipping subscription load');
+            return;
+        }
+
         const response = await fetch(`${API_BASE}/subscription/current`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('hotel_token')}`,
+                'Authorization': `Bearer ${token}`,
                 'x-hotel-id': HID
             }
         });
+        
+        // ✅ Agar API nahi hai (404), silently return - error mat dikhao
+        if (response.status === 404 || !response.ok) {
+            console.warn('Subscription API not available');
+            return;
+        }
+
         const data = await response.json();
         const statusEl = document.getElementById('subStatusText');
+        const badgeEl = document.getElementById('subStatusBadge');
         
         if (statusEl && data.success && data.data) {
             const sub = data.data;
             const expiryText = sub.expiryDate 
-                ? `Expires: ${new Date(sub.expiryDate).toLocaleDateString()}`
-                : 'Lifetime Access';
+                ? `📅 Expires: <strong>${new Date(sub.expiryDate).toLocaleDateString()}</strong>`
+                : '♾️ <strong>Lifetime Access</strong>';
+            
             const statusColor = sub.status === 'active' ? '#10b981' : 
                                sub.status === 'expired' ? '#ef4444' : '#f59e0b';
+            const statusText = sub.status.toUpperCase();
+            
+            if (badgeEl) {
+                badgeEl.style.background = statusColor;
+                badgeEl.textContent = statusText;
+            }
             
             statusEl.innerHTML = `
-                <div style="margin-bottom:4px"><strong>Plan:</strong> ${sub.planName}</div>
-                <div style="margin-bottom:4px"><strong>Status:</strong> <span style="color:${statusColor};font-weight:700">${sub.status.toUpperCase()}</span></div>
-                <div style="font-size:11px;opacity:0.7">${expiryText}</div>
+                <div style="margin-bottom:4px">📋 <strong>Plan:</strong> ${sub.planName}</div>
+                <div style="margin-bottom:4px">${expiryText}</div>
+                <div style="font-size:11px;opacity:0.8;margin-top:6px">💡 Click "Manage Subscription" to upgrade, renew, or view all plans</div>
             `;
         } else if (statusEl) {
-            statusEl.innerHTML = '<span style="color:#f59e0b">⚠️ No active subscription. <a href="/subscribe.html" style="color:var(--p1);font-weight:700">Subscribe now →</a></span>';
+            if (badgeEl) {
+                badgeEl.style.background = '#f59e0b';
+                badgeEl.textContent = 'NO PLAN';
+            }
+            statusEl.innerHTML = `
+                <div style="margin-bottom:6px">⚠️ <strong>No active subscription found</strong></div>
+                <div style="font-size:12px;opacity:0.9">Subscribe now to unlock all premium features!</div>
+            `;
         }
     } catch (error) {
-        console.error('Subscription status error:', error);
-        const statusEl = document.getElementById('subStatusText');
-        if (statusEl) {
-            statusEl.innerHTML = '<span style="color:#ef4444">❌ Unable to load subscription status</span>';
-        }
+        console.warn('Subscription status load skipped:', error.message);
+        // Error user ko mat dikhao - subscription abhi setup nahi hua ho sakta
     }
-}    
+}   
 async function loadAllData() {
 try {
 const [r, g, f, inv, req, bl, maint, rev, st, lg, bk, cfg, pol, ann, depts] = await Promise.all([

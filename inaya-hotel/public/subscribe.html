@@ -14,8 +14,46 @@
             padding: 20px;
         }
         .container { max-width: 1200px; margin: 0 auto; }
-        .header { text-align: center; color: white; margin-bottom: 40px; }
+        .header { text-align: center; color: white; margin-bottom: 30px; }
         .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .header p { font-size: 1.1rem; opacity: 0.9; }
+
+        /* Currency Selector */
+        .currency-selector {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .currency-selector label {
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .currency-selector select {
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            background: white;
+            font-weight: 600;
+            min-width: 220px;
+        }
+        .currency-info {
+            color: white;
+            font-size: 0.9rem;
+            opacity: 0.85;
+            margin-top: 5px;
+            text-align: center;
+        }
+
         .plans-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -26,10 +64,14 @@
             border-radius: 20px;
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.3s;
+            transition: transform 0.3s, box-shadow 0.3s;
             position: relative;
+            overflow: hidden;
         }
-        .plan-card:hover { transform: translateY(-10px); }
+        .plan-card:hover { 
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
         .plan-card.popular { border: 3px solid #ffd700; }
         .popular-badge {
             position: absolute;
@@ -41,13 +83,32 @@
             transform: rotate(45deg);
             font-weight: bold;
             font-size: 0.8rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         .plan-name { font-size: 1.8rem; color: #333; margin-bottom: 10px; font-weight: bold; }
-        .plan-price { font-size: 3rem; color: #667eea; margin-bottom: 5px; font-weight: bold; }
-        .plan-duration { color: #999; margin-bottom: 20px; font-size: 0.9rem; }
-        .plan-features { list-style: none; margin-bottom: 30px; }
-        .plan-features li { padding: 8px 0; color: #555; }
-        .plan-features li:before { content: "✓ "; color: #4caf50; font-weight: bold; }
+        .plan-price { 
+            font-size: 3rem; 
+            color: #667eea; 
+            margin-bottom: 5px; 
+            font-weight: bold;
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+        }
+        .plan-price .symbol { font-size: 1.5rem; }
+        .plan-price .amount { font-size: 3rem; }
+        .plan-original-price {
+            font-size: 0.9rem;
+            color: #999;
+            text-decoration: line-through;
+            margin-bottom: 5px;
+        }
+        .plan-duration { color: #666; margin-bottom: 20px; font-size: 0.95rem; font-weight: 500; }
+        .plan-features { list-style: none; margin-bottom: 30px; min-height: 180px; }
+        .plan-features li { padding: 8px 0; color: #555; border-bottom: 1px solid #f0f0f0; }
+        .plan-features li:last-child { border-bottom: none; }
+        .plan-features li:before { content: "✓ "; color: #4caf50; font-weight: bold; margin-right: 5px; }
+
         .subscribe-btn {
             width: 100%;
             padding: 15px;
@@ -58,46 +119,218 @@
             font-size: 1.1rem;
             font-weight: bold;
             cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .subscribe-btn:hover { opacity: 0.9; }
+        .subscribe-btn:hover { 
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .subscribe-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .subscribe-btn.free {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
         .alert { padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-        .alert-success { background: #d4edda; color: #155724; }
+        .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #10b981; }
+        .alert-info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #06b6d4; }
+
         .back-btn {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             margin-bottom: 20px;
             padding: 10px 20px;
             background: rgba(255,255,255,0.2);
             color: white;
             text-decoration: none;
             border-radius: 10px;
+            font-weight: 600;
+            transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .loading {
+            text-align: center;
+            color: white;
+            padding: 40px;
+        }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .plan-price { font-size: 2.5rem; }
+            .plan-price .amount { font-size: 2.5rem; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="/index.html" class="back-btn">← Back to Dashboard</a>
-        
+        <button class="back-btn" onclick="goBackToDashboard()">← Back to Dashboard</button>
+
         <div class="header">
             <h1>🏨 Choose Your Plan</h1>
             <p>Select the perfect subscription for your hotel</p>
         </div>
 
+        <!-- Currency Selector -->
+        <div class="currency-selector">
+            <label>💱 Pay in Currency:</label>
+            <select id="currencySelect" onchange="changeCurrency(this.value)">
+                <option value="USD" data-symbol="$" data-rate="1.00" data-flag="🇺🇸">🇺🇸 USD - US Dollar</option>
+                <option value="INR" data-symbol="₹" data-rate="83.50" data-flag="🇮🇳">🇮🇳 INR - Indian Rupee</option>
+                <option value="USDT" data-symbol="₮" data-rate="1.00" data-flag="💎">💎 USDT - Tether (Crypto)</option>
+                <option value="SAR" data-symbol="﷼" data-rate="3.75" data-flag="🇸🇦">🇸🇦 SAR - Saudi Riyal</option>
+                <option value="AED" data-symbol="د.إ" data-rate="3.67" data-flag="🇦🇪">🇦🇪 AED - UAE Dirham</option>
+                <option value="EUR" data-symbol="€" data-rate="0.92" data-flag="🇪🇺">🇪🇺 EUR - Euro</option>
+                <option value="GBP" data-symbol="£" data-rate="0.79" data-flag="🇬🇧">🇬🇧 GBP - British Pound</option>
+                <option value="KWD" data-symbol="د.ك" data-rate="0.31" data-flag="🇰🇼">🇰🇼 KWD - Kuwaiti Dinar</option>
+            </select>
+        </div>
+        <div class="currency-info" id="currencyInfo">
+            Prices shown in USD. Your bank/card will charge in your local currency.
+        </div>
+
         <div id="currentPlanAlert"></div>
 
         <div class="plans-grid" id="plansGrid">
-            <div style="text-align:center;color:white;padding:40px">Loading plans...</div>
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading subscription plans...</p>
+            </div>
         </div>
     </div>
 
     <script>
         const API_BASE = window.location.origin + '/api';
-        const hotelId = localStorage.getItem('hotelId') || localStorage.getItem('h_default_session') ? JSON.parse(localStorage.getItem('h_default_session') || '{}').hotelId : 'default';
+
+        // ✅ FIXED: Proper hotelId reading (no operator precedence bug)
+        const urlParams = new URLSearchParams(window.location.search);
+        let hotelId = urlParams.get('hotelId') || urlParams.get('hotel');
+
+        if (!hotelId) {
+            try {
+                const session = localStorage.getItem('h_default_session');
+                if (session) {
+                    const parsed = JSON.parse(session);
+                    hotelId = parsed.hotelId;
+                }
+            } catch(e) {}
+        }
+
+        if (!hotelId) {
+            hotelId = localStorage.getItem('hotelId') || 'HOTEL001';
+        }
+
         const authToken = localStorage.getItem('hotel_token');
 
+        // Currency state
+        let selectedCurrency = localStorage.getItem('preferred_currency') || 'USD';
+        let plansData = [];
+
+        // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
+            // Set default currency in dropdown
+            document.getElementById('currencySelect').value = selectedCurrency;
+            updateCurrencyInfo();
+
             await loadCurrentSubscription();
             await loadPlans();
         });
+
+        // ✅ FIXED: Back button - goes to dashboard WITHOUT logging out
+        function goBackToDashboard() {
+            // Check if user is logged in
+            if (!authToken) {
+                window.location.href = '/index.html';
+                return;
+            }
+
+            // Go back to dashboard with hotelId preserved
+            const dashboardUrl = hotelId && hotelId !== 'default' 
+                ? `/index.html?hotel=${hotelId}` 
+                : '/index.html';
+
+            window.location.href = dashboardUrl;
+        }
+
+        function changeCurrency(currency) {
+            selectedCurrency = currency;
+            localStorage.setItem('preferred_currency', currency);
+            updateCurrencyInfo();
+            renderPlans(plansData); // Re-render with new currency
+        }
+
+        function updateCurrencyInfo() {
+            const select = document.getElementById('currencySelect');
+            const option = select.options[select.selectedIndex];
+            const flag = option.dataset.flag;
+            const name = option.text.split(' - ')[1];
+
+            const infoEl = document.getElementById('currencyInfo');
+            if (selectedCurrency === 'USDT') {
+                infoEl.innerHTML = `${flag} Paying with <strong>${name}</strong> (Cryptocurrency - 1:1 with USD)`;
+            } else if (selectedCurrency === 'USD') {
+                infoEl.innerHTML = `${flag} Paying in <strong>${name}</strong> (Base Currency)`;
+            } else {
+                infoEl.innerHTML = `${flag} Paying in <strong>${name}</strong>. Amount converted from USD at live rate.`;
+            }
+        }
+
+        function convertPrice(usdPrice, currency) {
+            const select = document.getElementById('currencySelect');
+            const option = Array.from(select.options).find(opt => opt.value === currency);
+            if (!option) return usdPrice;
+
+            const rate = parseFloat(option.dataset.rate) || 1;
+            return (usdPrice * rate);
+        }
+
+        function getCurrencySymbol(currency) {
+            const select = document.getElementById('currencySelect');
+            const option = Array.from(select.options).find(opt => opt.value === currency);
+            return option ? option.dataset.symbol : '$';
+        }
+
+        function formatPriceDisplay(amount, currency) {
+            const symbol = getCurrencySymbol(currency);
+
+            // For USDT, show 2 decimal places
+            if (currency === 'USDT') {
+                return { symbol, amount: amount.toFixed(2) };
+            }
+
+            // For INR, AED, SAR, KWD - show whole numbers if large
+            if (['INR', 'KWD'].includes(currency) && amount >= 100) {
+                return { symbol, amount: Math.round(amount).toLocaleString() };
+            }
+
+            // For USD, EUR, GBP - show 2 decimals
+            if (['USD', 'EUR', 'GBP'].includes(currency)) {
+                return { symbol, amount: amount.toFixed(2) };
+            }
+
+            return { symbol, amount: amount.toFixed(2) };
+        }
 
         async function loadCurrentSubscription() {
             try {
@@ -110,11 +343,13 @@
                 const data = await response.json();
                 if (data.success && data.data) {
                     const sub = data.data;
+                    const statusColor = sub.status === 'active' ? '#10b981' : 
+                                       sub.status === 'expired' ? '#ef4444' : '#f59e0b';
                     document.getElementById('currentPlanAlert').innerHTML = `
                         <div class="alert alert-success">
                             <strong>Current Plan:</strong> ${sub.planName} 
-                            ${sub.expiryDate ? `(Expires: ${new Date(sub.expiryDate).toLocaleDateString()})` : '(Lifetime)'}
-                            - Status: ${sub.status}
+                            ${sub.expiryDate ? `| Expires: ${new Date(sub.expiryDate).toLocaleDateString()}` : '| Lifetime'}
+                            | Status: <strong style="color:${statusColor}">${sub.status.toUpperCase()}</strong>
                         </div>
                     `;
                 }
@@ -128,10 +363,22 @@
                 const response = await fetch(`${API_BASE}/subscription/plans`);
                 const data = await response.json();
                 if (data.success) {
-                    renderPlans(data.data);
+                    plansData = data.data;
+                    renderPlans(plansData);
+                } else {
+                    document.getElementById('plansGrid').innerHTML = `
+                        <div class="loading">
+                            <p style="color: #fee2e2;">❌ Failed to load plans. Please refresh the page.</p>
+                        </div>
+                    `;
                 }
             } catch (error) {
                 console.error('Error loading plans:', error);
+                document.getElementById('plansGrid').innerHTML = `
+                    <div class="loading">
+                        <p style="color: #fee2e2;">❌ Network error. Please check your connection.</p>
+                    </div>
+                `;
             }
         }
 
@@ -144,19 +391,37 @@
                 card.className = 'plan-card' + (plan.id === 'pro' ? ' popular' : '');
 
                 const durationText = plan.duration === null 
-                    ? 'Lifetime Access' 
-                    : `${plan.duration} days`;
+                    ? '♾️ Lifetime Access' 
+                    : `📅 ${plan.duration} days`;
+
+                // Calculate converted price
+                const basePrice = plan.price; // USD
+                const convertedPrice = convertPrice(basePrice, selectedCurrency);
+                const { symbol, amount } = formatPriceDisplay(convertedPrice, selectedCurrency);
+
+                // Show original USD price if different currency
+                const originalPriceHtml = (selectedCurrency !== 'USD' && basePrice > 0) 
+                    ? `<div class="plan-original-price">$${basePrice} USD</div>` 
+                    : '';
+
+                const isFree = basePrice === 0;
+                const btnText = isFree ? '🎁 Start Free Trial' : '💳 Subscribe Now';
+                const btnClass = isFree ? 'subscribe-btn free' : 'subscribe-btn';
 
                 card.innerHTML = `
-                    ${plan.id === 'pro' ? '<div class="popular-badge">POPULAR</div>' : ''}
+                    ${plan.id === 'pro' ? '<div class="popular-badge">⭐ POPULAR</div>' : ''}
                     <div class="plan-name">${plan.name}</div>
-                    <div class="plan-price">₹${plan.price}</div>
+                    ${originalPriceHtml}
+                    <div class="plan-price">
+                        <span class="symbol">${symbol}</span>
+                        <span class="amount">${amount}</span>
+                    </div>
                     <div class="plan-duration">${durationText}</div>
                     <ul class="plan-features">
                         ${plan.features.map(f => `<li>${f}</li>`).join('')}
                     </ul>
-                    <button class="subscribe-btn" onclick="subscribe('${plan.id}')">
-                        ${plan.price === 0 ? 'Start Free Trial' : 'Subscribe Now'}
+                    <button class="${btnClass}" onclick="subscribe('${plan.id}', '${selectedCurrency}', ${convertedPrice})">
+                        ${btnText}
                     </button>
                 `;
 
@@ -164,7 +429,13 @@
             });
         }
 
-        async function subscribe(planId) {
+        async function subscribe(planId, currency, amount) {
+            if (!authToken) {
+                alert('❌ Please login first to subscribe');
+                window.location.href = '/index.html';
+                return;
+            }
+
             try {
                 const response = await fetch(`${API_BASE}/subscription/create`, {
                     method: 'POST',
@@ -173,7 +444,11 @@
                         'Authorization': `Bearer ${authToken}`,
                         'x-hotel-id': hotelId
                     },
-                    body: JSON.stringify({ plan: planId })
+                    body: JSON.stringify({ 
+                        plan: planId,
+                        currency: currency,
+                        amount: amount
+                    })
                 });
 
                 const data = await response.json();
@@ -183,15 +458,23 @@
                     return;
                 }
 
-                if (data.data.subscription.paymentMethod === 'free') {
+                // Free plan - direct activation
+                if (data.data.subscription && data.data.subscription.paymentMethod === 'free') {
                     alert('✅ Free trial activated successfully!');
-                    location.reload();
+                    setTimeout(() => {
+                        goBackToDashboard();
+                    }, 1500);
                     return;
                 }
 
-                // Cashfree payment
+                // Cashfree payment for paid plans
                 const { paymentSession } = data.data;
-                
+
+                if (!paymentSession || !paymentSession.paymentSessionId) {
+                    alert('❌ Payment session not created. Please try again.');
+                    return;
+                }
+
                 const cashfree = new Cashfree({
                     mode: paymentSession.environment === 'production' ? 'production' : 'sandbox'
                 });
@@ -199,12 +482,12 @@
                 cashfree.checkout({
                     paymentSessionId: paymentSession.paymentSessionId,
                     redirectTarget: '_self',
-                    returnUrl: `${window.location.origin}/subscription-success.html?order_id=${paymentSession.orderId}`
+                    returnUrl: `${window.location.origin}/subscription-success.html?order_id=${paymentSession.orderId}&hotelId=${hotelId}`
                 });
 
             } catch (error) {
                 console.error('Error:', error);
-                alert('Failed to initiate payment');
+                alert('❌ Failed to initiate payment: ' + error.message);
             }
         }
     </script>
