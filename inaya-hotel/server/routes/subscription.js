@@ -1,10 +1,8 @@
 // server/routes/subscription.js
-// Subscription API Routes with Cashfree Bearer Token Authentication
+// Subscription API Routes with Cashfree Bearer Token Authentication (FIXED)
 
 const express = require('express');
 const router = express.Router();
-const Subscription = require('../models/Subscription');
-const { getDB } = require('../config/db');
 const { authMiddleware, superAdminOnly } = require('../middleware/auth');
 const { success, error } = require('../utils/apiResponse');
 const cashfree = require('../utils/cashfree');
@@ -12,15 +10,59 @@ const cashfree = require('../utils/cashfree');
 const CASHFREE_ENVIRONMENT = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
 
 // ============================================================
+// SUBSCRIPTION PLANS (Inline Definition)
+// ============================================================
+const SUBSCRIPTION_PLANS = {
+    free: {
+        name: 'Free Trial',
+        price: 0,
+        duration: 7,
+        features: ['Up to 10 rooms', 'Up to 50 guests', 'Basic support', 'Core features']
+    },
+    basic: {
+        name: 'Basic',
+        price: 29,
+        duration: 30,
+        features: ['Up to 50 rooms', 'Up to 500 guests', 'Email support', 'All core features', 'Basic reporting']
+    },
+    pro: {
+        name: 'Professional',
+        price: 99,
+        duration: 30,
+        features: ['Up to 200 rooms', 'Unlimited guests', 'Priority support', 'All features', 'Advanced reporting', 'API access']
+    },
+    enterprise: {
+        name: 'Enterprise',
+        price: 499,
+        duration: 365,
+        features: ['Unlimited rooms', 'Unlimited guests', '24/7 support', 'All features', 'Advanced analytics', 'API access', 'Custom integrations', 'Dedicated manager']
+    },
+    lifetime: {
+        name: 'Lifetime',
+        price: 2999,
+        duration: null,
+        features: ['Unlimited everything', 'Lifetime access', '24/7 priority support', 'All features', 'Custom branding', 'Priority updates']
+    }
+};
+
+// ============================================================
+// HELPER: Get DB safely from Express app
+// ============================================================
+function getDB(req) {
+    const db = req.app.get('db');
+    if (!db) throw new Error('Database not connected');
+    return db;
+}
+
+// ============================================================
 // GET AVAILABLE PLANS
 // ============================================================
 router.get('/plans', (req, res) => {
     try {
-        const plans = Object.entries(Subscription.SUBSCRIPTION_PLANS).map(([key, plan]) => ({
+        const plans = Object.entries(SUBSCRIPTION_PLANS).map(([key, plan]) => ({
             id: key,
             ...plan
         }));
-
         return success(res, plans);
     } catch (err) {
         return error(res, err.message, 500);
@@ -32,15 +74,25 @@ router.get('/plans', (req, res) => {
 // ============================================================
 router.get('/current', authMiddleware, async (req, res) => {
     try {
+        const db = getDB(req);
         const hotelId = req.hotelId;
-        const subscription = await Subscription.getSubscription(hotelId);
+
+        const subscription = await db.collection('subscriptions')
+            .findOne({ hotelId }, { sort: { createdAt: -1 } });
 
         if (!subscription) {
             return success(res, null, 'No active subscription');
         }
 
+        // Check if expired
+        if (subscription.expiryDate && new Date(subscription.expiryDate) < new Date()) {
+            subscription.status = 'expired';
+        }
+
+        if (subscription._id) subscription._id = subscription._id.toString();
         return success(res, subscription);
     } catch (err) {
+        console.error('❌ Get current subscription error:', err.message);
         return error(res, err.message, 500);
     }
 });
@@ -50,25 +102,57 @@ router.get('/current', authMiddleware, async (req, res) => {
 // ============================================================
 router.post('/create', authMiddleware, async (req, res) => {
     try {
+        const db = getDB(req);
         const hotelId = req.hotelId;
-        const { plan, customerEmail, customerPhone } = req.body;
+        const { plan, currency, amount, customerEmail, customerPhone } = req.body;
 
         if (!plan) {
             return error(res, 'Plan is required', 400);
         }
 
-        const planData = Subscription.SUBSCRIPTION_PLANS[plan];
+        const planData = SUBSCRIPTION_PLANS[plan];
         if (!planData) {
             return error(res, 'Invalid plan', 400);
         }
 
+        // Calculate expiry date
+        let expiryDate = null;
+        if (planData.duration) {
+            expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + planData.duration);
+        }
+
         // Free plan - direct activation
         if (planData.price === 0) {
-            const subscription = await Subscription.createSubscription(hotelId, {
+            const subscription = {
+                hotelId,
                 plan,
+                planName: planData.name,
+                price: 0,
+                currency: 'USD',
+                status: 'active',
+                startDate: new Date(),
+                expiryDate: expiryDate,
+                paymentStatus: 'completed',
                 paymentMethod: 'free',
-                paymentStatus: 'completed'
-            });
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+
+            await db.collection('subscriptions').insertOne(subscription);
+
+            // Update tenant
+            await db.collection('tenants').updateOne(
+                { hotelId },
+                {
+                    $set: {
+                        subscriptionType: plan,
+                        subscriptionExpiry: expiryDate,
+                        active: true,
+                        updatedAt: new Date()
+                    }
+                }
+            );
 
             return success(res, {
                 subscription,
@@ -77,8 +161,10 @@ router.post('/create', authMiddleware, async (req, res) => {
         }
 
         // Check if already has active subscription
-        const existing = await Subscription.getSubscription(hotelId);
-        if (existing && existing.status === 'active') {
+        const existing = await db.collection('subscriptions')
+            .findOne({ hotelId, status: 'active' });
+
+        if (existing) {
             return error(res, 'Already has active subscription', 400);
         }
 
@@ -86,20 +172,31 @@ router.post('/create', authMiddleware, async (req, res) => {
         const orderId = `hotel_${hotelId}_${Date.now()}`;
 
         // Create subscription record (pending)
-        const subscription = await Subscription.createSubscription(hotelId, {
+        const subscription = {
+            hotelId,
             plan,
+            planName: planData.name,
+            price: amount || planData.price,
+            currency: currency || 'USD',
+            status: 'pending',
+            startDate: new Date(),
+            paymentStatus: 'pending',
             paymentMethod: 'cashfree',
-            paymentStatus: 'pending'
-        });
+            transactionId: orderId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+
+        await db.collection('subscriptions').insertOne(subscription);
 
         // Create Cashfree order payload
         const orderPayload = {
             order_id: orderId,
-            order_amount: planData.price,
-            order_currency: 'INR', // ya 'USD' based on your account
+            order_amount: amount || planData.price,
+            order_currency: currency || 'INR',
             customer_details: {
                 customer_id: hotelId,
-                customer_email: customerEmail || req.user.email,
+                customer_email: customerEmail || req.user.email || 'admin@hotel.com',
                 customer_phone: customerPhone || '9999999999'
             },
             order_meta: {
@@ -120,10 +217,16 @@ router.post('/create', authMiddleware, async (req, res) => {
         console.log('✅ Cashfree order created:', orderData.order_id);
 
         // Update subscription with order ID
-        await Subscription.updateSubscription(hotelId, {
-            paymentId: orderData.order_id,
-            transactionId: orderId
-        });
+        await db.collection('subscriptions').updateOne(
+            { _id: subscription._id },
+            {
+                $set: {
+                    paymentId: orderData.order_id,
+                    transactionId: orderId,
+                    updatedAt: new Date()
+                }
+            }
+        );
 
         // Return payment session details
         return success(res, {
@@ -149,6 +252,7 @@ router.post('/create', authMiddleware, async (req, res) => {
 // ============================================================
 router.get('/verify/:orderId', authMiddleware, async (req, res) => {
     try {
+        const db = getDB(req);
         const { orderId } = req.params;
         const hotelId = req.hotelId;
 
@@ -161,27 +265,41 @@ router.get('/verify/:orderId', authMiddleware, async (req, res) => {
 
         // Update subscription based on payment status
         if (orderData.order_status === 'PAID') {
-            await Subscription.updateSubscription(hotelId, {
-                paymentStatus: 'completed',
-                status: 'active',
-                transactionId: orderId
-            });
+            const subscription = await db.collection('subscriptions').findOne({ transactionId: orderId });
 
-            // Update tenant
-            const db = getDB();
-            const subscription = await Subscription.getSubscription(hotelId);
-
-            await db.collection('tenants').updateOne(
-                { hotelId },
-                {
-                    $set: {
-                        subscriptionType: subscription.plan,
-                        subscriptionExpiry: subscription.expiryDate,
-                        active: true,
-                        updatedAt: new Date()
-                    }
+            if (subscription) {
+                let expiryDate = null;
+                const planData = SUBSCRIPTION_PLANS[subscription.plan];
+                if (planData && planData.duration) {
+                    expiryDate = new Date();
+                    expiryDate.setDate(expiryDate.getDate() + planData.duration);
                 }
-            );
+
+                await db.collection('subscriptions').updateOne(
+                    { _id: subscription._id },
+                    {
+                        $set: {
+                            paymentStatus: 'completed',
+                            status: 'active',
+                            expiryDate: expiryDate,
+                            updatedAt: new Date()
+                        }
+                    }
+                );
+
+                // Update tenant
+                await db.collection('tenants').updateOne(
+                    { hotelId },
+                    {
+                        $set: {
+                            subscriptionType: subscription.plan,
+                            subscriptionExpiry: expiryDate,
+                            active: true,
+                            updatedAt: new Date()
+                        }
+                    }
+                );
+            }
 
             return success(res, {
                 status: 'PAID',
@@ -189,9 +307,10 @@ router.get('/verify/:orderId', authMiddleware, async (req, res) => {
                 message: 'Payment successful! Subscription activated.'
             });
         } else if (orderData.order_status === 'FAILED') {
-            await Subscription.updateSubscription(hotelId, {
-                paymentStatus: 'failed'
-            });
+            await db.collection('subscriptions').updateOne(
+                { transactionId: orderId },
+                { $set: { paymentStatus: 'failed', updatedAt: new Date() } }
+            );
 
             return success(res, {
                 status: 'FAILED',
@@ -217,6 +336,12 @@ router.get('/verify/:orderId', authMiddleware, async (req, res) => {
 // ============================================================
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
+        const db = req.app.get('db');
+        if (!db) {
+            console.error('❌ Database not connected in webhook');
+            return res.status(503).json({ error: 'Database not connected' });
+        }
+
         const signature = req.headers['x-webhook-signature'];
         const timestamp = req.headers['x-webhook-timestamp'];
         const body = req.body.toString('utf8');
@@ -250,33 +375,45 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
                 console.log(`✅ Payment successful for order: ${orderId}, hotel: ${hotelId}`);
 
-                // Update subscription
-                await Subscription.updateSubscription(hotelId, {
-                    paymentStatus: 'completed',
-                    status: 'active',
-                    transactionId: orderId,
-                    paymentId: orderId
-                });
-
-                // Update tenant
-                const db = getDB();
-                const subscription = await Subscription.getSubscription(hotelId);
+                const subscription = await db.collection('subscriptions').findOne({ transactionId: orderId });
 
                 if (subscription) {
+                    let expiryDate = null;
+                    const planData = SUBSCRIPTION_PLANS[subscription.plan];
+                    if (planData && planData.duration) {
+                        expiryDate = new Date();
+                        expiryDate.setDate(expiryDate.getDate() + planData.duration);
+                    }
+
+                    await db.collection('subscriptions').updateOne(
+                        { _id: subscription._id },
+                        {
+                            $set: {
+                                paymentStatus: 'completed',
+                                status: 'active',
+                                transactionId: orderId,
+                                paymentId: orderId,
+                                expiryDate: expiryDate,
+                                updatedAt: new Date()
+                            }
+                        }
+                    );
+
+                    // Update tenant
                     await db.collection('tenants').updateOne(
                         { hotelId },
                         {
                             $set: {
                                 subscriptionType: subscription.plan,
-                                subscriptionExpiry: subscription.expiryDate,
+                                subscriptionExpiry: expiryDate,
                                 active: true,
                                 updatedAt: new Date()
                             }
                         }
                     );
-                }
 
-                console.log(`✅ Subscription activated for hotel: ${hotelId}`);
+                    console.log(`✅ Subscription activated for hotel: ${hotelId}`);
+                }
                 break;
             }
 
@@ -292,9 +429,10 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
                 console.log(`❌ Payment failed for order: ${failedOrderId}, hotel: ${failedHotelId}`);
 
-                await Subscription.updateSubscription(failedHotelId, {
-                    paymentStatus: 'failed'
-                });
+                await db.collection('subscriptions').updateOne(
+                    { transactionId: failedOrderId },
+                    { $set: { paymentStatus: 'failed', updatedAt: new Date() } }
+                );
                 break;
             }
 
@@ -315,17 +453,28 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 // ============================================================
 router.post('/cancel', authMiddleware, async (req, res) => {
     try {
+        const db = getDB(req);
         const hotelId = req.hotelId;
 
-        const subscription = await Subscription.getSubscription(hotelId);
+        const subscription = await db.collection('subscriptions')
+            .findOne({ hotelId }, { sort: { createdAt: -1 } });
+
         if (!subscription) {
             return error(res, 'No subscription found', 404);
         }
 
-        const cancelled = await Subscription.cancelSubscription(hotelId);
+        await db.collection('subscriptions').updateOne(
+            { _id: subscription._id },
+            {
+                $set: {
+                    status: 'cancelled',
+                    autoRenew: false,
+                    updatedAt: new Date()
+                }
+            }
+        );
 
         // Update tenant
-        const db = getDB();
         await db.collection('tenants').updateOne(
             { hotelId },
             {
@@ -337,7 +486,7 @@ router.post('/cancel', authMiddleware, async (req, res) => {
             }
         );
 
-        return success(res, cancelled, 'Subscription cancelled');
+        return success(res, null, 'Subscription cancelled');
 
     } catch (err) {
         return error(res, err.message, 500);
@@ -349,8 +498,21 @@ router.post('/cancel', authMiddleware, async (req, res) => {
 // ============================================================
 router.get('/all', superAdminOnly, async (req, res) => {
     try {
+        const db = getDB(req);
         const { status, plan } = req.query;
-        const subscriptions = await Subscription.getAllSubscriptions({ status, plan });
+
+        const filter = {};
+        if (status) filter.status = status;
+        if (plan) filter.plan = plan;
+
+        const subscriptions = await db.collection('subscriptions')
+            .find(filter)
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        subscriptions.forEach(s => {
+            if (s._id) s._id = s._id.toString();
+        });
 
         return success(res, subscriptions);
 
@@ -364,9 +526,34 @@ router.get('/all', superAdminOnly, async (req, res) => {
 // ============================================================
 router.get('/stats', superAdminOnly, async (req, res) => {
     try {
-        const stats = await Subscription.getSubscriptionStats();
+        const db = getDB(req);
 
-        return success(res, stats);
+        const byPlan = await db.collection('subscriptions').aggregate([
+            { $group: { _id: '$plan', count: { $sum: 1 }, revenue: { $sum: '$price' } } }
+        ]).toArray();
+
+        const byStatus = await db.collection('subscriptions').aggregate([
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]).toArray();
+
+        const totalResult = await db.collection('subscriptions').aggregate([
+            { $group: { _id: null, total: { $sum: 1 }, revenue: { $sum: '$price' } } }
+        ]).toArray();
+
+        const result = totalResult[0] || { total: 0, revenue: 0 };
+
+        return success(res, {
+            total: result.total,
+            revenue: result.revenue,
+            byPlan: byPlan.reduce((acc, s) => {
+                acc[s._id] = { count: s.count, revenue: s.revenue };
+                return acc;
+            }, {}),
+            byStatus: byStatus.reduce((acc, s) => {
+                acc[s._id] = s.count;
+                return acc;
+            }, {})
+        });
 
     } catch (err) {
         return error(res, err.message, 500);
