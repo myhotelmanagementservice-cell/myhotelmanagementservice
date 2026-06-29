@@ -42,6 +42,10 @@ function getDB(req) {
 function verifyWebhookSignature(signature, timestamp, body) {
     try {
         if (!signature || !timestamp || !body) return false;
+        if (!CASHFREE_SECRET_KEY) {
+            console.error('❌ CASHFREE_SECRET_KEY is not set');
+            return false;
+        }
         const payload = timestamp + body;
         const generatedSignature = crypto
             .createHmac('sha256', CASHFREE_SECRET_KEY)
@@ -52,6 +56,14 @@ function verifyWebhookSignature(signature, timestamp, body) {
         console.error('❌ Webhook signature error:', err.message);
         return false;
     }
+}
+
+// ============================================================
+// HELPER: Safe fetch wrapper (Node 18+ has native fetch)
+// ============================================================
+async function safeFetch(url, options) {
+    const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
+    return fetchFn(url, options);
 }
 
 // ============================================================
@@ -73,7 +85,14 @@ router.get('/current', authMiddleware, async (req, res) => {
     try {
         const db = getDB(req);
         const hotelId = req.hotelId;
-        const subscription = await db.collection('subscriptions').findOne({ hotelId }, { sort: { createdAt: -1 } });
+
+        // FIX: Validate hotelId before DB query
+        if (!hotelId) return error(res, 'Hotel ID not found in session', 401);
+
+        const subscription = await db.collection('subscriptions').findOne(
+            { hotelId },
+            { sort: { createdAt: -1 } }
+        );
 
         if (!subscription) return success(res, null, 'No active subscription');
 
@@ -83,6 +102,7 @@ router.get('/current', authMiddleware, async (req, res) => {
         if (subscription._id) subscription._id = subscription._id.toString();
         return success(res, subscription);
     } catch (err) {
+        console.error('❌ Get current subscription error:', err);
         return error(res, err.message, 500);
     }
 });
@@ -94,9 +114,17 @@ router.post('/create', authMiddleware, async (req, res) => {
     try {
         const db = getDB(req);
         const hotelId = req.hotelId;
+
+        // FIX 1: Validate hotelId
+        if (!hotelId) return error(res, 'Hotel ID not found in session', 401);
+
         const { plan, currency, amount } = req.body;
 
-        if (!plan || !SUBSCRIPTION_PLANS[plan]) return error(res, 'Invalid plan', 400);
+        // FIX 2: Validate plan
+        if (!plan || !SUBSCRIPTION_PLANS[plan]) {
+            return error(res, 'Invalid plan. Valid plans: ' + Object.keys(SUBSCRIPTION_PLANS).join(', '), 400);
+        }
+
         const planData = SUBSCRIPTION_PLANS[plan];
 
         // Calculate expiry date
@@ -122,31 +150,51 @@ router.post('/create', authMiddleware, async (req, res) => {
             return success(res, { subscription }, 'Free trial activated successfully');
         }
 
+        // FIX 3: Validate Cashfree credentials before calling API
+        if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
+            console.error('❌ Cashfree credentials missing: CASHFREE_APP_ID or CASHFREE_SECRET_KEY not set in .env');
+            return error(res, 'Payment gateway not configured. Please contact support.', 500);
+        }
+
         // Check if already has active subscription
         const existing = await db.collection('subscriptions').findOne({ hotelId, status: 'active' });
-        if (existing) return error(res, 'Already has active subscription', 400);
+        if (existing) return error(res, 'Already has an active subscription', 400);
 
         const orderId = `hotel_${hotelId}_${Date.now()}`;
+        const orderAmount = amount || planData.price;
+        const orderCurrency = currency || 'INR';
+
+        // FIX 4: Validate amount
+        if (!orderAmount || isNaN(orderAmount) || orderAmount <= 0) {
+            return error(res, 'Invalid payment amount', 400);
+        }
 
         // Create pending subscription record
         const subscription = {
-            hotelId, plan, planName: planData.name, price: amount || planData.price,
-            currency: currency || 'USD', status: 'pending', startDate: new Date(),
-            paymentStatus: 'pending', paymentMethod: 'cashfree', transactionId: orderId,
+            hotelId, plan, planName: planData.name,
+            price: orderAmount, currency: orderCurrency,
+            status: 'pending', startDate: new Date(),
+            paymentStatus: 'pending', paymentMethod: 'cashfree',
+            transactionId: orderId,
             createdAt: new Date(), updatedAt: new Date()
         };
         const result = await db.collection('subscriptions').insertOne(subscription);
         subscription._id = result.insertedId;
 
+        // FIX 5: Get customer email safely
+        const customerEmail = req.user?.email
+            || req.session?.adminEmail
+            || 'admin@hotel.com';
+
         // Create Cashfree order payload
         const orderPayload = {
             order_id: orderId,
-            order_amount: amount || planData.price,
-            order_currency: currency || 'INR',
+            order_amount: orderAmount,
+            order_currency: orderCurrency,
             customer_details: {
-                customer_id: hotelId,
-                customer_email: req.user?.email || req.session?.adminEmail || 'admin@hotel.com',
-                customer_phone: '9999999999'
+                customer_id: String(hotelId),  // FIX 6: Ensure string
+                customer_email: customerEmail,
+                customer_phone: req.user?.phone || '9999999999'
             },
             order_meta: {
                 return_url: `${process.env.FRONTEND_URL || 'https://myhotelmanagementservice.onrender.com'}/subscription-success.html?order_id={order_id}`,
@@ -154,23 +202,44 @@ router.post('/create', authMiddleware, async (req, res) => {
             }
         };
 
-        // ✅ Cashfree API call
-        const cashfreeResponse = await fetch(`${CASHFREE_BASE_URL}/orders`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-version': '2023-08-01',
-                'x-client-id': CASHFREE_APP_ID,
-                'x-client-secret': CASHFREE_SECRET_KEY
-            },
-            body: JSON.stringify(orderPayload)
-        });
+        console.log('📤 Creating Cashfree order:', orderId, '| Amount:', orderAmount, orderCurrency);
 
-        const orderData = await cashfreeResponse.json();
+        // Cashfree API call
+        let cashfreeResponse;
+        try {
+            cashfreeResponse = await safeFetch(`${CASHFREE_BASE_URL}/orders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-version': '2023-08-01',
+                    'x-client-id': CASHFREE_APP_ID,
+                    'x-client-secret': CASHFREE_SECRET_KEY
+                },
+                body: JSON.stringify(orderPayload)
+            });
+        } catch (fetchErr) {
+            // FIX 7: Catch network-level fetch errors separately
+            console.error('❌ Cashfree network error:', fetchErr.message);
+            // Clean up pending subscription
+            await db.collection('subscriptions').deleteOne({ _id: subscription._id });
+            return error(res, 'Unable to reach payment gateway. Please try again.', 502);
+        }
+
+        // FIX 8: Safe JSON parse of Cashfree response
+        let orderData;
+        try {
+            orderData = await cashfreeResponse.json();
+        } catch (parseErr) {
+            console.error('❌ Cashfree response parse error:', parseErr.message);
+            await db.collection('subscriptions').deleteOne({ _id: subscription._id });
+            return error(res, 'Invalid response from payment gateway', 502);
+        }
 
         if (!cashfreeResponse.ok || !orderData.payment_session_id) {
-            console.error('❌ Cashfree error:', orderData);
-            return error(res, orderData.message || 'Failed to create payment order', 500);
+            console.error('❌ Cashfree order creation failed:', JSON.stringify(orderData));
+            // Clean up pending subscription on failure
+            await db.collection('subscriptions').deleteOne({ _id: subscription._id });
+            return error(res, orderData.message || orderData.error || 'Failed to create payment order', 500);
         }
 
         // Update subscription with Cashfree order ID
@@ -179,8 +248,10 @@ router.post('/create', authMiddleware, async (req, res) => {
             { $set: { paymentId: orderData.order_id, updatedAt: new Date() } }
         );
 
+        console.log('✅ Cashfree order created:', orderData.order_id);
+
         return success(res, {
-            subscription,
+            subscription: { ...subscription, _id: subscription._id.toString() },
             paymentSession: {
                 orderId: orderData.order_id,
                 paymentSessionId: orderData.payment_session_id,
@@ -203,8 +274,15 @@ router.get('/verify/:orderId', authMiddleware, async (req, res) => {
         const { orderId } = req.params;
         const hotelId = req.hotelId;
 
-        // Call Cashfree API to check order status
-        const cashfreeResponse = await fetch(`${CASHFREE_BASE_URL}/orders/${orderId}`, {
+        if (!hotelId) return error(res, 'Hotel ID not found in session', 401);
+        if (!orderId) return error(res, 'Order ID is required', 400);
+
+        // FIX: Validate credentials
+        if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
+            return error(res, 'Payment gateway not configured', 500);
+        }
+
+        const cashfreeResponse = await safeFetch(`${CASHFREE_BASE_URL}/orders/${orderId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -220,7 +298,6 @@ router.get('/verify/:orderId', authMiddleware, async (req, res) => {
             return error(res, orderData.message || 'Failed to verify payment', 500);
         }
 
-        // Update subscription based on payment status
         if (orderData.order_status === 'PAID') {
             const subscription = await db.collection('subscriptions').findOne({ transactionId: orderId });
 
@@ -234,52 +311,25 @@ router.get('/verify/:orderId', authMiddleware, async (req, res) => {
 
                 await db.collection('subscriptions').updateOne(
                     { _id: subscription._id },
-                    {
-                        $set: {
-                            paymentStatus: 'completed',
-                            status: 'active',
-                            expiryDate: expiryDate,
-                            updatedAt: new Date()
-                        }
-                    }
+                    { $set: { paymentStatus: 'completed', status: 'active', expiryDate, updatedAt: new Date() } }
                 );
-
-                // Update tenant
                 await db.collection('tenants').updateOne(
                     { hotelId },
-                    {
-                        $set: {
-                            subscriptionType: subscription.plan,
-                            subscriptionExpiry: expiryDate,
-                            active: true,
-                            updatedAt: new Date()
-                        }
-                    }
+                    { $set: { subscriptionType: subscription.plan, subscriptionExpiry: expiryDate, active: true, updatedAt: new Date() } }
                 );
             }
 
-            return success(res, {
-                status: 'PAID',
-                orderData,
-                message: 'Payment successful! Subscription activated.'
-            });
+            return success(res, { status: 'PAID', orderData, message: 'Payment successful! Subscription activated.' });
+
         } else if (orderData.order_status === 'FAILED') {
             await db.collection('subscriptions').updateOne(
                 { transactionId: orderId },
                 { $set: { paymentStatus: 'failed', updatedAt: new Date() } }
             );
+            return success(res, { status: 'FAILED', orderData, message: 'Payment failed. Please try again.' });
 
-            return success(res, {
-                status: 'FAILED',
-                orderData,
-                message: 'Payment failed. Please try again.'
-            });
         } else {
-            return success(res, {
-                status: orderData.order_status,
-                orderData,
-                message: 'Payment pending.'
-            });
+            return success(res, { status: orderData.order_status, orderData, message: 'Payment pending.' });
         }
 
     } catch (err) {
@@ -301,10 +351,17 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         const body = req.body.toString('utf8');
 
         if (!verifyWebhookSignature(signature, timestamp, body)) {
+            console.warn('⚠️ Webhook: Invalid signature received');
             return res.status(401).json({ error: 'Invalid signature' });
         }
 
-        const event = JSON.parse(body);
+        let event;
+        try {
+            event = JSON.parse(body);
+        } catch (parseErr) {
+            return res.status(400).json({ error: 'Invalid JSON body' });
+        }
+
         console.log('📥 Cashfree webhook event:', event.type);
 
         if (event.type === 'PAYMENT_SUCCESS_WEBHOOK' || event.type === 'ORDER_PAID') {
@@ -333,6 +390,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                 }
             }
         }
+
         res.json({ status: 'ok' });
     } catch (err) {
         console.error('❌ Webhook error:', err.message);
@@ -347,7 +405,13 @@ router.post('/cancel', authMiddleware, async (req, res) => {
     try {
         const db = getDB(req);
         const hotelId = req.hotelId;
-        const subscription = await db.collection('subscriptions').findOne({ hotelId }, { sort: { createdAt: -1 } });
+
+        if (!hotelId) return error(res, 'Hotel ID not found in session', 401);
+
+        const subscription = await db.collection('subscriptions').findOne(
+            { hotelId },
+            { sort: { createdAt: -1 } }
+        );
         if (!subscription) return error(res, 'No subscription found', 404);
 
         await db.collection('subscriptions').updateOne(
@@ -360,6 +424,7 @@ router.post('/cancel', authMiddleware, async (req, res) => {
         );
         return success(res, null, 'Subscription cancelled');
     } catch (err) {
+        console.error('❌ Cancel subscription error:', err);
         return error(res, err.message, 500);
     }
 });
@@ -386,8 +451,8 @@ router.get('/all', superAdminOnly, async (req, res) => {
         });
 
         return success(res, subscriptions);
-
     } catch (err) {
+        console.error('❌ Get all subscriptions error:', err);
         return error(res, err.message, 500);
     }
 });
@@ -399,17 +464,17 @@ router.get('/stats', superAdminOnly, async (req, res) => {
     try {
         const db = getDB(req);
 
-        const byPlan = await db.collection('subscriptions').aggregate([
-            { $group: { _id: '$plan', count: { $sum: 1 }, revenue: { $sum: '$price' } } }
-        ]).toArray();
-
-        const byStatus = await db.collection('subscriptions').aggregate([
-            { $group: { _id: '$status', count: { $sum: 1 } } }
-        ]).toArray();
-
-        const totalResult = await db.collection('subscriptions').aggregate([
-            { $group: { _id: null, total: { $sum: 1 }, revenue: { $sum: '$price' } } }
-        ]).toArray();
+        const [byPlan, byStatus, totalResult] = await Promise.all([
+            db.collection('subscriptions').aggregate([
+                { $group: { _id: '$plan', count: { $sum: 1 }, revenue: { $sum: '$price' } } }
+            ]).toArray(),
+            db.collection('subscriptions').aggregate([
+                { $group: { _id: '$status', count: { $sum: 1 } } }
+            ]).toArray(),
+            db.collection('subscriptions').aggregate([
+                { $group: { _id: null, total: { $sum: 1 }, revenue: { $sum: '$price' } } }
+            ]).toArray()
+        ]);
 
         const result = totalResult[0] || { total: 0, revenue: 0 };
 
@@ -425,8 +490,8 @@ router.get('/stats', superAdminOnly, async (req, res) => {
                 return acc;
             }, {})
         });
-
     } catch (err) {
+        console.error('❌ Get stats error:', err);
         return error(res, err.message, 500);
     }
 });
