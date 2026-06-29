@@ -65,8 +65,19 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-hotel-id', 'x-client-id', 'x-idempotency-key', 'x-request-id']
 }));
 
+// ✅ CRITICAL: Webhook raw body parser MUST come BEFORE express.json()
+// Cashfree webhook signature verification requires raw body
+app.use('/api/subscription/webhook', express.raw({ type: 'application/json' }));
+
+// Normal JSON parser for other routes
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ======================== WEBHOOK TEST ENDPOINT ========================
+app.post('/api/subscription/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+    console.log('✅ Webhook received:', req.body);
+    res.status(200).json({ received: true });
+});
 
 const publicPath = path.join(__dirname, process.env.PUBLIC_PATH || '../public');
 app.use(express.static(publicPath, {
