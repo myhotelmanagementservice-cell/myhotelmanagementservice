@@ -1748,6 +1748,18 @@ AED: { symbol: 'د.إ', rate: 3.67, flag: '🇦🇪', custom: false },
 USD: { symbol: '$', rate: 1.00, flag: '🇺🇸', custom: false },
 KWD: { symbol: 'د.ك', rate: 0.31, flag: '🇰🇼', custom: false }
 };
+const BUILTIN_SUB_CURRENCIES = {
+INR:  { symbol: '₹',    rate: 83.50, flag: '🇮🇳', name: 'Indian Rupee' },
+USD:  { symbol: '$',    rate: 1.00,  flag: '🇺🇸', name: 'US Dollar' },
+USDT: { symbol: '₮',   rate: 1.00,  flag: '💎',   name: 'Tether (Crypto)' },
+SAR:  { symbol: '﷼',   rate: 3.75,  flag: '🇸🇦', name: 'Saudi Riyal' },
+AED:  { symbol: 'د.إ', rate: 3.67,  flag: '🇦🇪', name: 'UAE Dirham' },
+EUR:  { symbol: '€',   rate: 0.92,  flag: '🇪🇺', name: 'Euro' },
+GBP:  { symbol: '£',   rate: 0.79,  flag: '🇬🇧', name: 'British Pound' },
+KWD:  { symbol: 'د.ك', rate: 0.31,  flag: '🇰🇼', name: 'Kuwaiti Dinar' }
+};
+let enabledCurrencies = { INR: true, USD: true, USDT: true, SAR: true, AED: true, EUR: true, GBP: true, KWD: true };
+let customSubCurrencies = {};
 const SERVICES = {}; // Kept for compatibility, dynamically populated if needed
 const ROLES = [
 { key: 'super_admin', icon: '👑', label: 'roleSuperAdmin' },
@@ -2218,6 +2230,8 @@ if (cfg && typeof cfg === 'object' && cfg._id) {
 Object.assign(HotelCfg, cfg);
 HotelCfg._id = cfg._id;
 if (cfg.currencies) Object.assign(CURRENCIES, cfg.currencies);
+if (cfg.enabledCurrencies) Object.assign(enabledCurrencies, cfg.enabledCurrencies);
+if (cfg.customCurrencies) Object.assign(customSubCurrencies, cfg.customCurrencies);
 cacheData('config', cfg);
 } else {
 const cachedCfg = getCachedData('config');
@@ -2225,6 +2239,8 @@ if (cachedCfg && cachedCfg._id) {
 Object.assign(HotelCfg, cachedCfg);
 HotelCfg._id = cachedCfg._id;
 if (cachedCfg.currencies) Object.assign(CURRENCIES, cachedCfg.currencies);
+if (cachedCfg.enabledCurrencies) Object.assign(enabledCurrencies, cachedCfg.enabledCurrencies);
+if (cachedCfg.customCurrencies) Object.assign(customSubCurrencies, cachedCfg.customCurrencies);
 } else {
 HotelCfg = { _id: null, name: 'Crown Plaza Hotel', currency: 'SAR', wifi: 'CrownPlaza@2024', airportPrice: 115, localPrice: 60, _version: 1 };
 }
@@ -2256,6 +2272,8 @@ if (cachedCfg && cachedCfg._id) {
 Object.assign(HotelCfg, cachedCfg);
 HotelCfg._id = cachedCfg._id;
 if (cachedCfg.currencies) Object.assign(CURRENCIES, cachedCfg.currencies);
+if (cachedCfg.enabledCurrencies) Object.assign(enabledCurrencies, cachedCfg.enabledCurrencies);
+if (cachedCfg.customCurrencies) Object.assign(customSubCurrencies, cachedCfg.customCurrencies);
 } else {
 HotelCfg = { _id: null, name: 'Crown Plaza Hotel', currency: 'SAR', wifi: 'CrownPlaza@2024', airportPrice: 115, localPrice: 60, _version: 1 };
 }
@@ -3423,6 +3441,8 @@ if (!isNaN(local)) HotelCfg.localPrice = local;
 const payload = {
 ...HotelCfg,
 currencies: CURRENCIES,
+enabledCurrencies,
+customCurrencies: customSubCurrencies,
 _version: (HotelCfg._version || 0) + 1,
 updatedAt: new Date().toISOString()
 };
@@ -3504,6 +3524,89 @@ applyCfg();
 showToast(`${code} deleted`, 'success');
 addLog('Delete Currency', code);
 }
+}
+function renderSubCurrencies() {
+const el = document.getElementById('subCurrencyList');
+if (!el) return;
+const allCurrencies = { ...BUILTIN_SUB_CURRENCIES, ...customSubCurrencies };
+el.innerHTML = Object.entries(allCurrencies).map(([code, data]) => {
+const isEnabled = enabledCurrencies[code] !== false;
+const isCustom = !!customSubCurrencies[code];
+return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--card);border-radius:8px;border:1.5px solid ${isEnabled ? 'var(--p1)' : 'var(--border)'}">
+<div style="display:flex;align-items:center;gap:8px">
+<span style="font-size:18px">${data.flag || '🏳️'}</span>
+<div>
+<div style="font-weight:600;font-size:12px">${code} <span style="font-weight:400;opacity:.6;font-size:11px">${data.symbol}</span>${isCustom ? ' <span style="font-size:9px;background:#f59e0b;color:#fff;padding:1px 4px;border-radius:3px">custom</span>' : ''}</div>
+<div style="font-size:10px;opacity:.55">${data.name || ''} &nbsp;·&nbsp; 1 USD = ${data.rate} ${code}</div>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:6px">
+<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px">
+<div onclick="toggleSubCurrency('${code}')" style="width:36px;height:20px;border-radius:10px;background:${isEnabled ? 'var(--p1)' : '#d1d5db'};position:relative;cursor:pointer;transition:.2s">
+<div style="width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:2px;left:${isEnabled ? '18px' : '2px'};transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+</div>
+<span style="color:${isEnabled ? 'var(--p1)' : 'var(--fg)'};opacity:${isEnabled ? '1' : '.45'}">${isEnabled ? 'ON' : 'OFF'}</span>
+</label>
+${isCustom ? `<button class="tbl-action" style="color:#ef4444;font-size:14px" onclick="deleteSubCurrency('${code}')" title="Delete">🗑️</button>` : ''}
+</div>
+</div>`;
+}).join('');
+}
+function toggleSubCurrency(code) {
+enabledCurrencies[code] = !enabledCurrencies[code];
+renderSubCurrencies();
+saveSubCurrencySettings();
+showToast(`${code} ${enabledCurrencies[code] ? '✅ enabled' : '🚫 disabled'} for subscription`, 'success');
+}
+function openAddSubCurrencyModal() {
+openModal('infoModal');
+document.getElementById('infoModalTitle').textContent = '💱 Add Subscription Currency';
+document.getElementById('infoModalBody').innerHTML =
+`<form onsubmit="addSubCurrency(event)">
+<div class="form-row"><label class="lbl">Currency Code (e.g., JPY)</label><input class="inp" id="scCode" maxlength="5" required placeholder="JPY" style="text-transform:uppercase"></div>
+<div class="form-row"><label class="lbl">Currency Name (e.g., Japanese Yen)</label><input class="inp" id="scName" required placeholder="Japanese Yen"></div>
+<div class="form-row"><label class="lbl">Symbol (e.g., ¥)</label><input class="inp" id="scSymbol" required placeholder="¥"></div>
+<div class="form-row"><label class="lbl">Rate per 1 USD (e.g., 149.5)</label><input class="inp" id="scRate" type="number" step="0.0001" required placeholder="149.5"></div>
+<div class="form-row"><label class="lbl">Flag Emoji (e.g., 🇯🇵)</label><input class="inp" id="scFlag" placeholder="🇯🇵"></div>
+<div style="display:flex;gap:6px;margin-top:14px">
+<button class="btn-primary" style="flex:1" type="submit">💾 Save & Enable</button>
+<button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('infoModal')">Cancel</button>
+</div>
+</form>`;
+}
+function addSubCurrency(e) {
+e.preventDefault();
+const code = (document.getElementById('scCode').value || '').toUpperCase().trim();
+const name = document.getElementById('scName').value.trim();
+const symbol = document.getElementById('scSymbol').value.trim();
+const rate = parseFloat(document.getElementById('scRate').value);
+const flag = document.getElementById('scFlag').value.trim() || '🏳️';
+if (!code || !name || !symbol || isNaN(rate) || rate <= 0) { showToast('Please fill all fields correctly', 'error'); return; }
+if (BUILTIN_SUB_CURRENCIES[code]) { showToast(`${code} is already a built-in currency. Use the toggle to enable/disable it.`, 'warning'); return; }
+if (customSubCurrencies[code]) { showToast(`${code} already exists`, 'warning'); return; }
+customSubCurrencies[code] = { symbol, name, rate, flag };
+enabledCurrencies[code] = true;
+closeModal('infoModal');
+renderSubCurrencies();
+saveSubCurrencySettings();
+showToast(`✅ ${code} (${name}) added and enabled!`, 'success');
+addLog('Add Sub Currency', code);
+}
+function deleteSubCurrency(code) {
+if (!customSubCurrencies[code]) return;
+if (!confirm(`Delete "${code}" from subscription currencies?`)) return;
+delete customSubCurrencies[code];
+delete enabledCurrencies[code];
+renderSubCurrencies();
+saveSubCurrencySettings();
+showToast(`${code} removed`, 'success');
+addLog('Delete Sub Currency', code);
+}
+async function saveSubCurrencySettings() {
+const payload = { ...HotelCfg, currencies: CURRENCIES, enabledCurrencies, customCurrencies: customSubCurrencies, _version: (HotelCfg._version || 0) + 1, updatedAt: new Date().toISOString() };
+await saveToMongo('config', payload);
+if (socket?.connected) socket.emit('cfg_upd', { hotelId: HID, enabledCurrencies, customCurrencies: customSubCurrencies, syncToken: Date.now() });
+cacheData('config', payload);
 }
 function editCurrencyRates() {
 const rates = Object.entries(CURRENCIES).map(([code, data]) =>
@@ -5022,11 +5125,19 @@ return `<div class="card"><div style="display:flex;justify-content:space-between
 case 'requests':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabRequests">📋 Requests</h3><button class="btn-primary" style="background:#10b981" onclick="exportReqs()">📥 Export</button></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderRequests('all')" data-i18n="filterAll">All</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderRequests('open')" data-i18n="filterOpen">Open</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderRequests('completed')" data-i18n="filterDone">Done</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px;border-color:#ef4444;color:#ef4444" onclick="renderRequests('emergency')">🚨 Emergency</button></div><div id="reqsList"></div></div>`;
 case 'settings':
-return `<div class="card" style="max-width:480px"><h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:14px" data-i18n="tabSettings">⚙️ Settings</h3>
+return `<div class="card" style="max-width:520px"><h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:14px" data-i18n="tabSettings">⚙️ Settings</h3>
 <div id="subscriptionStatus" style="background:var(--card2);border-radius:8px;padding:10px;margin-bottom:14px;border-left:4px solid var(--p1)">
     <div style="font-weight:700;font-size:13px;margin-bottom:6px">💳 Subscription Status</div>
     <div id="subStatusText" style="font-size:12px">Loading...</div>
-<button class="btn-primary" style="margin-top:8px;padding:6px 12px;font-size:11px" onclick="window.location.href='/subscribe.html?hotelId=' + HID">Manage Subscription</button>    
+<button class="btn-primary" style="margin-top:8px;padding:6px 12px;font-size:11px" onclick="window.location.href='/subscribe.html?hotelId=' + HID">Manage Subscription</button>
+</div>
+<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:14px;border-left:4px solid #8b5cf6">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+<div style="font-weight:700;font-size:13px">💱 Subscription Currencies</div>
+<button class="btn-ghost" style="font-size:11px;padding:4px 10px" onclick="openAddSubCurrencyModal()">➕ Add Currency</button>
+</div>
+<div style="font-size:11px;opacity:.6;margin-bottom:8px">Enable/disable currencies that guests can use to pay for subscription</div>
+<div id="subCurrencyList" style="display:flex;flex-direction:column;gap:6px"></div>
 </div>
 <div class="form-row"><label class="lbl" data-i18n="hotelNameLbl">Hotel Name</label><div style="display:flex;gap:6px"><input class="inp" id="cfgName" value="${HotelCfg.name}"><button class="btn-primary" onclick="saveCfg('name')" data-i18n="save">Save</button></div></div>
 <div class="form-row"><label class="lbl" data-i18n="currencyLbl">Currency</label><div style="display:flex;gap:6px;align-items:center"><select class="inp" id="cfgCurrency" style="width:120px" onchange="saveCfg('currency')">${Object.keys(CURRENCIES).map(code => `<option value="${code}" ${HotelCfg.currency === code ? 'selected' : ''}>${CURRENCIES[code].flag || ''} ${code}</option>`).join('')}</select><button class="btn-primary" onclick="saveCfg('currency')" data-i18n="save">Apply</button><button class="btn-ghost" onclick="openAddCurrencyModal()" title="Add new currency">➕</button></div></div>
@@ -5083,6 +5194,7 @@ if (id === 'bookings') renderAdminBookings();
 if (id === 'policies') renderPolicies();
 if (id === 'announcements') renderAnnouncements();
 if (id === 'departments') renderDepartments();
+if (id === 'settings') setTimeout(renderSubCurrencies, 50);
 sessionStorage.setItem('currentTab', id);
 }
 let chartsInitialized = false;
