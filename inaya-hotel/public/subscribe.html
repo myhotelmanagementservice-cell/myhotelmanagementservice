@@ -265,7 +265,7 @@
 
         const authToken = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
 
-        let selectedCurrency = localStorage.getItem('preferred_currency') || 'USD';
+        let selectedCurrency = localStorage.getItem('preferred_currency') || 'INR';
         let plansData = [];
 
         function goBackToDashboard() {
@@ -284,7 +284,50 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', async () => {
+            // Backend se enabled currencies fetch karo
+            try {
+                const cfgRes = await fetch(`${API_BASE}/config?hotelId=${hotelId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'x-hotel-id': hotelId
+                    }
+                });
+                const cfgData = await cfgRes.json();
+                const enabledCurrencies = cfgData?.enabledCurrencies || { INR: true };
+                const customCurrencies = cfgData?.customCurrencies || {};
+
+                const select = document.getElementById('currencySelect');
+
+                // Custom currencies add karo select mein
+                Object.entries(customCurrencies).forEach(([code, data]) => {
+                    if (enabledCurrencies[code]) {
+                        const opt = document.createElement('option');
+                        opt.value = code;
+                        opt.dataset.symbol = data.symbol;
+                        opt.dataset.rate = data.rate;
+                        opt.dataset.flag = data.flag || '🏳️';
+                        opt.textContent = `${data.flag || '🏳️'} ${code} - ${data.name}`;
+                        select.appendChild(opt);
+                    }
+                });
+
+                // Disabled built-in currencies hide karo
+                Array.from(select.options).forEach(opt => {
+                    if (opt.value !== 'INR' && !enabledCurrencies[opt.value]) {
+                        opt.remove();
+                    }
+                });
+
+            } catch(e) {
+                console.log('Currency config load skipped:', e.message);
+            }
+
+            // Agar saved currency ab available nahi hai toh INR default karo
+            const select = document.getElementById('currencySelect');
+            const available = Array.from(select.options).map(o => o.value);
+            if (!available.includes(selectedCurrency)) selectedCurrency = 'INR';
+
             document.getElementById('currencySelect').value = selectedCurrency;
             updateCurrencyInfo();
             await loadCurrentSubscription();

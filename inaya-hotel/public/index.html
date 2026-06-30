@@ -3403,7 +3403,132 @@ cabSelect.innerHTML =
 }
 updateCabPrice();
 }
-async function saveCfg(field) {
+async function saveCurrencyToggle(code, enabled) {
+    if (!HotelCfg.enabledCurrencies) HotelCfg.enabledCurrencies = { INR: true };
+    HotelCfg.enabledCurrencies[code] = enabled;
+    const payload = { ...HotelCfg, _version: (HotelCfg._version || 0) + 1, updatedAt: new Date().toISOString() };
+    await saveToMongo('config', payload);
+    if (socket?.connected) socket.emit('cfg_upd', { hotelId: HID, ...payload, syncToken: Date.now() });
+    cacheData('config', payload);
+    showToast(`${enabled ? '✅' : '❌'} ${code} ${enabled ? 'enabled' : 'disabled'}`, 'success');
+}
+
+function loadCurrencyToggles() {
+    const enabled = HotelCfg.enabledCurrencies || { INR: true };
+    const builtIn = [
+        { code: 'INR', flag: '🇮🇳', name: 'Indian Rupee',    symbol: '₹',    rate: 83.50 },
+        { code: 'USD', flag: '🇺🇸', name: 'US Dollar',        symbol: '$',    rate: 1.00  },
+        { code: 'SAR', flag: '🇸🇦', name: 'Saudi Riyal',      symbol: '﷼',   rate: 3.75  },
+        { code: 'AED', flag: '🇦🇪', name: 'UAE Dirham',       symbol: 'د.إ', rate: 3.67  },
+        { code: 'EUR', flag: '🇪🇺', name: 'Euro',             symbol: '€',    rate: 0.92  },
+        { code: 'GBP', flag: '🇬🇧', name: 'British Pound',    symbol: '£',    rate: 0.79  },
+        { code: 'KWD', flag: '🇰🇼', name: 'Kuwaiti Dinar',    symbol: 'د.ك', rate: 0.31  },
+    ];
+    const customCurrencies = HotelCfg.customCurrencies || {};
+    const allCurrencies = [
+        ...builtIn,
+        ...Object.entries(customCurrencies).map(([code, data]) => ({
+            code, flag: data.flag || '🏳️', name: data.name || code,
+            symbol: data.symbol, rate: data.rate, custom: true
+        }))
+    ];
+    const el = document.getElementById('currencyToggles');
+    if (!el) return;
+    el.innerHTML = allCurrencies.map(cur => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:16px">${cur.flag}</span>
+                <div>
+                    <div style="font-size:12px;font-weight:600">${cur.code} — ${cur.symbol}</div>
+                    <div style="font-size:10px;opacity:0.6">${cur.name} | Rate: ${cur.rate} per USD</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+                ${cur.custom ? `<button onclick="deleteSubscriptionCurrency('${cur.code}')"
+                    style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:2px 8px;font-size:10px;cursor:pointer">🗑️</button>` : ''}
+                <label class="toggle-switch">
+                    <input type="checkbox" id="curToggle_${cur.code}"
+                        ${cur.code === 'INR' ? 'checked disabled' : (enabled[cur.code] ? 'checked' : '')}
+                        onchange="saveCurrencyToggle('${cur.code}', this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+    `).join('');
+}
+
+function openAddCurrencyForSubscription() {
+    openModal('infoModal');
+    document.getElementById('infoModalTitle').textContent = '➕ Add Custom Currency';
+    document.getElementById('infoModalBody').innerHTML = `
+        <form onsubmit="addSubscriptionCurrency(event)">
+            <div class="form-row">
+                <label class="lbl">Currency Code (3 letters)</label>
+                <input class="inp" id="newSubCurCode" maxlength="3" required placeholder="e.g. OMR" style="text-transform:uppercase">
+            </div>
+            <div class="form-row">
+                <label class="lbl">Currency Name</label>
+                <input class="inp" id="newSubCurName" required placeholder="e.g. Omani Rial">
+            </div>
+            <div class="form-row">
+                <label class="lbl">Symbol</label>
+                <input class="inp" id="newSubCurSymbol" required placeholder="e.g. ر.ع.">
+            </div>
+            <div class="form-row">
+                <label class="lbl">Rate (1 USD = ?)</label>
+                <input class="inp" id="newSubCurRate" type="number" step="0.0001" required placeholder="e.g. 0.3845">
+            </div>
+            <div class="form-row">
+                <label class="lbl">Flag Emoji</label>
+                <input class="inp" id="newSubCurFlag" placeholder="e.g. 🇴🇲" maxlength="4">
+            </div>
+            <div style="background:var(--card2);border-radius:8px;padding:8px;font-size:11px;opacity:0.8;margin-bottom:12px">
+                ⚠️ Make sure Cashfree supports this currency before enabling it.
+                <a href="https://merchant.cashfree.com/payments/international-payments/ipg/currencies-supported"
+                   target="_blank" style="color:var(--p1)">Check supported currencies →</a>
+            </div>
+            <div style="display:flex;gap:8px">
+                <button class="btn-primary" style="flex:1" type="submit">💾 Save Currency</button>
+                <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('infoModal')">Cancel</button>
+            </div>
+        </form>
+    `;
+}
+
+async function addSubscriptionCurrency(e) {
+    e.preventDefault();
+    const code = document.getElementById('newSubCurCode').value.toUpperCase().trim();
+    const name = document.getElementById('newSubCurName').value.trim();
+    const symbol = document.getElementById('newSubCurSymbol').value.trim();
+    const rate = parseFloat(document.getElementById('newSubCurRate').value);
+    const flag = document.getElementById('newSubCurFlag').value.trim() || '🏳️';
+    if (!code || !name || !symbol || isNaN(rate)) { showToast('❌ Fill all fields', 'error'); return; }
+    if (code.length !== 3) { showToast('❌ Currency code must be 3 letters', 'error'); return; }
+    if (!HotelCfg.customCurrencies) HotelCfg.customCurrencies = {};
+    if (!HotelCfg.enabledCurrencies) HotelCfg.enabledCurrencies = { INR: true };
+    HotelCfg.customCurrencies[code] = { name, symbol, rate, flag };
+    HotelCfg.enabledCurrencies[code] = false;
+    const payload = { ...HotelCfg, _version: (HotelCfg._version || 0) + 1, updatedAt: new Date().toISOString() };
+    await saveToMongo('config', payload);
+    if (socket?.connected) socket.emit('cfg_upd', { hotelId: HID, ...payload, syncToken: Date.now() });
+    cacheData('config', payload);
+    closeModal('infoModal');
+    loadCurrencyToggles();
+    showToast(`✅ ${code} added! Toggle ON karo jab Cashfree approve kar de.`, 'success');
+}
+
+async function deleteSubscriptionCurrency(code) {
+    if (!confirm(`Delete ${code} currency?`)) return;
+    if (!HotelCfg.customCurrencies) return;
+    delete HotelCfg.customCurrencies[code];
+    if (HotelCfg.enabledCurrencies) delete HotelCfg.enabledCurrencies[code];
+    const payload = { ...HotelCfg, _version: (HotelCfg._version || 0) + 1, updatedAt: new Date().toISOString() };
+    await saveToMongo('config', payload);
+    if (socket?.connected) socket.emit('cfg_upd', { hotelId: HID, ...payload, syncToken: Date.now() });
+    cacheData('config', payload);
+    loadCurrencyToggles();
+    showToast(`✅ ${code} deleted`, 'success');
+}
 if (field === 'name') {
 const val = document.getElementById('cfgName')?.value;
 if (val && val.trim()) HotelCfg.name = val.trim();
@@ -4976,8 +5101,17 @@ return `<div class="card" style="max-width:480px"><h3 style="font-size:14px;font
 <div class="form-row"><label class="lbl" data-i18n="wifiLbl">WiFi Password</label><div style="display:flex;gap:6px"><input class="inp" id="cfgWifi" value="${HotelCfg.wifi}"><button class="btn-primary" onclick="saveCfg('wifi')" data-i18n="save">Save</button></div></div>
 <div class="form-row"><label class="lbl" data-i18n="airportPrice">Airport Transfer Price</label><div style="display:flex;gap:6px"><input class="inp" id="cfgAirport" type="number" value="${HotelCfg.airportPrice}" style="width:100px"><button class="btn-primary" onclick="saveCfg('transport')" data-i18n="save">Save</button></div></div>
 <div class="form-row"><label class="lbl" data-i18n="localPrice">Local Cab /hr</label><div style="display:flex;gap:6px"><input class="inp" id="cfgLocal" type="number" value="${HotelCfg.localPrice}" style="width:100px"><button class="btn-primary" onclick="saveCfg('transport')" data-i18n="save">Save</button></div></div>
+<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:14px;border-left:4px solid #06b6d4">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700;font-size:13px">🌍 International Payments</div>
+        <button class="btn-primary" style="padding:4px 10px;font-size:11px" onclick="openAddCurrencyForSubscription()">➕ Add Currency</button>
+    </div>
+    <div style="font-size:12px;opacity:0.8;margin-bottom:10px">Enable/disable currencies for subscription page. INR is always active.</div>
+    <div id="currencyToggles"></div>
+    <div style="font-size:11px;opacity:0.6;margin-top:8px">⚠️ Non-INR currencies need Cashfree approval first</div>
+</div>
 <div style="background:var(--card2);border-radius:8px;padding:10px;font-size:13px;color:var(--fg);opacity:.7;margin-top:10px">🏢 Hotel ID: <strong>${HID}</strong> | Settings sync live to all devices via Socket.IO & MongoDB</div>
-</div>`;
+</div>\`
 case 'blacklist':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🚫 Blacklist</h3><button class="btn-primary" style="background:#ef4444" onclick="openModal('blacklistModal')" data-i18n="blockGuest">+ Block Guest</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th data-i18n="nameLbl">Name</th><th data-i18n="room">Room</th><th data-i18n="reason">Reason</th><th data-i18n="date">Date</th><th data-i18n="actions">Actions</th></tr></thead><tbody id="blTbody"></tbody></table></div></div>`;
 case 'reports':
@@ -5026,6 +5160,7 @@ if (id === 'bookings') renderAdminBookings();
 if (id === 'policies') renderPolicies();
 if (id === 'announcements') renderAnnouncements();
 if (id === 'departments') renderDepartments();
+if (id === 'settings') { applyCfg(); setTimeout(loadCurrencyToggles, 100); loadSubscriptionStatus(); }
 sessionStorage.setItem('currentTab', id);
 }
 let chartsInitialized = false;
