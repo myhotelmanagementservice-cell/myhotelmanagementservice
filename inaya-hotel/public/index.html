@@ -5110,6 +5110,15 @@ return `<div class="card" style="max-width:480px"><h3 style="font-size:14px;font
     <div id="currencyToggles"></div>
     <div style="font-size:11px;opacity:0.6;margin-top:8px">⚠️ Non-INR currencies need Cashfree approval first</div>
 </div>
+<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:14px;border-left:4px solid #06b6d4">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700;font-size:13px">🌍 International Payments</div>
+        <button class="btn-primary" style="padding:4px 10px;font-size:11px" onclick="openAddCurrencyForSubscription()">➕ Add Currency</button>
+    </div>
+    <div style="font-size:12px;opacity:0.8;margin-bottom:10px">Enable/disable currencies for subscription page. INR is always active.</div>
+    <div id="currencyToggles"></div>
+    <div style="font-size:11px;opacity:0.6;margin-top:8px">⚠️ Non-INR currencies need Cashfree approval first</div>
+</div>
 <div style="background:var(--card2);border-radius:8px;padding:10px;font-size:13px;color:var(--fg);opacity:.7;margin-top:10px">🏢 Hotel ID: <strong>${HID}</strong> | Settings sync live to all devices via Socket.IO & MongoDB</div>
 </div>\`
 case 'blacklist':
