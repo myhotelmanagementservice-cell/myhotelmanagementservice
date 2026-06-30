@@ -128,6 +128,12 @@
                 <button onclick="showSection('currencies')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-currencies">
                     <i class="fas fa-coins w-5"></i> <span data-i18n="currencies">Currencies</span>
                 </button>
+                <button onclick="showSection('subPlans')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-subPlans">
+                    <i class="fas fa-layer-group w-5"></i> <span>Plan Editor</span>
+                </button>
+                <button onclick="showSection('broadcast')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-broadcast">
+                    <i class="fas fa-bullhorn w-5"></i> <span>Broadcast</span>
+                </button>
                 <button onclick="showSection('themeCustomizer')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-themeCustomizer">
                     <i class="fas fa-palette w-5"></i> <span data-i18n="themeCustomizer">Theme Customizer</span>
                 </button>
@@ -324,20 +330,28 @@
             <section id="currencies" class="section-content hidden fade-in">
                 <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center flex-wrap gap-4">
-                        <h3 class="font-bold" data-i18n="manageCurrencies">💱 Manage Currencies</h3>
-                        <button onclick="openAddCurrencyModal()" class="p-2 bg-primary text-white rounded-lg shadow hover:bg-blue-600 transition flex items-center gap-2">
-                            <i class="fas fa-plus"></i> <span data-i18n="addCurrency">Add Currency</span>
-                        </button>
+                        <div>
+                            <h3 class="font-bold" data-i18n="manageCurrencies">💱 Manage Currencies</h3>
+                            <p class="text-xs text-gray-500 mt-1">Enable/disable currencies shown to guests on the subscription payment page</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="enableAllCurrencies()" class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm flex items-center gap-1"><i class="fas fa-check-double"></i> Enable All</button>
+                            <button onclick="disableAllCurrencies()" class="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-sm flex items-center gap-1"><i class="fas fa-ban"></i> Disable All</button>
+                            <button onclick="openAddCurrencyModal()" class="px-3 py-2 bg-primary text-white rounded-lg shadow hover:bg-blue-600 transition flex items-center gap-2">
+                                <i class="fas fa-plus"></i> <span data-i18n="addCurrency">Add Currency</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
                             <thead class="bg-gray-50 dark:bg-gray-700 text-gray-500">
                                 <tr>
-                                    <th class="p-4">Code</th>
+                                    <th class="p-4">Currency</th>
                                     <th class="p-4">Symbol</th>
                                     <th class="p-4">Name</th>
                                     <th class="p-4">Rate (per 1 USD)</th>
                                     <th class="p-4">Type</th>
+                                    <th class="p-4 text-center">Enabled for Subscription</th>
                                     <th class="p-4">Actions</th>
                                 </tr>
                             </thead>
@@ -345,7 +359,84 @@
                         </table>
                     </div>
                     <div class="p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
-                        <p class="text-xs text-gray-500">💡 <span data-i18n="currencyInfo">Custom currencies are saved locally and will appear in hotel currency dropdowns.</span></p>
+                        <p class="text-xs text-gray-500">💡 Enabled currencies appear in the guest subscription payment page. Disabled ones are hidden. Custom currencies are added by you.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: PLAN EDITOR -->
+            <section id="subPlans" class="section-content hidden fade-in">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold mb-1">📋 Subscription Plan Editor</h2>
+                    <p class="text-sm text-gray-500">Edit plan prices, features, and trial settings. Changes reflect immediately on the subscription page.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6" id="planEditorGrid"></div>
+                <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <h3 class="font-bold mb-4">⚙️ Global Subscription Settings</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Free Trial Duration (days)</label>
+                            <div class="flex gap-2"><input type="number" id="trialDays" class="flex-1 p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" value="7" min="1" max="90"><button onclick="saveGlobalSubSettings()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition text-sm">Save</button></div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Grace Period After Expiry (days)</label>
+                            <div class="flex gap-2"><input type="number" id="graceDays" class="flex-1 p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" value="3" min="0" max="30"><button onclick="saveGlobalSubSettings()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition text-sm">Save</button></div>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div><h4 class="font-medium text-sm">Auto-renewal Enabled</h4><p class="text-xs text-gray-500">Auto-renew subscriptions on expiry</p></div>
+                            <label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" id="autoRenewalToggle" class="sr-only peer" checked><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div></label>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div><h4 class="font-medium text-sm">New Registrations Open</h4><p class="text-xs text-gray-500">Allow new hotels to register</p></div>
+                            <label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" id="registrationsToggle" class="sr-only peer" checked><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div></label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: BROADCAST -->
+            <section id="broadcast" class="section-content hidden fade-in">
+                <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6 max-w-2xl">
+                    <h3 class="font-bold mb-1 flex items-center gap-2"><i class="fas fa-bullhorn text-primary"></i> Broadcast Message</h3>
+                    <p class="text-sm text-gray-500 mb-4">Send a system-wide message or announcement to all registered hotel admins.</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Target Hotels</label>
+                            <select id="broadcastTarget" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600">
+                                <option value="all">🌍 All Hotels</option>
+                                <option value="pro">💎 Pro Plan Only</option>
+                                <option value="enterprise">👑 Enterprise Only</option>
+                                <option value="expiring">⚠️ Expiring Soon (7 days)</option>
+                                <option value="expired">🔴 Expired</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Message Type</label>
+                            <select id="broadcastType" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600">
+                                <option value="info">ℹ️ Info</option>
+                                <option value="warning">⚠️ Warning</option>
+                                <option value="success">✅ Success / Good News</option>
+                                <option value="urgent">🚨 Urgent</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Subject</label>
+                            <input type="text" id="broadcastSubject" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="e.g. Platform Update — New Features Available">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Message</label>
+                            <textarea id="broadcastBody" rows="5" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 resize-none" placeholder="Type your message here..."></textarea>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="sendBroadcast()" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition flex items-center gap-2"><i class="fas fa-paper-plane"></i> Send Broadcast</button>
+                            <button onclick="previewBroadcast()" class="px-6 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition flex items-center gap-2"><i class="fas fa-eye"></i> Preview</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 max-w-2xl">
+                    <h3 class="font-bold mb-4">📜 Broadcast History</h3>
+                    <div id="broadcastHistory" class="space-y-3">
+                        <p class="text-gray-500 text-sm text-center py-4">No broadcasts sent yet</p>
                     </div>
                 </div>
             </section>
@@ -623,6 +714,94 @@
         </div>
     </div>
 
+    <!-- Extend Subscription Modal -->
+    <div id="extendModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">📅 Extend Subscription</h3>
+                <button onclick="closeModal('extendModal')" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="fas fa-times"></i></button>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">Extending subscription for: <strong id="extendHotelName" class="text-gray-800 dark:text-gray-200"></strong></p>
+            <input type="hidden" id="extendHotelId">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Extension Duration</label>
+                    <select id="extendDuration" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600">
+                        <option value="7">7 days</option>
+                        <option value="14">14 days</option>
+                        <option value="30" selected>30 days (1 month)</option>
+                        <option value="90">90 days (3 months)</option>
+                        <option value="180">180 days (6 months)</option>
+                        <option value="365">365 days (1 year)</option>
+                        <option value="custom">Custom...</option>
+                    </select>
+                </div>
+                <div id="customDaysWrap" class="hidden">
+                    <label class="block text-sm font-medium mb-1">Custom Days</label>
+                    <input type="number" id="extendCustomDays" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="e.g. 45" min="1" max="3650">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Reason (optional)</label>
+                    <input type="text" id="extendReason" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="e.g. Loyalty bonus, Compensation, Promo">
+                </div>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button onclick="closeModal('extendModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
+                <button onclick="confirmExtend()" class="flex-1 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center justify-center gap-2"><i class="fas fa-calendar-plus"></i> Extend</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Plan Modal -->
+    <div id="changePlanModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">🔄 Change Subscription Plan</h3>
+                <button onclick="closeModal('changePlanModal')" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="fas fa-times"></i></button>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">Changing plan for: <strong id="changePlanHotelName" class="text-gray-800 dark:text-gray-200"></strong></p>
+            <input type="hidden" id="changePlanHotelId">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Select New Plan</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600">
+                            <input type="radio" name="newPlan" value="basic" class="accent-primary">
+                            <div><span class="font-medium">Free / Basic</span><span class="text-xs text-gray-500 ml-2">$0/mo — Trial access</span></div>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600">
+                            <input type="radio" name="newPlan" value="pro" class="accent-primary">
+                            <div><span class="font-medium">Pro</span><span class="text-xs text-gray-500 ml-2" id="cpProPrice">$99/mo</span></div>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600">
+                            <input type="radio" name="newPlan" value="enterprise" class="accent-primary">
+                            <div><span class="font-medium">Enterprise</span><span class="text-xs text-gray-500 ml-2" id="cpEntPrice">$499/mo</span></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button onclick="closeModal('changePlanModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
+                <button onclick="confirmChangePlan()" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2"><i class="fas fa-check"></i> Apply Plan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Broadcast Preview Modal -->
+    <div id="broadcastPreviewModal" class="modal-overlay">
+        <div class="modal-box max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">👁 Broadcast Preview</h3>
+                <button onclick="closeModal('broadcastPreviewModal')" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="broadcastPreviewContent" class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"></div>
+            <div class="flex gap-3 pt-4">
+                <button onclick="closeModal('broadcastPreviewModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Edit</button>
+                <button onclick="sendBroadcastConfirmed()" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2"><i class="fas fa-paper-plane"></i> Send Now</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-box text-center">
@@ -674,6 +853,45 @@
             return { ...BUILT_IN_CURRENCIES, ...getCustomCurrencies() };
         }
 
+        function getEnabledStatus() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('currencyEnabledStatus') || 'null');
+                if (saved) return saved;
+            } catch (e) {}
+            const defaults = {};
+            Object.keys(BUILT_IN_CURRENCIES).forEach(code => { defaults[code] = true; });
+            return defaults;
+        }
+
+        function saveEnabledStatus(status) {
+            localStorage.setItem('currencyEnabledStatus', JSON.stringify(status));
+        }
+
+        function toggleCurrencyStatus(code) {
+            const status = getEnabledStatus();
+            status[code] = !status[code];
+            saveEnabledStatus(status);
+            renderCurrenciesTable();
+            const state = status[code] ? 'enabled' : 'disabled';
+            showToast(`${code} ${state} for subscription payments`, status[code] ? 'success' : 'info');
+        }
+
+        function enableAllCurrencies() {
+            const status = getEnabledStatus();
+            Object.keys(getAllCurrencies()).forEach(code => { status[code] = true; });
+            saveEnabledStatus(status);
+            renderCurrenciesTable();
+            showToast('All currencies enabled', 'success');
+        }
+
+        function disableAllCurrencies() {
+            const status = getEnabledStatus();
+            Object.keys(getAllCurrencies()).forEach(code => { status[code] = false; });
+            saveEnabledStatus(status);
+            renderCurrenciesTable();
+            showToast('All currencies disabled', 'info');
+        }
+
         function populateCurrencyDropdown() {
             const select = document.getElementById('currency');
             if (!select) return;
@@ -691,11 +909,21 @@
             const tbody = document.getElementById('currenciesTableBody');
             if (!tbody) return;
             const allCurrencies = getAllCurrencies();
+            const enabledStatus = getEnabledStatus();
             tbody.innerHTML = Object.entries(allCurrencies).map(([code, data]) => {
                 const isCustom = data.custom === true;
+                const isEnabled = enabledStatus[code] !== false;
                 const typeBadge = isCustom 
                     ? '<span class="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200">Custom</span>'
                     : '<span class="px-2 py-1 rounded text-xs font-bold bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-200">Built-in</span>';
+                const enableToggle = `
+                    <div class="flex flex-col items-center gap-1">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer" ${isEnabled ? 'checked' : ''} onchange="toggleCurrencyStatus('${code}')">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-500"></div>
+                        </label>
+                        <span class="text-xs ${isEnabled ? 'text-green-600 font-medium' : 'text-gray-400'}">${isEnabled ? 'Enabled' : 'Disabled'}</span>
+                    </div>`;
                 const actions = isCustom 
                     ? `<div class="flex gap-2">
                         <button onclick="editCurrency('${code}')" class="p-2 text-blue-500 hover:text-blue-700 transition" title="Edit"><i class="fas fa-edit"></i></button>
@@ -703,12 +931,13 @@
                        </div>`
                     : '<span class="text-xs text-gray-400">—</span>';
                 return `
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition ${isEnabled ? '' : 'opacity-60'}">
                         <td class="p-4 font-bold">${data.flag || ''} ${code}</td>
                         <td class="p-4 text-2xl">${data.symbol}</td>
                         <td class="p-4 text-gray-500">${data.name}</td>
                         <td class="p-4 font-mono">${data.rate}</td>
                         <td class="p-4">${typeBadge}</td>
+                        <td class="p-4">${enableToggle}</td>
                         <td class="p-4">${actions}</td>
                     </tr>`;
             }).join('');
@@ -768,6 +997,245 @@
             populateCurrencyDropdown();
             showToast(editCode ? 'Currency updated!' : 'Currency added!', 'success');
         });
+
+        // ================= PLAN EDITOR =================
+        const DEFAULT_PLANS = {
+            basic: { name: 'Free / Basic', price: 0, color: 'gray', icon: '🆓', features: ['1 Hotel', 'Up to 20 Rooms', 'Basic Reports', '7-day Trial'] },
+            pro: { name: 'Pro', price: 99, color: 'blue', icon: '💎', features: ['Up to 5 Hotels', 'Unlimited Rooms', 'Priority Support', 'Analytics Dashboard'] },
+            enterprise: { name: 'Enterprise', price: 499, color: 'purple', icon: '👑', features: ['Unlimited Hotels', 'Custom Branding', 'Dedicated Manager', 'API Access'] }
+        };
+
+        function getPlanSettings() {
+            try { return JSON.parse(localStorage.getItem('planSettings') || 'null') || DEFAULT_PLANS; }
+            catch (e) { return DEFAULT_PLANS; }
+        }
+
+        function savePlanSettings(plans) {
+            localStorage.setItem('planSettings', JSON.stringify(plans));
+        }
+
+        function renderPlanEditor() {
+            const grid = document.getElementById('planEditorGrid');
+            if (!grid) return;
+            const plans = getPlanSettings();
+            const colorMap = { gray: 'text-gray-600', blue: 'text-blue-600', purple: 'text-purple-600' };
+            const borderMap = { gray: 'border-gray-300', blue: 'border-blue-400', purple: 'border-purple-400' };
+            grid.innerHTML = Object.entries(plans).map(([key, plan]) => `
+                <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border-2 ${borderMap[plan.color] || 'border-gray-300'} p-6">
+                    <div class="text-center mb-4">
+                        <div class="text-3xl mb-1">${plan.icon}</div>
+                        <h3 class="font-bold text-lg ${colorMap[plan.color] || ''}">${plan.name}</h3>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Price ($/month)</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="planPrice_${key}" value="${plan.price}" min="0" step="1" class="flex-1 p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 text-center font-bold text-lg">
+                            <button onclick="savePlanPrice('${key}')" class="px-3 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition text-xs">Save</button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium text-gray-500 mb-2">Features (one per line)</label>
+                        <textarea id="planFeatures_${key}" rows="4" class="w-full p-2 text-sm rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 resize-none">${plan.features.join('\n')}</textarea>
+                        <button onclick="savePlanFeatures('${key}')" class="mt-2 w-full py-1 bg-gray-200 dark:bg-gray-700 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">Update Features</button>
+                    </div>
+                    <div class="p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs text-gray-500 text-center">
+                        Hotels on this plan: <strong>${hotels.filter(h => (h.subscriptionType || h.plan || 'basic') === key).length}</strong>
+                    </div>
+                </div>`).join('');
+        }
+
+        function savePlanPrice(planKey) {
+            const plans = getPlanSettings();
+            const val = parseFloat(document.getElementById('planPrice_' + planKey).value);
+            if (isNaN(val) || val < 0) { showToast('Invalid price', 'error'); return; }
+            plans[planKey].price = val;
+            savePlanSettings(plans);
+            showToast(`${plans[planKey].name} price updated to $${val}/mo`, 'success');
+            document.getElementById('cpProPrice') && (document.getElementById('cpProPrice').textContent = '$' + plans.pro.price + '/mo');
+            document.getElementById('cpEntPrice') && (document.getElementById('cpEntPrice').textContent = '$' + plans.enterprise.price + '/mo');
+        }
+
+        function savePlanFeatures(planKey) {
+            const plans = getPlanSettings();
+            const raw = document.getElementById('planFeatures_' + planKey).value;
+            plans[planKey].features = raw.split('\n').map(f => f.trim()).filter(Boolean);
+            savePlanSettings(plans);
+            showToast(`${plans[planKey].name} features updated`, 'success');
+        }
+
+        function saveGlobalSubSettings() {
+            const trial = parseInt(document.getElementById('trialDays').value) || 7;
+            const grace = parseInt(document.getElementById('graceDays').value) || 3;
+            const autoRenewal = document.getElementById('autoRenewalToggle').checked;
+            const openReg = document.getElementById('registrationsToggle').checked;
+            const settings = { trialDays: trial, graceDays: grace, autoRenewal, openRegistrations: openReg };
+            localStorage.setItem('globalSubSettings', JSON.stringify(settings));
+            showToast('Global subscription settings saved', 'success');
+            apiCall('PUT', '/super/settings', { subscriptionSettings: settings }).catch(() => {});
+        }
+
+        function loadGlobalSubSettings() {
+            try {
+                const s = JSON.parse(localStorage.getItem('globalSubSettings') || 'null');
+                if (!s) return;
+                if (document.getElementById('trialDays')) document.getElementById('trialDays').value = s.trialDays || 7;
+                if (document.getElementById('graceDays')) document.getElementById('graceDays').value = s.graceDays || 3;
+                if (document.getElementById('autoRenewalToggle')) document.getElementById('autoRenewalToggle').checked = s.autoRenewal !== false;
+                if (document.getElementById('registrationsToggle')) document.getElementById('registrationsToggle').checked = s.openRegistrations !== false;
+            } catch (e) {}
+        }
+
+        // ================= EXTEND SUBSCRIPTION =================
+        function openExtendModal(hotelId, hotelName) {
+            document.getElementById('extendHotelId').value = hotelId;
+            document.getElementById('extendHotelName').textContent = hotelName;
+            document.getElementById('extendDuration').value = '30';
+            document.getElementById('extendReason').value = '';
+            document.getElementById('customDaysWrap').classList.add('hidden');
+            document.getElementById('extendModal').classList.add('active');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const extDur = document.getElementById('extendDuration');
+            if (extDur) extDur.addEventListener('change', () => {
+                document.getElementById('customDaysWrap').classList.toggle('hidden', extDur.value !== 'custom');
+            });
+        });
+
+        async function confirmExtend() {
+            const hotelId = document.getElementById('extendHotelId').value;
+            const durVal = document.getElementById('extendDuration').value;
+            const days = durVal === 'custom' ? parseInt(document.getElementById('extendCustomDays').value) : parseInt(durVal);
+            const reason = document.getElementById('extendReason').value.trim();
+            if (!days || days < 1) { showToast('Please select a valid duration', 'error'); return; }
+            const hotel = hotels.find(h => (h.hotelId === hotelId || h._id === hotelId));
+            const currentExpiry = hotel?.subscriptionExpiry ? new Date(hotel.subscriptionExpiry) : new Date();
+            const newExpiry = new Date(Math.max(currentExpiry.getTime(), Date.now()) + days * 86400000);
+            try {
+                await apiCall('PUT', `/super/tenants/${hotelId}`, { subscriptionExpiry: newExpiry.toISOString(), extendReason: reason || undefined });
+                const hotelInList = hotels.find(h => (h.hotelId === hotelId || h._id === hotelId));
+                if (hotelInList) hotelInList.subscriptionExpiry = newExpiry.toISOString();
+                closeModal('extendModal');
+                renderHotelsTable();
+                showToast(`Subscription extended by ${days} days (until ${newExpiry.toLocaleDateString()})`, 'success');
+            } catch (err) {
+                showToast('Failed to extend: ' + (err.message || 'Server error'), 'error');
+            }
+        }
+
+        // ================= SUSPEND / ACTIVATE HOTEL =================
+        async function toggleHotelSuspend(hotelId, isCurrentlyActive) {
+            const action = isCurrentlyActive ? 'suspend' : 'activate';
+            if (!confirm(`Are you sure you want to ${action} this hotel?`)) return;
+            try {
+                await apiCall('PUT', `/super/tenants/${hotelId}`, { active: !isCurrentlyActive });
+                const hotel = hotels.find(h => (h.hotelId === hotelId || h._id === hotelId));
+                if (hotel) hotel.active = !isCurrentlyActive;
+                renderHotelsTable();
+                showToast(`Hotel ${action}d successfully`, isCurrentlyActive ? 'warning' : 'success');
+            } catch (err) {
+                showToast(`Failed to ${action}: ` + (err.message || 'Server error'), 'error');
+            }
+        }
+
+        // ================= CHANGE PLAN =================
+        function openChangePlanModal(hotelId, hotelName) {
+            const plans = getPlanSettings();
+            document.getElementById('changePlanHotelId').value = hotelId;
+            document.getElementById('changePlanHotelName').textContent = hotelName;
+            if (document.getElementById('cpProPrice')) document.getElementById('cpProPrice').textContent = '$' + plans.pro.price + '/mo';
+            if (document.getElementById('cpEntPrice')) document.getElementById('cpEntPrice').textContent = '$' + plans.enterprise.price + '/mo';
+            const hotel = hotels.find(h => (h.hotelId === hotelId || h._id === hotelId));
+            const currentPlan = hotel?.subscriptionType || hotel?.plan || 'basic';
+            const radios = document.querySelectorAll('input[name="newPlan"]');
+            radios.forEach(r => { r.checked = r.value === currentPlan; });
+            document.getElementById('changePlanModal').classList.add('active');
+        }
+
+        async function confirmChangePlan() {
+            const hotelId = document.getElementById('changePlanHotelId').value;
+            const selected = document.querySelector('input[name="newPlan"]:checked');
+            if (!selected) { showToast('Please select a plan', 'error'); return; }
+            const newPlan = selected.value;
+            const plans = getPlanSettings();
+            try {
+                await apiCall('PUT', `/super/tenants/${hotelId}`, { subscriptionType: newPlan });
+                const hotel = hotels.find(h => (h.hotelId === hotelId || h._id === hotelId));
+                if (hotel) { hotel.subscriptionType = newPlan; hotel.plan = newPlan; }
+                closeModal('changePlanModal');
+                renderHotelsTable();
+                renderCharts();
+                showToast(`Plan changed to ${plans[newPlan]?.name || newPlan}`, 'success');
+            } catch (err) {
+                showToast('Failed to change plan: ' + (err.message || 'Server error'), 'error');
+            }
+        }
+
+        // ================= BROADCAST =================
+        const broadcastLog = [];
+
+        function sendBroadcast() {
+            const subject = document.getElementById('broadcastSubject').value.trim();
+            const body = document.getElementById('broadcastBody').value.trim();
+            if (!subject || !body) { showToast('Please fill in Subject and Message', 'error'); return; }
+            previewBroadcast();
+        }
+
+        function previewBroadcast() {
+            const subject = document.getElementById('broadcastSubject').value.trim();
+            const body = document.getElementById('broadcastBody').value.trim();
+            const type = document.getElementById('broadcastType').value;
+            const target = document.getElementById('broadcastTarget');
+            const targetText = target.options[target.selectedIndex].text;
+            if (!subject || !body) { showToast('Please fill in Subject and Message', 'error'); return; }
+            const typeColors = { info: 'blue', warning: 'yellow', success: 'green', urgent: 'red' };
+            const col = typeColors[type] || 'blue';
+            document.getElementById('broadcastPreviewContent').innerHTML = `
+                <div class="mb-2 flex items-center gap-2">
+                    <span class="px-2 py-1 text-xs font-bold rounded bg-${col}-100 text-${col}-700">${type.toUpperCase()}</span>
+                    <span class="text-xs text-gray-500">To: ${targetText}</span>
+                </div>
+                <h4 class="font-bold text-base mb-2">${subject}</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">${body}</p>
+                <div class="mt-3 text-xs text-gray-400">Sent by: Super Admin • ${new Date().toLocaleString()}</div>`;
+            document.getElementById('broadcastPreviewModal').classList.add('active');
+        }
+
+        async function sendBroadcastConfirmed() {
+            const subject = document.getElementById('broadcastSubject').value.trim();
+            const body = document.getElementById('broadcastBody').value.trim();
+            const type = document.getElementById('broadcastType').value;
+            const target = document.getElementById('broadcastTarget').value;
+            const targetEl = document.getElementById('broadcastTarget');
+            const targetText = targetEl.options[targetEl.selectedIndex].text;
+            try {
+                await apiCall('POST', '/super/broadcast', { subject, body, type, target }).catch(() => {});
+            } catch (e) {}
+            const entry = { subject, type, target: targetText, time: new Date().toLocaleString() };
+            broadcastLog.unshift(entry);
+            renderBroadcastHistory();
+            closeModal('broadcastPreviewModal');
+            document.getElementById('broadcastSubject').value = '';
+            document.getElementById('broadcastBody').value = '';
+            showToast(`Broadcast sent to ${targetText}!`, 'success');
+        }
+
+        function renderBroadcastHistory() {
+            const container = document.getElementById('broadcastHistory');
+            if (!container) return;
+            if (broadcastLog.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No broadcasts sent yet</p>'; return;
+            }
+            const typeIcons = { info: 'ℹ️', warning: '⚠️', success: '✅', urgent: '🚨' };
+            container.innerHTML = broadcastLog.map(b => `
+                <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <span class="text-lg">${typeIcons[b.type] || 'ℹ️'}</span>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium text-sm truncate">${b.subject}</p>
+                        <p class="text-xs text-gray-500">${b.target} • ${b.time}</p>
+                    </div>
+                </div>`).join('');
+        }
 
         // ================= THEME CUSTOMIZER =================
         const THEME_PRESETS = {
@@ -1135,21 +1603,31 @@
 
         function showSection(sectionId) {
             document.querySelectorAll('.section-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(sectionId).classList.remove('hidden');
+            const sec = document.getElementById(sectionId);
+            if (sec) sec.classList.remove('hidden');
             document.querySelectorAll('.nav-btn').forEach(el => {
                 el.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'active-nav');
             });
-            document.getElementById('nav-' + sectionId).classList.add('bg-gray-100', 'dark:bg-gray-700', 'active-nav');
+            const navBtn = document.getElementById('nav-' + sectionId);
+            if (navBtn) navBtn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'active-nav');
             const titles = {
                 overview: 'dashboard', hotels: 'registeredHotels',
                 revenue: 'recentTransactions', subscriptions: 'subscriptions',
                 currencies: 'manageCurrencies', settings: 'systemSettings',
-                themeCustomizer: 'themeCustomizerTitle'
+                themeCustomizer: 'themeCustomizerTitle',
+                subPlans: 'subPlans', broadcast: 'broadcast'
             };
-            document.getElementById('pageTitle').setAttribute('data-i18n', titles[sectionId]);
-            applyLang();
+            const pageTitleEl = document.getElementById('pageTitle');
+            if (pageTitleEl) {
+                const titleKey = titles[sectionId];
+                if (titleKey === 'subPlans') pageTitleEl.textContent = 'Plan Editor';
+                else if (titleKey === 'broadcast') pageTitleEl.textContent = 'Broadcast';
+                else { pageTitleEl.setAttribute('data-i18n', titleKey || sectionId); applyLang(); }
+            }
             if (sectionId === 'hotels' && hotels.length === 0) loadHotels();
             if (sectionId === 'currencies') renderCurrenciesTable();
+            if (sectionId === 'subPlans') { renderPlanEditor(); loadGlobalSubSettings(); }
+            if (sectionId === 'broadcast') renderBroadcastHistory();
         }
 
         // ================= HOTEL MANAGEMENT =================
@@ -1183,10 +1661,13 @@
                         <td class="p-4 text-gray-500">${expiryDate}</td>
                         <td class="p-4"><span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full ${statusClass}"></span>${statusText}</span></td>
                         <td class="p-4">
-                            <div class="flex gap-2">
-                                <button onclick="editHotel('${hotelId}')" class="p-2 text-blue-500 hover:text-blue-700 transition" title="${t('editHotel')}"><i class="fas fa-edit"></i></button>
-                                <button onclick="openDeleteModal('${hotelId}', '${hotelName}')" class="p-2 text-red-500 hover:text-red-700 transition" title="${t('deleteHotel')}"><i class="fas fa-trash"></i></button>
+                            <div class="flex gap-1 flex-wrap">
+                                <button onclick="editHotel('${hotelId}')" class="p-2 text-blue-500 hover:text-blue-700 transition" title="Edit Hotel"><i class="fas fa-edit"></i></button>
+                                <button onclick="openDeleteModal('${hotelId}', '${hotelName}')" class="p-2 text-red-500 hover:text-red-700 transition" title="Delete Hotel"><i class="fas fa-trash"></i></button>
                                 <button onclick="openAdminModal('${hotelId}')" class="p-2 text-purple-500 hover:text-purple-700 transition" title="Update Admin"><i class="fas fa-user-cog"></i></button>
+                                <button onclick="openExtendModal('${hotelId}', '${hotelName}')" class="p-2 text-green-500 hover:text-green-700 transition" title="Extend Subscription"><i class="fas fa-calendar-plus"></i></button>
+                                <button onclick="toggleHotelSuspend('${hotelId}', ${isActive})" class="p-2 ${isActive ? 'text-orange-500 hover:text-orange-700' : 'text-green-500 hover:text-green-700'} transition" title="${isActive ? 'Suspend Hotel' : 'Activate Hotel'}"><i class="fas fa-${isActive ? 'pause-circle' : 'play-circle'}"></i></button>
+                                <button onclick="openChangePlanModal('${hotelId}', '${hotelName}')" class="p-2 text-cyan-500 hover:text-cyan-700 transition" title="Change Plan"><i class="fas fa-exchange-alt"></i></button>
                             </div>
                         </td>
                     </tr>`;
@@ -1254,8 +1735,10 @@
         }
 
         function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-            document.getElementById('hotelId').disabled = false;
+            const el = document.getElementById(modalId);
+            if (el) el.classList.remove('active');
+            const hotelIdEl = document.getElementById('hotelId');
+            if (hotelIdEl) hotelIdEl.disabled = false;
         }
 
         function openDeleteModal(hotelId, hotelName) {
