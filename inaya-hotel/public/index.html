@@ -2141,6 +2141,10 @@ async function loadSubscriptionStatus() {
         // ✅ Agar API nahi hai (404), silently return - error mat dikhao
         if (response.status === 404 || !response.ok) {
             console.warn('Subscription API not available');
+            const statusEl = document.getElementById('subStatusText');
+            const badgeEl = document.getElementById('subStatusBadge');
+            if (statusEl) statusEl.innerHTML = '⚠️ <strong>No active subscription</strong> — Subscribe now!';
+            if (badgeEl) { badgeEl.style.background = '#f59e0b'; badgeEl.textContent = 'NO PLAN'; }
             return;
         }
 
@@ -2180,7 +2184,10 @@ async function loadSubscriptionStatus() {
         }
     } catch (error) {
         console.warn('Subscription status load skipped:', error.message);
-        // Error user ko mat dikhao - subscription abhi setup nahi hua ho sakta
+        const statusEl = document.getElementById('subStatusText');
+        const badgeEl = document.getElementById('subStatusBadge');
+        if (statusEl) statusEl.innerHTML = '⚠️ Unable to load subscription status';
+        if (badgeEl) { badgeEl.style.background = '#ef4444'; badgeEl.textContent = 'ERROR'; }
     }
 }   
 async function loadAllData() {
