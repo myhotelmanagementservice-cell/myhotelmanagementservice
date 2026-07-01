@@ -25,7 +25,6 @@ const SUBSCRIPTION_PLANS = {
     basic: { name: 'Basic', price: 29, duration: 30, features: ['Up to 50 rooms', 'Up to 500 guests', 'Email support'] },
     pro: { name: 'Professional', price: 99, duration: 30, features: ['Up to 200 rooms', 'Unlimited guests', 'Priority support'] },
     enterprise: { name: 'Enterprise', price: 499, duration: 365, features: ['Unlimited rooms', 'Unlimited guests', '24/7 support'] },
-    lifetime: { name: 'Lifetime', price: 2999, duration: null, features: ['Unlimited everything', 'Lifetime access'] }
 };
 
 // ============================================================
