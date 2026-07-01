@@ -20,7 +20,6 @@ const CASHFREE_BASE_URL = CASHFREE_ENVIRONMENT === 'production'
 // SUBSCRIPTION PLANS
 // ============================================================
 const SUBSCRIPTION_PLANS = {
-    live_test: { name: 'Live Test ₹1', price: 1, duration: 1, features: ['Only for testing', 'Will be removed after test'] },
     free: { name: 'Free Trial', price: 0, duration: 7, features: ['Up to 10 rooms', 'Up to 50 guests', 'Basic support'] },
     basic: { name: 'Basic', price: 29, duration: 30, features: ['Up to 50 rooms', 'Up to 500 guests', 'Email support'] },
     pro: { name: 'Professional', price: 99, duration: 30, features: ['Up to 200 rooms', 'Unlimited guests', 'Priority support'] },
