@@ -226,6 +226,42 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- REAL-TIME ACTIVITY LOG -->
+                <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center flex-wrap gap-3">
+                        <div class="flex items-center gap-3">
+                            <h3 class="font-bold">🔴 Live Activity Log</h3>
+                            <span id="activityLiveDot" class="flex items-center gap-1.5 text-xs text-gray-400">
+                                <span class="w-2 h-2 rounded-full bg-gray-400" id="socketDot"></span>
+                                <span id="socketStatusText">Connecting…</span>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="activityFilter" onchange="filterActivity()" class="text-sm p-1.5 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600">
+                                <option value="all">All Events</option>
+                                <option value="booking">Bookings</option>
+                                <option value="checkin">Check-in / Check-out</option>
+                                <option value="request">Guest Requests</option>
+                                <option value="hotel">Hotels</option>
+                                <option value="payment">Payments</option>
+                            </select>
+                            <button onclick="clearActivityLog()" class="text-xs px-3 py-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">Clear</button>
+                            <button onclick="exportActivityLog()" class="text-xs px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-download mr-1"></i>Export</button>
+                        </div>
+                    </div>
+                    <div id="activityLogContainer" class="overflow-y-auto" style="max-height: 420px;">
+                        <div id="activityLogEmpty" class="p-10 text-center text-gray-400">
+                            <i class="fas fa-satellite-dish text-4xl mb-3 opacity-40"></i>
+                            <p class="text-sm">Connecting to hotels… events will appear here in real time.</p>
+                        </div>
+                        <ul id="activityLogList" class="divide-y divide-gray-100 dark:divide-gray-700 hidden"></ul>
+                    </div>
+                    <div class="p-3 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center text-xs text-gray-400">
+                        <span>Showing last <strong id="activityCount">0</strong> events</span>
+                        <span id="activityLastUpdate">—</span>
+                    </div>
+                </div>
             </section>
 
             <!-- SECTION: HOTELS -->
