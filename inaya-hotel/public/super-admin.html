@@ -76,6 +76,45 @@
         .progress-bar { height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden; }
         .progress-bar-fill { height: 100%; background: var(--custom-primary); border-radius: 2px; transition: width 0.3s; }
         .notification-badge { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 0.65rem; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        /* ======== MOBILE RESPONSIVE ======== */
+        .mobile-menu-btn { display: none; }
+        .sidebar-closed { transform: translateX(-100%); }
+        .sidebar-open { transform: translateX(0); }
+        @media (max-width: 768px) {
+            .mobile-menu-btn { display: flex; }
+            #sidebarEl { position: fixed; top: 0; left: 0; height: 100vh; width: 280px; z-index: 50; transform: translateX(-100%); transition: transform 0.3s ease; }
+            #sidebarEl.mobile-open { transform: translateX(0); }
+            #sidebarOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; }
+            #sidebarOverlay.active { display: block; }
+            main { padding: 0.75rem !important; }
+            header { flex-direction: column; gap: 0.5rem; align-items: flex-start !important; }
+            header .flex.gap-3 { width: 100%; justify-content: space-between; }
+            .grid-cols-2 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+            .grid-cols-3 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+            .grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+            .grid-cols-6 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+            .grid-cols-7 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+            .lg\:grid-cols-2 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+            .lg\:grid-cols-3 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+            .lg\:grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+            .md\:grid-cols-2 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+            .md\:grid-cols-3 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+            .md\:grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+            table { display: block; overflow-x: auto; white-space: nowrap; }
+            .modal-box { max-width: 95vw !important; margin: 0.5rem; }
+            #toastContainer { left: 1rem; right: 1rem; top: auto; bottom: 1rem; }
+            .toast { max-width: 100%; }
+            nav button span { font-size: 0.75rem; }
+            .glass-effect { padding: 1.5rem !important; }
+        }
+        @media (max-width: 480px) {
+            .grid-cols-4 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+            .grid-cols-2 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+            h1 { font-size: 1.25rem !important; }
+            h3 { font-size: 1rem !important; }
+            .text-3xl { font-size: 1.5rem !important; }
+            .text-2xl { font-size: 1.25rem !important; }
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-darkBg text-gray-800 dark:text-gray-200 transition-colors duration-300 font-sans">
