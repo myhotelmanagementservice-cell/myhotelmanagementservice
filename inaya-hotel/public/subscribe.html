@@ -285,48 +285,54 @@
         }
 
 document.addEventListener('DOMContentLoaded', async () => {
-            // Backend se enabled currencies fetch karo
+            // Super Admin global config se currencies + live rates fetch karo
             try {
-                const cfgRes = await fetch(`${API_BASE}/config?hotelId=${hotelId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`,
-                        'x-hotel-id': hotelId
-                    }
-                });
-                const cfgData = await cfgRes.json();
-                const enabledCurrencies = cfgData?.enabledCurrencies || { INR: true };
-                const customCurrencies = cfgData?.customCurrencies || {};
+                const gcRes = await fetch(`${API_BASE}/super/global-config/public`);
+                const gcData = await gcRes.json();
+
+                const enabledCurrencies = gcData?.enabledCurrencies || {};
+                const exchangeRates     = gcData?.exchangeRates     || {};
+                const customCurrencies  = Array.isArray(gcData?.currencies) ? gcData.currencies : [];
 
                 const select = document.getElementById('currencySelect');
 
-                // Custom currencies add karo select mein
-                Object.entries(customCurrencies).forEach(([code, data]) => {
-                    if (enabledCurrencies[code]) {
-                        const opt = document.createElement('option');
-                        opt.value = code;
-                        opt.dataset.symbol = data.symbol;
-                        opt.dataset.rate = data.rate;
-                        opt.dataset.flag = data.flag || '🏳️';
-                        opt.textContent = `${data.flag || '🏳️'} ${code} - ${data.name}`;
-                        select.appendChild(opt);
+                // Live exchange rates se existing options ki rates update karo
+                Array.from(select.options).forEach(opt => {
+                    const code = opt.value;
+                    if (exchangeRates[code] !== undefined) {
+                        opt.dataset.rate = exchangeRates[code];
                     }
                 });
 
-                // Disabled built-in currencies hide karo
+                // Custom currencies (super admin added) ko select mein add karo
+                customCurrencies.forEach(data => {
+                    const code = data.code;
+                    if (!code) return;
+                    if (enabledCurrencies[code] === false) return; // explicitly disabled
+                    if (Array.from(select.options).find(o => o.value === code)) return; // already exists
+                    const opt = document.createElement('option');
+                    opt.value = code;
+                    opt.dataset.symbol = data.symbol || code;
+                    opt.dataset.rate   = exchangeRates[code] || data.rate || 1;
+                    opt.dataset.flag   = data.flag || '🏳️';
+                    opt.textContent    = `${data.flag || '🏳️'} ${code} - ${data.name || code}`;
+                    select.appendChild(opt);
+                });
+
+                // Super admin ne jo currencies disable ki hain unhe remove karo
+                // (sirf explicitly false wali, missing = enabled)
                 Array.from(select.options).forEach(opt => {
-                    if (opt.value !== 'INR' && !enabledCurrencies[opt.value]) {
-                        opt.remove();
-                    }
+                    if (enabledCurrencies[opt.value] === false) opt.remove();
                 });
 
             } catch(e) {
-                console.log('Currency config load skipped:', e.message);
+                console.log('Global config load skipped:', e.message);
             }
 
-            // Agar saved currency ab available nahi hai toh INR default karo
+            // Agar pehle select ki currency ab available nahi hai toh INR default karo
             const select = document.getElementById('currencySelect');
             const available = Array.from(select.options).map(o => o.value);
-            if (!available.includes(selectedCurrency)) selectedCurrency = 'INR';
+            if (!available.includes(selectedCurrency)) selectedCurrency = available[0] || 'INR';
 
             document.getElementById('currencySelect').value = selectedCurrency;
             updateCurrencyInfo();

@@ -81,6 +81,34 @@ app.post('/api/subscription/webhook', express.raw({ type: 'application/json' }),
     res.status(200).json({ received: true });
 });
 
+// Public — subscribe.html fetches plans from globalConfig (super admin controls prices)
+app.get('/api/subscription/plans', async (req, res) => {
+  try {
+    const cfg = dbConnected
+      ? await db.collection('globalConfig').findOne({ _id: 'main' })
+      : null;
+    const planSettings = (cfg && cfg.planSettings) || {
+      basic:      { name: 'Free / Basic', price: 0,   enabled: true,  features: ['1 Hotel', 'Up to 20 Rooms', 'Basic Reports', '7-day Trial'] },
+      pro:        { name: 'Pro',          price: 99,  enabled: true,  features: ['Up to 5 Hotels', 'Unlimited Rooms', 'Priority Support', 'Analytics Dashboard'] },
+      enterprise: { name: 'Enterprise',   price: 499, enabled: true,  features: ['Unlimited Hotels', 'Custom Branding', 'Dedicated Manager', 'API Access'] }
+    };
+    const planDuration = { basic: 7, pro: 30, enterprise: null };
+    const plans = Object.entries(planSettings)
+      .filter(([, p]) => p.enabled !== false)
+      .map(([id, p]) => ({
+        id,
+        name:     p.name,
+        price:    p.price,
+        currency: p.currency || 'USD',
+        duration: planDuration[id] !== undefined ? planDuration[id] : 30,
+        features: p.features || []
+      }));
+    res.json({ success: true, data: plans });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 const publicPath = path.join(__dirname, process.env.PUBLIC_PATH || '../public');
 
 // No-cache for HTML files so browser always gets the latest version
