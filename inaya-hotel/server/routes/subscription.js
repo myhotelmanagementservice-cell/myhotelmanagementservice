@@ -36,6 +36,32 @@ function getDB(req) {
 }
 
 // ============================================================
+// HELPER: Resolve plan data from hardcoded list OR DB custom plans
+// ============================================================
+async function getEffectivePlanData(db, planId) {
+    // 1. Check hardcoded plans first
+    if (SUBSCRIPTION_PLANS[planId]) return SUBSCRIPTION_PLANS[planId];
+
+    // 2. Fall back to globalConfig.planSettings (admin-created custom plans)
+    try {
+        const cfg = await db.collection('globalConfig').findOne({ _id: 'main' });
+        const planSettings = cfg && cfg.planSettings;
+        if (planSettings && planSettings[planId]) {
+            const p = planSettings[planId];
+            return {
+                name:     p.name     || planId,
+                price:    p.price    || 0,
+                duration: p.duration || p.days || 30,
+                features: p.features || [],
+                currency: p.currency || 'USD'
+            };
+        }
+    } catch (_) {}
+
+    return null;
+}
+
+// ============================================================
 // HELPER: Verify Cashfree Webhook Signature
 // ============================================================
 function verifyWebhookSignature(signature, timestamp, body) {
@@ -119,12 +145,12 @@ router.post('/create', authMiddleware, async (req, res) => {
 
         const { plan, currency, amount } = req.body;
 
-        // FIX 2: Validate plan
-        if (!plan || !SUBSCRIPTION_PLANS[plan]) {
-            return error(res, 'Invalid plan. Valid plans: ' + Object.keys(SUBSCRIPTION_PLANS).join(', '), 400);
+        // FIX 2: Validate plan (checks hardcoded + admin-created DB plans)
+        if (!plan) return error(res, 'Plan is required', 400);
+        const planData = await getEffectivePlanData(db, plan);
+        if (!planData) {
+            return error(res, 'Invalid plan. Please select a valid subscription plan.', 400);
         }
-
-        const planData = SUBSCRIPTION_PLANS[plan];
 
         // Calculate expiry date
         let expiryDate = null;
@@ -302,7 +328,7 @@ router.get('/verify/:orderId', authMiddleware, async (req, res) => {
 
             if (subscription) {
                 let expiryDate = null;
-                const planData = SUBSCRIPTION_PLANS[subscription.plan];
+                const planData = await getEffectivePlanData(db, subscription.plan);
                 if (planData && planData.duration) {
                     expiryDate = new Date();
                     expiryDate.setDate(expiryDate.getDate() + planData.duration);
@@ -371,7 +397,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                 const sub = await db.collection('subscriptions').findOne({ transactionId: orderId });
                 if (sub) {
                     let expiryDate = null;
-                    const planData = SUBSCRIPTION_PLANS[sub.plan];
+                    const planData = await getEffectivePlanData(db, sub.plan);
                     if (planData && planData.duration) {
                         expiryDate = new Date();
                         expiryDate.setDate(expiryDate.getDate() + planData.duration);

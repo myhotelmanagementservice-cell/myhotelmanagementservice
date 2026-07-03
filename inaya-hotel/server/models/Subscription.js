@@ -78,6 +78,29 @@ const PAYMENT_STATUS = ['pending', 'completed', 'failed', 'refunded', 'cancelled
 const PAYMENT_METHODS = ['stripe', 'razorpay', 'paypal', 'bank_transfer', 'manual'];
 
 // ============================================================
+// HELPER: Resolve plan from hardcoded list OR DB custom plans
+// ============================================================
+async function getEffectivePlanData(planId) {
+    if (SUBSCRIPTION_PLANS[planId]) return SUBSCRIPTION_PLANS[planId];
+    try {
+        const db = getDB();
+        if (!db) return null;
+        const cfg = await db.collection('globalConfig').findOne({ _id: 'main' });
+        const planSettings = cfg && cfg.planSettings;
+        if (planSettings && planSettings[planId]) {
+            const p = planSettings[planId];
+            return {
+                name:     p.name     || planId,
+                price:    p.price    || 0,
+                duration: p.duration || p.days || 30,
+                features: p.features || []
+            };
+        }
+    } catch (_) {}
+    return null;
+}
+
+// ============================================================
 // CRUD OPERATIONS
 // ============================================================
 
@@ -87,12 +110,12 @@ async function createSubscription(hotelId, data) {
         const db = getDB();
         if (!db) throw new Error('Database not available');
 
-        const plan = SUBSCRIPTION_PLANS[data.plan];
+        const plan = await getEffectivePlanData(data.plan);
         if (!plan) throw new Error('Invalid subscription plan');
 
         // Calculate expiry date
         let expiryDate = null;
-        if (plan.duration !== null) {
+        if (plan.duration !== null && plan.duration !== undefined) {
             expiryDate = new Date();
             expiryDate.setDate(expiryDate.getDate() + plan.duration);
         }
@@ -234,11 +257,11 @@ async function cancelSubscription(hotelId) {
 
 async function renewSubscription(hotelId, plan) {
     try {
-        const planData = SUBSCRIPTION_PLANS[plan];
+        const planData = await getEffectivePlanData(plan);
         if (!planData) throw new Error('Invalid plan');
 
         let expiryDate = null;
-        if (planData.duration !== null) {
+        if (planData.duration !== null && planData.duration !== undefined) {
             expiryDate = new Date();
             expiryDate.setDate(expiryDate.getDate() + planData.duration);
         }
