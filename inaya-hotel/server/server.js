@@ -3312,6 +3312,181 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
+// ======================== HOUSEKEEPING ========================
+
+app.get('/api/housekeeping', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json([]);
+    const data = await db.collection('housekeeping').find({ hotelId }).sort({ scheduledAt: 1 }).toArray();
+    data.forEach(d => { if (d._id) d._id = d._id.toString(); });
+    res.json(data);
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/housekeeping', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const entry = { hotelId, ...req.body, _version: 1 };
+    if (!dbConnected) { entry._id = 'hk_'+Date.now(); return res.status(201).json({ ...entry, success: true }); }
+    const result = await db.collection('housekeeping').insertOne(entry);
+    entry._id = result.insertedId.toString();
+    broadcast(hotelId, 'housekeeping_upd', entry, req.clientId);
+    res.status(201).json({ ...entry, success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.put('/api/housekeeping/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) return res.json({ success: true });
+    const update = { ...req.body }; delete update._id;
+    await db.collection('housekeeping').updateOne({ _id: parseId(id), hotelId }, { $set: update });
+    broadcast(hotelId, 'housekeeping_upd', { _id: id, hotelId, ...update }, req.clientId);
+    res.json({ success: true, _id: id, ...update });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.delete('/api/housekeeping/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) return res.json({ success: true });
+    await db.collection('housekeeping').deleteOne({ _id: parseId(id), hotelId });
+    broadcast(hotelId, 'housekeeping_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// ======================== OFFERS ========================
+
+app.get('/api/offers', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json([]);
+    const data = await db.collection('offers').find({ hotelId }).sort({ _id: -1 }).toArray();
+    data.forEach(d => { if (d._id) d._id = d._id.toString(); });
+    res.json(data);
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/offers', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const entry = { hotelId, ...req.body, _version: 1 };
+    if (!dbConnected) { entry._id = 'off_'+Date.now(); return res.status(201).json({ ...entry, success: true }); }
+    const result = await db.collection('offers').insertOne(entry);
+    entry._id = result.insertedId.toString();
+    broadcast(hotelId, 'offers_upd', entry, req.clientId);
+    res.status(201).json({ ...entry, success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.put('/api/offers/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) return res.json({ success: true });
+    const update = { ...req.body }; delete update._id;
+    await db.collection('offers').updateOne({ _id: parseId(id), hotelId }, { $set: update });
+    broadcast(hotelId, 'offers_upd', { _id: id, hotelId, ...update }, req.clientId);
+    res.json({ success: true, _id: id, ...update });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.delete('/api/offers/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) return res.json({ success: true });
+    await db.collection('offers').deleteOne({ _id: parseId(id), hotelId });
+    broadcast(hotelId, 'offers_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// ======================== LOST & FOUND ========================
+
+app.get('/api/lostfound', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json([]);
+    const data = await db.collection('lostfound').find({ hotelId }).sort({ foundDate: -1 }).toArray();
+    data.forEach(d => { if (d._id) d._id = d._id.toString(); });
+    res.json(data);
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/lostfound', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const entry = { hotelId, ...req.body, status: req.body.status || 'unclaimed', _version: 1 };
+    if (!dbConnected) { entry._id = 'lf_'+Date.now(); return res.status(201).json({ ...entry, success: true }); }
+    const result = await db.collection('lostfound').insertOne(entry);
+    entry._id = result.insertedId.toString();
+    broadcast(hotelId, 'lostfound_upd', entry, req.clientId);
+    res.status(201).json({ ...entry, success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.put('/api/lostfound/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) return res.json({ success: true });
+    const update = { ...req.body }; delete update._id;
+    await db.collection('lostfound').updateOne({ _id: parseId(id), hotelId }, { $set: update });
+    broadcast(hotelId, 'lostfound_upd', { _id: id, hotelId, ...update }, req.clientId);
+    res.json({ success: true, _id: id, ...update });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.delete('/api/lostfound/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) return res.json({ success: true });
+    await db.collection('lostfound').deleteOne({ _id: parseId(id), hotelId });
+    broadcast(hotelId, 'lostfound_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// ======================== CHAT MESSAGES ========================
+
+app.get('/api/chat', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json([]);
+    const data = await db.collection('chat').find({ hotelId }).sort({ time: 1 }).limit(200).toArray();
+    data.forEach(d => { if (d._id) d._id = d._id.toString(); });
+    res.json(data);
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/chat', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const entry = { hotelId, ...req.body, time: req.body.time || new Date().toISOString(), _version: 1 };
+    if (!dbConnected) { entry._id = 'cm_'+Date.now(); return res.status(201).json({ ...entry, success: true }); }
+    const result = await db.collection('chat').insertOne(entry);
+    entry._id = result.insertedId.toString();
+    broadcast(hotelId, 'chat_upd', entry, req.clientId);
+    res.status(201).json({ ...entry, success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.delete('/api/chat', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json({ success: true });
+    await db.collection('chat').deleteMany({ hotelId });
+    broadcast(hotelId, 'chat_cleared', { hotelId }, req.clientId);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 app.use('/api/*', (req, res) => {
   res.status(404).json({ success: false, error: 'API endpoint not found' });
 });

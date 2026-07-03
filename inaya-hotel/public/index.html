@@ -345,6 +345,12 @@ tabBookings: '📅 Bookings',
 tabPolicies: '📜 Policies',
 tabAnnouncements: '📢 Announcements',
 tabDepartments: '🏢 Departments',
+tabHousekeeping: '🧹 Housekeeping',
+tabOffers: '🎁 Offers',
+tabLostFound: '💼 Lost & Found',
+tabTransport: '🚗 Transport',
+tabChat: '💬 Live Chat',
+tabRoomCtrl: '🌡️ Room Ctrl',
 myRequests: 'Requests',
 pending: 'Pending',
 completed: 'Completed',
@@ -744,6 +750,12 @@ tabBookings: '📅 बुकिंग',
 tabPolicies: '📜 नीतियाँ',
 tabAnnouncements: '📢 घोषणाएं',
 tabDepartments: '🏢 विभाग',
+tabHousekeeping: '🧹 हाउसकीपिंग',
+tabOffers: '🎁 ऑफर्स',
+tabLostFound: '💼 खोया-पाया',
+tabTransport: '🚗 ट्रांसपोर्ट',
+tabChat: '💬 लाइव चैट',
+tabRoomCtrl: '🌡️ रूम कंट्रोल',
 myRequests: 'अनुरोध',
 pending: 'लंबित',
 completed: 'पूर्ण',
@@ -1143,6 +1155,12 @@ tabBookings: '📅 الحجوزات',
 tabPolicies: '📜 السياسات',
 tabAnnouncements: '📢 الإعلانات',
 tabDepartments: '🏢 الأقسام',
+tabHousekeeping: '🧹 التدبير المنزلي',
+tabOffers: '🎁 العروض',
+tabLostFound: '💼 المفقودات',
+tabTransport: '🚗 النقل',
+tabChat: '💬 المحادثة',
+tabRoomCtrl: '🌡️ تحكم الغرفة',
 myRequests: 'الطلبات',
 pending: 'معلقة',
 completed: 'مكتمل',
@@ -1735,6 +1753,10 @@ let bookings = [];
 let policies = [];
 let announcements = [];
 let departments = DEFAULT_DEPARTMENTS.map(d => ({...d, _id: d.key, hotelId: HID, _version: 1, isEnabled: true}));
+let housekeeping = [];
+let offers = [];
+let lostfound = [];
+let chatMessages = [];
 let cart = [];
 let ratingData = { overall: 0, service: 0, clean: 0 };
 let socket = null;
@@ -1790,7 +1812,12 @@ const ADMIN_TABS = [
 { id: 'bookings', label: 'tabBookings' },
 { id: 'policies', label: 'tabPolicies' },
 { id: 'announcements', label: 'tabAnnouncements' },
-{ id: 'departments', label: 'tabDepartments' }
+{ id: 'departments', label: 'tabDepartments' },
+{ id: 'housekeeping', label: 'tabHousekeeping' },
+{ id: 'offers', label: 'tabOffers' },
+{ id: 'lostfound', label: 'tabLostFound' },
+{ id: 'transport', label: 'tabTransport' },
+{ id: 'chat', label: 'tabChat' }
 ];
 const GUEST_TABS = [
 { id: 'reqTab', icon: '📝', label: 'reqTab' },
@@ -1801,7 +1828,10 @@ const GUEST_TABS = [
 { id: 'infoTab', icon: 'ℹ️', label: 'infoTab' },
 { id: 'bookTab', icon: '📅', label: 'bookTab' },
 { id: 'announceTab', icon: '📢', label: 'tabAnnouncements' },
-{ id: 'policyTab', icon: '📜', label: 'tabPolicies' }
+{ id: 'policyTab', icon: '📜', label: 'tabPolicies' },
+{ id: 'offersTab', icon: '🎁', label: 'tabOffers' },
+{ id: 'roomctrlTab', icon: '🌡️', label: 'tabRoomCtrl' },
+{ id: 'chatTab', icon: '💬', label: 'tabChat' }
 ];
 const TYPE_MAP = {
 'Standard': 'standard',
@@ -2244,6 +2274,23 @@ if (cachedCfg.customCurrencies) Object.assign(customSubCurrencies, cachedCfg.cus
 } else {
 HotelCfg = { _id: null, name: 'Crown Plaza Hotel', currency: 'SAR', wifi: 'CrownPlaza@2024', airportPrice: 115, localPrice: 60, _version: 1 };
 }
+}
+try {
+const [hkRes, offRes, lfRes, cmRes] = await Promise.all([
+apiCall('GET', `/housekeeping?hotelId=${HID}`),
+apiCall('GET', `/offers?hotelId=${HID}`),
+apiCall('GET', `/lostfound?hotelId=${HID}`),
+apiCall('GET', `/chat?hotelId=${HID}`)
+]);
+if (hkRes && Array.isArray(hkRes)) { housekeeping = hkRes; cacheData('housekeeping', hkRes); } else { housekeeping = getCachedData('housekeeping') || []; }
+if (offRes && Array.isArray(offRes)) { offers = offRes; cacheData('offers', offRes); } else { offers = getCachedData('offers') || []; }
+if (lfRes && Array.isArray(lfRes)) { lostfound = lfRes; cacheData('lostfound', lfRes); } else { lostfound = getCachedData('lostfound') || []; }
+if (cmRes && Array.isArray(cmRes)) { chatMessages = cmRes; cacheData('chat', cmRes); } else { chatMessages = getCachedData('chat') || []; }
+} catch (_e) {
+housekeeping = getCachedData('housekeeping') || [];
+offers = getCachedData('offers') || [];
+lostfound = getCachedData('lostfound') || [];
+chatMessages = getCachedData('chat') || [];
 }
 const queue = JSON.parse(localStorage.getItem(`h_${HID}_queue`) || '[]');
 if (queue.length) offlineQueue.push(...queue);
@@ -3672,6 +3719,13 @@ renderGuestInv();
 renderGuestHistory();
 renderGuestBookings();
 renderDepartments();
+renderHousekeeping();
+renderOffers();
+renderLostFound();
+renderTransport();
+renderAdminChat();
+renderGuestOffers();
+renderGuestChat();
 }
 function renderRooms() {
 const tbody = document.getElementById('roomsTbody');
@@ -4450,6 +4504,69 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}</option>`).join('')
 <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="tabPolicies">📜 Policies</h3>
 <div id="gPoliciesList"></div>
 </div>
+<div class="card hidden" id="gp-offersTab">
+<h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)">🎁 Current Offers & Deals</h3>
+<p style="font-size:12px;opacity:.6;margin-bottom:12px">Exclusive discounts and special deals for our valued guests.</p>
+<div id="gOffersGrid"></div>
+</div>
+<div class="card hidden" id="gp-roomctrlTab">
+<h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--fg)">🌡️ Room Controls</h3>
+<div style="background:var(--card2);border-radius:12px;padding:16px;margin-bottom:12px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+<span style="font-weight:600;font-size:14px">❄️ Air Conditioning</span>
+<label class="toggle-switch"><input type="checkbox" id="rcAcToggle" onchange="saveRoomCtrl()" checked><span class="slider"></span></label>
+</div>
+<div style="display:flex;align-items:center;gap:12px;justify-content:center">
+<button class="btn-ghost" onclick="adjustTemp(-1)" style="padding:6px 16px;font-size:18px;font-weight:700">−</button>
+<span id="rcTemp" style="font-size:32px;font-weight:800;min-width:70px;text-align:center;color:var(--p1)">22°C</span>
+<button class="btn-ghost" onclick="adjustTemp(1)" style="padding:6px 16px;font-size:18px;font-weight:700">+</button>
+</div>
+</div>
+<div style="background:var(--card2);border-radius:12px;padding:16px;margin-bottom:12px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+<span style="font-weight:600;font-size:14px">💡 Room Lights</span>
+<label class="toggle-switch"><input type="checkbox" id="rcLightsToggle" onchange="saveRoomCtrl()" checked><span class="slider"></span></label>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn-ghost" style="font-size:12px;padding:5px 12px" onclick="setLightScene('bright')">☀️ Bright</button>
+<button class="btn-ghost" style="font-size:12px;padding:5px 12px" onclick="setLightScene('dim')">🌙 Dim</button>
+<button class="btn-ghost" style="font-size:12px;padding:5px 12px" onclick="setLightScene('reading')">📖 Reading</button>
+<button class="btn-ghost" style="font-size:12px;padding:5px 12px" onclick="setLightScene('romantic')">🕯️ Romantic</button>
+</div>
+</div>
+<div style="background:var(--card2);border-radius:12px;padding:16px;margin-bottom:12px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div>
+<div style="font-weight:600;font-size:14px">🚫 Do Not Disturb</div>
+<div style="font-size:11px;opacity:.55;margin-top:3px">Hotel staff will not knock when enabled</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" id="rcDndToggle" onchange="toggleDND()"><span class="slider"></span></label>
+</div>
+</div>
+<div style="background:var(--card2);border-radius:12px;padding:16px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div>
+<div style="font-weight:600;font-size:14px">🍽️ Accept Room Service</div>
+<div style="font-size:11px;opacity:.55;margin-top:3px">Allow deliveries to your room</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" id="rcRsToggle" onchange="saveRoomCtrl()" checked><span class="slider"></span></label>
+</div>
+</div>
+<p id="rcStatus" style="text-align:center;font-size:12px;color:var(--p1);margin-top:10px"></p>
+</div>
+<div class="card hidden" id="gp-chatTab">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+<h3 style="font-size:14px;font-weight:700;color:var(--fg)">💬 Chat with Reception</h3>
+<span style="font-size:11px;color:#10b981;background:rgba(16,185,129,.1);padding:3px 8px;border-radius:20px">● Reception Online</span>
+</div>
+<div id="guestChatMessages" style="background:var(--card2);border-radius:10px;min-height:240px;max-height:300px;overflow-y:auto;padding:10px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px">
+<p style="text-align:center;opacity:.4;font-size:12px;margin:auto">Start a conversation with reception…</p>
+</div>
+<div style="display:flex;gap:6px">
+<input class="inp" id="guestChatInput" placeholder="Type your message..." style="flex:1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendGuestChat();}">
+<button class="btn-primary" onclick="sendGuestChat()">Send</button>
+</div>
+</div>
 `;
 }
 // NEW: Show full room details when a room is selected for booking
@@ -4496,6 +4613,9 @@ if (id === 'bookTab') { renderGuestBookings();
 renderBookRoomRooms(); }
 if (id === 'announceTab') renderGuestAnnouncements();
 if (id === 'policyTab') renderGuestPolicies();
+if (id === 'offersTab') renderGuestOffers();
+if (id === 'roomctrlTab') loadRoomCtrl();
+if (id === 'chatTab') renderGuestChat();
 sessionStorage.setItem('currentTab', 'guest_' + id);
 }
 function renderGuestFood() {
@@ -5170,6 +5290,16 @@ case 'announcements':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px"><h3 style="font-size:16px;font-weight:700;color:var(--fg)" data-i18n="tabAnnouncements">📢 Announcements</h3><button class="btn-primary" onclick="openAnnouncementModal()" data-i18n="addAnnouncement">+ Add Announcement</button></div><div id="announcementsList"></div></div>`;
 case 'departments':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🏢 Departments & Categories</h3><button class="btn-primary" onclick="openDeptModal()">+ Add Department</button></div><div id="deptList"></div></div>`;
+case 'housekeeping':
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🧹 Housekeeping Schedule</h3><button class="btn-primary" onclick="openModal('hkModal')">+ Add Task</button></div><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderHousekeeping('all')">All</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderHousekeeping('pending')" data-i18n="pending">Pending</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderHousekeeping('in-progress')">In Progress</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px;border-color:#10b981;color:#10b981" onclick="renderHousekeeping('done')">✅ Done</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Room</th><th>Task</th><th>Assigned To</th><th>Scheduled</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead><tbody id="hkTbody"></tbody></table></div></div>`;
+case 'offers':
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🎁 Offers & Discounts</h3><button class="btn-primary" onclick="openModal('offerModal')">+ Add Offer</button></div><div style="background:var(--card2);border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:10px;opacity:.7">💡 Active offers are shown to guests in their Offers tab. Promo codes can be applied at booking.</div><div id="offersGrid"></div></div>`;
+case 'lostfound':
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">💼 Lost & Found</h3><button class="btn-primary" onclick="openModal('lfModal')">+ Add Item</button></div><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderLostFound('all')">All</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderLostFound('unclaimed')">Unclaimed</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderLostFound('claimed')">Claimed</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px;border-color:#10b981;color:#10b981" onclick="renderLostFound('returned')">Returned</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Item</th><th>Description</th><th>Found At</th><th>Date</th><th>Guest/Room</th><th>Status</th><th>Actions</th></tr></thead><tbody id="lfTbody"></tbody></table></div></div>`;
+case 'transport':
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🚗 All Transport Bookings</h3><button class="btn-primary" style="background:#10b981" onclick="exportTransport()">📥 Export</button></div><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderTransport('all')">All</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderTransport('airport')">✈️ Airport</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderTransport('local')">🚕 Local Cab</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Guest</th><th>Room</th><th>Type</th><th>Price</th><th>Pickup Time</th><th>Booked At</th><th>Status</th></tr></thead><tbody id="transportTbody"></tbody></table></div></div>`;
+case 'chat':
+return `<div class="card" style="display:flex;flex-direction:column;min-height:480px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">💬 Live Chat with Guests</h3><div style="display:flex;gap:8px;align-items:center"><span id="chatOnlineCount" style="font-size:11px;color:#10b981;background:rgba(16,185,129,.1);padding:3px 8px;border-radius:20px">● 0 guests online</span><button class="btn-ghost" style="font-size:11px;padding:3px 10px" onclick="clearAdminChat()">Clear</button></div></div><div style="background:var(--card2);border-radius:8px;flex:1;min-height:320px;max-height:360px;overflow-y:auto;padding:10px;margin-bottom:8px;display:flex;flex-direction:column;gap:8px" id="adminChatMessages"><p style="text-align:center;opacity:.4;font-size:12px;margin:auto">No messages yet. Guests can chat from their Chat tab.</p></div><div style="display:flex;gap:6px"><input class="inp" id="adminChatInput" placeholder="Type a message to guests..." style="flex:1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAdminChat();}"><button class="btn-primary" onclick="sendAdminChat()">Send</button></div></div>`;
 default:
 return '';
 }
@@ -5194,6 +5324,11 @@ if (id === 'bookings') renderAdminBookings();
 if (id === 'policies') renderPolicies();
 if (id === 'announcements') renderAnnouncements();
 if (id === 'departments') renderDepartments();
+if (id === 'housekeeping') renderHousekeeping('all');
+if (id === 'offers') renderOffers();
+if (id === 'lostfound') renderLostFound('all');
+if (id === 'transport') renderTransport('all');
+if (id === 'chat') renderAdminChat();
 if (id === 'settings') { setTimeout(renderSubCurrencies, 50); loadSubscriptionStatus(); }
 sessionStorage.setItem('currentTab', id);
 }
@@ -5682,6 +5817,93 @@ ${departments.filter(d => d.isEnabled).map(d => `<option value="${d.key}">${d.em
 <div style="margin-bottom:10px"><label class="lbl" data-i18n="cleanliness">Cleanliness</label><div class="stars" id="starClean"></div></div>
 <div class="form-row"><textarea class="inp" id="ratingComment" rows="2" data-i18n-ph="shareExp" placeholder="Share your experience…"></textarea></div>
 <button class="btn-primary" style="width:100%;padding:10px;margin-top:8px" onclick="submitRating()" data-i18n="submitReview">Submit Review</button>
+</div>
+</div>
+<div class="modal-overlay" id="hkModal">
+<div class="modal-box">
+<div class="modal-h">🧹 Add Housekeeping Task</div>
+<form onsubmit="saveHKTask(event)">
+<div class="form-2">
+<div class="form-row"><label class="lbl">Room #</label><input class="inp" id="mHKRoom" type="number" placeholder="101" required></div>
+<div class="form-row"><label class="lbl">Assigned To</label><input class="inp" id="mHKAssign" placeholder="Staff name"></div>
+</div>
+<div class="form-row"><label class="lbl">Task</label>
+<select class="inp" id="mHKTask">
+<option value="Room Cleaning">🧹 Room Cleaning</option>
+<option value="Bed Making">🛏️ Bed Making</option>
+<option value="Bathroom Cleaning">🚿 Bathroom Cleaning</option>
+<option value="Towel Change">🛁 Towel Change</option>
+<option value="Minibar Refill">🍾 Minibar Refill</option>
+<option value="Trash Removal">🗑️ Trash Removal</option>
+<option value="Floor Mopping">🫧 Floor Mopping</option>
+<option value="AC Filter Clean">❄️ AC Filter Clean</option>
+<option value="Turndown Service">🌙 Turndown Service</option>
+<option value="Deep Cleaning">🔬 Deep Cleaning</option>
+</select>
+</div>
+<div class="form-2">
+<div class="form-row"><label class="lbl">Priority</label>
+<select class="inp" id="mHKPriority">
+<option value="high">🔴 High</option>
+<option value="medium" selected>🟡 Medium</option>
+<option value="low">🟢 Low</option>
+</select>
+</div>
+<div class="form-row"><label class="lbl">Scheduled</label><input class="inp" id="mHKDate" type="datetime-local"></div>
+</div>
+<div style="display:flex;gap:4px;margin-top:14px">
+<button class="btn-primary" style="flex:1" type="submit">Save Task</button>
+<button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('hkModal')">Cancel</button>
+</div>
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="offerModal">
+<div class="modal-box">
+<div class="modal-h">🎁 Add Offer / Discount</div>
+<form onsubmit="saveOffer(event)">
+<div class="form-row"><label class="lbl">Offer Title</label><input class="inp" id="mOffTitle" placeholder="e.g. Weekend Special" required></div>
+<div class="form-row"><label class="lbl">Description</label><textarea class="inp" id="mOffDesc" rows="2" placeholder="Describe the offer..."></textarea></div>
+<div class="form-2">
+<div class="form-row"><label class="lbl">Discount</label><input class="inp" id="mOffDiscount" type="number" min="1" placeholder="20" required></div>
+<div class="form-row"><label class="lbl">Type</label>
+<select class="inp" id="mOffType">
+<option value="percent">% Percent Off</option>
+<option value="flat">SAR Flat Off</option>
+</select>
+</div>
+</div>
+<div class="form-2">
+<div class="form-row"><label class="lbl">Promo Code</label><input class="inp" id="mOffCode" placeholder="WEEKEND20" style="text-transform:uppercase"></div>
+<div class="form-row"><label class="lbl">Min Stay (nights)</label><input class="inp" id="mOffMinStay" type="number" min="0" value="0"></div>
+</div>
+<div class="form-row"><label class="lbl">Expiry Date</label><input class="inp" id="mOffExpiry" type="date"></div>
+<div style="display:flex;gap:4px;margin-top:14px">
+<button class="btn-primary" style="flex:1" type="submit">Create Offer</button>
+<button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('offerModal')">Cancel</button>
+</div>
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="lfModal">
+<div class="modal-box">
+<div class="modal-h">💼 Log Lost & Found Item</div>
+<form onsubmit="saveLFItem(event)">
+<div class="form-row"><label class="lbl">Item Name</label><input class="inp" id="mLFItem" placeholder="e.g. Black Wallet" required></div>
+<div class="form-row"><label class="lbl">Description</label><textarea class="inp" id="mLFDesc" rows="2" placeholder="Color, brand, contents..."></textarea></div>
+<div class="form-2">
+<div class="form-row"><label class="lbl">Found Location</label><input class="inp" id="mLFLocation" placeholder="e.g. Room 101, Lobby"></div>
+<div class="form-row"><label class="lbl">Date Found</label><input class="inp" id="mLFDate" type="date"></div>
+</div>
+<div class="form-2">
+<div class="form-row"><label class="lbl">Guest Name</label><input class="inp" id="mLFGuest" placeholder="Owner if known"></div>
+<div class="form-row"><label class="lbl">Room #</label><input class="inp" id="mLFRoom" type="number" placeholder="101"></div>
+</div>
+<div style="display:flex;gap:4px;margin-top:14px">
+<button class="btn-primary" style="flex:1" type="submit">Log Item</button>
+<button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('lfModal')">Cancel</button>
+</div>
+</form>
 </div>
 </div>
 <div class="modal-overlay" id="infoModal">
@@ -6383,6 +6605,382 @@ renderLogs();
 // ============================================================
 // QUICK ACTIONS
 // ============================================================
+// ============================================================
+// HOUSEKEEPING
+// ============================================================
+let _hkFilter = 'all';
+function renderHousekeeping(filter) {
+if (filter) _hkFilter = filter;
+const tbody = document.getElementById('hkTbody');
+if (!tbody) return;
+const data = _hkFilter === 'all' ? housekeeping : housekeeping.filter(h => h.status === _hkFilter);
+tbody.innerHTML = data.map(h => {
+const sc = { pending: '#f59e0b', 'in-progress': '#3b82f6', done: '#10b981', skipped: '#6b7280' };
+const pr = { high: '🔴 High', medium: '🟡 Medium', low: '🟢 Low' };
+return `<tr data-id="${h._id}">
+<td><strong>${h.room || '—'}</strong></td>
+<td>${h.task || '—'}</td>
+<td>${h.assignedTo || '—'}</td>
+<td style="font-size:11px">${h.scheduledAt ? new Date(h.scheduledAt).toLocaleString() : '—'}</td>
+<td>${pr[h.priority] || '—'}</td>
+<td><select style="font-size:11px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--card);color:${sc[h.status]||'var(--fg)'}" onchange="updateHKStatus('${h._id}',this.value)">
+<option value="pending" ${h.status==='pending'?'selected':''}>⏳ Pending</option>
+<option value="in-progress" ${h.status==='in-progress'?'selected':''}>🔄 In Progress</option>
+<option value="done" ${h.status==='done'?'selected':''}>✅ Done</option>
+<option value="skipped" ${h.status==='skipped'?'selected':''}>⏭️ Skipped</option>
+</select></td>
+<td><button class="tbl-action" onclick="deleteHK('${h._id}')" title="Delete">🗑️</button></td>
+</tr>`;
+}).join('') || '<tr><td colspan="7" style="text-align:center;padding:16px;opacity:.5">No housekeeping tasks. Click "+ Add Task" to create one.</td></tr>';
+}
+async function saveHKTask(e) {
+e.preventDefault();
+const obj = {
+_id: 'hk_' + Date.now(),
+hotelId: HID,
+room: document.getElementById('mHKRoom').value,
+task: document.getElementById('mHKTask').value,
+assignedTo: document.getElementById('mHKAssign').value,
+priority: document.getElementById('mHKPriority').value,
+scheduledAt: document.getElementById('mHKDate').value || new Date().toISOString(),
+status: 'pending',
+_version: 1
+};
+housekeeping.push(obj);
+try { await save('housekeeping', housekeeping); } catch(_){}
+renderHousekeeping();
+closeModal('hkModal');
+e.target.reset();
+showToast('🧹 Housekeeping task added!', 'success');
+}
+async function updateHKStatus(id, status) {
+const h = housekeeping.find(x => x._id === id);
+if (!h) return;
+h.status = status;
+try { await save('housekeeping', housekeeping); } catch(_){}
+renderHousekeeping();
+showToast('✅ Status updated', 'success');
+}
+async function deleteHK(id) {
+if (!confirm('Delete this task?')) return;
+housekeeping = housekeeping.filter(h => h._id !== id);
+try { await save('housekeeping', housekeeping); } catch(_){}
+renderHousekeeping();
+showToast('🗑️ Task deleted', 'info');
+}
+// ============================================================
+// OFFERS & DISCOUNTS
+// ============================================================
+function renderOffers() {
+const el = document.getElementById('offersGrid');
+if (!el) return;
+el.innerHTML = offers.length ? offers.map(o => `
+<div class="req-card" style="border-left:4px solid ${o.isActive?'var(--p1)':'var(--border)'};margin-bottom:8px">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">
+<div>
+<div style="font-weight:700;font-size:15px">🎁 ${o.title}</div>
+<div style="font-size:12px;margin-top:2px;opacity:.7">${o.description || ''}</div>
+<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+<span style="background:var(--p1);color:#fff;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:700">${o.type==='percent'?o.discount+'% OFF':'SAR '+o.discount+' OFF'}</span>
+${o.code?`<code style="background:var(--card2);padding:2px 8px;border-radius:4px;font-size:11px;letter-spacing:2px;font-weight:600">${o.code}</code>`:''}
+${o.expiry?`<span style="font-size:11px;opacity:.6">Expires: ${new Date(o.expiry).toLocaleDateString()}</span>`:''}
+${o.minStay?`<span style="font-size:11px;opacity:.6">Min ${o.minStay} nights</span>`:''}
+</div>
+</div>
+<div style="display:flex;gap:6px;align-items:center">
+<label class="toggle-switch" title="${o.isActive?'Deactivate':'Activate'}"><input type="checkbox" ${o.isActive?'checked':''} onchange="toggleOfferActive('${o._id}',this.checked)"><span class="slider"></span></label>
+<button class="tbl-action" onclick="deleteOffer('${o._id}')" title="Delete">🗑️</button>
+</div>
+</div>
+</div>
+`).join('') : '<p style="text-align:center;opacity:.5;padding:20px">No offers yet. Click "+ Add Offer" to create discounts for guests.</p>';
+}
+function renderGuestOffers() {
+const el = document.getElementById('gOffersGrid');
+if (!el) return;
+const active = offers.filter(o => o.isActive && (!o.expiry || new Date(o.expiry) >= new Date()));
+el.innerHTML = active.length ? active.map(o => `
+<div style="background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:12px;padding:16px;margin-bottom:10px;color:#fff">
+<div style="font-size:18px;font-weight:800;margin-bottom:4px">🎁 ${o.title}</div>
+<div style="font-size:13px;opacity:.85;margin-bottom:8px">${o.description || ''}</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+<span style="background:rgba(255,255,255,.25);padding:4px 12px;border-radius:20px;font-weight:700;font-size:14px">${o.type==='percent'?o.discount+'% OFF':'SAR '+o.discount+' OFF'}</span>
+${o.code?`<span style="font-size:12px">Code: <strong style="letter-spacing:2px">${o.code}</strong></span>`:''}
+${o.expiry?`<span style="font-size:11px;opacity:.75">Expires ${new Date(o.expiry).toLocaleDateString()}</span>`:''}
+</div>
+${o.minStay?`<div style="font-size:11px;margin-top:6px;opacity:.7">*Minimum ${o.minStay} night stay required</div>`:''}
+</div>
+`).join('') : '<div style="text-align:center;padding:30px;opacity:.5"><div style="font-size:32px;margin-bottom:8px">🎁</div><div>No active offers at the moment.<br>Check back soon!</div></div>';
+}
+async function saveOffer(e) {
+e.preventDefault();
+const obj = {
+_id: 'off_' + Date.now(),
+hotelId: HID,
+title: document.getElementById('mOffTitle').value,
+code: document.getElementById('mOffCode').value.toUpperCase(),
+description: document.getElementById('mOffDesc').value,
+discount: Number(document.getElementById('mOffDiscount').value),
+type: document.getElementById('mOffType').value,
+minStay: Number(document.getElementById('mOffMinStay').value) || 0,
+expiry: document.getElementById('mOffExpiry').value || null,
+isActive: true,
+_version: 1
+};
+offers.push(obj);
+try { await save('offers', offers); } catch(_){}
+renderOffers();
+renderGuestOffers();
+closeModal('offerModal');
+e.target.reset();
+showToast('🎁 Offer created!', 'success');
+}
+async function deleteOffer(id) {
+if (!confirm('Delete this offer?')) return;
+offers = offers.filter(o => o._id !== id);
+try { await save('offers', offers); } catch(_){}
+renderOffers();
+renderGuestOffers();
+showToast('🗑️ Offer deleted', 'info');
+}
+async function toggleOfferActive(id, val) {
+const o = offers.find(x => x._id === id);
+if (!o) return;
+o.isActive = val;
+try { await save('offers', offers); } catch(_){}
+renderOffers();
+renderGuestOffers();
+showToast(val ? '✅ Offer activated' : '⏸️ Offer deactivated', 'info');
+}
+// ============================================================
+// LOST & FOUND
+// ============================================================
+let _lfFilter = 'all';
+function renderLostFound(filter) {
+if (filter) _lfFilter = filter;
+const tbody = document.getElementById('lfTbody');
+if (!tbody) return;
+const data = _lfFilter === 'all' ? lostfound : lostfound.filter(x => x.status === _lfFilter);
+tbody.innerHTML = data.map(lf => {
+const sc = { unclaimed: '#f59e0b', claimed: '#3b82f6', returned: '#10b981' };
+const sl = { unclaimed: '📦 Unclaimed', claimed: '🙋 Claimed', returned: '✅ Returned' };
+return `<tr data-id="${lf._id}">
+<td><strong>${lf.item || '—'}</strong></td>
+<td style="font-size:11px">${lf.description || '—'}</td>
+<td>${lf.location || '—'}</td>
+<td style="font-size:11px">${lf.foundDate ? new Date(lf.foundDate).toLocaleDateString() : '—'}</td>
+<td>${lf.guestName || '—'}${lf.room ? ` (Rm ${lf.room})` : ''}</td>
+<td><select style="font-size:11px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--card);color:${sc[lf.status]||'var(--fg)'}" onchange="updateLFStatus('${lf._id}',this.value)">
+<option value="unclaimed" ${lf.status==='unclaimed'?'selected':''}>📦 Unclaimed</option>
+<option value="claimed" ${lf.status==='claimed'?'selected':''}>🙋 Claimed</option>
+<option value="returned" ${lf.status==='returned'?'selected':''}>✅ Returned</option>
+</select></td>
+<td><button class="tbl-action" onclick="deleteLF('${lf._id}')">🗑️</button></td>
+</tr>`;
+}).join('') || '<tr><td colspan="7" style="text-align:center;padding:16px;opacity:.5">No lost & found items. Click "+ Add Item" to log one.</td></tr>';
+}
+async function saveLFItem(e) {
+e.preventDefault();
+const obj = {
+_id: 'lf_' + Date.now(),
+hotelId: HID,
+item: document.getElementById('mLFItem').value,
+description: document.getElementById('mLFDesc').value,
+location: document.getElementById('mLFLocation').value,
+foundDate: document.getElementById('mLFDate').value || new Date().toISOString().split('T')[0],
+guestName: document.getElementById('mLFGuest').value,
+room: document.getElementById('mLFRoom').value,
+status: 'unclaimed',
+_version: 1
+};
+lostfound.push(obj);
+try { await save('lostfound', lostfound); } catch(_){}
+renderLostFound();
+closeModal('lfModal');
+e.target.reset();
+showToast('💼 Item logged in Lost & Found!', 'success');
+}
+async function updateLFStatus(id, status) {
+const lf = lostfound.find(x => x._id === id);
+if (!lf) return;
+lf.status = status;
+try { await save('lostfound', lostfound); } catch(_){}
+renderLostFound();
+showToast('✅ Status updated', 'success');
+}
+async function deleteLF(id) {
+if (!confirm('Delete this item?')) return;
+lostfound = lostfound.filter(x => x._id !== id);
+try { await save('lostfound', lostfound); } catch(_){}
+renderLostFound();
+showToast('🗑️ Item deleted', 'info');
+}
+// ============================================================
+// TRANSPORT VIEW
+// ============================================================
+let _tFilter = 'all';
+function renderTransport(filter) {
+if (filter) _tFilter = filter;
+const tbody = document.getElementById('transportTbody');
+if (!tbody) return;
+const cabBookings = requests.filter(r => r.service === 'cab' || r.service === 'airport' || r.service === 'local' || r.service?.toLowerCase().includes('cab') || r.service?.toLowerCase().includes('transport') || r.service?.toLowerCase().includes('airport'));
+const data = _tFilter === 'all' ? cabBookings : cabBookings.filter(r => r.service?.toLowerCase().includes(_tFilter) || r.type === _tFilter);
+tbody.innerHTML = data.map(r => `<tr>
+<td><strong>${r.guestName || r.guest || '—'}</strong></td>
+<td>${r.room || '—'}</td>
+<td>${r.service?.toLowerCase().includes('airport') ? '✈️ Airport Transfer' : '🚕 Local Cab'}</td>
+<td style="font-weight:700;color:var(--p1)">${r.price ? formatPrice(r.price) : '—'}</td>
+<td style="font-size:11px">${r.scheduledAt || r.cabTime || '—'}</td>
+<td style="font-size:11px">${r.createdAt ? new Date(r.createdAt).toLocaleString() : '—'}</td>
+<td><span class="badge badge-${(r.status||'pending').toLowerCase()}">${getStatusLabel(r.status || 'pending')}</span></td>
+</tr>`).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;opacity:.5">No transport bookings yet. Guests book cabs from their Transport tab.</td></tr>';
+}
+function exportTransport() {
+const cabBookings = requests.filter(r => r.service === 'cab' || r.service?.toLowerCase().includes('cab') || r.service?.toLowerCase().includes('transport') || r.service?.toLowerCase().includes('airport'));
+const rows = [['Guest','Room','Type','Price','Pickup Time','Booked At','Status']];
+cabBookings.forEach(r => rows.push([r.guestName||r.guest||'',r.room||'',r.service||'',r.price||'',r.scheduledAt||r.cabTime||'',r.createdAt ? new Date(r.createdAt).toLocaleString() : '',r.status||'pending']));
+const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+const a = document.createElement('a');
+a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+a.download = 'transport_bookings.csv';
+a.click();
+showToast('📥 Transport data exported!', 'success');
+}
+// ============================================================
+// ADMIN CHAT
+// ============================================================
+function renderAdminChat() {
+const el = document.getElementById('adminChatMessages');
+if (!el) return;
+if (!chatMessages.length) {
+el.innerHTML = '<p style="text-align:center;opacity:.4;font-size:12px;margin:auto">No messages yet. Guests can chat from their Chat tab.</p>';
+return;
+}
+el.innerHTML = chatMessages.map(m => {
+const isAdmin = m.from === 'admin';
+return `<div style="display:flex;flex-direction:column;align-items:${isAdmin?'flex-end':'flex-start'}">
+<div style="background:${isAdmin?'var(--p1)':'var(--card2)'};color:${isAdmin?'#fff':'var(--fg)'};padding:8px 12px;border-radius:${isAdmin?'12px 12px 0 12px':'12px 12px 12px 0'};max-width:75%;font-size:13px">${m.text}</div>
+<div style="font-size:10px;opacity:.5;margin-top:2px">${isAdmin?'You':'Guest'+( m.room?' (Rm '+m.room+')':'')} · ${m.time ? new Date(m.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : ''}</div>
+</div>`;
+}).join('');
+el.scrollTop = el.scrollHeight;
+}
+async function sendAdminChat() {
+const inp = document.getElementById('adminChatInput');
+const text = inp?.value?.trim();
+if (!text) return;
+const msg = { _id: 'cm_'+Date.now(), hotelId: HID, from: 'admin', text, time: new Date().toISOString(), _version: 1 };
+chatMessages.push(msg);
+inp.value = '';
+try { await save('chat', chatMessages); } catch(_){}
+renderAdminChat();
+if (socket) socket.emit('admin_chat', { hotelId: HID, msg });
+}
+function clearAdminChat() {
+if (!confirm('Clear all chat messages?')) return;
+chatMessages = [];
+try { save('chat', chatMessages); } catch(_){}
+renderAdminChat();
+showToast('🗑️ Chat cleared', 'info');
+}
+// ============================================================
+// GUEST CHAT
+// ============================================================
+function renderGuestChat() {
+const el = document.getElementById('guestChatMessages');
+if (!el) return;
+const myRoom = currentUser?.room;
+const myMsgs = chatMessages.filter(m => !m.room || m.room == myRoom || m.from === 'admin');
+if (!myMsgs.length) {
+el.innerHTML = '<p style="text-align:center;opacity:.4;font-size:12px;margin:auto">Start a conversation with reception…</p>';
+return;
+}
+el.innerHTML = myMsgs.map(m => {
+const isGuest = m.from !== 'admin';
+return `<div style="display:flex;flex-direction:column;align-items:${isGuest?'flex-end':'flex-start'}">
+<div style="background:${isGuest?'var(--p1)':'var(--card2)'};color:${isGuest?'#fff':'var(--fg)'};padding:8px 12px;border-radius:${isGuest?'12px 12px 0 12px':'12px 12px 12px 0'};max-width:75%;font-size:13px">${m.text}</div>
+<div style="font-size:10px;opacity:.5;margin-top:2px">${isGuest?'You':'Reception'} · ${m.time ? new Date(m.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : ''}</div>
+</div>`;
+}).join('');
+el.scrollTop = el.scrollHeight;
+}
+async function sendGuestChat() {
+const inp = document.getElementById('guestChatInput');
+const text = inp?.value?.trim();
+if (!text) return;
+const msg = { _id: 'cm_'+Date.now(), hotelId: HID, from: 'guest', room: currentUser?.room, guestName: currentUser?.name, text, time: new Date().toISOString(), _version: 1 };
+chatMessages.push(msg);
+inp.value = '';
+try { await save('chat', chatMessages); } catch(_){}
+renderGuestChat();
+if (socket) socket.emit('guest_chat', { hotelId: HID, msg });
+showToast('💬 Message sent to reception', 'success');
+}
+// ============================================================
+// ROOM CONTROLS (GUEST)
+// ============================================================
+let _rcData = { temp: 22, ac: true, lights: true, dnd: false, roomService: true, lightScene: 'bright' };
+function loadRoomCtrl() {
+const saved = localStorage.getItem(`h_${HID}_rc_${currentUser?.room}`);
+if (saved) try { Object.assign(_rcData, JSON.parse(saved)); } catch(_){}
+const tempEl = document.getElementById('rcTemp');
+const acEl = document.getElementById('rcAcToggle');
+const lightsEl = document.getElementById('rcLightsToggle');
+const dndEl = document.getElementById('rcDndToggle');
+const rsEl = document.getElementById('rcRsToggle');
+if (tempEl) tempEl.textContent = _rcData.temp + '°C';
+if (acEl) acEl.checked = _rcData.ac;
+if (lightsEl) lightsEl.checked = _rcData.lights;
+if (dndEl) dndEl.checked = _rcData.dnd;
+if (rsEl) rsEl.checked = _rcData.roomService;
+updateRCStatus();
+}
+function adjustTemp(delta) {
+_rcData.temp = Math.min(30, Math.max(16, (_rcData.temp || 22) + delta));
+const el = document.getElementById('rcTemp');
+if (el) el.textContent = _rcData.temp + '°C';
+saveRoomCtrl();
+showToast(`🌡️ Temperature set to ${_rcData.temp}°C`, 'info');
+}
+function setLightScene(scene) {
+_rcData.lightScene = scene;
+saveRoomCtrl();
+const icons = { bright: '☀️', dim: '🌙', reading: '📖', romantic: '🕯️' };
+showToast(`${icons[scene]||'💡'} Light scene: ${scene.charAt(0).toUpperCase()+scene.slice(1)}`, 'info');
+}
+function toggleDND() {
+const el = document.getElementById('rcDndToggle');
+_rcData.dnd = el ? el.checked : !_rcData.dnd;
+saveRoomCtrl();
+updateRCStatus();
+if (_rcData.dnd) {
+showToast('🚫 Do Not Disturb is ON — enjoy your privacy', 'info');
+if (socket) socket.emit('dnd_change', { hotelId: HID, room: currentUser?.room, dnd: true });
+} else {
+showToast('✅ Do Not Disturb is OFF', 'info');
+if (socket) socket.emit('dnd_change', { hotelId: HID, room: currentUser?.room, dnd: false });
+}
+}
+function saveRoomCtrl() {
+const acEl = document.getElementById('rcAcToggle');
+const lightsEl = document.getElementById('rcLightsToggle');
+const rsEl = document.getElementById('rcRsToggle');
+if (acEl) _rcData.ac = acEl.checked;
+if (lightsEl) _rcData.lights = lightsEl.checked;
+if (rsEl) _rcData.roomService = rsEl.checked;
+localStorage.setItem(`h_${HID}_rc_${currentUser?.room}`, JSON.stringify(_rcData));
+updateRCStatus();
+}
+function updateRCStatus() {
+const el = document.getElementById('rcStatus');
+if (!el) return;
+const parts = [];
+if (_rcData.dnd) parts.push('🚫 DND Active');
+if (_rcData.ac) parts.push(`❄️ AC ${_rcData.temp}°C`);
+if (!_rcData.lights) parts.push('💡 Lights Off');
+if (_rcData.lightScene && _rcData.lights) parts.push(`💡 ${_rcData.lightScene.charAt(0).toUpperCase()+_rcData.lightScene.slice(1)}`);
+el.textContent = parts.join(' · ');
+}
 function quickCheckin() { showToast('🚀 Quick Check-in opened', 'success');
 openModal('guestModal'); }
 function quickCheckout() { showToast('🚪 Quick Checkout opened', 'success'); }

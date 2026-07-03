@@ -13,9 +13,29 @@ run = ["npm", "start"]
 localPort = 3000
 externalPort = 3000
 
-[[ports]]
-localPort = 5000
-externalPort = 80
-
 [agent]
 expertMode = true
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd inaya-hotel && npm start"
+waitForPort = 3000
+
+[workflows.workflow.metadata]
+outputType = "console"
