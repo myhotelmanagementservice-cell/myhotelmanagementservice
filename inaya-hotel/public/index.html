@@ -3104,6 +3104,21 @@ try { renderDashboardAnalytics(); } catch(e) {}
 updateCache();
 } catch(e) { console.error('review_new error:', e); }
 });
+// ── REAL-TIME: Super Admin changes → instant update in ALL hotel apps ──────────
+socket.on('global_config_updated', (data) => {
+applyGlobalConfig({ success: true, ...data });
+showToast('⚙️ Super admin ne settings update ki', 'socket');
+});
+socket.on('exchange_rates_updated', (data) => {
+if (data.rates && typeof data.rates === 'object') {
+  Object.entries(data.rates).forEach(([code, rate]) => {
+    if (CURRENCIES[code]) CURRENCIES[code].rate = rate;
+    if (BUILTIN_SUB_CURRENCIES[code]) BUILTIN_SUB_CURRENCIES[code].rate = rate;
+  });
+  if (typeof renderSubCurrencies === 'function') try { renderSubCurrencies(); } catch(e) {}
+  showToast('💱 Exchange rates live update ho gaye', 'socket');
+}
+});
 socket.on('booking_new', (payload) => {
 try {
 if (payload.syncToken && processedEvents.has(String(payload.syncToken))) return;
@@ -7684,40 +7699,51 @@ const ghi = document.getElementById('guestHotelIdIn');
 if (ghi && HID) {
   ghi.value = HID;
 }
-// Fetch global config from super admin (defaultHotelId + currencies + plans)
-fetch('/api/super/global-config/public').then(r => r.json()).then(data => {
-  if (!data.success) return;
-  // 1. Default Hotel ID (only if no ?hotel= param)
+// ── GLOBAL CONFIG APPLY (called on page load + real-time socket events) ──────
+function applyGlobalConfig(data) {
+  if (!data || !data.success) return;
+  // 1. Default Hotel ID (only if no ?hotel= param in URL)
   if (!urlParams.get('hotel') && data.defaultHotelId && data.defaultHotelId !== HID) {
     HID = data.defaultHotelId;
     const a = document.getElementById('adminHotelIdIn');
-    if (a) { a.value = HID; }
+    if (a) a.value = HID;
     const g = document.getElementById('guestHotelIdIn');
     if (g) g.value = HID;
   }
-  // 2. Global enabled/disabled currencies (super admin overrides)
-  if (data.enabledCurrencies && typeof data.enabledCurrencies === 'object') {
-    Object.entries(data.enabledCurrencies).forEach(([code, isEnabled]) => {
-      enabledCurrencies[code] = (isEnabled !== false);
+  // 2. Exchange rates from Frankfurter — update CURRENCIES + BUILTIN_SUB_CURRENCIES rates
+  if (data.exchangeRates && typeof data.exchangeRates === 'object') {
+    Object.entries(data.exchangeRates).forEach(([code, rate]) => {
+      if (CURRENCIES[code])          CURRENCIES[code].rate = rate;
+      if (BUILTIN_SUB_CURRENCIES[code]) BUILTIN_SUB_CURRENCIES[code].rate = rate;
     });
   }
-  // 3. Custom currencies added by super admin → add to subscription currencies
+  // 3. Super admin custom currencies → add to hotel app lists
   if (Array.isArray(data.currencies) && data.currencies.length > 0) {
     data.currencies.forEach(cur => {
-      if (cur.code && !BUILTIN_SUB_CURRENCIES[cur.code]) {
+      if (!cur.code) return;
+      if (!BUILTIN_SUB_CURRENCIES[cur.code]) {
         BUILTIN_SUB_CURRENCIES[cur.code] = { symbol: cur.symbol || cur.code, rate: cur.rate || 1, flag: cur.flag || '🏦', name: cur.name || cur.code };
       }
-      if (cur.code && !CURRENCIES[cur.code]) {
+      if (!CURRENCIES[cur.code]) {
         CURRENCIES[cur.code] = { symbol: cur.symbol || cur.code, rate: cur.rate || 1, flag: cur.flag || '🏦', custom: true };
       }
     });
   }
-  // 4. Plan settings — store globally so hotel app can show correct prices
-  if (data.planSettings) {
-    window.__GLOBAL_PLAN_SETTINGS = data.planSettings;
+  // 4. Enable/Disable currencies — super admin controls globally
+  if (data.enabledCurrencies && typeof data.enabledCurrencies === 'object') {
+    Object.entries(data.enabledCurrencies).forEach(([code, val]) => {
+      enabledCurrencies[code] = (val !== false);
+    });
   }
-  // Re-render subscription currencies if that panel is visible
-  if (typeof renderSubCurrencies === 'function') renderSubCurrencies();
+  // 5. Plan settings — store for hotel-level display
+  if (data.planSettings) window.__GLOBAL_PLAN_SETTINGS = data.planSettings;
+  // Re-render panels that depend on currencies
+  if (typeof renderSubCurrencies === 'function') try { renderSubCurrencies(); } catch(e) {}
+}
+
+// Page load: fetch global config once
+fetch('/api/super/global-config/public').then(r => r.json()).then(data => {
+  applyGlobalConfig(data);
 }).catch(() => {});
 }
 document.addEventListener('click', e => {

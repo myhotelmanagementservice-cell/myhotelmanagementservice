@@ -234,6 +234,28 @@ async function connectDB() {
     dbConnected = true;
     console.log('✅ MongoDB Connected Successfully!');
 
+    // ✅ FRANKFURTER: Live Exchange Rates (free API, no key needed)
+    async function fetchAndStoreExchangeRates() {
+      try {
+        const res = await fetch('https://api.frankfurter.app/latest?from=USD');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data.rates) throw new Error('No rates in response');
+        const rates = { USD: 1, ...data.rates };
+        await db.collection('globalConfig').updateOne(
+          { _id: 'main' },
+          { $set: { exchangeRates: rates, ratesUpdatedAt: new Date() } },
+          { upsert: true }
+        );
+        io.emit('exchange_rates_updated', { rates, updatedAt: new Date().toISOString() });
+        console.log('✅ Exchange rates updated:', Object.keys(rates).join(', '));
+      } catch (e) {
+        console.warn('⚠️ Exchange rate fetch failed:', e.message);
+      }
+    }
+    fetchAndStoreExchangeRates(); // run immediately on startup
+    setInterval(fetchAndStoreExchangeRates, 6 * 60 * 60 * 1000); // every 6 hours
+
 // Server start hone ke baad, database connection ke andar:
 const Subscription = require('./models/Subscription');
 await Subscription.createIndexes();    
@@ -1381,7 +1403,9 @@ app.get('/api/super/global-config/public', async (req, res) => {
       defaultHotelId:    base.defaultHotelId    || DEFAULT_GLOBAL_CONFIG.defaultHotelId,
       planSettings:      base.planSettings      || DEFAULT_GLOBAL_CONFIG.planSettings,
       currencies:        base.currencies        || [],
-      enabledCurrencies: base.enabledCurrencies || {}
+      enabledCurrencies: base.enabledCurrencies || {},
+      exchangeRates:     base.exchangeRates     || {},
+      ratesUpdatedAt:    base.ratesUpdatedAt    || null
     });
   } catch (e) {
     res.json({
@@ -1389,7 +1413,9 @@ app.get('/api/super/global-config/public', async (req, res) => {
       defaultHotelId:    DEFAULT_GLOBAL_CONFIG.defaultHotelId,
       planSettings:      DEFAULT_GLOBAL_CONFIG.planSettings,
       currencies:        [],
-      enabledCurrencies: {}
+      enabledCurrencies: {},
+      exchangeRates:     {},
+      ratesUpdatedAt:    null
     });
   }
 });
@@ -1406,12 +1432,29 @@ app.get('/api/super/global-config', superAdminMiddleware, async (req, res) => {
   }
 });
 
-// Full config write (super admin)
+// Full config write (super admin) — broadcasts to ALL hotel clients in real-time
 app.put('/api/super/global-config', superAdminMiddleware, async (req, res) => {
   try {
     if (!dbConnected) return res.status(503).json({ success: false, error: 'DB not connected' });
-    const update = { ...req.body, _id: 'main', updatedAt: new Date() };
+    // Preserve existing exchangeRates if not in request body
+    const existing = await db.collection('globalConfig').findOne({ _id: 'main' });
+    const update = {
+      ...(existing || {}),
+      ...req.body,
+      _id: 'main',
+      updatedAt: new Date(),
+      exchangeRates: (req.body.exchangeRates) || (existing && existing.exchangeRates) || {}
+    };
     await db.collection('globalConfig').replaceOne({ _id: 'main' }, update, { upsert: true });
+    // 🔴 REAL-TIME: broadcast to ALL connected hotel apps instantly
+    io.emit('global_config_updated', {
+      defaultHotelId:    update.defaultHotelId,
+      planSettings:      update.planSettings,
+      currencies:        update.currencies || [],
+      enabledCurrencies: update.enabledCurrencies || {},
+      exchangeRates:     update.exchangeRates || {},
+      updatedAt:         update.updatedAt
+    });
     res.json({ success: true, config: update });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
