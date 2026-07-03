@@ -113,7 +113,8 @@ app.use(session({
 }));
 
 // ======================== PASSPORT / GOOGLE OAUTH ========================
-const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL ||
+const GOOGLE_CALLBACK_URL = process.env.GOOGLE_REDIRECT_URI ||
+  process.env.GOOGLE_CALLBACK_URL ||
   (process.env.NODE_ENV === 'production'
     ? 'https://www.myhotelmanagementservice.com/auth/google/callback'
     : '/auth/google/callback');
