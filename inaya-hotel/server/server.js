@@ -1113,6 +1113,23 @@ app.post('/api/tenant', authMiddleware, async (req, res) => {
 
 // ======================== SUPER ADMIN ========================
 
+// Super Admin login — returns real JWT with role: 'super_admin'
+app.post('/api/super/login', async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const SA_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'admin@inaya.com';
+    const SA_PASS  = process.env.SUPER_ADMIN_PASSWORD || 'admin123';
+    if (!email || !password) return res.status(400).json({ success: false, error: 'Email and password required' });
+    if (email.toLowerCase().trim() !== SA_EMAIL.toLowerCase() || password !== SA_PASS) {
+      return res.status(401).json({ success: false, error: 'Invalid credentials' });
+    }
+    const token = generateToken({ email: SA_EMAIL, role: 'super_admin' }, '30d');
+    res.json({ success: true, token });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 app.post('/api/super/tenants/register', superAdminMiddleware, async (req, res) => {
   try {
     const {

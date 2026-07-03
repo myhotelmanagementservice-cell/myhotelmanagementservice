@@ -2596,24 +2596,56 @@
             if (!email || !pass) { loginError.textContent = t('invalidCredentials'); loginError.classList.remove('hidden'); return; }
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<span class="spinner"></span> <span>' + t('loading') + '</span>';
-            setTimeout(() => {
-                authToken = 'dummy_token_' + Date.now();
+            try {
+                const res = await fetch('/api/super/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password: pass })
+                });
+                const data = await res.json();
+                if (!data.success || !data.token) {
+                    loginError.textContent = data.error || 'Invalid credentials';
+                    loginError.classList.remove('hidden');
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> <span>' + t('login') + '</span>';
+                    return;
+                }
+                authToken = data.token;
                 localStorage.setItem('superAdminToken', authToken);
                 document.getElementById('loginPage').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
-                showToast('Login successful!', 'success');
+                showToast('✅ Login successful!', 'success');
                 initDashboard();
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> <span data-i18n="login">' + t('login') + '</span>';
-            }, 1000);
+            } catch (err) {
+                loginError.textContent = 'Server error: ' + err.message;
+                loginError.classList.remove('hidden');
+            }
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> <span>' + t('login') + '</span>';
         });
 
         async function checkAuth() {
+            // Clear old dummy tokens (not real JWTs)
+            if (authToken && authToken.startsWith('dummy_token_')) {
+                localStorage.removeItem('superAdminToken');
+                authToken = null;
+            }
             if (!authToken) {
                 document.getElementById('loginPage').classList.remove('hidden');
                 document.getElementById('dashboard').classList.add('hidden');
                 return;
             }
+            // Verify token with server
+            try {
+                const r = await fetch('/api/super/global-config', { headers: { 'Authorization': 'Bearer ' + authToken } });
+                if (r.status === 401) {
+                    localStorage.removeItem('superAdminToken');
+                    authToken = null;
+                    document.getElementById('loginPage').classList.remove('hidden');
+                    document.getElementById('dashboard').classList.add('hidden');
+                    return;
+                }
+            } catch (e) { /* server offline — allow cached token */ }
             document.getElementById('loginPage').classList.add('hidden');
             document.getElementById('dashboard').classList.remove('hidden');
             initDashboard();
