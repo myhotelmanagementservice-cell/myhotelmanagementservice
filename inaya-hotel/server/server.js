@@ -22,6 +22,8 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 let compression, helmet, rateLimit;
 try { compression = require('compression'); } catch(e) { compression = null; }
@@ -98,6 +100,42 @@ app.use(session({
     maxAge: parseInt(process.env.SESSION_MAX_AGE) || 7 * 24 * 60 * 60 * 1000
   }
 }));
+
+// ======================== PASSPORT / GOOGLE OAUTH ========================
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: '/auth/google/callback',
+  passReqToCallback: true
+}, async (req, accessToken, refreshToken, profile, done) => {
+  try {
+    const hotelId = req.session.oauthHotelId || 'HOTEL001';
+    const email = profile.emails?.[0]?.value || '';
+    const name = profile.displayName || email;
+    const googleId = profile.id;
+    const avatar = profile.photos?.[0]?.value || '';
+
+    // Upsert guest record keyed by googleId + hotelId
+    if (db) {
+      await db.collection('guests').updateOne(
+        { googleId, hotelId },
+        { $set: { name, email, googleId, hotelId, avatar, updatedAt: new Date() },
+          $setOnInsert: { createdAt: new Date(), loyaltyPoints: 0, visits: 0 } },
+        { upsert: true }
+      );
+    }
+
+    return done(null, { name, email, googleId, hotelId, avatar, role: 'guest' });
+  } catch (err) {
+    return done(err);
+  }
+}));
+
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb+srv://hotel:hotelinaya@cluster0.hauipx7.mongodb.net/inaya_hotel?retryWrites=true&w=majority&appName=Cluster0';
@@ -1311,6 +1349,48 @@ app.post('/api/guest/login', (req, res) => {
 
     res.json({ success: true, token, user: { name, room, role: 'guest' }, hotelId: hId });
 });
+
+// ======================== GOOGLE OAUTH ROUTES ========================
+// Step 1: Frontend POSTs hotelId, we save it in session then redirect to Google
+app.post('/auth/google/start', (req, res) => {
+  const { hotelId } = req.body;
+  if (!hotelId) return res.status(400).json({ error: 'hotelId required' });
+  req.session.oauthHotelId = hotelId;
+  req.session.save(() => res.json({ ok: true, redirect: '/auth/google' }));
+});
+
+// Step 2: Redirect to Google consent screen
+app.get('/auth/google', passport.authenticate('google', {
+  scope: ['profile', 'email']
+}));
+
+// Step 3: Google redirects back here
+app.get('/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/?googleError=1', session: true }),
+  (req, res) => {
+    const user = req.user;
+    const hotelId = req.session.oauthHotelId || user?.hotelId || 'HOTEL001';
+    const token = generateToken({
+      name: user.name,
+      email: user.email,
+      googleId: user.googleId,
+      avatar: user.avatar,
+      role: 'guest',
+      hotelId
+    });
+    // Clean up session oauth state
+    delete req.session.oauthHotelId;
+    const params = new URLSearchParams({
+      googleAuth: 'success',
+      token,
+      name: user.name,
+      email: user.email || '',
+      avatar: user.avatar || '',
+      hotelId
+    });
+    res.redirect(`/?${params.toString()}`);
+  }
+);
 
 // ✅ FIX 1: OPTIMIZED LOGIN - parallel queries, fast path, non-blocking session
 app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async (req, res) => {
