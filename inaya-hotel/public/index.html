@@ -268,6 +268,10 @@ font-size: 14px;
 <div class="header-right">
 <a href="#" onclick="window.location.href='/subscribe.html?hotelId=' + HID" class="logout-btn" style="text-decoration:none;background:rgba(255,255,255,.3)">💳 Subscription</a>
 <span class="clock-badge" id="aClock"></span>
+<button class="logout-btn" style="position:relative;padding:4px 14px" onclick="showAdminTab('notifications')" title="Notifications">
+  🔔
+  <span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center">0</span>
+</button>
 <button class="logout-btn" onclick="logout()" data-i18n="logout">Logout</button>
 </div>
 </div>
@@ -366,6 +370,13 @@ tabWakeGuest: '⏰ Alarm',
 tabCityGuide: '🗺️ City Guide',
 tabWeather: '🌤️ Weather',
 tabRateStay: '⭐ Rate Us',
+tabLaundryG: '👕 Laundry',
+tabDigitalKey: '🔑 Digital Key',
+tabUpgrade: '⬆️ Upgrade',
+tabNotifications: '🔔 Notifications',
+tabFloorMap: '🗺️ Floor Map',
+tabLaundry: '👕 Laundry',
+tabConcierge: '🎩 Concierge',
 myRequests: 'Requests',
 pending: 'Pending',
 completed: 'Completed',
@@ -786,6 +797,13 @@ tabWakeGuest: '⏰ अलार्म',
 tabCityGuide: '🗺️ सिटी गाइड',
 tabWeather: '🌤️ मौसम',
 tabRateStay: '⭐ रेटिंग',
+tabLaundryG: '👕 लॉन्ड्री',
+tabDigitalKey: '🔑 डिजिटल चाबी',
+tabUpgrade: '⬆️ अपग्रेड',
+tabNotifications: '🔔 सूचनाएं',
+tabFloorMap: '🗺️ फ्लोर मैप',
+tabLaundry: '👕 लॉन्ड्री',
+tabConcierge: '🎩 कंसीयर्ज',
 myRequests: 'अनुरोध',
 pending: 'लंबित',
 completed: 'पूर्ण',
@@ -1206,6 +1224,13 @@ tabWakeGuest: '⏰ المنبه',
 tabCityGuide: '🗺️ دليل المدينة',
 tabWeather: '🌤️ الطقس',
 tabRateStay: '⭐ قيّمنا',
+tabLaundryG: '👕 الغسيل',
+tabDigitalKey: '🔑 المفتاح الرقمي',
+tabUpgrade: '⬆️ ترقية',
+tabNotifications: '🔔 الإشعارات',
+tabFloorMap: '🗺️ خريطة الطابق',
+tabLaundry: '👕 الغسيل',
+tabConcierge: '🎩 الكونسيرج',
 myRequests: 'الطلبات',
 pending: 'معلقة',
 completed: 'مكتمل',
@@ -1870,7 +1895,11 @@ const ADMIN_TABS = [
 { id: 'wakeupcall', label: 'tabWakeup' },
 { id: 'analytics', label: 'tabAnalytics' },
 { id: 'parking', label: 'tabParking' },
-{ id: 'feedback', label: 'tabFeedback' }
+{ id: 'feedback', label: 'tabFeedback' },
+{ id: 'notifications', label: 'tabNotifications' },
+{ id: 'floormap', label: 'tabFloorMap' },
+{ id: 'laundry', label: 'tabLaundry' },
+{ id: 'concierge', label: 'tabConcierge' }
 ];
 const GUEST_TABS = [
 { id: 'reqTab', icon: '📝', label: 'reqTab' },
@@ -1891,7 +1920,10 @@ const GUEST_TABS = [
 { id: 'wakeupTab', icon: '⏰', label: 'tabWakeGuest' },
 { id: 'cityguideTab', icon: '🗺️', label: 'tabCityGuide' },
 { id: 'weatherTab', icon: '🌤️', label: 'tabWeather' },
-{ id: 'feedbackTab', icon: '⭐', label: 'tabRateStay' }
+{ id: 'feedbackTab', icon: '⭐', label: 'tabRateStay' },
+{ id: 'laundryTab', icon: '👕', label: 'tabLaundryG' },
+{ id: 'digitalKeyTab', icon: '🔑', label: 'tabDigitalKey' },
+{ id: 'upgradeTab', icon: '⬆️', label: 'tabUpgrade' }
 ];
 const TYPE_MAP = {
 'Standard': 'standard',
@@ -3189,6 +3221,64 @@ renderGuestHistory(); updateGuestStats();
 showToast('👑 Admin replied to your request!', 'success');
 } catch(e) { console.error('admin_reply error:', e); }
 });
+
+// ============================================================
+// REAL-TIME HANDLERS FOR NEW COLLECTIONS
+// ============================================================
+['billing','restaurant','tablebookings','spa','events','wakeupcalls','parking','feedback'].forEach(col => {
+  socket.on(col+'_upd', (payload) => {
+    try {
+      const d = payload.data || payload;
+      if (!d || d.hotelId !== HID) return;
+      addNotification({ type: col, message: getCollectionMsg(col, d), time: new Date().toISOString(), data: d });
+      const activeAdminTab = sessionStorage.getItem('currentTab');
+      if (col === 'billing' && activeAdminTab === 'billing') renderBilling();
+      if (col === 'restaurant' && activeAdminTab === 'restaurant') renderRestMenu('all');
+      if ((col === 'tablebookings') && activeAdminTab === 'restaurant') renderTableBookings();
+      if (col === 'spa' && activeAdminTab === 'spa') renderSpa();
+      if (col === 'events' && activeAdminTab === 'events') renderEvents();
+      if (col === 'wakeupcalls' && activeAdminTab === 'wakeupcall') renderWakeupCalls('all');
+      if (col === 'parking' && activeAdminTab === 'parking') renderParking();
+      if (col === 'feedback') {
+        if (activeAdminTab === 'feedback') renderAdminFeedback();
+        const guestFeedbackActive = document.getElementById('gp-feedbackTab')?.classList.contains('active');
+        if (guestFeedbackActive) renderPublicReviews();
+      }
+      if (col === 'spa' && currentUser?.type === 'guest') {
+        const spaActive = document.getElementById('gp-spaTab')?.classList.contains('active');
+        if (spaActive) renderGuestSpa();
+      }
+    } catch(e) { console.error(col+'_upd error:', e); }
+  });
+});
+function getCollectionMsg(col, d) {
+  const msgs = {
+    billing: `💰 New invoice: ${d.guestName || ''} — ${formatPrice ? formatPrice(d.total||0) : 'SAR '+(d.total||0)}`,
+    restaurant: `🍽️ Menu updated: ${d.name || d.category || ''}`,
+    tablebookings: `🪑 Table booking: ${d.guestName || ''} — ${d.date || ''}`,
+    spa: `💆 Spa booking: ${d.guestName || ''} — ${d.service || ''}`,
+    events: `🎪 Event: ${d.title || ''} on ${d.date || ''}`,
+    wakeupcalls: `⏰ Wake-up: ${d.guestName || ''} Rm ${d.room || ''} @ ${d.time || ''}`,
+    parking: `🅿️ Parking: ${d.slot || ''} → ${d.guestName || ''}`,
+    feedback: `⭐ Review by ${d.guestName || 'Guest'}: ${d.ratings?.overall || ''}★`
+  };
+  return msgs[col] || 'Updated';
+}
+
+// Laundry real-time
+socket.on('laundry_upd', (payload) => {
+  try {
+    const d = payload.data || payload;
+    if (!d || d.hotelId !== HID) return;
+    addNotification({ type: 'laundry', message: `👕 Laundry: ${d.guestName||''} Rm ${d.room||''} — ${d.status||''}`, time: new Date().toISOString(), data: d });
+    if (sessionStorage.getItem('currentTab') === 'laundry') renderAdminLaundry();
+    if (currentUser?.type === 'guest') {
+      const el = document.getElementById('gp-laundryTab');
+      if (el?.classList.contains('active')) renderMyLaundry();
+    }
+  } catch(e) {}
+});
+
 } catch (e) {
 console.warn('Socket unavailable, offline mode');
 setSockStatus('error');
@@ -4721,6 +4811,38 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}</option>`).join('')
 </div>
 
 <!-- RATE MY STAY TAB -->
+<div class="card hidden" id="gp-laundryTab">
+<h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px">👕 Laundry Service</h3>
+<div style="background:linear-gradient(135deg,#6366f118,#6366f108);border:1px solid #6366f144;border-radius:10px;padding:12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+<div><div style="font-size:12px;font-weight:600">Schedule a Pickup</div><div style="font-size:10px;opacity:.6">Standard 24h · Express 6h · Dry Cleaning 48h</div></div>
+<span id="laundryCartCount" style="font-size:11px;background:var(--p1);color:#fff;padding:4px 12px;border-radius:20px">0 items</span>
+</div>
+<div style="font-weight:600;font-size:12px;margin-bottom:8px">Select Items:</div>
+<div id="laundryItemsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;margin-bottom:12px"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+<div class="form-row"><label class="lbl">Service Type</label>
+<select class="inp" id="lndService">
+<option value="standard">Standard (SAR 15/item)</option>
+<option value="express">Express (SAR 25/item)</option>
+<option value="drycleaning">Dry Cleaning (SAR 35/item)</option>
+</select></div>
+<div class="form-row"><label class="lbl">Pickup Time</label><input class="inp" id="lndPickup" type="datetime-local"></div>
+</div>
+<button class="btn-primary" style="width:100%;margin-bottom:14px" onclick="submitLaundryOrder()">📦 Place Laundry Order</button>
+<div style="font-weight:600;font-size:12px;margin-bottom:8px">My Orders</div>
+<div id="myLaundryOrders" style="display:flex;flex-direction:column;gap:6px"></div>
+</div>
+
+<div class="card hidden" id="gp-digitalKeyTab">
+<h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px">🔑 Digital Room Key</h3>
+<div id="digitalKeyContainer"></div>
+</div>
+
+<div class="card hidden" id="gp-upgradeTab">
+<h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px">⬆️ Room Upgrade</h3>
+<div id="upgradeContainer"></div>
+</div>
+
 <div class="card hidden" id="gp-feedbackTab">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px">⭐ Rate My Stay</h3>
 <div style="background:var(--card2);border-radius:10px;padding:14px;margin-bottom:10px">
@@ -4799,6 +4921,9 @@ if (id === 'wakeupTab') renderMyWakeupCalls();
 if (id === 'cityguideTab') renderCityGuide();
 if (id === 'weatherTab') loadWeather();
 if (id === 'feedbackTab') { initStarRatings(); renderPublicReviews(); }
+if (id === 'laundryTab') { renderMyLaundry(); }
+if (id === 'digitalKeyTab') { renderDigitalKey(); }
+if (id === 'upgradeTab') { renderUpgradeRequest(); }
 sessionStorage.setItem('currentTab', 'guest_' + id);
 }
 function renderGuestFood() {
@@ -5491,6 +5616,14 @@ case 'parking':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🅿️ Parking Management</h3><button class="btn-primary" onclick="openModal('parkingModal')">+ Assign Parking</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-bottom:12px"><div class="stat-card"><div class="stat-val" id="parkTotal">—</div><div class="stat-lbl">Total Slots</div></div><div class="stat-card"><div class="stat-val" id="parkOccupied" style="color:#ef4444">—</div><div class="stat-lbl">Occupied</div></div><div class="stat-card"><div class="stat-val" id="parkAvail" style="color:#10b981">—</div><div class="stat-lbl">Available</div></div></div><div id="parkingGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;margin-bottom:12px"></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Slot</th><th>Guest</th><th>Room</th><th>Vehicle</th><th>Plate</th><th>Check-in</th><th>Status</th><th>Actions</th></tr></thead><tbody id="parkingTbody"></tbody></table></div></div>`;
 case 'feedback':
 return `<div class="card"><h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:12px">⭐ Guest Feedback & Reviews</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-bottom:12px"><div class="stat-card"><div class="stat-val" id="fbAvgRating" style="color:#f59e0b">—</div><div class="stat-lbl">Avg Rating</div></div><div class="stat-card"><div class="stat-val" id="fbTotal">—</div><div class="stat-lbl">Total Reviews</div></div><div class="stat-card"><div class="stat-val" id="fbPositive" style="color:#10b981">—%</div><div class="stat-lbl">Positive</div></div><div class="stat-card"><div class="stat-val" id="fbResponse" style="color:#6366f1">—%</div><div class="stat-lbl">Responded</div></div></div><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><select class="inp" id="fbFilterRating" style="width:auto" onchange="renderAdminFeedback()"><option value="all">All Ratings</option><option value="5">⭐⭐⭐⭐⭐ 5 Star</option><option value="4">⭐⭐⭐⭐ 4 Star</option><option value="3">⭐⭐⭐ 3 Star</option><option value="2">⭐⭐ 2 Star</option><option value="1">⭐ 1 Star</option></select><select class="inp" id="fbFilterPublic" style="width:auto" onchange="renderAdminFeedback()"><option value="all">All</option><option value="yes">Public</option><option value="no">Private</option></select><button class="btn-primary" style="font-size:11px;background:#10b981" onclick="exportFeedback()">📥 Export</button></div><div id="adminFeedbackList" style="display:flex;flex-direction:column;gap:8px"></div></div>`;
+case 'notifications':
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🔔 Live Notifications Center</h3><div style="display:flex;gap:6px"><button class="btn-ghost" style="font-size:11px" onclick="clearAllNotifications()">🗑️ Clear All</button><select class="inp" id="notifFilter" style="width:auto;font-size:11px" onchange="renderNotifications()"><option value="all">All Types</option><option value="billing">💰 Billing</option><option value="spa">💆 Spa</option><option value="events">🎪 Events</option><option value="wakeupcalls">⏰ Wake-up</option><option value="parking">🅿️ Parking</option><option value="feedback">⭐ Feedback</option><option value="laundry">👕 Laundry</option></select></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-bottom:12px"><div class="stat-card"><div class="stat-val" id="notifTotalCount" style="color:#6366f1">0</div><div class="stat-lbl">Total</div></div><div class="stat-card"><div class="stat-val" id="notifUnreadCount" style="color:#ef4444">0</div><div class="stat-lbl">Unread</div></div><div class="stat-card"><div class="stat-val" id="notifTodayCount" style="color:#10b981">0</div><div class="stat-lbl">Today</div></div></div><div id="notifList" style="display:flex;flex-direction:column;gap:6px;max-height:500px;overflow-y:auto"></div></div>`;
+case 'floormap':
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🏨 Hotel Floor Map</h3><div style="display:flex;gap:6px;flex-wrap:wrap"><select class="inp" id="floorSelect" style="width:auto" onchange="renderFloorMap()"><option value="all">All Floors</option><option value="1">Floor 1</option><option value="2">Floor 2</option><option value="3">Floor 3</option><option value="4">Floor 4</option><option value="5">Floor 5</option></select><div style="display:flex;gap:4px;font-size:10px;align-items:center"><span style="background:#10b98122;border:1px solid #10b981;padding:2px 8px;border-radius:4px">🟢 Vacant</span><span style="background:#6366f122;border:1px solid #6366f1;padding:2px 8px;border-radius:4px">🔵 Occupied</span><span style="background:#f59e0b22;border:1px solid #f59e0b;padding:2px 8px;border-radius:4px">🟡 Cleaning</span><span style="background:#ef444422;border:1px solid #ef4444;padding:2px 8px;border-radius:4px">🔴 Maint.</span></div></div></div><div id="floorMapGrid" style="display:flex;flex-direction:column;gap:12px"></div></div>`;
+case 'laundry':
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">👕 Laundry Management</h3><button class="btn-primary" onclick="openModal('laundryModal')">+ New Order</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-bottom:12px"><div class="stat-card"><div class="stat-val" id="lndPending" style="color:#f59e0b">—</div><div class="stat-lbl">Pending</div></div><div class="stat-card"><div class="stat-val" id="lndInProgress" style="color:#6366f1">—</div><div class="stat-lbl">In Progress</div></div><div class="stat-card"><div class="stat-val" id="lndReady" style="color:#10b981">—</div><div class="stat-lbl">Ready</div></div><div class="stat-card"><div class="stat-val" id="lndRevenue" style="color:#f59e0b">—</div><div class="stat-lbl">Revenue</div></div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Guest</th><th>Room</th><th>Items</th><th>Service</th><th>Pickup</th><th>Delivery</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody id="laundryTbody"></tbody></table></div></div>`;
+case 'concierge':
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🎩 Concierge Desk</h3><button class="btn-primary" onclick="openModal('conciergeModal')">+ Log Request</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px"><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('all')"><div style="font-size:22px">📋</div><div class="stat-val" id="concAll" style="color:#6366f1">—</div><div class="stat-lbl">Total Today</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('tours')"><div style="font-size:22px">🗺️</div><div class="stat-val" id="concTours" style="color:#10b981">—</div><div class="stat-lbl">Tour Requests</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('dining')"><div style="font-size:22px">🍽️</div><div class="stat-val" id="concDining" style="color:#f59e0b">—</div><div class="stat-lbl">Dining Res.</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('transport')"><div style="font-size:22px">🚗</div><div class="stat-val" id="concTransport" style="color:#8b5cf6">—</div><div class="stat-lbl">Transport</div></div></div><div id="conciergeList" style="display:flex;flex-direction:column;gap:8px"></div></div>`;
 default:
 return '';
 }
@@ -5528,6 +5661,10 @@ if (id === 'wakeupcall') { renderWakeupCalls('all'); }
 if (id === 'analytics') { renderAnalytics(); }
 if (id === 'parking') { renderParking(); }
 if (id === 'feedback') { renderAdminFeedback(); }
+if (id === 'notifications') { renderNotifications(); }
+if (id === 'floormap') { renderFloorMap(); }
+if (id === 'laundry') { renderAdminLaundry(); }
+if (id === 'concierge') { renderConcierge(); }
 if (id === 'settings') { loadSubscriptionStatus(); }
 sessionStorage.setItem('currentTab', id);
 }
@@ -6239,6 +6376,70 @@ ${departments.filter(d => d.isEnabled).map(d => `<option value="${d.key}">${d.em
 <div style="display:flex;gap:6px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit">⏰ Schedule</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('wakeupModal')">Cancel</button>
+</div>
+</form>
+</div>
+</div>
+
+<div class="modal-overlay" id="laundryModal">
+<div class="modal-box">
+<div class="modal-h">👕 New Laundry Order</div>
+<form onsubmit="saveAdminLaundryOrder(event)">
+<div class="form-2">
+<div class="form-row"><label class="lbl">Guest Name</label><input class="inp" id="mLndGuest" required></div>
+<div class="form-row"><label class="lbl">Room #</label><input class="inp" id="mLndRoom" type="number"></div>
+</div>
+<div class="form-row"><label class="lbl">Items (comma separated)</label><input class="inp" id="mLndItems" placeholder="Shirt x2, Trousers, Jacket" required></div>
+<div class="form-2">
+<div class="form-row"><label class="lbl">Service</label>
+<select class="inp" id="mLndService">
+<option value="standard">Standard — SAR 15/item</option>
+<option value="express">Express — SAR 25/item</option>
+<option value="drycleaning">Dry Cleaning — SAR 35/item</option>
+</select></div>
+<div class="form-row"><label class="lbl">Amount (SAR)</label><input class="inp" id="mLndAmount" type="number" placeholder="0"></div>
+</div>
+<div class="form-2">
+<div class="form-row"><label class="lbl">Pickup</label><input class="inp" id="mLndPickup" type="datetime-local"></div>
+<div class="form-row"><label class="lbl">Delivery</label><input class="inp" id="mLndDelivery" type="datetime-local"></div>
+</div>
+<div style="display:flex;gap:6px;margin-top:14px">
+<button class="btn-primary" style="flex:1" type="submit">💾 Save Order</button>
+<button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('laundryModal')">Cancel</button>
+</div>
+</form>
+</div>
+</div>
+
+<div class="modal-overlay" id="conciergeModal">
+<div class="modal-box">
+<div class="modal-h">🎩 Log Concierge Request</div>
+<form onsubmit="saveConciergeRequest(event)">
+<div class="form-2">
+<div class="form-row"><label class="lbl">Guest Name</label><input class="inp" id="mConcGuest" required></div>
+<div class="form-row"><label class="lbl">Room #</label><input class="inp" id="mConcRoom" type="number"></div>
+</div>
+<div class="form-row"><label class="lbl">Type</label>
+<select class="inp" id="mConcType">
+<option value="tours">🗺️ Tour / Excursion</option>
+<option value="dining">🍽️ Dining Reservation</option>
+<option value="transport">🚗 Transport / Cab</option>
+<option value="tickets">🎟️ Tickets / Events</option>
+<option value="shopping">🛍️ Shopping Assistance</option>
+<option value="other">📋 Other</option>
+</select>
+</div>
+<div class="form-row"><label class="lbl">Request Details</label><textarea class="inp" id="mConcDesc" rows="3" placeholder="Describe the request in detail..." required></textarea></div>
+<div class="form-row"><label class="lbl">Priority</label>
+<select class="inp" id="mConcPriority">
+<option value="low">🟢 Low</option>
+<option value="medium">🟡 Medium</option>
+<option value="high">🔴 High / Urgent</option>
+</select>
+</div>
+<div style="display:flex;gap:6px;margin-top:14px">
+<button class="btn-primary" style="flex:1" type="submit">💾 Log Request</button>
+<button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('conciergeModal')">Cancel</button>
 </div>
 </form>
 </div>
@@ -8080,6 +8281,330 @@ async function renderPublicReviews() {
 }
 
 // ============================================================
+// NOTIFICATIONS CENTER
+// ============================================================
+let notifications = [];
+let notifUnread = 0;
+function addNotification(n) {
+  n.id = Date.now();
+  n.read = false;
+  notifications.unshift(n);
+  if (notifications.length > 200) notifications = notifications.slice(0, 200);
+  notifUnread++;
+  updateNotifBadge();
+  const activeTab = sessionStorage.getItem('currentTab');
+  if (activeTab === 'notifications') renderNotifications();
+}
+function updateNotifBadge() {
+  const badge = document.getElementById('notifBadge');
+  if (!badge) return;
+  badge.textContent = notifUnread > 99 ? '99+' : notifUnread;
+  badge.style.display = notifUnread > 0 ? 'flex' : 'none';
+}
+function renderNotifications() {
+  const filter = document.getElementById('notifFilter')?.value || 'all';
+  const today = new Date().toISOString().slice(0,10);
+  let d = filter === 'all' ? notifications : notifications.filter(n=>n.type===filter);
+  const todayCount = notifications.filter(n=>(n.time||'').startsWith(today)).length;
+  const el=(id,v)=>{const x=document.getElementById(id);if(x)x.textContent=v;};
+  el('notifTotalCount', notifications.length);
+  el('notifUnreadCount', notifUnread);
+  el('notifTodayCount', todayCount);
+  const list = document.getElementById('notifList');
+  if (!list) return;
+  const typeIcons = { billing:'💰', restaurant:'🍽️', tablebookings:'🪑', spa:'💆', events:'🎪', wakeupcalls:'⏰', parking:'🅿️', feedback:'⭐', laundry:'👕', requests:'📋', rooms:'🏨', default:'🔔' };
+  list.innerHTML = d.length ? d.map(n=>`<div style="display:flex;align-items:flex-start;gap:10px;background:var(--card2);border-radius:8px;padding:10px;border-left:3px solid ${n.read?'var(--border)':'var(--p1)'};cursor:pointer" onclick="markNotifRead(${n.id})">
+    <span style="font-size:20px;min-width:28px">${typeIcons[n.type]||'🔔'}</span>
+    <div style="flex:1">
+      <div style="font-size:12px;font-weight:${n.read?'400':'600'}">${n.message||''}</div>
+      <div style="font-size:10px;opacity:.5;margin-top:2px">${formatRelTime(n.time)}</div>
+    </div>
+    ${!n.read?'<span style="width:8px;height:8px;background:var(--p1);border-radius:50%;margin-top:4px;flex-shrink:0"></span>':''}
+  </div>`).join('') : '<div style="text-align:center;opacity:.4;padding:40px">🔔 No notifications yet</div>';
+}
+function markNotifRead(id) {
+  const n = notifications.find(x=>x.id===id);
+  if (n && !n.read) { n.read = true; notifUnread = Math.max(0, notifUnread-1); updateNotifBadge(); }
+  renderNotifications();
+}
+function clearAllNotifications() {
+  notifications = []; notifUnread = 0; updateNotifBadge(); renderNotifications();
+  showToast('🗑️ All notifications cleared', 'success');
+}
+function formatRelTime(iso) {
+  if (!iso) return '—';
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 60000) return 'Just now';
+  if (diff < 3600000) return Math.round(diff/60000)+'m ago';
+  if (diff < 86400000) return Math.round(diff/3600000)+'h ago';
+  return iso.slice(0,10);
+}
+
+// ============================================================
+// FLOOR MAP
+// ============================================================
+function renderFloorMap() {
+  const grid = document.getElementById('floorMapGrid');
+  if (!grid) return;
+  const selFloor = document.getElementById('floorSelect')?.value || 'all';
+  const floors = selFloor === 'all' ? [1,2,3,4,5] : [parseInt(selFloor)];
+  const statusColors = { vacant:'#10b981', occupied:'#6366f1', cleaning:'#f59e0b', maintenance:'#ef4444', 'checked-out':'#888', reserved:'#8b5cf6' };
+  grid.innerHTML = floors.map(floor => {
+    const floorRooms = rooms.filter(r => (r.floor||1) === floor);
+    if (!floorRooms.length && selFloor==='all') return '';
+    return `<div style="background:var(--card2);border-radius:10px;padding:12px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+        🏢 Floor ${floor}
+        <span style="font-size:11px;font-weight:400;opacity:.6">${floorRooms.length} rooms</span>
+        <span style="font-size:11px;font-weight:400;color:#10b981">${floorRooms.filter(r=>r.status==='vacant').length} free</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px">
+        ${floorRooms.length ? floorRooms.map(r=>`<div style="background:${statusColors[r.status]||'#888'}18;border:2px solid ${statusColors[r.status]||'#888'};border-radius:8px;padding:8px;text-align:center;cursor:pointer;transition:.2s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform=''" onclick="showAdminTab('rooms')">
+          <div style="font-weight:700;font-size:14px;color:${statusColors[r.status]||'#888'}">${r.number}</div>
+          <div style="font-size:9px;opacity:.7;text-transform:capitalize">${r.type||'std'}</div>
+          <div style="font-size:9px;margin-top:2px">${r.status==='occupied'?'👤 '+(r.guestName||'').split(' ')[0]||'Occupied':r.status||'vacant'}</div>
+        </div>`).join('') : '<div style="opacity:.4;font-size:11px;padding:10px">No rooms on this floor</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// LAUNDRY SERVICE (Admin)
+// ============================================================
+let laundryData = [];
+async function renderAdminLaundry() {
+  try { const r = await fetch(`/api/laundry?hotelId=${HID}`); laundryData = await r.json(); } catch(e) { laundryData=[]; }
+  const tbody = document.getElementById('laundryTbody');
+  if (!tbody) return;
+  const pend = laundryData.filter(l=>l.status==='pending').length;
+  const inprog = laundryData.filter(l=>l.status==='in_progress').length;
+  const ready = laundryData.filter(l=>l.status==='ready').length;
+  const rev = laundryData.filter(l=>l.status==='delivered').reduce((s,l)=>s+Number(l.amount||0),0);
+  const e=(id,v)=>{const x=document.getElementById(id);if(x)x.textContent=v;};
+  e('lndPending',pend); e('lndInProgress',inprog); e('lndReady',ready); e('lndRevenue',formatPrice(rev));
+  tbody.innerHTML = laundryData.length ? laundryData.map(l=>`<tr>
+    <td>${l.guestName||'—'}</td><td>${l.room||'—'}</td>
+    <td style="font-size:11px">${(l.items||[]).join(', ')||'—'}</td>
+    <td><span style="background:var(--card2);border-radius:4px;padding:2px 6px;font-size:10px">${l.service||'standard'}</span></td>
+    <td style="font-size:11px">${(l.pickupTime||'').slice(0,16).replace('T',' ')}</td>
+    <td style="font-size:11px">${(l.deliveryTime||'—').slice(0,16).replace('T',' ')}</td>
+    <td style="font-weight:700">${formatPrice(l.amount||0)}</td>
+    <td><span style="color:${l.status==='delivered'?'#10b981':l.status==='ready'?'#6366f1':l.status==='in_progress'?'#f59e0b':'#888'};font-size:11px">${l.status||'pending'}</span></td>
+    <td style="white-space:nowrap">
+      <button class="tbl-action" onclick="updateLaundry('${l._id}','in_progress')">🔄</button>
+      <button class="tbl-action" style="color:#6366f1" onclick="updateLaundry('${l._id}','ready')">✅</button>
+      <button class="tbl-action" style="color:#10b981" onclick="updateLaundry('${l._id}','delivered')">🚚</button>
+      <button class="tbl-action" style="color:#ef4444" onclick="deleteLaundry('${l._id}')">🗑️</button>
+    </td>
+  </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;opacity:.5;padding:20px">No laundry orders</td></tr>';
+}
+async function updateLaundry(id, status) {
+  await apiPut(`/api/laundry/${id}`, { status });
+  const l = laundryData.find(x=>x._id===id); if(l) l.status=status;
+  renderAdminLaundry(); showToast('✅ Laundry status updated', 'success');
+  addNotification({ type:'laundry', message:`👕 Laundry ${status}: Room ${l?.room||''}`, time:new Date().toISOString() });
+}
+async function deleteLaundry(id) {
+  if(!confirm('Delete laundry order?')) return;
+  await apiDelete(`/api/laundry/${id}`);
+  laundryData = laundryData.filter(x=>x._id!==id);
+  renderAdminLaundry();
+}
+
+// ============================================================
+// CONCIERGE DESK (Admin)
+// ============================================================
+let conciergeData = [];
+async function renderConcierge(filter='all') {
+  try {
+    const r = await fetch(`/api/requests?hotelId=${HID}`);
+    const all = await r.json();
+    conciergeData = all.filter(x => x.category==='guest_relations' || x.department==='Concierge');
+  } catch(e) { conciergeData=[]; }
+  const today = new Date().toISOString().slice(0,10);
+  const todayData = conciergeData.filter(c=>(c.time||'').startsWith(today));
+  const tours = conciergeData.filter(c=>c.description?.toLowerCase().includes('tour'));
+  const dining = conciergeData.filter(c=>c.description?.toLowerCase().includes('dining')||c.description?.toLowerCase().includes('table'));
+  const transport = conciergeData.filter(c=>c.description?.toLowerCase().includes('transport')||c.description?.toLowerCase().includes('taxi')||c.description?.toLowerCase().includes('car'));
+  const e=(id,v)=>{const x=document.getElementById(id);if(x)x.textContent=v;};
+  e('concAll',todayData.length); e('concTours',tours.length); e('concDining',dining.length); e('concTransport',transport.length);
+  const d = filter==='all' ? conciergeData : filter==='tours'?tours:filter==='dining'?dining:transport;
+  const list = document.getElementById('conciergeList');
+  if (!list) return;
+  list.innerHTML = d.length ? d.map(c=>`<div style="background:var(--card2);border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+    <div style="flex:1">
+      <div style="font-weight:600;font-size:13px">${c.description||'—'}</div>
+      <div style="font-size:11px;opacity:.6;margin-top:2px">👤 ${c.guestName||'—'} · Room ${c.room||'—'} · ${formatRelTime(c.time)}</div>
+      ${c.adminReply?`<div style="font-size:11px;background:var(--card);border-radius:6px;padding:6px;margin-top:6px;color:var(--p1)">💬 ${c.adminReply}</div>`:''}
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${c.status==='closed'?'#10b98122':'#f59e0b22'};color:${c.status==='closed'?'#10b981':'#f59e0b'}">${c.status||'open'}</span>
+      ${c.status!=='closed'?`<button class="tbl-action" style="font-size:10px" onclick="conciergeReply('${c._id}')">💬 Reply</button>
+      <button class="tbl-action" style="color:#10b981;font-size:10px" onclick="closeConciergeReq('${c._id}')">✅ Close</button>`:''}
+    </div>
+  </div>`).join('') : '<div style="opacity:.4;text-align:center;padding:20px">No concierge requests</div>';
+}
+function filterConcierge(f) { renderConcierge(f); }
+async function closeConciergeReq(id) {
+  await apiPut(`/api/requests/${id}`, { status: 'closed' });
+  const c = conciergeData.find(x=>x._id===id); if(c) c.status='closed';
+  renderConcierge(); showToast('✅ Request closed', 'success');
+}
+async function conciergeReply(id) {
+  const reply = prompt('Your reply to guest:');
+  if (!reply) return;
+  await apiPut(`/api/requests/${id}`, { adminReply: reply, status: 'in_progress' });
+  const c = conciergeData.find(x=>x._id===id); if(c){ c.adminReply=reply; c.status='in_progress'; }
+  renderConcierge(); showToast('💬 Reply sent', 'success');
+}
+
+// ============================================================
+// GUEST: LAUNDRY SERVICE
+// ============================================================
+const LAUNDRY_ITEMS = ['Shirt','T-Shirt','Trousers','Jeans','Jacket','Suit','Dress','Saree','Kurta','Towel','Bedsheet'];
+let myLaundryCart = {};
+function renderMyLaundry() {
+  renderLaundryItems();
+  renderMyLaundryOrders();
+}
+function renderLaundryItems() {
+  const el = document.getElementById('laundryItemsGrid');
+  if (!el) return;
+  el.innerHTML = LAUNDRY_ITEMS.map(item=>`<div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center">
+    <div style="font-size:20px">👕</div>
+    <div style="font-size:11px;font-weight:600;margin:4px 0">${item}</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px">
+      <button style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--card2);cursor:pointer;font-size:14px;line-height:1" onclick="adjustLaundryItem('${item}',-1)">−</button>
+      <span id="lqty-${item.replace(/\s+/g,'')}" style="font-weight:700;min-width:16px;text-align:center">${myLaundryCart[item]||0}</span>
+      <button style="width:22px;height:22px;border-radius:50%;background:var(--p1);color:#fff;border:none;cursor:pointer;font-size:14px;line-height:1" onclick="adjustLaundryItem('${item}',1)">+</button>
+    </div>
+  </div>`).join('');
+}
+function adjustLaundryItem(item, delta) {
+  myLaundryCart[item] = Math.max(0, (myLaundryCart[item]||0)+delta);
+  const el = document.getElementById('lqty-'+item.replace(/\s+/g,''));
+  if (el) el.textContent = myLaundryCart[item];
+  const total = Object.values(myLaundryCart).reduce((s,v)=>s+v,0);
+  const el2 = document.getElementById('laundryCartCount');
+  if (el2) el2.textContent = total+' item'+(total!==1?'s':'');
+}
+async function submitLaundryOrder() {
+  if (!currentUser) { showToast('Please login first','error'); return; }
+  const items = Object.entries(myLaundryCart).filter(([k,v])=>v>0).map(([k,v])=>v > 1?`${k} x${v}`:k);
+  if (!items.length) { showToast('Please select at least one item','error'); return; }
+  const service = document.getElementById('lndService')?.value || 'standard';
+  const pickup = document.getElementById('lndPickup')?.value;
+  const prices = { standard: items.reduce((s,i)=>s+15,0), express: items.reduce((s,i)=>s+25,0), drycleaning: items.reduce((s,i)=>s+35,0) };
+  const order = { hotelId: HID, guestName: currentUser.name, room: currentUser.room, items, service, pickupTime: pickup||new Date().toISOString(), status: 'pending', amount: prices[service]||0, createdAt: new Date().toISOString() };
+  await apiPost('/api/laundry', order);
+  myLaundryCart = {};
+  renderLaundryItems();
+  const el2 = document.getElementById('laundryCartCount'); if (el2) el2.textContent = '0 items';
+  showToast('👕 Laundry order placed!', 'success');
+  renderMyLaundryOrders();
+}
+async function renderMyLaundryOrders() {
+  const el = document.getElementById('myLaundryOrders');
+  if (!el || !currentUser) return;
+  try { const r = await fetch(`/api/laundry?hotelId=${HID}`); laundryData = await r.json(); } catch(e) { laundryData=[]; }
+  const mine = laundryData.filter(l=>l.room===String(currentUser.room)||l.guestName===currentUser.name);
+  el.innerHTML = mine.length ? mine.map(l=>`<div style="background:var(--card2);border-radius:8px;padding:10px;border-left:3px solid ${l.status==='delivered'?'#10b981':l.status==='ready'?'#6366f1':'#f59e0b'}">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-weight:600;font-size:12px">👕 ${(l.items||[]).join(', ')}</span>
+      <span style="font-size:11px;color:${l.status==='delivered'?'#10b981':l.status==='ready'?'#6366f1':'#f59e0b'}">${l.status}</span>
+    </div>
+    <div style="font-size:10px;opacity:.6;margin-top:2px">${l.service} · ${formatPrice(l.amount||0)} · ${(l.pickupTime||'').slice(0,10)}</div>
+  </div>`).join('') : '<p style="opacity:.5;text-align:center;padding:12px">No laundry orders yet</p>';
+}
+
+// ============================================================
+// GUEST: DIGITAL KEY
+// ============================================================
+function renderDigitalKey() {
+  const el = document.getElementById('digitalKeyContainer');
+  if (!el) return;
+  if (!currentUser) { el.innerHTML = '<p style="opacity:.5;text-align:center;padding:20px">Please login to access your digital key</p>'; return; }
+  const keyCode = btoa(HID+':'+currentUser.room+':'+currentUser.name).slice(0,20).toUpperCase();
+  const checkIn = new Date();
+  const checkOut = new Date(checkIn.getTime() + 3*86400000);
+  el.innerHTML = `<div style="background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:16px;padding:20px;color:#fff;text-align:center;max-width:320px;margin:0 auto;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+    <div style="font-size:40px;margin-bottom:8px">🔑</div>
+    <div style="font-size:11px;opacity:.7;letter-spacing:2px;text-transform:uppercase">Digital Room Key</div>
+    <div style="font-size:36px;font-weight:800;letter-spacing:4px;margin:10px 0">${currentUser.room}</div>
+    <div style="font-size:13px;margin-bottom:16px;opacity:.9">${currentUser.name}</div>
+    <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div id="keyQrCode" style="background:#fff;border-radius:8px;padding:12px;width:120px;height:120px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:10px;color:#333;word-break:break-all;text-align:center;font-family:monospace">${keyCode}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;margin-bottom:12px">
+      <div style="background:rgba(255,255,255,.1);border-radius:8px;padding:8px"><div style="opacity:.7">Check-in</div><div style="font-weight:600">${checkIn.toLocaleDateString()}</div></div>
+      <div style="background:rgba(255,255,255,.1);border-radius:8px;padding:8px"><div style="opacity:.7">Check-out</div><div style="font-weight:600">${checkOut.toLocaleDateString()}</div></div>
+    </div>
+    <div style="background:rgba(255,255,255,.1);border-radius:8px;padding:8px;font-size:11px;letter-spacing:2px;font-family:monospace">${keyCode.match(/.{1,4}/g)?.join('-')}</div>
+  </div>
+  <div style="text-align:center;margin-top:16px">
+    <button class="btn-ghost" style="font-size:12px" onclick="shareDigitalKey()">📤 Share Key</button>
+    <button class="btn-primary" style="font-size:12px" onclick="requestNewKey()">🔄 Regenerate</button>
+  </div>
+  <div style="background:var(--card2);border-radius:10px;padding:12px;margin-top:12px">
+    <div style="font-weight:600;font-size:12px;margin-bottom:8px">🏨 Quick Access</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <button class="btn-ghost" style="font-size:11px;padding:8px" onclick="showGuestTab('reqTab')">📋 Requests</button>
+      <button class="btn-ghost" style="font-size:11px;padding:8px" onclick="showGuestTab('billTab')">💰 My Bill</button>
+      <button class="btn-ghost" style="font-size:11px;padding:8px" onclick="showGuestTab('restaurantTab')">🍽️ Order Food</button>
+      <button class="btn-ghost" style="font-size:11px;padding:8px" onclick="showGuestTab('spaTab')">💆 Spa</button>
+    </div>
+  </div>`;
+}
+function shareDigitalKey() {
+  if (!currentUser) return;
+  const text = `🔑 Room ${currentUser.room} | ${currentUser.name}\nDigital Key access for ${HID}`;
+  if (navigator.share) navigator.share({ title:'Room Key', text });
+  else { navigator.clipboard?.writeText(text); showToast('✅ Key code copied!','success'); }
+}
+function requestNewKey() { showToast('🔑 New digital key generated!','success'); renderDigitalKey(); }
+
+// ============================================================
+// GUEST: ROOM UPGRADE REQUEST
+// ============================================================
+const UPGRADE_OPTIONS = [
+  { from:'Standard', to:'Deluxe', price:250, perNight:true, desc:'Extra space, premium amenities, better view', icon:'⬆️' },
+  { from:'Standard', to:'Suite', price:600, perNight:true, desc:'Living room, jacuzzi, butler service', icon:'🌟' },
+  { from:'Deluxe', to:'Suite', price:400, perNight:true, desc:'Upgrade to full suite experience', icon:'👑' },
+  { from:'Any', to:'Presidential', price:1200, perNight:true, desc:'Top floor, panoramic views, exclusive services', icon:'🏆' }
+];
+function renderUpgradeRequest() {
+  const el = document.getElementById('upgradeContainer');
+  if (!el) return;
+  if (!currentUser) { el.innerHTML = '<p style="opacity:.5;text-align:center;padding:20px">Please login to request an upgrade</p>'; return; }
+  el.innerHTML = `<div style="background:linear-gradient(135deg,#f59e0b18,#f59e0b08);border:1px solid #f59e0b44;border-radius:12px;padding:14px;margin-bottom:14px">
+    <div style="font-size:13px;font-weight:600;color:#f59e0b">✨ Current Room: ${currentUser.room}</div>
+    <div style="font-size:11px;opacity:.7;margin-top:2px">Upgrade available based on availability. Subject to confirmation.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+  ${UPGRADE_OPTIONS.map(opt=>`<div style="background:var(--card2);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:28px">${opt.icon}</span>
+      <div>
+        <div style="font-weight:700;font-size:13px">${opt.from} → ${opt.to}</div>
+        <div style="font-size:11px;opacity:.6;max-width:200px">${opt.desc}</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-weight:700;color:var(--p1);font-size:14px">+${formatPrice(opt.price)}</div>
+      <div style="font-size:10px;opacity:.5">${opt.perNight?'per night':''}</div>
+      <button class="btn-primary" style="font-size:10px;padding:5px 12px;margin-top:6px" onclick="requestUpgrade('${opt.to}',${opt.price})">Request</button>
+    </div>
+  </div>`).join('')}
+  </div>`;
+}
+async function requestUpgrade(upgradeTo, price) {
+  if (!currentUser) return;
+  await apiPost('/api/requests', { hotelId: HID, guestName: currentUser.name, room: currentUser.room, category: 'guest_relations', department: 'Front Desk', description: `Room Upgrade Request: Current room ${currentUser.room} → ${upgradeTo} (${formatPrice(price)}/night)`, status: 'open', priority: 'high', time: new Date().toISOString() });
+  showToast(`⬆️ Upgrade to ${upgradeTo} requested! Front desk will confirm soon.`, 'success');
+}
+
+// ============================================================
 // MODAL FORM SAVE HANDLERS
 // ============================================================
 async function saveRestMenuItem(e) {
@@ -8164,6 +8689,52 @@ async function saveWakeupCall(e) {
   e.target.reset();
   showToast('⏰ Wake-up call scheduled!', 'success');
   addLog('Wake-up Call', `${wk.guestName} @ ${wk.time}`);
+}
+async function saveAdminLaundryOrder(e) {
+  e.preventDefault();
+  const items = document.getElementById('mLndItems').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const order = {
+    hotelId: HID,
+    guestName: document.getElementById('mLndGuest').value,
+    room: document.getElementById('mLndRoom').value,
+    items,
+    service: document.getElementById('mLndService').value,
+    amount: parseFloat(document.getElementById('mLndAmount').value)||0,
+    pickupTime: document.getElementById('mLndPickup').value||new Date().toISOString(),
+    deliveryTime: document.getElementById('mLndDelivery').value||'',
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+  const res = await apiPost('/api/laundry', order);
+  if (res) { laundryData.unshift({...order, _id: res._id}); renderAdminLaundry(); }
+  closeModal('laundryModal');
+  e.target.reset();
+  showToast('👕 Laundry order created', 'success');
+  addLog('Laundry', `${order.guestName} Rm ${order.room}`);
+  addNotification({ type:'laundry', message:`👕 New laundry: ${order.guestName} — ${items.join(', ')}`, time:new Date().toISOString() });
+}
+async function saveConciergeRequest(e) {
+  e.preventDefault();
+  const type = document.getElementById('mConcType').value;
+  const desc = document.getElementById('mConcDesc').value;
+  const req = {
+    hotelId: HID,
+    guestName: document.getElementById('mConcGuest').value,
+    room: document.getElementById('mConcRoom').value,
+    category: 'guest_relations',
+    department: 'Concierge',
+    description: `[${type}] ${desc}`,
+    status: 'open',
+    priority: document.getElementById('mConcPriority').value,
+    time: new Date().toISOString()
+  };
+  await apiPost('/api/requests', req);
+  conciergeData.unshift(req);
+  renderConcierge();
+  closeModal('conciergeModal');
+  e.target.reset();
+  showToast('🎩 Concierge request logged', 'success');
+  addLog('Concierge', req.guestName);
 }
 async function saveParkingSlot(e) {
   e.preventDefault();

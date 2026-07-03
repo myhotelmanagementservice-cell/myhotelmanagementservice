@@ -3533,7 +3533,7 @@ function makeCRUD(collection) {
 }
 
 // Register all new collections
-['billing','restaurant','tablebookings','spa','events','wakeupcalls','parking','feedback'].forEach(makeCRUD);
+['billing','restaurant','tablebookings','spa','events','wakeupcalls','parking','feedback','laundry'].forEach(makeCRUD);
 
 // Feedback: allow guest POST without auth
 app.post('/api/feedback/guest', async (req, res) => {
