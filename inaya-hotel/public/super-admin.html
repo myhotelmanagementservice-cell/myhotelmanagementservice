@@ -1109,6 +1109,21 @@
 
             <!-- SECTION: SYSTEM SETTINGS -->
             <section id="settings" class="section-content hidden fade-in">
+                <!-- DEFAULT HOTEL ID CARD -->
+                <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border-2 border-primary mb-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center"><i class="fas fa-hotel text-primary text-lg"></i></div>
+                        <div><h3 class="font-bold text-lg">Default Hotel ID</h3><p class="text-xs text-gray-500">Ye Hotel ID root URL <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">myhotelmanagementservice.com/</code> pe auto-fill hoga</p></div>
+                    </div>
+                    <div class="flex gap-3">
+                        <input type="text" id="defaultHotelIdInput" placeholder="e.g. CROWN" maxlength="30"
+                            class="flex-1 p-3 rounded-lg bg-gray-50 dark:bg-darkBg border-2 border-gray-300 dark:border-gray-600 font-mono font-bold text-lg uppercase tracking-widest focus:border-primary focus:outline-none">
+                        <button onclick="saveDefaultHotelId()" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-600 transition font-semibold">
+                            <i class="fas fa-save mr-2"></i>Save
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2">⚠️ Make sure this Hotel ID already exists in All Hotels list.</p>
+                </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <h3 class="font-bold mb-4" data-i18n="systemSettings">System Settings</h3>
@@ -2540,6 +2555,7 @@
             populateCurrencyDropdown();
             populateHotelDropdowns();
             startActivitySimulation();
+            loadGlobalConfig();
         }
 
         function showSection(sectionId) {
@@ -2565,6 +2581,7 @@
             if (sectionId === 'hotels') renderHotelsTable();
             if (sectionId === 'currencies') { renderCurrenciesTable(); renderCurrencyToggles(); }
             if (sectionId === 'subPlans') { renderPlanEditor(); loadGlobalSubSettings(); }
+            if (sectionId === 'settings') { loadGlobalConfig(); }
             if (sectionId === 'broadcast') renderBroadcastHistory();
             if (sectionId === 'users') renderUsersTable();
             if (sectionId === 'rooms') renderRoomsTable();
@@ -2966,6 +2983,7 @@
             saveGlobalEnabledCurrencies(enabled);
             renderCurrencyToggles();
             showToast(`${code} ${enabled[code] === false ? '🚫 disabled' : '✅ enabled'} globally`, 'success');
+            syncCurrenciesToServer();
         }
 
         function renderCurrenciesTable() {
@@ -3043,17 +3061,94 @@
             renderCurrenciesTable();
             populateCurrencyDropdown();
             showToast(editCode ? 'Updated!' : 'Added!', 'success');
+            syncCurrenciesToServer();
         });
+
+        // ================= GLOBAL CONFIG (server-backed) =================
+        async function loadGlobalConfig() {
+            if (!authToken) return;
+            try {
+                const r = await fetch('/api/super/global-config', { headers: { 'Authorization': 'Bearer ' + authToken } });
+                const data = await r.json();
+                if (!data.success || !data.config) return;
+                const cfg = data.config;
+                // Default Hotel ID
+                const el = document.getElementById('defaultHotelIdInput');
+                if (el && cfg.defaultHotelId) el.value = cfg.defaultHotelId;
+                // Plan settings — merge into localStorage so planEditor picks them up
+                if (cfg.planSettings) {
+                    localStorage.setItem('planSettings', JSON.stringify(cfg.planSettings));
+                    renderPlanEditor();
+                }
+                // Currencies
+                if (cfg.currencies && Array.isArray(cfg.currencies)) {
+                    localStorage.setItem('customCurrencies', JSON.stringify(cfg.currencies));
+                }
+                if (cfg.enabledCurrencies) {
+                    localStorage.setItem('globalEnabledCurrencies', JSON.stringify(cfg.enabledCurrencies));
+                }
+            } catch (e) { console.warn('loadGlobalConfig:', e); }
+        }
+
+        async function saveDefaultHotelId() {
+            const val = (document.getElementById('defaultHotelIdInput')?.value || '').trim().toUpperCase();
+            if (!val) return showToast('Hotel ID enter karein', 'error');
+            try {
+                const r = await fetch('/api/super/global-config', { headers: { 'Authorization': 'Bearer ' + authToken } });
+                const data = await r.json();
+                const current = (data.success && data.config) ? data.config : {};
+                current.defaultHotelId = val;
+                const r2 = await fetch('/api/super/global-config', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify(current)
+                });
+                const d2 = await r2.json();
+                if (d2.success) showToast('✅ Default Hotel ID saved: ' + val, 'success');
+                else showToast(d2.error || 'Save failed', 'error');
+            } catch (e) { showToast('Error: ' + e.message, 'error'); }
+        }
+
+        async function syncPlanToServer(plans) {
+            if (!authToken) return;
+            try {
+                const r = await fetch('/api/super/global-config', { headers: { 'Authorization': 'Bearer ' + authToken } });
+                const data = await r.json();
+                const current = (data.success && data.config) ? data.config : {};
+                current.planSettings = plans;
+                await fetch('/api/super/global-config', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify(current)
+                });
+            } catch (e) { console.warn('syncPlanToServer:', e); }
+        }
+
+        async function syncCurrenciesToServer() {
+            if (!authToken) return;
+            try {
+                const r = await fetch('/api/super/global-config', { headers: { 'Authorization': 'Bearer ' + authToken } });
+                const data = await r.json();
+                const current = (data.success && data.config) ? data.config : {};
+                current.currencies = getCustomCurrencies();
+                current.enabledCurrencies = getGlobalEnabledCurrencies();
+                await fetch('/api/super/global-config', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify(current)
+                });
+            } catch (e) { console.warn('syncCurrenciesToServer:', e); }
+        }
 
         // ================= PLAN EDITOR =================
         const DEFAULT_PLANS = {
-            basic: { name: 'Free / Basic', price: 0, color: 'gray', icon: 'Free', features: ['1 Hotel', 'Up to 20 Rooms', 'Basic Reports', '7-day Trial'] },
-            pro: { name: 'Pro', price: 99, color: 'blue', icon: 'Pro', features: ['Up to 5 Hotels', 'Unlimited Rooms', 'Priority Support', 'Analytics Dashboard'] },
-            enterprise: { name: 'Enterprise', price: 499, color: 'purple', icon: 'Ent', features: ['Unlimited Hotels', 'Custom Branding', 'Dedicated Manager', 'API Access'] }
+            basic: { name: 'Free / Basic', price: 0, color: 'gray', icon: 'Free', currency: 'USD', enabled: true, features: ['1 Hotel', 'Up to 20 Rooms', 'Basic Reports', '7-day Trial'] },
+            pro: { name: 'Pro', price: 99, color: 'blue', icon: 'Pro', currency: 'USD', enabled: true, features: ['Up to 5 Hotels', 'Unlimited Rooms', 'Priority Support', 'Analytics Dashboard'] },
+            enterprise: { name: 'Enterprise', price: 499, color: 'purple', icon: 'Ent', currency: 'USD', enabled: true, features: ['Unlimited Hotels', 'Custom Branding', 'Dedicated Manager', 'API Access'] }
         };
 
         function getPlanSettings() { try { return JSON.parse(localStorage.getItem('planSettings') || 'null') || DEFAULT_PLANS; } catch (e) { return DEFAULT_PLANS; } }
-        function savePlanSettings(plans) { localStorage.setItem('planSettings', JSON.stringify(plans)); }
+        function savePlanSettings(plans) { localStorage.setItem('planSettings', JSON.stringify(plans)); syncPlanToServer(plans); }
 
         function renderPlanEditor() {
             const grid = document.getElementById('planEditorGrid');

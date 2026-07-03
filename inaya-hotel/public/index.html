@@ -7684,6 +7684,18 @@ const ghi = document.getElementById('guestHotelIdIn');
 if (ghi && HID) {
   ghi.value = HID;
 }
+// Fetch real defaultHotelId from server (super admin can change it anytime)
+if (!urlParams.get('hotel')) {
+  fetch('/api/super/global-config/public').then(r => r.json()).then(data => {
+    if (data.success && data.defaultHotelId && data.defaultHotelId !== HID) {
+      HID = data.defaultHotelId;
+      const a = document.getElementById('adminHotelIdIn');
+      if (a) { a.value = HID; }
+      const g = document.getElementById('guestHotelIdIn');
+      if (g) g.value = HID;
+    }
+  }).catch(() => {});
+}
 }
 document.addEventListener('click', e => {
 if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');

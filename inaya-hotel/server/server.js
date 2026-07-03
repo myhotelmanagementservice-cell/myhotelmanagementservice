@@ -1357,6 +1357,55 @@ app.post('/api/super/admins/register', superAdminMiddleware, async (req, res) =>
   }
 });
 
+// ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
+const DEFAULT_GLOBAL_CONFIG = {
+  defaultHotelId: 'CROWN',
+  planSettings: {
+    basic:      { name: 'Free / Basic', price: 0,   currency: 'USD', enabled: true,  features: ['1 Hotel', 'Up to 20 Rooms', 'Basic Reports', '7-day Trial'] },
+    pro:        { name: 'Pro',          price: 99,  currency: 'USD', enabled: true,  features: ['Up to 5 Hotels', 'Unlimited Rooms', 'Priority Support', 'Analytics Dashboard'] },
+    enterprise: { name: 'Enterprise',   price: 499, currency: 'USD', enabled: true,  features: ['Unlimited Hotels', 'Custom Branding', 'Dedicated Manager', 'API Access'] }
+  },
+  currencies: [],
+  enabledCurrencies: {}
+};
+
+// Public (no auth) — index.html fetches defaultHotelId on load
+app.get('/api/super/global-config/public', async (req, res) => {
+  try {
+    const cfg = dbConnected
+      ? await db.collection('globalConfig').findOne({ _id: 'main' })
+      : null;
+    const defaultHotelId = (cfg && cfg.defaultHotelId) || DEFAULT_GLOBAL_CONFIG.defaultHotelId;
+    res.json({ success: true, defaultHotelId });
+  } catch (e) {
+    res.json({ success: true, defaultHotelId: DEFAULT_GLOBAL_CONFIG.defaultHotelId });
+  }
+});
+
+// Full config read (super admin)
+app.get('/api/super/global-config', superAdminMiddleware, async (req, res) => {
+  try {
+    const cfg = dbConnected
+      ? await db.collection('globalConfig').findOne({ _id: 'main' })
+      : null;
+    res.json({ success: true, config: cfg || DEFAULT_GLOBAL_CONFIG });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Full config write (super admin)
+app.put('/api/super/global-config', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'DB not connected' });
+    const update = { ...req.body, _id: 'main', updatedAt: new Date() };
+    await db.collection('globalConfig').replaceOne({ _id: 'main' }, update, { upsert: true });
+    res.json({ success: true, config: update });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;
