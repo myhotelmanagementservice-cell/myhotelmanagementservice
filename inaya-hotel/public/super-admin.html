@@ -2680,8 +2680,17 @@
             const navBtn = document.getElementById('nav-' + sectionId);
             if (navBtn) {
                 navBtn.classList.add('active-nav');
-                navBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                // Scroll active tab into center of navScroll (horizontal only — no page jump)
+                const ns = document.getElementById('navScroll');
+                if (ns) {
+                    const target = navBtn.offsetLeft - ns.offsetLeft - (ns.offsetWidth / 2) + (navBtn.offsetWidth / 2);
+                    ns.scrollTo({ left: target, behavior: 'smooth' });
+                }
             }
+            // Scroll to top so new section is visible
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const mainEl = document.querySelector('#dashboard main');
+            if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
             const titles = {
                 overview: 'dashboard', hotels: 'registeredHotels', revenue: 'recentTransactions',
                 subscriptions: 'subscriptions', currencies: 'manageCurrencies', settings: 'systemSettings',
