@@ -1815,7 +1815,7 @@ return `<option value="${opt.value}" ${selected}>${displayText}</option>`;
 const API_BASE = window.API_BASE || (window.location.origin + '/api');
 const SOCKET_URL = window.location.origin;
 const urlParams = new URLSearchParams(location.search);
-let HID = urlParams.get('hotel') || 'default';
+let HID = urlParams.get('hotel') || 'CROWN';
 let lang = 'en';
 let dark = false;
 let fontSize = 16;
@@ -7674,11 +7674,15 @@ if (onlineBtn) onlineBtn.textContent = isOnline ? t('online') : t('offline');
 setInterval(saveUIPrefs, 15000);
 window.addEventListener('beforeunload', saveUIPrefs);
 const ahi = document.getElementById('adminHotelIdIn');
-if (ahi && HID && HID !== 'default') {
+if (ahi && HID) {
   ahi.value = HID;
   ahi.readOnly = true;
   ahi.style.background = 'var(--card2)';
   ahi.style.cursor = 'not-allowed';
+}
+const ghi = document.getElementById('guestHotelIdIn');
+if (ghi && HID) {
+  ghi.value = HID;
 }
 }
 document.addEventListener('click', e => {
