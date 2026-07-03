@@ -3487,6 +3487,67 @@ app.delete('/api/chat', authMiddleware, async (req, res) => {
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// ======================== GENERIC CRUD FACTORY ========================
+function makeCRUD(collection) {
+  app.get(`/api/${collection}`, async (req, res) => {
+    try {
+      const hotelId = req.hotelId;
+      if (!dbConnected) return res.json([]);
+      const data = await db.collection(collection).find({ hotelId }).sort({ _id: -1 }).toArray();
+      data.forEach(d => { if (d._id) d._id = d._id.toString(); });
+      res.json(data);
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+  });
+  app.post(`/api/${collection}`, authMiddleware, async (req, res) => {
+    try {
+      const hotelId = req.hotelId;
+      const entry = { hotelId, ...req.body, _version: 1 };
+      if (!dbConnected) { entry._id = collection+'_'+Date.now(); return res.status(201).json({ ...entry, success: true }); }
+      const result = await db.collection(collection).insertOne(entry);
+      entry._id = result.insertedId.toString();
+      broadcast(hotelId, collection+'_upd', entry, req.clientId);
+      res.status(201).json({ ...entry, success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+  });
+  app.put(`/api/${collection}/:id`, authMiddleware, async (req, res) => {
+    try {
+      const hotelId = req.hotelId;
+      const { id } = req.params;
+      if (!dbConnected) return res.json({ success: true });
+      const update = { ...req.body }; delete update._id;
+      await db.collection(collection).updateOne({ _id: parseId(id), hotelId }, { $set: update });
+      broadcast(hotelId, collection+'_upd', { _id: id, hotelId, ...update }, req.clientId);
+      res.json({ success: true, _id: id, ...update });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+  });
+  app.delete(`/api/${collection}/:id`, authMiddleware, async (req, res) => {
+    try {
+      const hotelId = req.hotelId;
+      const { id } = req.params;
+      if (!dbConnected) return res.json({ success: true });
+      await db.collection(collection).deleteOne({ _id: parseId(id), hotelId });
+      broadcast(hotelId, collection+'_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+      res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+  });
+}
+
+// Register all new collections
+['billing','restaurant','tablebookings','spa','events','wakeupcalls','parking','feedback'].forEach(makeCRUD);
+
+// Feedback: allow guest POST without auth
+app.post('/api/feedback/guest', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const entry = { hotelId, ...req.body, _version: 1 };
+    if (!dbConnected) { entry._id = 'fb_'+Date.now(); return res.status(201).json({ ...entry, success: true }); }
+    const result = await db.collection('feedback').insertOne(entry);
+    entry._id = result.insertedId.toString();
+    broadcast(hotelId, 'feedback_upd', entry, req.clientId);
+    res.status(201).json({ ...entry, success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 app.use('/api/*', (req, res) => {
   res.status(404).json({ success: false, error: 'API endpoint not found' });
 });
