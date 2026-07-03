@@ -3361,7 +3361,7 @@
                 document.getElementById('planModalFeatures').value = '';
                 document.getElementById('planModalEnabled').checked = true;
             }
-            document.getElementById('planModal').classList.add('open');
+            openModal('planModal');
             // Auto-generate plan key from name
             if (!editKey) {
                 document.getElementById('planModalName').oninput = function() {
@@ -3373,7 +3373,7 @@
         }
 
         function closePlanModal() {
-            document.getElementById('planModal').classList.remove('open');
+            closeModal('planModal');
             document.getElementById('planModalKey').disabled = false;
             document.getElementById('planModalName').oninput = null;
         }
@@ -3429,10 +3429,24 @@
             showToast(`Plan "${plans[key].name}" ${plans[key].enabled ? '✅ shown' : '🚫 hidden'} on subscribe page`, 'success');
         }
 
-        function saveGlobalSubSettings() {
+        async function saveGlobalSubSettings() {
             const settings = { trialDays: parseInt(document.getElementById('trialDays').value) || 7, graceDays: parseInt(document.getElementById('graceDays').value) || 3, autoRenewal: document.getElementById('autoRenewalToggle').checked, openRegistrations: document.getElementById('registrationsToggle').checked };
             localStorage.setItem('globalSubSettings', JSON.stringify(settings));
-            showToast('Settings saved', 'success');
+            // Server pe bhi sync karo
+            try {
+                const r = await fetch('/api/super/global-config', { headers: { 'Authorization': 'Bearer ' + authToken } });
+                const data = await r.json();
+                const current = (data.success && data.config) ? data.config : {};
+                current.subSettings = settings;
+                await fetch('/api/super/global-config', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify(current)
+                });
+                showToast('✅ Settings saved & synced to server', 'success');
+            } catch (e) {
+                showToast('Saved locally (server sync failed)', 'warning');
+            }
         }
 
         function loadGlobalSubSettings() {
