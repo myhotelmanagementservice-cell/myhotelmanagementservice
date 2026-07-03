@@ -77,15 +77,15 @@
         .progress-bar-fill { height: 100%; background: var(--custom-primary); border-radius: 2px; transition: width 0.3s; }
         .notification-badge { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 0.65rem; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         /* ======== MOBILE RESPONSIVE ======== */
-        .mobile-menu-btn { display: none; }
-        .sidebar-closed { transform: translateX(-100%); }
-        .sidebar-open { transform: translateX(0); }
+        /* ======== HORIZONTAL SCROLLABLE NAV ======== */
+        #topNavBar { position: sticky; top: 0; z-index: 30; }
+        .nav-scroll { overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; display: flex; align-items: center; gap: 2px; padding: 5px 10px; }
+        .nav-scroll::-webkit-scrollbar { display: none; }
+        .nav-btn { display: inline-flex !important; align-items: center !important; gap: 5px !important; padding: 6px 11px !important; border-radius: 7px !important; white-space: nowrap !important; flex-shrink: 0 !important; font-size: 0.8rem !important; font-weight: 500 !important; transition: background 0.15s, color 0.15s !important; cursor: pointer !important; border: none !important; background: none !important; color: inherit !important; width: auto !important; text-align: left !important; line-height: 1.3 !important; }
+        .nav-btn:hover { background: rgba(0,0,0,0.06) !important; }
+        .dark .nav-btn:hover { background: rgba(255,255,255,0.09) !important; }
+        .nav-btn.active-nav { background: var(--custom-primary, #3b82f6) !important; color: #fff !important; }
         @media (max-width: 768px) {
-            .mobile-menu-btn { display: flex; }
-            #sidebarEl { position: fixed; top: 0; left: 0; height: 100vh; width: 280px; z-index: 50; transform: translateX(-100%); transition: transform 0.3s ease; }
-            #sidebarEl.mobile-open { transform: translateX(0); }
-            #sidebarOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; }
-            #sidebarOverlay.active { display: block; }
             main { padding: 0.75rem !important; }
             header { flex-direction: column; gap: 0.5rem; align-items: flex-start !important; }
             header .flex.gap-3 { width: 100%; justify-content: space-between; }
@@ -147,208 +147,192 @@
     </div>
 
     <!-- ================= DASHBOARD LAYOUT ================= -->
-    <div id="dashboard" class="hidden min-h-screen flex flex-col md:flex-row">
-        <aside id="sidebarEl" class="w-full md:w-64 bg-white dark:bg-darkCard border-r border-gray-200 dark:border-gray-700 flex flex-col sticky top-0 md:h-screen z-20">
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
-                <i class="fas fa-crown text-accent text-2xl"></i>
-                <div>
-                    <h2 class="font-bold text-lg">AAP Control</h2>
-                    <p class="text-xs text-gray-500" data-i18n="superAdmin">Super Admin</p>
+    <div id="dashboard" class="hidden min-h-screen flex flex-col">
+        <nav id="topNavBar" class="bg-white dark:bg-darkCard border-b border-gray-200 dark:border-gray-700 shadow-sm flex-shrink-0">
+            <div class="flex items-center justify-between px-4 py-2.5 gap-3 border-b border-gray-100 dark:border-gray-700/50">
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <i class="fas fa-crown text-accent text-xl"></i>
+                    <span class="font-bold text-sm sm:text-base whitespace-nowrap">AAP Control</span>
+                    <span class="text-xs text-gray-500 hidden lg:inline">Super Admin</span>
+                </div>
+                <div class="flex items-center gap-1 flex-shrink-0">
+                    <button class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition relative" title="Notifications" onclick="showNotifications()"><i class="fas fa-bell text-sm"></i><span class="notification-badge" id="notifBadge">0</span></button>
+                    <button onclick="openAddHotelModal()" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-blue-600 transition text-sm font-medium"><i class="fas fa-plus text-xs"></i><span class="hidden md:inline" data-i18n="addHotel">Add Hotel</span></button>
+                    <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="Toggle Theme"><i class="fas fa-moon dark:hidden text-sm"></i><i class="fas fa-sun hidden dark:inline text-yellow-400 text-sm"></i></button>
+                    <button onclick="toggleLang()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-xs font-bold" id="langBtn" title="Change Language">EN</button>
+                    <button onclick="logout()" class="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition" title="Logout"><i class="fas fa-sign-out-alt text-sm"></i></button>
                 </div>
             </div>
-            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-                <button onclick="showSection('overview')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left active-nav" id="nav-overview">
+            <div id="navScroll" class="nav-scroll">
+                <button onclick="showSection('overview')" class="nav-btn active-nav" id="nav-overview">
                     <i class="fas fa-chart-pie w-5"></i> <span data-i18n="overview">Overview</span>
                 </button>
-                <button onclick="showSection('hotels')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-hotels">
+                <button onclick="showSection('hotels')" class="nav-btn" id="nav-hotels">
                     <i class="fas fa-hotel w-5"></i> <span data-i18n="hotels">All Hotels</span>
                 </button>
-                <button onclick="showSection('revenue')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-revenue">
+                <button onclick="showSection('revenue')" class="nav-btn" id="nav-revenue">
                     <i class="fas fa-money-bill-wave w-5"></i> <span data-i18n="revenue">Revenue</span>
                 </button>
-                <button onclick="showSection('subscriptions')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-subscriptions">
+                <button onclick="showSection('subscriptions')" class="nav-btn" id="nav-subscriptions">
                     <i class="fas fa-credit-card w-5"></i> <span data-i18n="subscriptions">Subscriptions</span>
                 </button>
-                <button onclick="showSection('currencies')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-currencies">
+                <button onclick="showSection('currencies')" class="nav-btn" id="nav-currencies">
                     <i class="fas fa-coins w-5"></i> <span data-i18n="currencies">Currencies</span>
                 </button>
-                <button onclick="showSection('subPlans')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-subPlans">
+                <button onclick="showSection('subPlans')" class="nav-btn" id="nav-subPlans">
                     <i class="fas fa-layer-group w-5"></i> <span>Plan Editor</span>
                 </button>
-                <button onclick="showSection('broadcast')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-broadcast">
+                <button onclick="showSection('broadcast')" class="nav-btn" id="nav-broadcast">
                     <i class="fas fa-bullhorn w-5"></i> <span>Broadcast</span>
                 </button>
-                <button onclick="showSection('users')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-users">
+                <button onclick="showSection('users')" class="nav-btn" id="nav-users">
                     <i class="fas fa-users-cog w-5"></i> <span>Users & Staff</span>
                 </button>
-                <button onclick="showSection('rooms')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-rooms">
+                <button onclick="showSection('rooms')" class="nav-btn" id="nav-rooms">
                     <i class="fas fa-bed w-5"></i> <span>Room Status</span>
                 </button>
-                <button onclick="showSection('bookings')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-bookings">
+                <button onclick="showSection('bookings')" class="nav-btn" id="nav-bookings">
                     <i class="fas fa-calendar-check w-5"></i> <span>Bookings</span>
                 </button>
-                <button onclick="showSection('analytics')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-analytics">
+                <button onclick="showSection('analytics')" class="nav-btn" id="nav-analytics">
                     <i class="fas fa-chart-line w-5"></i> <span>Analytics</span>
                 </button>
-                <button onclick="showSection('auditLogs')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-auditLogs">
+                <button onclick="showSection('auditLogs')" class="nav-btn" id="nav-auditLogs">
                     <i class="fas fa-clipboard-list w-5"></i> <span>Audit Logs</span>
                 </button>
-                <button onclick="showSection('reports')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-reports">
+                <button onclick="showSection('reports')" class="nav-btn" id="nav-reports">
                     <i class="fas fa-file-alt w-5"></i> <span>Reports</span>
                 </button>
-                <button onclick="showSection('apiKeys')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-apiKeys">
+                <button onclick="showSection('apiKeys')" class="nav-btn" id="nav-apiKeys">
                     <i class="fas fa-key w-5"></i> <span>API Keys</span>
                 </button>
-                <button onclick="showSection('themeCustomizer')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-themeCustomizer">
+                <button onclick="showSection('themeCustomizer')" class="nav-btn" id="nav-themeCustomizer">
                     <i class="fas fa-palette w-5"></i> <span data-i18n="themeCustomizer">Theme Customizer</span>
                 </button>
-                <button onclick="showSection('settings')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-settings">
+                <button onclick="showSection('settings')" class="nav-btn" id="nav-settings">
                     <i class="fas fa-cogs w-5"></i> <span data-i18n="settings">System Settings</span>
                 </button>
-                <button onclick="showSection('systemHealth')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-systemHealth">
+                <button onclick="showSection('systemHealth')" class="nav-btn" id="nav-systemHealth">
                     <i class="fas fa-heartbeat w-5"></i> <span>System Health</span>
                 </button>
-                <button onclick="showSection('supportTickets')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-supportTickets">
+                <button onclick="showSection('supportTickets')" class="nav-btn" id="nav-supportTickets">
                     <i class="fas fa-headset w-5"></i> <span>Support Tickets</span>
                 </button>
-                <button onclick="showSection('revenueForecast')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-revenueForecast">
+                <button onclick="showSection('revenueForecast')" class="nav-btn" id="nav-revenueForecast">
                     <i class="fas fa-chart-line w-5"></i> <span>Revenue Forecast</span>
                 </button>
-                <button onclick="showSection('integrations')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-integrations">
+                <button onclick="showSection('integrations')" class="nav-btn" id="nav-integrations">
                     <i class="fas fa-plug w-5"></i> <span>Integrations</span>
                 </button>
-                <button onclick="showSection('emailTemplates')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-emailTemplates">
+                <button onclick="showSection('emailTemplates')" class="nav-btn" id="nav-emailTemplates">
                     <i class="fas fa-envelope-open-text w-5"></i> <span>Email Templates</span>
                 </button>
-                <button onclick="showSection('logViewer')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-logViewer">
+                <button onclick="showSection('logViewer')" class="nav-btn" id="nav-logViewer">
                     <i class="fas fa-terminal w-5"></i> <span>Log Viewer</span>
                 </button>
-                <button onclick="showSection('compliance')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-compliance">
+                <button onclick="showSection('compliance')" class="nav-btn" id="nav-compliance">
                     <i class="fas fa-shield-alt w-5"></i> <span>Compliance & Security</span>
                 </button>
-                <button onclick="showSection('advancedAnalytics')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-advancedAnalytics">
+                <button onclick="showSection('advancedAnalytics')" class="nav-btn" id="nav-advancedAnalytics">
                     <i class="fas fa-brain w-5"></i> <span>Advanced Analytics</span>
                 </button>
-                <button onclick="showSection('backupRestore')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-backupRestore">
+                <button onclick="showSection('backupRestore')" class="nav-btn" id="nav-backupRestore">
                     <i class="fas fa-database w-5"></i> <span>Backup & Restore</span>
                 </button>
-                <button onclick="showSection('bulkOps')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-bulkOps">
+                <button onclick="showSection('bulkOps')" class="nav-btn" id="nav-bulkOps">
                     <i class="fas fa-tasks w-5"></i> <span>Bulk Operations</span>
                 </button>
-                <button onclick="showSection('aiAssistant')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-aiAssistant">
+                <button onclick="showSection('aiAssistant')" class="nav-btn" id="nav-aiAssistant">
                     <i class="fas fa-robot w-5"></i> <span>AI Assistant</span>
                 </button>
-                <button onclick="showSection('database')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-database">
+                <button onclick="showSection('database')" class="nav-btn" id="nav-database">
                     <i class="fas fa-database w-5"></i> <span>Database Query</span>
                 </button>
-                <button onclick="showSection('webhooks')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-webhooks">
+                <button onclick="showSection('webhooks')" class="nav-btn" id="nav-webhooks">
                     <i class="fas fa-link w-5"></i> <span>Webhooks</span>
                 </button>
-                <button onclick="showSection('scheduler')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-scheduler">
+                <button onclick="showSection('scheduler')" class="nav-btn" id="nav-scheduler">
                     <i class="fas fa-clock w-5"></i> <span>Task Scheduler</span>
                 </button>
-                <button onclick="showSection('fileManager')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-fileManager">
+                <button onclick="showSection('fileManager')" class="nav-btn" id="nav-fileManager">
                     <i class="fas fa-folder-open w-5"></i> <span>File Manager</span>
                 </button>
-                <button onclick="showSection('apiDocs')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-apiDocs">
+                <button onclick="showSection('apiDocs')" class="nav-btn" id="nav-apiDocs">
                     <i class="fas fa-book w-5"></i> <span>API Docs</span>
                 </button>
-                <button onclick="showSection('customDomain')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-customDomain">
+                <button onclick="showSection('customDomain')" class="nav-btn" id="nav-customDomain">
                     <i class="fas fa-globe w-5"></i> <span>Domains & SSL</span>
                 </button>
-                <button onclick="showSection('firewall')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-firewall">
+                <button onclick="showSection('firewall')" class="nav-btn" id="nav-firewall">
                     <i class="fas fa-shield-virus w-5"></i> <span>Firewall & WAF</span>
                 </button>
-                <button onclick="showSection('loadTesting')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-loadTesting">
+                <button onclick="showSection('loadTesting')" class="nav-btn" id="nav-loadTesting">
                     <i class="fas fa-vial w-5"></i> <span>Load Testing</span>
                 </button>
-                <button onclick="showSection('abTesting')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-abTesting">
+                <button onclick="showSection('abTesting')" class="nav-btn" id="nav-abTesting">
                     <i class="fas fa-flask w-5"></i> <span>A/B Testing</span>
                 </button>
-                <button onclick="showSection('notificationsCenter')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-notificationsCenter">
+                <button onclick="showSection('notificationsCenter')" class="nav-btn" id="nav-notificationsCenter">
                     <i class="fas fa-bell w-5"></i> <span>Notifications</span>
                 </button>
-                <button onclick="showSection('kanbanBoard')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-kanbanBoard">
+                <button onclick="showSection('kanbanBoard')" class="nav-btn" id="nav-kanbanBoard">
                     <i class="fas fa-columns w-5"></i> <span>Kanban Board</span>
                 </button>
-                <button onclick="showSection('calendarView')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-calendarView">
+                <button onclick="showSection('calendarView')" class="nav-btn" id="nav-calendarView">
                     <i class="fas fa-calendar-alt w-5"></i> <span>Calendar</span>
                 </button>
-                <button onclick="showSection('dataImportExport')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-dataImportExport">
+                <button onclick="showSection('dataImportExport')" class="nav-btn" id="nav-dataImportExport">
                     <i class="fas fa-file-import w-5"></i> <span>Import / Export</span>
                 </button>
-                <button onclick="showSection('whiteLabel')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-whiteLabel">
+                <button onclick="showSection('whiteLabel')" class="nav-btn" id="nav-whiteLabel">
                     <i class="fas fa-paint-brush w-5"></i> <span>White Label</span>
                 </button>
-                <button onclick="showSection('multiTenant')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-multiTenant">
+                <button onclick="showSection('multiTenant')" class="nav-btn" id="nav-multiTenant">
                     <i class="fas fa-building w-5"></i> <span>Multi-Tenant</span>
                 </button>
-                <button onclick="showSection('pwaSettings')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-pwaSettings">
+                <button onclick="showSection('pwaSettings')" class="nav-btn" id="nav-pwaSettings">
                     <i class="fas fa-mobile-alt w-5"></i> <span>PWA Settings</span>
                 </button>
-                <button onclick="showSection('smsGateway')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-smsGateway">
+                <button onclick="showSection('smsGateway')" class="nav-btn" id="nav-smsGateway">
                     <i class="fas fa-comment-dots w-5"></i> <span>SMS Gateway</span>
                 </button>
-                <button onclick="showSection('channelManager')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-channelManager">
+                <button onclick="showSection('channelManager')" class="nav-btn" id="nav-channelManager">
                     <i class="fas fa-network-wired w-5"></i> <span>Channel Manager</span>
                 </button>
-                <button onclick="showSection('housekeeping')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-housekeeping">
+                <button onclick="showSection('housekeeping')" class="nav-btn" id="nav-housekeeping">
                     <i class="fas fa-broom w-5"></i> <span>Housekeeping</span>
                 </button>
-                <button onclick="showSection('staffMgmt')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-staffMgmt">
+                <button onclick="showSection('staffMgmt')" class="nav-btn" id="nav-staffMgmt">
                     <i class="fas fa-user-tie w-5"></i> <span>Staff Management</span>
                 </button>
-                <button onclick="showSection('posSystem')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-posSystem">
+                <button onclick="showSection('posSystem')" class="nav-btn" id="nav-posSystem">
                     <i class="fas fa-cash-register w-5"></i> <span>POS System</span>
                 </button>
-                <button onclick="showSection('guestCRM')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-guestCRM">
+                <button onclick="showSection('guestCRM')" class="nav-btn" id="nav-guestCRM">
                     <i class="fas fa-user-friends w-5"></i> <span>Guest CRM</span>
                 </button>
-                <button onclick="showSection('paymentGateways')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-paymentGateways">
+                <button onclick="showSection('paymentGateways')" class="nav-btn" id="nav-paymentGateways">
                     <i class="fas fa-credit-card w-5"></i> <span>Payment Gateways</span>
                 </button>
-                <button onclick="showSection('loyaltyProgram')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-loyaltyProgram">
+                <button onclick="showSection('loyaltyProgram')" class="nav-btn" id="nav-loyaltyProgram">
                     <i class="fas fa-gift w-5"></i> <span>Loyalty Program</span>
                 </button>
-                <button onclick="showSection('reviewsRatings')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-reviewsRatings">
+                <button onclick="showSection('reviewsRatings')" class="nav-btn" id="nav-reviewsRatings">
                     <i class="fas fa-star w-5"></i> <span>Reviews & Ratings</span>
                 </button>
-                <button onclick="showSection('ratePlans')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-ratePlans">
+                <button onclick="showSection('ratePlans')" class="nav-btn" id="nav-ratePlans">
                     <i class="fas fa-tags w-5"></i> <span>Rate Plans</span>
                 </button>
-                <button onclick="showSection('featureFlags')" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition text-left" id="nav-featureFlags">
+                <button onclick="showSection('featureFlags')" class="nav-btn" id="nav-featureFlags">
                     <i class="fas fa-toggle-on w-5"></i> <span>Feature Flags</span>
                 </button>
-            </nav>
-            <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition" title="Toggle Theme">
-                        <i class="fas fa-moon dark:hidden"></i>
-                        <i class="fas fa-sun hidden dark:inline text-yellow-400"></i>
-                    </button>
-                    <button onclick="toggleLang()" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm font-bold" id="langBtn" title="Change Language">EN</button>
-                </div>
-                <button onclick="logout()" class="text-red-500 hover:text-red-600 text-sm font-medium" title="Logout">
-                    <i class="fas fa-sign-out-alt"></i> <span data-i18n="logout">Logout</span>
-                </button>
             </div>
-        </aside>
+        </nav>
 
         <main class="flex-1 p-4 md:p-8 overflow-y-auto">
-            <header class="flex justify-between items-center mb-8">
-                <div>
-                    <h1 class="text-2xl font-bold" id="pageTitle" data-i18n="dashboard">Dashboard</h1>
-                    <p class="text-gray-500 text-sm">Welcome back, AAP</p>
-                </div>
-                <div class="flex gap-3">
-                    <button class="p-2 bg-white dark:bg-darkCard rounded-lg shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition relative" title="Notifications" onclick="showNotifications()">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge" id="notifBadge">0</span>
-                    </button>
-                    <button onclick="openAddHotelModal()" class="p-2 bg-primary text-white rounded-lg shadow hover:bg-blue-600 transition flex items-center gap-2">
-                        <i class="fas fa-plus"></i> <span data-i18n="addHotel">Add Hotel</span>
-                    </button>
-                </div>
+            <header class="mb-6">
+                <h1 class="text-2xl font-bold" id="pageTitle" data-i18n="dashboard">Dashboard</h1>
+                <p class="text-gray-500 text-sm mt-0.5">Welcome back, AAP</p>
             </header>
 
             <!-- SECTION: OVERVIEW -->
@@ -2694,7 +2678,10 @@
             if (sec) sec.classList.remove('hidden');
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'active-nav'));
             const navBtn = document.getElementById('nav-' + sectionId);
-            if (navBtn) navBtn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'active-nav');
+            if (navBtn) {
+                navBtn.classList.add('active-nav');
+                navBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
             const titles = {
                 overview: 'dashboard', hotels: 'registeredHotels', revenue: 'recentTransactions',
                 subscriptions: 'subscriptions', currencies: 'manageCurrencies', settings: 'systemSettings',
@@ -4550,6 +4537,16 @@
             populateCurrencyDropdown();
             loadCustomTheme();
             await checkAuth();
+            // Horizontal nav: scroll with mouse wheel
+            const ns = document.getElementById('navScroll');
+            if (ns) {
+                ns.addEventListener('wheel', function(e) {
+                    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                        e.preventDefault();
+                        ns.scrollLeft += e.deltaY * 1.5;
+                    }
+                }, { passive: false });
+            }
         });
     </script>
 </body>
