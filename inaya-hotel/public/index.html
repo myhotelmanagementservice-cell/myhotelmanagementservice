@@ -7684,18 +7684,41 @@ const ghi = document.getElementById('guestHotelIdIn');
 if (ghi && HID) {
   ghi.value = HID;
 }
-// Fetch real defaultHotelId from server (super admin can change it anytime)
-if (!urlParams.get('hotel')) {
-  fetch('/api/super/global-config/public').then(r => r.json()).then(data => {
-    if (data.success && data.defaultHotelId && data.defaultHotelId !== HID) {
-      HID = data.defaultHotelId;
-      const a = document.getElementById('adminHotelIdIn');
-      if (a) { a.value = HID; }
-      const g = document.getElementById('guestHotelIdIn');
-      if (g) g.value = HID;
-    }
-  }).catch(() => {});
-}
+// Fetch global config from super admin (defaultHotelId + currencies + plans)
+fetch('/api/super/global-config/public').then(r => r.json()).then(data => {
+  if (!data.success) return;
+  // 1. Default Hotel ID (only if no ?hotel= param)
+  if (!urlParams.get('hotel') && data.defaultHotelId && data.defaultHotelId !== HID) {
+    HID = data.defaultHotelId;
+    const a = document.getElementById('adminHotelIdIn');
+    if (a) { a.value = HID; }
+    const g = document.getElementById('guestHotelIdIn');
+    if (g) g.value = HID;
+  }
+  // 2. Global enabled/disabled currencies (super admin overrides)
+  if (data.enabledCurrencies && typeof data.enabledCurrencies === 'object') {
+    Object.entries(data.enabledCurrencies).forEach(([code, isEnabled]) => {
+      enabledCurrencies[code] = (isEnabled !== false);
+    });
+  }
+  // 3. Custom currencies added by super admin → add to subscription currencies
+  if (Array.isArray(data.currencies) && data.currencies.length > 0) {
+    data.currencies.forEach(cur => {
+      if (cur.code && !BUILTIN_SUB_CURRENCIES[cur.code]) {
+        BUILTIN_SUB_CURRENCIES[cur.code] = { symbol: cur.symbol || cur.code, rate: cur.rate || 1, flag: cur.flag || '🏦', name: cur.name || cur.code };
+      }
+      if (cur.code && !CURRENCIES[cur.code]) {
+        CURRENCIES[cur.code] = { symbol: cur.symbol || cur.code, rate: cur.rate || 1, flag: cur.flag || '🏦', custom: true };
+      }
+    });
+  }
+  // 4. Plan settings — store globally so hotel app can show correct prices
+  if (data.planSettings) {
+    window.__GLOBAL_PLAN_SETTINGS = data.planSettings;
+  }
+  // Re-render subscription currencies if that panel is visible
+  if (typeof renderSubCurrencies === 'function') renderSubCurrencies();
+}).catch(() => {});
 }
 document.addEventListener('click', e => {
 if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');

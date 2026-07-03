@@ -3041,6 +3041,7 @@
             renderCurrenciesTable();
             populateCurrencyDropdown();
             showToast(`${code} deleted`, 'success');
+            syncCurrenciesToServer();
         }
 
         document.getElementById('currencyForm').addEventListener('submit', (e) => {
@@ -3130,7 +3131,9 @@
                 const r = await fetch('/api/super/global-config', { headers: { 'Authorization': 'Bearer ' + authToken } });
                 const data = await r.json();
                 const current = (data.success && data.config) ? data.config : {};
-                current.currencies = getCustomCurrencies();
+                // Convert object {EUR:{symbol,name,rate}} → array [{code,symbol,name,rate}]
+                const customObj = getCustomCurrencies();
+                current.currencies = Object.entries(customObj).map(([code, cur]) => ({ code, ...cur }));
                 current.enabledCurrencies = getGlobalEnabledCurrencies();
                 await fetch('/api/super/global-config', {
                     method: 'PUT',

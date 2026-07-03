@@ -1369,16 +1369,28 @@ const DEFAULT_GLOBAL_CONFIG = {
   enabledCurrencies: {}
 };
 
-// Public (no auth) — index.html fetches defaultHotelId on load
+// Public (no auth) — index.html fetches defaultHotelId, currencies & plans on load
 app.get('/api/super/global-config/public', async (req, res) => {
   try {
     const cfg = dbConnected
       ? await db.collection('globalConfig').findOne({ _id: 'main' })
       : null;
-    const defaultHotelId = (cfg && cfg.defaultHotelId) || DEFAULT_GLOBAL_CONFIG.defaultHotelId;
-    res.json({ success: true, defaultHotelId });
+    const base = cfg || DEFAULT_GLOBAL_CONFIG;
+    res.json({
+      success: true,
+      defaultHotelId:    base.defaultHotelId    || DEFAULT_GLOBAL_CONFIG.defaultHotelId,
+      planSettings:      base.planSettings      || DEFAULT_GLOBAL_CONFIG.planSettings,
+      currencies:        base.currencies        || [],
+      enabledCurrencies: base.enabledCurrencies || {}
+    });
   } catch (e) {
-    res.json({ success: true, defaultHotelId: DEFAULT_GLOBAL_CONFIG.defaultHotelId });
+    res.json({
+      success: true,
+      defaultHotelId:    DEFAULT_GLOBAL_CONFIG.defaultHotelId,
+      planSettings:      DEFAULT_GLOBAL_CONFIG.planSettings,
+      currencies:        [],
+      enabledCurrencies: {}
+    });
   }
 });
 
