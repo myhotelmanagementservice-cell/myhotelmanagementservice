@@ -82,10 +82,21 @@ app.post('/api/subscription/webhook', express.raw({ type: 'application/json' }),
 });
 
 const publicPath = path.join(__dirname, process.env.PUBLIC_PATH || '../public');
+
+// No-cache for HTML files so browser always gets the latest version
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html') || req.path === '/' || req.path === '') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
 app.use(express.static(publicPath, {
-  maxAge: '1h',
-  etag: true,
-  lastModified: true
+  maxAge: '0',
+  etag: false,
+  lastModified: false
 }));
 
 app.use(session({

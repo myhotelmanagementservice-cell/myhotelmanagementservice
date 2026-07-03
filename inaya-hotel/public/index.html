@@ -241,16 +241,19 @@ font-size: 14px;
 <button class="login-tab" id="adminTabBtn" onclick="switchLogin('admin')" data-i18n="adminTab">👑 Admin</button>
 </div>
 <form id="guestLoginForm" onsubmit="guestLogin(event)">
-<div class="form-row"><label class="lbl" data-i18n="hotelIdLbl">Hotel ID</label><input class="inp" id="guestHotelIdIn" type="text" placeholder="Enter Hotel ID" required></div>
-<div class="form-row"><label class="lbl" data-i18n="yourName">Your Name</label><input class="inp" id="guestNameIn" data-i18n-ph="enterName" placeholder="Enter your name" required></div>
-<div class="form-row"><label class="lbl" data-i18n="roomNumber">Room Number</label><input class="inp" id="guestRoomIn" type="number" placeholder="e.g. 101" required></div>
-<button class="btn-primary" style="width:100%;padding:11px" type="submit" data-i18n="loginGuest">🔐 Login as Guest</button>
-<div style="display:flex;align-items:center;gap:8px;margin:10px 0"><div style="flex:1;height:1px;background:rgba(0,0,0,.12)"></div><span style="font-size:11px;color:#888" data-i18n="orText">OR</span><div style="flex:1;height:1px;background:rgba(0,0,0,.12)"></div></div>
-<button type="button" onclick="startGoogleLogin()" id="googleLoginBtn" style="width:100%;padding:10px;background:#fff;border:1.5px solid #dadce0;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;color:#3c4043;display:flex;align-items:center;justify-content:center;gap:10px;font-family:inherit;transition:box-shadow .2s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.18)'" onmouseout="this.style.boxShadow='none'">
-  <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+<div class="form-row" style="margin-bottom:8px"><label class="lbl" data-i18n="hotelIdLbl">Hotel ID</label><input class="inp" id="guestHotelIdIn" type="text" placeholder="Enter Hotel ID" style="margin-bottom:0"></div>
+
+<button type="button" onclick="startGoogleLogin()" id="googleLoginBtn" style="width:100%;margin:10px 0 4px;padding:11px 10px;background:#fff;border:1.5px solid #dadce0;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;color:#3c4043;display:flex;align-items:center;justify-content:center;gap:10px;font-family:inherit;transition:box-shadow .2s,border-color .2s" onmouseover="this.style.boxShadow='0 2px 10px rgba(0,0,0,.18)';this.style.borderColor='#4285F4'" onmouseout="this.style.boxShadow='none';this.style.borderColor='#dadce0'">
+  <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
   <span data-i18n="loginWithGoogle">Continue with Google</span>
 </button>
-<p id="googleLoginHint" style="font-size:11px;color:#888;text-align:center;margin-top:6px;display:none" data-i18n="googleHint">Hotel ID required above to login with Google</p>
+<p id="googleLoginHint" style="font-size:11px;color:#e53e3e;text-align:center;margin-bottom:6px;display:none" data-i18n="googleHint">⚠️ Hotel ID required above</p>
+
+<div style="display:flex;align-items:center;gap:8px;margin:8px 0"><div style="flex:1;height:1px;background:rgba(0,0,0,.12)"></div><span style="font-size:11px;color:#aaa;white-space:nowrap" data-i18n="orText">OR login manually</span><div style="flex:1;height:1px;background:rgba(0,0,0,.12)"></div></div>
+
+<div class="form-row" style="margin-bottom:8px"><label class="lbl" data-i18n="yourName">Your Name</label><input class="inp" id="guestNameIn" data-i18n-ph="enterName" placeholder="Enter your name" style="margin-bottom:0"></div>
+<div class="form-row" style="margin-bottom:8px"><label class="lbl" data-i18n="roomNumber">Room Number</label><input class="inp" id="guestRoomIn" type="number" placeholder="e.g. 101" style="margin-bottom:0"></div>
+<button class="btn-primary" style="width:100%;padding:11px;margin-top:4px" type="submit" data-i18n="loginGuest">🔐 Login as Guest</button>
 </form>
 <form id="adminLoginForm" class="hidden" onsubmit="adminLogin(event)">
 <div class="form-row"><label class="lbl" data-i18n="hotelIdLbl">Hotel ID</label><input class="inp" id="adminHotelIdIn" type="text" data-i18n-ph="enterHotelId" placeholder="Enter Hotel ID" required></div>
