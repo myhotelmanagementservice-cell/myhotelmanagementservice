@@ -5759,6 +5759,14 @@ if (id === 'laundry') { renderAdminLaundry(); }
 if (id === 'concierge') { renderConcierge(); }
 if (id === 'settings') { loadSubscriptionStatus(); }
 sessionStorage.setItem('currentTab', id);
+// Auto-scroll active tab into center of tabs bar (horizontal only)
+const _tabsBar = document.querySelector('.tabs-bar');
+const _activeBtn = _tabsBar && _tabsBar.querySelector('.tab-btn.active');
+if (_tabsBar && _activeBtn) {
+    const _target = _activeBtn.offsetLeft - (_tabsBar.offsetWidth / 2) + (_activeBtn.offsetWidth / 2);
+    _tabsBar.scrollTo({ left: _target, behavior: 'smooth' });
+}
+window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 let chartsInitialized = false;
 
@@ -7765,6 +7773,18 @@ showToast('📴 Offline mode', 'warning');
 });
 init();
 window.addEventListener('load', async () => { await checkHealth(); });
+// Mouse wheel → horizontal scroll on tabs bar
+(function() {
+    const _tb = document.querySelector('.tabs-bar');
+    if (_tb) {
+        _tb.addEventListener('wheel', function(e) {
+            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                e.preventDefault();
+                _tb.scrollLeft += e.deltaY * 1.5;
+            }
+        }, { passive: false });
+    }
+})();
 
 // ============================================================
 // BILLING & INVOICES
