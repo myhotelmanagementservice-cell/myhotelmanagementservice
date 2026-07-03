@@ -613,6 +613,16 @@
                         </table>
                     </div>
                 </div>
+                <!-- Enable / Disable Currencies -->
+                <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-bold">🔛 Enable / Disable Currencies</h3>
+                        <span class="text-xs text-gray-400">Changes apply globally to all hotels</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4">Toggle which currencies are active. Disabled currencies won't appear in hotel currency pickers or guest payment options.</p>
+                    <div id="currencyToggleList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                </div>
+
                 <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <h3 class="font-bold mb-4">Exchange Rate Trends</h3>
                     <div style="position: relative; height: 250px;">
@@ -2518,6 +2528,7 @@
             loadStats();
             renderCharts();
             renderCurrenciesTable();
+            renderCurrencyToggles();
             loadTransactions();
             renderRoomsTable();
             renderBookingsTable();
@@ -2552,7 +2563,7 @@
             const pageTitleEl = document.getElementById('pageTitle');
             if (pageTitleEl) pageTitleEl.textContent = titles[sectionId] || sectionId;
             if (sectionId === 'hotels') renderHotelsTable();
-            if (sectionId === 'currencies') renderCurrenciesTable();
+            if (sectionId === 'currencies') { renderCurrenciesTable(); renderCurrencyToggles(); }
             if (sectionId === 'subPlans') { renderPlanEditor(); loadGlobalSubSettings(); }
             if (sectionId === 'broadcast') renderBroadcastHistory();
             if (sectionId === 'users') renderUsersTable();
@@ -2904,18 +2915,58 @@
 
         // ================= CURRENCIES =================
         const BUILTIN_CURRENCIES = {
-            USD: { symbol: '$', name: 'US Dollar', rate: 1 },
-            EUR: { symbol: 'euro', name: 'Euro', rate: 0.85 },
-            GBP: { symbol: 'pound', name: 'British Pound', rate: 0.73 },
-            JPY: { symbol: 'yen', name: 'Japanese Yen', rate: 110 },
-            INR: { symbol: 'rupee', name: 'Indian Rupee', rate: 74.5 },
-            AED: { symbol: 'AED', name: 'UAE Dirham', rate: 3.67 },
-            SAR: { symbol: 'SAR', name: 'Saudi Riyal', rate: 3.75 }
+            USD: { symbol: '$', name: 'US Dollar', rate: 1, flag: '🇺🇸' },
+            EUR: { symbol: '€', name: 'Euro', rate: 0.85, flag: '🇪🇺' },
+            GBP: { symbol: '£', name: 'British Pound', rate: 0.73, flag: '🇬🇧' },
+            JPY: { symbol: '¥', name: 'Japanese Yen', rate: 110, flag: '🇯🇵' },
+            INR: { symbol: '₹', name: 'Indian Rupee', rate: 74.5, flag: '🇮🇳' },
+            AED: { symbol: 'د.إ', name: 'UAE Dirham', rate: 3.67, flag: '🇦🇪' },
+            SAR: { symbol: '﷼', name: 'Saudi Riyal', rate: 3.75, flag: '🇸🇦' },
+            KWD: { symbol: 'KD', name: 'Kuwaiti Dinar', rate: 0.31, flag: '🇰🇼' },
+            USDT: { symbol: '₮', name: 'Tether (USDT)', rate: 1, flag: '💲' }
         };
 
         function getCustomCurrencies() { try { return JSON.parse(localStorage.getItem('customCurrencies') || '{}'); } catch (e) { return {}; } }
         function saveCustomCurrencies(currencies) { localStorage.setItem('customCurrencies', JSON.stringify(currencies)); }
         function getAllCurrencies() { return { ...BUILTIN_CURRENCIES, ...getCustomCurrencies() }; }
+
+        // Global enabled currencies (super-admin controlled)
+        function getGlobalEnabledCurrencies() { try { return JSON.parse(localStorage.getItem('globalEnabledCurrencies') || '{}'); } catch(e) { return {}; } }
+        function saveGlobalEnabledCurrencies(obj) { localStorage.setItem('globalEnabledCurrencies', JSON.stringify(obj)); }
+
+        function renderCurrencyToggles() {
+            const el = document.getElementById('currencyToggleList');
+            if (!el) return;
+            const all = getAllCurrencies();
+            const enabled = getGlobalEnabledCurrencies();
+            el.innerHTML = Object.entries(all).map(([code, cur]) => {
+                const isOn = enabled[code] !== false; // default enabled
+                const isCustom = !!cur.custom;
+                return `<div class="flex items-center justify-between p-3 rounded-xl border-2 transition" style="border-color:${isOn ? '#6366f1' : '#e5e7eb'};background:${isOn ? 'rgba(99,102,241,0.05)' : 'transparent'}">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">${cur.flag || '🏦'}</span>
+                        <div>
+                            <div class="font-semibold text-sm">${code} <span class="font-normal opacity-60 text-xs">${cur.symbol}</span>${isCustom ? ' <span class="text-xs bg-yellow-400 text-white px-1 rounded">custom</span>' : ''}</div>
+                            <div class="text-xs opacity-50">${cur.name} &nbsp;·&nbsp; 1 USD = ${cur.rate} ${code}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 cursor-pointer" onclick="toggleGlobalCurrency('${code}')">
+                        <span class="text-xs font-medium" style="color:${isOn ? '#6366f1' : '#9ca3af'}">${isOn ? 'ON' : 'OFF'}</span>
+                        <div style="width:40px;height:22px;border-radius:11px;background:${isOn ? '#6366f1' : '#d1d5db'};position:relative;transition:.2s">
+                            <div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:${isOn ? '20px' : '2px'};transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleGlobalCurrency(code) {
+            const enabled = getGlobalEnabledCurrencies();
+            enabled[code] = enabled[code] === false ? true : false; // toggle (default is true)
+            saveGlobalEnabledCurrencies(enabled);
+            renderCurrencyToggles();
+            showToast(`${code} ${enabled[code] === false ? '🚫 disabled' : '✅ enabled'} globally`, 'success');
+        }
 
         function renderCurrenciesTable() {
             const tbody = document.getElementById('currenciesTableBody');
