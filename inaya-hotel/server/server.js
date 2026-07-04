@@ -869,6 +869,22 @@ io.on('connection', (socket) => {
     io.to(`admin_${hotelId}`).emit('req_upd', payload);
   });
 
+  // Chat relay: admin → all guests & admin, guest → admin
+  socket.on('admin_chat', (payload) => {
+    const { hotelId, msg } = payload;
+    if (!hotelId || !msg) return;
+    const entry = { ...msg, from: 'admin', timestamp: new Date().toISOString() };
+    io.to(`hotel_${hotelId}`).emit('chat_upd', { hotelId, data: entry });
+  });
+
+  socket.on('guest_chat', (payload) => {
+    const { hotelId, msg } = payload;
+    if (!hotelId || !msg) return;
+    const entry = { ...msg, from: 'guest', timestamp: new Date().toISOString() };
+    io.to(`admin_${hotelId}`).emit('chat_upd', { hotelId, data: entry });
+    io.to(`hotel_${hotelId}`).emit('chat_upd', { hotelId, data: entry });
+  });
+
   // ✅ FIX 6: Online count broadcast
   socket.on('get_online_count', (hotelId) => {
     const roomClients = io.sockets.adapter.rooms.get(`hotel_${hotelId}`);

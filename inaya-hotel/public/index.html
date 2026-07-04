@@ -4126,9 +4126,78 @@ socket.on('laundry_upd', (payload) => {
     if (sessionStorage.getItem('currentTab') === 'laundry') renderAdminLaundry();
     if (currentUser?.type === 'guest') {
       const el = document.getElementById('gp-laundryTab');
-      if (el?.classList.contains('active')) renderMyLaundry();
+      if (el && !el.classList.contains('hidden')) renderMyLaundry();
     }
   } catch(e) {}
+});
+
+// Offers real-time (Admin → Guest + Admin re-render)
+socket.on('offers_upd', (payload) => {
+  try {
+    const d = payload.data || payload;
+    if (!d || d.hotelId !== HID) return;
+    if (d.deleted) {
+      offers = offers.filter(x => String(x._id) !== String(d._id));
+    } else {
+      const idx = offers.findIndex(x => String(x._id) === String(d._id));
+      if (idx > -1) offers[idx] = { ...offers[idx], ...d };
+      else offers.push(d);
+    }
+    addNotification({ type: 'offers', message: `🎁 Offer updated: ${d.title||''}`, time: new Date().toISOString(), data: d });
+    if (sessionStorage.getItem('currentTab') === 'offers') renderOffers();
+    const gOffersEl = document.getElementById('gp-offersTab');
+    if (gOffersEl && !gOffersEl.classList.contains('hidden')) renderGuestOffers();
+  } catch(e) { console.error('offers_upd error:', e); }
+});
+
+// Lost & Found real-time (Admin → Guest + Admin re-render)
+socket.on('lostfound_upd', (payload) => {
+  try {
+    const d = payload.data || payload;
+    if (!d || d.hotelId !== HID) return;
+    if (d.deleted) {
+      lostfound = lostfound.filter(x => String(x._id) !== String(d._id));
+    } else {
+      const idx = lostfound.findIndex(x => String(x._id) === String(d._id));
+      if (idx > -1) lostfound[idx] = { ...lostfound[idx], ...d };
+      else lostfound.push(d);
+    }
+    addNotification({ type: 'lostfound', message: `💼 Lost & Found updated: ${d.item||''}`, time: new Date().toISOString(), data: d });
+    if (sessionStorage.getItem('currentTab') === 'lostfound') renderLostFound();
+    const gLFEl = document.getElementById('gp-lostfoundTab');
+    if (gLFEl && !gLFEl.classList.contains('hidden')) renderGuestLostFound();
+  } catch(e) { console.error('lostfound_upd error:', e); }
+});
+
+// Chat real-time (Admin ↔ Guest)
+socket.on('chat_upd', (payload) => {
+  try {
+    const d = payload.data || payload;
+    if (!d || d.hotelId !== HID) return;
+    const exists = chatMessages.some(m => m._id && String(m._id) === String(d._id));
+    if (!exists) chatMessages.push(d);
+    const adminChatEl = document.getElementById('adminChatMessages');
+    if (adminChatEl) renderAdminChat();
+    const guestChatEl = document.getElementById('guestChatMessages');
+    if (guestChatEl) renderGuestChat();
+  } catch(e) { console.error('chat_upd error:', e); }
+});
+
+// Housekeeping real-time (Admin re-render)
+socket.on('housekeeping_upd', (payload) => {
+  try {
+    const d = payload.data || payload;
+    if (!d || d.hotelId !== HID) return;
+    if (d.deleted) {
+      housekeeping = housekeeping.filter(x => String(x._id) !== String(d._id));
+    } else {
+      const idx = housekeeping.findIndex(x => String(x._id) === String(d._id));
+      if (idx > -1) housekeeping[idx] = { ...housekeeping[idx], ...d };
+      else housekeeping.push(d);
+    }
+    addNotification({ type: 'housekeeping', message: `🧹 Housekeeping: ${d.task||''} Rm ${d.room||''}`, time: new Date().toISOString(), data: d });
+    if (sessionStorage.getItem('currentTab') === 'housekeeping') renderHousekeeping();
+  } catch(e) { console.error('housekeeping_upd error:', e); }
 });
 
 } catch (e) {
@@ -8080,18 +8149,21 @@ return `<tr data-id="${h._id}">
 async function saveHKTask(e) {
 e.preventDefault();
 const obj = {
-_id: 'hk_' + Date.now(),
 hotelId: HID,
 room: document.getElementById('mHKRoom').value,
 task: document.getElementById('mHKTask').value,
 assignedTo: document.getElementById('mHKAssign').value,
 priority: document.getElementById('mHKPriority').value,
 scheduledAt: document.getElementById('mHKDate').value || new Date().toISOString(),
-status: 'pending',
-_version: 1
+status: 'pending'
 };
-housekeeping.push(obj);
-try { await save('housekeeping', housekeeping); } catch(_){}
+try {
+  const res = await apiPost('/api/housekeeping', obj);
+  if (res && (res._id || res.insertedId)) {
+    obj._id = String(res._id || res.insertedId);
+    housekeeping.push(obj);
+  }
+} catch(_){}
 renderHousekeeping();
 closeModal('hkModal');
 e.target.reset();
@@ -8101,14 +8173,14 @@ async function updateHKStatus(id, status) {
 const h = housekeeping.find(x => x._id === id);
 if (!h) return;
 h.status = status;
-try { await save('housekeeping', housekeeping); } catch(_){}
+try { await apiPut(`/api/housekeeping/${id}`, { status }); } catch(_){}
 renderHousekeeping();
 showToast('✅ Status updated', 'success');
 }
 async function deleteHK(id) {
 if (!confirm('Delete this task?')) return;
+try { await apiDelete(`/api/housekeeping/${id}`); } catch(_){}
 housekeeping = housekeeping.filter(h => h._id !== id);
-try { await save('housekeeping', housekeeping); } catch(_){}
 renderHousekeeping();
 showToast('🗑️ Task deleted', 'info');
 }
@@ -8139,9 +8211,13 @@ ${o.minStay?`<span style="font-size:11px;opacity:.6">Min ${o.minStay} nights</sp
 </div>
 `).join('') : '<p style="text-align:center;opacity:.5;padding:20px">No offers yet. Click "+ Add Offer" to create discounts for guests.</p>';
 }
-function renderGuestOffers() {
+async function renderGuestOffers() {
 const el = document.getElementById('gOffersGrid');
 if (!el) return;
+try {
+  const r = await fetch(`/api/offers?hotelId=${HID}`);
+  if (r.ok) offers = await r.json();
+} catch(_) {}
 const active = offers.filter(o => o.isActive && (!o.expiry || new Date(o.expiry) >= new Date()));
 el.innerHTML = active.length ? active.map(o => `
 <div style="background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:12px;padding:16px;margin-bottom:10px;color:#fff">
@@ -8159,7 +8235,6 @@ ${o.minStay?`<div style="font-size:11px;margin-top:6px;opacity:.7">*Minimum ${o.
 async function saveOffer(e) {
 e.preventDefault();
 const obj = {
-_id: 'off_' + Date.now(),
 hotelId: HID,
 title: document.getElementById('mOffTitle').value,
 code: document.getElementById('mOffCode').value.toUpperCase(),
@@ -8168,32 +8243,33 @@ discount: Number(document.getElementById('mOffDiscount').value),
 type: document.getElementById('mOffType').value,
 minStay: Number(document.getElementById('mOffMinStay').value) || 0,
 expiry: document.getElementById('mOffExpiry').value || null,
-isActive: true,
-_version: 1
+isActive: true
 };
-offers.push(obj);
-try { await save('offers', offers); } catch(_){}
+try {
+  const res = await apiPost('/api/offers', obj);
+  if (res && (res._id || res.insertedId)) {
+    obj._id = String(res._id || res.insertedId);
+    offers.push(obj);
+  }
+} catch(_){}
 renderOffers();
-renderGuestOffers();
 closeModal('offerModal');
 e.target.reset();
 showToast('🎁 Offer created!', 'success');
 }
 async function deleteOffer(id) {
 if (!confirm('Delete this offer?')) return;
+try { await apiDelete(`/api/offers/${id}`); } catch(_){}
 offers = offers.filter(o => o._id !== id);
-try { await save('offers', offers); } catch(_){}
 renderOffers();
-renderGuestOffers();
 showToast('🗑️ Offer deleted', 'info');
 }
 async function toggleOfferActive(id, val) {
 const o = offers.find(x => x._id === id);
 if (!o) return;
 o.isActive = val;
-try { await save('offers', offers); } catch(_){}
+try { await apiPut(`/api/offers/${id}`, { isActive: val }); } catch(_){}
 renderOffers();
-renderGuestOffers();
 showToast(val ? '✅ Offer activated' : '⏸️ Offer deactivated', 'info');
 }
 // ============================================================
@@ -8225,7 +8301,6 @@ return `<tr data-id="${lf._id}">
 async function saveLFItem(e) {
 e.preventDefault();
 const obj = {
-_id: 'lf_' + Date.now(),
 hotelId: HID,
 item: document.getElementById('mLFItem').value,
 description: document.getElementById('mLFDesc').value,
@@ -8233,11 +8308,15 @@ location: document.getElementById('mLFLocation').value,
 foundDate: document.getElementById('mLFDate').value || new Date().toISOString().split('T')[0],
 guestName: document.getElementById('mLFGuest').value,
 room: document.getElementById('mLFRoom').value,
-status: 'unclaimed',
-_version: 1
+status: 'unclaimed'
 };
-lostfound.push(obj);
-try { await save('lostfound', lostfound); } catch(_){}
+try {
+  const res = await apiPost('/api/lostfound', obj);
+  if (res && (res._id || res.insertedId)) {
+    obj._id = String(res._id || res.insertedId);
+    lostfound.push(obj);
+  }
+} catch(_){}
 renderLostFound();
 closeModal('lfModal');
 e.target.reset();
@@ -8246,26 +8325,33 @@ showToast('💼 Item logged in Lost & Found!', 'success');
 async function submitGuestLostFound(e) {
 e.preventDefault();
 const obj = {
-_id: 'lf_' + Date.now(),
 hotelId: HID,
 item: document.getElementById('glfItem').value,
 description: document.getElementById('glfDesc').value,
 location: '',
 foundDate: new Date().toISOString().split('T')[0],
 guestName: currentUser?.name || '',
-room: currentUser?.room || '',
-status: 'unclaimed',
-_version: 1
+room: String(currentUser?.room || ''),
+status: 'unclaimed'
 };
-lostfound.push(obj);
-try { await save('lostfound', lostfound); } catch(_){}
+try {
+  const res = await apiPost('/api/lostfound', obj);
+  if (res && (res._id || res.insertedId)) {
+    obj._id = String(res._id || res.insertedId);
+    lostfound.push(obj);
+  }
+} catch(_){}
 renderGuestLostFound();
-showToast(t('lfReportBtn'), 'success');
+showToast('💼 Item reported! We will follow up.', 'success');
 e.target.reset();
 }
-function renderGuestLostFound() {
+async function renderGuestLostFound() {
 const el = document.getElementById('gLostFoundList');
 if (!el) return;
+try {
+  const r = await fetch(`/api/lostfound?hotelId=${HID}`);
+  if (r.ok) lostfound = await r.json();
+} catch(_) {}
 const myItems = lostfound.filter(x => x.guestName === currentUser?.name);
 el.innerHTML = myItems.map(lf => `
 <div class="req-card">
@@ -8281,14 +8367,14 @@ async function updateLFStatus(id, status) {
 const lf = lostfound.find(x => x._id === id);
 if (!lf) return;
 lf.status = status;
-try { await save('lostfound', lostfound); } catch(_){}
+try { await apiPut(`/api/lostfound/${id}`, { status }); } catch(_){}
 renderLostFound();
 showToast('✅ Status updated', 'success');
 }
 async function deleteLF(id) {
 if (!confirm('Delete this item?')) return;
+try { await apiDelete(`/api/lostfound/${id}`); } catch(_){}
 lostfound = lostfound.filter(x => x._id !== id);
-try { await save('lostfound', lostfound); } catch(_){}
 renderLostFound();
 showToast('🗑️ Item deleted', 'info');
 }
@@ -8346,17 +8432,20 @@ async function sendAdminChat() {
 const inp = document.getElementById('adminChatInput');
 const text = inp?.value?.trim();
 if (!text) return;
-const msg = { _id: 'cm_'+Date.now(), hotelId: HID, from: 'admin', text, time: new Date().toISOString(), _version: 1 };
-chatMessages.push(msg);
+const msg = { hotelId: HID, from: 'admin', text, time: new Date().toISOString() };
 inp.value = '';
-try { await save('chat', chatMessages); } catch(_){}
+try {
+  const res = await apiPost('/api/chat', msg);
+  if (res && (res._id || res.insertedId)) msg._id = String(res._id || res.insertedId);
+  chatMessages.push(msg);
+} catch(_) { chatMessages.push(msg); }
 renderAdminChat();
 if (socket) socket.emit('admin_chat', { hotelId: HID, msg });
 }
-function clearAdminChat() {
+async function clearAdminChat() {
 if (!confirm('Clear all chat messages?')) return;
+try { await fetch(`/api/chat?hotelId=${HID}`, { method:'DELETE', headers:{'x-hotel-id':HID} }); } catch(_){}
 chatMessages = [];
-try { save('chat', chatMessages); } catch(_){}
 renderAdminChat();
 showToast('🗑️ Chat cleared', 'info');
 }
@@ -8385,10 +8474,13 @@ async function sendGuestChat() {
 const inp = document.getElementById('guestChatInput');
 const text = inp?.value?.trim();
 if (!text) return;
-const msg = { _id: 'cm_'+Date.now(), hotelId: HID, from: 'guest', room: currentUser?.room, guestName: currentUser?.name, text, time: new Date().toISOString(), _version: 1 };
-chatMessages.push(msg);
+const msg = { hotelId: HID, from: 'guest', room: String(currentUser?.room||''), guestName: currentUser?.name||'', text, time: new Date().toISOString() };
 inp.value = '';
-try { await save('chat', chatMessages); } catch(_){}
+try {
+  const res = await apiPost('/api/chat', msg);
+  if (res && (res._id || res.insertedId)) msg._id = String(res._id || res.insertedId);
+  chatMessages.push(msg);
+} catch(_) { chatMessages.push(msg); }
 renderGuestChat();
 if (socket) socket.emit('guest_chat', { hotelId: HID, msg });
 showToast('💬 Message sent to reception', 'success');
