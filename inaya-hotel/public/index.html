@@ -217,6 +217,20 @@ font-size: 14px;
 <button class="tb-btn" onclick="haptic()">📳</button>
 <button class="tb-btn" onclick="speakWelcome()" title="Voice Welcome">🔊</button>
 </div>
+<div class="toolbar-row">
+<button class="tb-btn" onclick="tbRefreshAll()" title="Refresh All Data">🔄</button>
+<button class="tb-btn" onclick="tbFullscreen()" id="fsBtn" title="Fullscreen">⛶</button>
+<button class="tb-btn" onclick="tbToggleSound()" id="soundBtn" title="Toggle Sound">🔊</button>
+<button class="tb-btn" onclick="tbCycleCurrency()" id="currBtn" title="Quick Currency">🌍</button>
+<button class="tb-btn" onclick="tbLockScreen()" title="Lock Screen">🔒</button>
+</div>
+<div class="toolbar-row">
+<button class="tb-btn" onclick="tbPing()" id="pingBtn" title="Check Server">📡</button>
+<button class="tb-btn" onclick="tbPrint()" title="Print">🖨️</button>
+<button class="tb-btn" onclick="tbClearCache()" title="Clear Cache">🗑️</button>
+<button class="tb-btn" onclick="tbWorldClock()" title="World Clock">🕐</button>
+<button class="tb-btn" onclick="tbHelp()" title="Help">❓</button>
+</div>
 </div>
 <div id="themeDD">
 <div style="font-size:10px;font-weight:700;margin-bottom:6px;color:var(--fg)" data-i18n="selectTheme">Theme</div>
@@ -4545,6 +4559,128 @@ window.speechSynthesis.cancel();
 window.speechSynthesis.speak(utterance);
 }
 function speakWelcome() { speakText(t('welcomeMsg')); }
+
+// ── NEW TOOLBAR FEATURES ──────────────────────────────────────
+let tbSoundOn = true;
+const TB_CURRENCIES = ['SAR','USD','EUR','GBP','INR','AED','JPY','CNY'];
+let tbCurrIdx = 0;
+
+function tbRefreshAll() {
+  showToast('🔄 Refreshing data...', 'info');
+  try { loadInitialData && loadInitialData(); } catch(e){}
+  try { renderAll && renderAll(); } catch(e){}
+  try { if(currentUser?.type==='admin') { renderRooms&&renderRooms(); renderGuests&&renderGuests(); renderBookings&&renderBookings(); renderDashboardAnalytics&&renderDashboardAnalytics(); } } catch(e){}
+  try { if(currentUser?.type==='guest') { renderMyLaundryOrders&&renderMyLaundryOrders(); renderGuestBill&&renderGuestBill(); } } catch(e){}
+  setTimeout(()=>showToast('✅ Data refreshed!','success'),800);
+}
+function tbFullscreen() {
+  const btn = document.getElementById('fsBtn');
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(()=>{});
+    if(btn) btn.textContent = '⊡';
+  } else {
+    document.exitFullscreen().catch(()=>{});
+    if(btn) btn.textContent = '⛶';
+  }
+}
+document.addEventListener('fullscreenchange',()=>{ const b=document.getElementById('fsBtn'); if(b) b.textContent=document.fullscreenElement?'⊡':'⛶'; });
+function tbToggleSound() {
+  tbSoundOn = !tbSoundOn;
+  const btn = document.getElementById('soundBtn');
+  if(btn) btn.textContent = tbSoundOn ? '🔊' : '🔇';
+  if(btn) btn.style.opacity = tbSoundOn ? '1' : '0.5';
+  showToast(tbSoundOn ? '🔊 Sound ON' : '🔇 Sound OFF', 'info');
+  window._tbSoundOn = tbSoundOn;
+}
+function tbCycleCurrency() {
+  tbCurrIdx = (tbCurrIdx + 1) % TB_CURRENCIES.length;
+  const cur = TB_CURRENCIES[tbCurrIdx];
+  HotelCfg.currency = cur;
+  const btn = document.getElementById('currBtn');
+  if(btn) btn.textContent = '🌍 ' + cur;
+  showToast(`💱 Currency: ${cur}`, 'success');
+  try { renderAll && renderAll(); } catch(e){}
+}
+function tbLockScreen() {
+  if(!confirm('Lock screen? You will need to login again.')) return;
+  currentUser = null;
+  localStorage.removeItem('hotel_token');
+  localStorage.removeItem('currentUser');
+  const ad = document.getElementById('adminDash'); if(ad) ad.classList.add('hidden');
+  const gd = document.getElementById('guestDash'); if(gd) gd.classList.add('hidden');
+  const lp = document.getElementById('loginPage'); if(lp) lp.classList.remove('hidden');
+  showToast('🔒 Screen locked', 'info');
+}
+async function tbPing() {
+  const btn = document.getElementById('pingBtn');
+  if(btn) btn.textContent = '⏳';
+  const t0 = Date.now();
+  try {
+    await fetch('/api/health');
+    const ms = Date.now() - t0;
+    const icon = ms < 100 ? '🟢' : ms < 300 ? '🟡' : '🔴';
+    showToast(`${icon} Server: ${ms}ms`, 'info');
+    if(btn) btn.textContent = `${icon}${ms}ms`;
+    setTimeout(()=>{ if(btn) btn.textContent='📡'; }, 3000);
+  } catch(e) {
+    showToast('🔴 Server unreachable', 'error');
+    if(btn) btn.textContent = '📡';
+  }
+}
+function tbPrint() {
+  showToast('🖨️ Opening print dialog...', 'info');
+  setTimeout(()=>window.print(), 400);
+}
+function tbClearCache() {
+  if(!confirm('Clear all cached data and preferences?')) return;
+  localStorage.clear();
+  sessionStorage.clear();
+  showToast('🗑️ Cache cleared! Reloading...', 'success');
+  setTimeout(()=>location.reload(), 1000);
+}
+function tbWorldClock() {
+  const zones = [
+    { city:'Riyadh', tz:'Asia/Riyadh' },
+    { city:'Dubai', tz:'Asia/Dubai' },
+    { city:'London', tz:'Europe/London' },
+    { city:'New York', tz:'America/New_York' },
+    { city:'Mumbai', tz:'Asia/Kolkata' },
+    { city:'Tokyo', tz:'Asia/Tokyo' },
+  ];
+  const now = new Date();
+  const lines = zones.map(z => {
+    const t = now.toLocaleTimeString('en-US',{timeZone:z.tz,hour:'2-digit',minute:'2-digit',hour12:true});
+    return `${z.city}: ${t}`;
+  }).join('\n');
+  alert('🕐 World Clock\n\n' + lines);
+}
+function tbHelp() {
+  alert(
+    '❓ Quick Help\n\n' +
+    '🇬 EN / हि / ع — Language switch\n' +
+    '🟢 Online — Network mode toggle\n' +
+    '🔆 — High contrast mode\n' +
+    'A- A A+ — Font size\n' +
+    '🌙 — Dark / Light mode\n' +
+    '🎨 — Color theme picker\n' +
+    '☀ Slider — Brightness\n' +
+    '🔔 — Notification permission\n' +
+    '📳 — Haptic feedback test\n' +
+    '🔊 — Voice welcome\n' +
+    '🔄 — Refresh all data\n' +
+    '⛶ — Fullscreen toggle\n' +
+    '🔇 — Sound on/off\n' +
+    '🌍 — Cycle currency\n' +
+    '🔒 — Lock screen\n' +
+    '📡 — Server ping/latency\n' +
+    '🖨️ — Print current page\n' +
+    '🗑️ — Clear cache & reload\n' +
+    '🕐 — World clock\n' +
+    '❓ — This help screen'
+  );
+}
+// ─────────────────────────────────────────────────────────────
+
 function speakRequestSubmitted() { speakText(t('requestSubmitted')); }
 function speakOrderPlaced() { speakText(t('orderPlaced')); }
 function speakBookingConfirmed() { speakText(t('bookingConfirmedMsg')); }
