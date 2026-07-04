@@ -482,6 +482,20 @@ const cabRoutes = require('./routes/cab');
 const historyRoutes = require('./routes/history');
 const infoRoutes = require('./routes/info');
 const departmentRoutes = require('./routes/department.routes');
+// New Guest Dashboard Routes
+const offerRoutes = require('./routes/offers');
+const roomControlRoutes = require('./routes/roomControl');
+const liveChatRoutes = require('./routes/liveChat');
+const myBillRoutes = require('./routes/myBill');
+const menuRoutes = require('./routes/menu');
+const spaRoutes = require('./routes/spa');
+const alarmRoutes = require('./routes/alarm');
+const cityGuideRoutes = require('./routes/cityGuide');
+const weatherRoutes = require('./routes/weather');
+const rateUsRoutes = require('./routes/rateUs');
+const laundryRoutes = require('./routes/laundry');
+const digitalKeyRoutes = require('./routes/digitalKey');
+const upgradeRoutes = require('./routes/upgrade');
 app.set('io', io);
 app.use('/api/departments', departmentRoutes);
 // Subscription routes
@@ -499,7 +513,20 @@ app.use('/api/reviews', reviewsRoutes);
 app.use('/api/cab', cabRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/info', infoRoutes);
-
+// New Guest Dashboard Routes
+app.use('/api/offers', offerRoutes);
+app.use('/api/room-control', roomControlRoutes);
+app.use('/api/live-chat', liveChatRoutes);
+app.use('/api/my-bill', myBillRoutes);
+app.use('/api/menu', menuRoutes);
+app.use('/api/spa', spaRoutes);
+app.use('/api/alarm', alarmRoutes);
+app.use('/api/city-guide', cityGuideRoutes);
+app.use('/api/weather', weatherRoutes);
+app.use('/api/rate-us', rateUsRoutes);
+app.use('/api/laundry', laundryRoutes);
+app.use('/api/digital-key', digitalKeyRoutes);
+app.use('/api/upgrade', upgradeRoutes);
 
 // ✅ FIX 1: Optimized checkSubscription with caching - no DB hit on cached hotels
 const checkSubscription = async (req, res, next) => {
