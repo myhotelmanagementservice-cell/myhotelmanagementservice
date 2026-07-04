@@ -9758,7 +9758,7 @@ async function renderAdminCityGuide() {
   if (addBtn) addBtn.textContent = t('cgAddBtn');
   const titleEl = document.getElementById('adminCGTitle');
   if (titleEl) titleEl.textContent = t('cgCityGuideTitle');
-  el.innerHTML = adminCityGuide.map(p => `
+  el.innerHTML = adminCityGuide.map((p, idx) => `
     <div style="background:var(--card2);border-radius:10px;padding:10px;position:relative">
       <div style="font-size:22px;margin-bottom:4px">${p.emoji||'📍'}</div>
       <div style="font-weight:700;font-size:12px;margin-bottom:2px">${p.name}</div>
@@ -9767,7 +9767,7 @@ async function renderAdminCityGuide() {
       <div style="font-size:9px;opacity:.5">⏰ ${p.timing||''}</div>
       ${p.price ? `<div style="font-size:11px;font-weight:700;color:var(--p1);margin-top:4px">💰 ${p.price}</div>` : `<div style="font-size:10px;color:#10b981;margin-top:4px">✅ ${t('cgFree')}</div>`}
       <div style="display:flex;gap:4px;margin-top:8px">
-        <button class="tbl-action" style="font-size:10px;flex:1" onclick="editCGPlace(${JSON.stringify(p)})">✏️ ${t('cgEditTitle').replace('✏️ ','')}</button>
+        <button class="tbl-action" style="font-size:10px;flex:1" onclick="editCGPlace(${idx})">✏️ ${t('cgEditTitle').replace('✏️ ','')}</button>
         ${p._id ? `<button class="tbl-action" style="font-size:10px;color:#ef4444" onclick="deleteCGPlace('${p._id}')">🗑️</button>` : ''}
       </div>
     </div>`).join('') || `<p style="opacity:.5;font-size:12px">${t('cgNoPlaces')}</p>`;
@@ -9807,8 +9807,9 @@ async function deleteCGPlace(id) {
   renderAdminCityGuide();
   showToast('🗑️', 'info');
 }
-function editCGPlace(p) {
-  if (typeof p === 'string') { try { p = JSON.parse(p); } catch(_){ return; } }
+function editCGPlace(idx) {
+  const p = adminCityGuide[idx];
+  if (!p) return;
   document.getElementById('cgEditId').value = p._id||'';
   document.getElementById('cgName').value = p.name||'';
   document.getElementById('cgEmoji').value = p.emoji||'';
