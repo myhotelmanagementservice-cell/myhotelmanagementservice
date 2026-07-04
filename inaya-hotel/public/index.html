@@ -5886,9 +5886,9 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}</option>`).join('')
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
 <div class="form-row"><label class="lbl">${t('lndServiceType')}</label>
 <select class="inp" id="lndService" onchange="renderLaundryItems()">
-<option value="standard">👕 Standard — ${formatPrice(15)}/item</option>
-<option value="express">⚡ Express — ${formatPrice(25)}/item</option>
-<option value="drycleaning">🧴 Dry Cleaning — ${formatPrice(35)}/item</option>
+<option value="standard">👕 Standard</option>
+<option value="express">⚡ Express</option>
+<option value="drycleaning">🧴 Dry Cleaning</option>
 </select></div>
 <div class="form-row"><label class="lbl">${t('lndPickupTime')}</label><input class="inp" id="lndPickup" type="datetime-local"></div>
 </div>
@@ -10098,9 +10098,9 @@ function openLaundryModal() {
   const svc = document.getElementById('mLndService');
   if (svc) {
     svc.innerHTML = `
-      <option value="standard">👕 Standard — ${formatPrice(15)}/item</option>
-      <option value="express">⚡ Express — ${formatPrice(25)}/item</option>
-      <option value="drycleaning">🧴 Dry Cleaning — ${formatPrice(35)}/item</option>`;
+      <option value="standard">👕 Standard</option>
+      <option value="express">⚡ Express</option>
+      <option value="drycleaning">🧴 Dry Cleaning</option>`;
   }
   const lbl = document.getElementById('mLndAmountLbl');
   const curSym = CURRENCIES[HotelCfg.currency]?.symbol || '﷼';
