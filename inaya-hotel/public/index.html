@@ -4210,16 +4210,13 @@ socket.on('offers_upd', (payload) => {
     try {
       if (sessionStorage.getItem('currentTab') === 'offers') renderOffers();
     } catch(e) {}
-    // Step 3: Guest — always show toast + re-render if tab open
+    // Step 3: Guest — always show toast + re-render (tab open or closed)
     try {
       const guestDash = document.getElementById('guestDash');
-      if (guestDash && !guestDash.classList.contains('hidden') && !d.deleted) {
-        showToast(`🎁 New offer: ${d.title || 'Check the latest deals!'}`, 'success');
+      if (guestDash && !guestDash.classList.contains('hidden')) {
+        if (!d.deleted) showToast(`🎁 New offer: ${d.title || 'Check the latest deals!'}`, 'success');
+        renderGuestOffers();
       }
-    } catch(e) {}
-    try {
-      const gOffersEl = document.getElementById('gp-offersTab');
-      if (gOffersEl && !gOffersEl.classList.contains('hidden')) renderGuestOffers();
     } catch(e) {}
   } catch(e) { console.error('offers_upd error:', e); }
 });
@@ -5784,9 +5781,12 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}</option>`).join('')
 
 <!-- MY BILL TAB -->
 <div class="card hidden" id="gp-billTab">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px">
 <h3 style="font-size:14px;font-weight:700;color:var(--fg)">💰 My Bill</h3>
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn-primary" style="font-size:11px;background:#6366f1" onclick="requestMyBill()">📋 Request Bill</button>
 <button class="btn-primary" style="font-size:11px;background:#10b981" onclick="requestCheckout()">🚪 Request Checkout</button>
+</div>
 </div>
 <div id="guestBillContent"><p style="opacity:.5;text-align:center;padding:20px">Loading your bill...</p></div>
 </div>
@@ -8987,8 +8987,35 @@ async function renderGuestBill() {
 }
 async function requestCheckout() {
   if(!currentUser) return;
-  await apiPost('/api/requests', { hotelId: HID, guestName: currentUser.name, room: currentUser.room, category: 'front_office', department: 'Check-out Request', description: 'Guest has requested checkout. Please prepare the bill.', status: 'open', priority: 'high', time: new Date().toISOString() });
-  showToast('✅ Checkout request sent to reception!', 'success');
+  const res = await apiPost('/api/requests', {
+    hotelId: HID,
+    guestName: currentUser.name,
+    roomNumber: currentUser.room,
+    department: 'Check-out Request',
+    category: 'front_office',
+    description: 'Guest has requested checkout. Please prepare the final bill.',
+    status: 'open',
+    priority: 'high',
+    time: new Date().toISOString()
+  });
+  if (res) showToast('✅ Checkout request sent to reception!', 'success');
+  else showToast('❌ Failed to send request. Try again.', 'error');
+}
+async function requestMyBill() {
+  if(!currentUser) return;
+  const res = await apiPost('/api/requests', {
+    hotelId: HID,
+    guestName: currentUser.name,
+    roomNumber: currentUser.room,
+    department: 'Billing',
+    category: 'billing',
+    description: 'Guest has requested a copy of their current bill/invoice.',
+    status: 'open',
+    priority: 'normal',
+    time: new Date().toISOString()
+  });
+  if (res) showToast('📋 Bill request sent to reception!', 'success');
+  else showToast('❌ Failed to send request. Try again.', 'error');
 }
 
 // ============================================================
