@@ -616,12 +616,14 @@ nights: 'night(s)',
 bookingConfirmed: 'Booking confirmed! Booking ID:',
 myBookings: 'My Bookings',
 bookingStatus: 'Status',
-requestSubmitted: 'Request submitted',
-orderPlaced: 'Order placed successfully',
-bookingConfirmedMsg: 'Booking confirmed',
+requestSubmitted: 'Request submitted successfully',
+orderPlaced: 'Your food order has been placed successfully',
+bookingConfirmedMsg: 'Your booking has been confirmed',
 itemAdded: 'Item added successfully',
+itemEdited: 'Item updated successfully',
+itemDeleted: 'Item deleted successfully',
 changesSaved: 'Changes saved',
-welcomeMsg: 'Welcome to Complete Hotel Management System',
+welcomeMsg: 'Welcome to Complete Hotel Management System. We are delighted to have you with us.',
 notifRequestTitle: 'Request Submitted',
 notifRequestBody: 'Your request has been submitted successfully!',
 notifOrderTitle: 'Order Placed',
@@ -1318,12 +1320,14 @@ nights: 'रात(ें)',
 bookingConfirmed: 'बुकिंग कन्फर्म! बुकिंग आईडी:',
 myBookings: 'मेरी बुकिंग',
 bookingStatus: 'स्थिति',
-requestSubmitted: 'अनुरोध सबमिट किया गया',
-orderPlaced: 'ऑर्डर सफलतापूर्वक रखा गया',
-bookingConfirmedMsg: 'बुकिंग पुष्टि हुई',
+requestSubmitted: 'आपका अनुरोध सफलतापूर्वक सबमिट कर दिया गया है',
+orderPlaced: 'आपका खाना ऑर्डर सफलतापूर्वक दे दिया गया है',
+bookingConfirmedMsg: 'आपकी बुकिंग सफलतापूर्वक पुष्टि हो गई है',
 itemAdded: 'आइटम सफलतापूर्वक जोड़ा गया',
+itemEdited: 'आइटम सफलतापूर्वक अपडेट किया गया',
+itemDeleted: 'आइटम सफलतापूर्वक हटाया गया',
 changesSaved: 'बदलाव सेव हो गए',
-welcomeMsg: 'कम्पलीट होटल मैनेजमेंट सिस्टम में आपका स्वागत है',
+welcomeMsg: 'कम्पलीट होटल मैनेजमेंट सिस्टम में आपका स्वागत है। हमें आपकी सेवा करके खुशी होगी।',
 notifRequestTitle: 'अनुरोध सबमिट हुआ',
 notifRequestBody: 'आपका अनुरोध सफलतापूर्वक सबमिट हो गया है!',
 notifOrderTitle: 'ऑर्डर रखा गया',
@@ -2020,12 +2024,14 @@ nights: 'ليلة(ليالي)',
 bookingConfirmed: 'تم تأكيد الحجز! معرف الحجز:',
 myBookings: 'حجوزاتي',
 bookingStatus: 'الحالة',
-requestSubmitted: 'تم إرسال الطلب',
-orderPlaced: 'تم وضع الطلب بنجاح',
-bookingConfirmedMsg: 'تم تأكيد الحجز',
+requestSubmitted: 'تم إرسال طلبك بنجاح',
+orderPlaced: 'تم تقديم طلب طعامك بنجاح',
+bookingConfirmedMsg: 'تم تأكيد حجزك بنجاح',
 itemAdded: 'تمت إضافة العنصر بنجاح',
+itemEdited: 'تم تحديث العنصر بنجاح',
+itemDeleted: 'تم حذف العنصر بنجاح',
 changesSaved: 'تم حفظ التغييرات',
-welcomeMsg: 'مرحبا بكم في نظام إدارة الفنادق الكامل',
+welcomeMsg: 'مرحبا بكم في نظام إدارة الفنادق الكامل. يسعدنا خدمتكم.',
 notifRequestTitle: 'تم إرسال الطلب',
 notifRequestBody: 'تم إرسال طلبك بنجاح!',
 notifOrderTitle: 'تم تقديم الطلب',
@@ -4546,19 +4552,41 @@ showToast('📳 Haptic not supported', 'warning');
 }
 }
 function speakText(text) {
-if (!('speechSynthesis' in window)) return;
-const utterance = new SpeechSynthesisUtterance(text);
-utterance.lang = lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'ar-SA';
-utterance.rate = 0.9;
-if (voicesLoaded) {
-const voices = window.speechSynthesis.getVoices();
-const preferred = voices.find(v => v.lang.startsWith(utterance.lang));
-if (preferred) utterance.voice = preferred;
-}
-window.speechSynthesis.cancel();
-window.speechSynthesis.speak(utterance);
+  if (!('speechSynthesis' in window) || !text || window._tbSoundOn === false) return;
+  const langMap = { en: 'en-US', hi: 'hi-IN', ar: 'ar-SA' };
+  const targetLang = langMap[lang] || 'en-US';
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = targetLang;
+  utterance.rate = lang === 'ar' ? 0.85 : 0.9;
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+  function assignVoiceAndSpeak() {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const exact = voices.find(v => v.lang === targetLang);
+      const partial = voices.find(v => v.lang.startsWith(targetLang.split('-')[0]));
+      const fallback = voices.find(v => v.default) || voices[0];
+      utterance.voice = exact || partial || fallback || null;
+    }
+    window.speechSynthesis.cancel();
+    setTimeout(() => window.speechSynthesis.speak(utterance), 80);
+  }
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length > 0) {
+    assignVoiceAndSpeak();
+  } else {
+    const prev = window.speechSynthesis.onvoiceschanged;
+    window.speechSynthesis.onvoiceschanged = () => {
+      voicesLoaded = true;
+      if (prev) prev();
+      assignVoiceAndSpeak();
+    };
+  }
 }
 function speakWelcome() { speakText(t('welcomeMsg')); }
+function speakItemEdited() { speakText(t('itemEdited')); }
+function speakItemDeleted() { speakText(t('itemDeleted')); }
 
 // ── NEW TOOLBAR FEATURES ──────────────────────────────────────
 let tbSoundOn = true;
@@ -7750,6 +7778,7 @@ if (idx > -1) {
 rooms[idx] = { ...rooms[idx], ...roomData, _version: (rooms[idx]._version || 0) + 1, updatedAt: new Date().toISOString() };
 save('rooms', rooms[idx], 'room_upd');
 showToast('✅ ' + (t('roomUpdated') || 'Room updated successfully'), 'success');
+speakItemEdited();
 addLog('Edit Room', '#' + rooms[idx].number);
 } else {
 showToast('Room not found', 'error');
@@ -7797,6 +7826,7 @@ if (socket?.connected) socket.emit('room_upd', { hotelId: HID, collection: 'room
 renderRooms();
 updateAdminStats();
 showToast('✅ ' + (t('roomDeleted') || 'Room deleted successfully'), 'success');
+speakItemDeleted();
 }
 }
 function openGuestModal(editId = null) {
@@ -7851,6 +7881,7 @@ if (idx > -1) {
 guests[idx] = { ...guests[idx], ...guestData, _version: (guests[idx]._version || 0) + 1, updatedAt: new Date().toISOString() };
 save('guests', guests[idx], 'guest_upd');
 showToast('✅ ' + (t('guestUpdated') || 'Guest updated successfully'), 'success');
+speakItemEdited();
 }
 } else {
 const guest = { _id: 'g_' + Date.now(), _isNew: true, ...guestData, _version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
@@ -7880,6 +7911,7 @@ if (isOnline) apiCall('DELETE', `/guests/${id}?hotelId=${HID}`);
 if (socket?.connected) socket.emit('guest_upd', { hotelId: HID, collection: 'guests', data: guest, clientId, syncToken: Date.now(), action: 'delete' });
 renderGuests();
 showToast('✅ ' + (t('guestDeleted') || 'Guest deleted successfully'), 'success');
+speakItemDeleted();
 }
 }
 function addDish(e) {
@@ -7898,6 +7930,7 @@ if (idx > -1) {
 food[idx] = { ...food[idx], ...dishData, _version: (food[idx]._version || 0) + 1, updatedAt: new Date().toISOString() };
 save('food', food[idx], 'food_upd');
 showToast('✅ ' + (t('foodUpdated') || 'Food item updated successfully'), 'success');
+speakItemEdited();
 } else {
 showToast('Dish not found', 'error');
 }
@@ -7932,6 +7965,7 @@ if (socket?.connected) socket.emit('food_upd', { hotelId: HID, collection: 'food
 renderFood();
 renderGuestFood();
 showToast('✅ ' + (t('foodDeleted') || 'Food item deleted successfully'), 'success');
+speakItemDeleted();
 }
 }
 function addInvItem(e) {
@@ -7951,6 +7985,7 @@ if (idx > -1) {
 inventory[idx] = { ...inventory[idx], ...itemData, _version: (inventory[idx]._version || 0) + 1, updatedAt: new Date().toISOString() };
 save('inventory', inventory[idx], 'inventory_upd');
 showToast('✅ ' + (t('invUpdated') || 'Inventory item updated successfully'), 'success');
+speakItemEdited();
 }
 } else {
 const item = { _id: 'i_' + Date.now(), _isNew: true, ...itemData, _version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
@@ -7994,6 +8029,7 @@ if (socket?.connected) socket.emit('inventory_upd', { hotelId: HID, collection: 
 renderInventory();
 renderGuestInv();
 showToast('✅ ' + (t('invDeleted') || 'Inventory item deleted successfully'), 'success');
+speakItemDeleted();
 }
 }
 function addToBlacklist(e) {
@@ -8135,6 +8171,7 @@ staff[i].role = newRole;
 save('staff', staff[i], 'staff_upd');
 renderStaff();
 showToast('✅ ' + (t('staffUpdated') || 'Staff member updated successfully'), 'success');
+speakItemEdited();
 }
 }
 function delStaff(i) {
@@ -8146,6 +8183,7 @@ if (isOnline && id) apiCall('DELETE', `/staff/${id}?hotelId=${HID}`);
 if (socket?.connected) socket.emit('staff_upd', { hotelId: HID, collection: 'staff', data: s, clientId, syncToken: Date.now(), action: 'delete' });
 renderStaff();
 showToast('✅ ' + (t('staffDeleted') || 'Staff member deleted successfully'), 'success');
+speakItemDeleted();
 }
 }
 function applyLeave(i) {
@@ -8252,7 +8290,8 @@ b.updatedAt = new Date().toISOString();
 save('bookings', b, 'booking_upd');
 renderAdminBookings();
 renderGuestBookings();
-showToast('✅ Booking updated', 'success');
+showToast('✅ ' + (t('bookingUpdated') || 'Booking updated successfully'), 'success');
+speakItemEdited();
 addLog('Edit Booking', `${b.guestName}`);
 }
 }
@@ -8266,7 +8305,8 @@ if (isOnline) apiCall('DELETE', `/bookings/${id}?hotelId=${HID}`);
 if (socket?.connected) socket.emit('booking_upd', { hotelId: HID, collection: 'bookings', data: b, clientId, syncToken: Date.now(), action: 'delete' });
 renderAdminBookings();
 renderGuestBookings();
-showToast('✅ Booking deleted', 'success');
+showToast('✅ ' + (t('bookingDeleted') || 'Booking deleted successfully'), 'success');
+speakItemDeleted();
 addLog('Delete Booking', `${b.guestName}`);
 }
 }
