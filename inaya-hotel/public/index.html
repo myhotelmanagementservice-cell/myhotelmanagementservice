@@ -6686,7 +6686,7 @@ return `<div class="card"><div style="display:flex;justify-content:space-between
 case 'floormap':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🏨 Hotel Floor Map</h3><div style="display:flex;gap:6px;flex-wrap:wrap"><select class="inp" id="floorSelect" style="width:auto" onchange="renderFloorMap()"><option value="all">${t('allFloors')}</option><option value="1">${t('floorLabel')} 1</option><option value="2">${t('floorLabel')} 2</option><option value="3">${t('floorLabel')} 3</option><option value="4">${t('floorLabel')} 4</option><option value="5">${t('floorLabel')} 5</option></select><div style="display:flex;gap:4px;font-size:10px;align-items:center"><span style="background:#10b98122;border:1px solid #10b981;padding:2px 8px;border-radius:4px">🟢 Vacant</span><span style="background:#6366f122;border:1px solid #6366f1;padding:2px 8px;border-radius:4px">🔵 Occupied</span><span style="background:#f59e0b22;border:1px solid #f59e0b;padding:2px 8px;border-radius:4px">🟡 Cleaning</span><span style="background:#ef444422;border:1px solid #ef4444;padding:2px 8px;border-radius:4px">🔴 Maint.</span></div></div></div><div id="floorMapGrid" style="display:flex;flex-direction:column;gap:12px"></div></div>`;
 case 'laundry':
-return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">👕 Laundry Management</h3><button class="btn-primary" onclick="openModal('laundryModal')">+ New Order</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-bottom:12px"><div class="stat-card"><div class="stat-val" id="lndPending" style="color:#f59e0b">—</div><div class="stat-lbl">${t('filterPending')}</div></div><div class="stat-card"><div class="stat-val" id="lndInProgress" style="color:#6366f1">—</div><div class="stat-lbl">${t('filterInProgress')}</div></div><div class="stat-card"><div class="stat-val" id="lndReady" style="color:#10b981">—</div><div class="stat-lbl">Ready</div></div><div class="stat-card"><div class="stat-val" id="lndRevenue" style="color:#f59e0b">—</div><div class="stat-lbl">${t('statRevenue')}</div></div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>${t('thGuest')}</th><th>${t('thRoom')}</th><th>${t('thItems')}</th><th>${t('thService')}</th><th>${t('thPickup')}</th><th>Delivery</th><th>Amount</th><th>${t('thStatus')}</th><th>${t('thActions')}</th></tr></thead><tbody id="laundryTbody"></tbody></table></div></div>`;
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">👕 Laundry Management</h3><button class="btn-primary" onclick="openLaundryModal()">+ New Order</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-bottom:12px"><div class="stat-card"><div class="stat-val" id="lndPending" style="color:#f59e0b">—</div><div class="stat-lbl">${t('filterPending')}</div></div><div class="stat-card"><div class="stat-val" id="lndInProgress" style="color:#6366f1">—</div><div class="stat-lbl">${t('filterInProgress')}</div></div><div class="stat-card"><div class="stat-val" id="lndReady" style="color:#10b981">—</div><div class="stat-lbl">Ready</div></div><div class="stat-card"><div class="stat-val" id="lndRevenue" style="color:#f59e0b">—</div><div class="stat-lbl">${t('statRevenue')}</div></div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>${t('thGuest')}</th><th>${t('thRoom')}</th><th>${t('thItems')}</th><th>${t('thService')}</th><th>${t('thPickup')}</th><th>Delivery</th><th>Amount</th><th>${t('thStatus')}</th><th>${t('thActions')}</th></tr></thead><tbody id="laundryTbody"></tbody></table></div></div>`;
 case 'concierge':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🎩 Concierge Desk</h3><button class="btn-primary" onclick="openModal('conciergeModal')">+ Log Request</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px"><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('all')"><div style="font-size:22px">📋</div><div class="stat-val" id="concAll" style="color:#6366f1">—</div><div class="stat-lbl">${t('statTotalToday')}</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('tours')"><div style="font-size:22px">🗺️</div><div class="stat-val" id="concTours" style="color:#10b981">—</div><div class="stat-lbl">${t('statTourReq')}</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('dining')"><div style="font-size:22px">🍽️</div><div class="stat-val" id="concDining" style="color:#f59e0b">—</div><div class="stat-lbl">${t('statDiningRes')}</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('transport')"><div style="font-size:22px">🚗</div><div class="stat-val" id="concTransport" style="color:#8b5cf6">—</div><div class="stat-lbl">${t('statConcTransport')}</div></div></div><div id="conciergeList" style="display:flex;flex-direction:column;gap:8px"></div>
 <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
@@ -7473,13 +7473,13 @@ ${departments.filter(d => d.isEnabled).map(d => `<option value="${d.key}">${d.em
 <div class="form-2">
 <div class="form-row"><label class="lbl">${t('serviceLbl')}</label>
 <select class="inp" id="mLndService" onchange="lndAutoPrice()">
-<option value="standard">${t('lndSvcStd')}</option>
-<option value="express">${t('lndSvcExpress')}</option>
-<option value="drycleaning">${t('lndSvcDry')}</option>
+<option value="standard">👕 Standard</option>
+<option value="express">⚡ Express</option>
+<option value="drycleaning">🧴 Dry Cleaning</option>
 </select></div>
 <div class="form-row">
-<label class="lbl" style="display:flex;justify-content:space-between">${t('lndAmountLbl')} <span id="lndPriceHint" style="font-size:9px;color:var(--p1);font-weight:400"></span></label>
-<input class="inp" id="mLndAmount" type="number" step="0.01" min="0" placeholder="0">
+<label class="lbl" id="mLndAmountLbl" style="display:flex;justify-content:space-between;align-items:center">${t('lndAmountLbl')} <span id="lndPriceHint" style="font-size:9px;color:var(--p1);font-weight:500"></span></label>
+<input class="inp" id="mLndAmount" type="text" placeholder="0" autocomplete="off">
 </div>
 </div>
 <div class="form-2">
@@ -10084,6 +10084,21 @@ async function saveWakeupCall(e) {
   addLog('Wake-up Call', `${wk.guestName} @ ${wk.time}`);
 }
 const LND_PRICES = { standard: 15, express: 25, drycleaning: 35 };
+
+function openLaundryModal() {
+  const svc = document.getElementById('mLndService');
+  if (svc) {
+    svc.innerHTML = `
+      <option value="standard">👕 Standard — ${formatPrice(15)}/item</option>
+      <option value="express">⚡ Express — ${formatPrice(25)}/item</option>
+      <option value="drycleaning">🧴 Dry Cleaning — ${formatPrice(35)}/item</option>`;
+  }
+  const lbl = document.getElementById('mLndAmountLbl');
+  if (lbl) lbl.textContent = t('lndAmountLbl').replace('SAR', CURRENCIES[HotelCfg.currency]?.symbol || '﷼').replace('ريال','').replace('(SAR)','').trim() + ' ('+( CURRENCIES[HotelCfg.currency]?.symbol || '﷼')+')';
+  openModal('laundryModal');
+  lndAutoPrice();
+}
+
 function lndAutoPrice() {
   const svc = document.getElementById('mLndService');
   const itemsEl = document.getElementById('mLndItems');
@@ -10092,10 +10107,12 @@ function lndAutoPrice() {
   if (!svc || !itemsEl || !amtEl) return;
   const items = itemsEl.value.split(',').map(s=>s.trim()).filter(Boolean);
   const count = items.length || 1;
-  const rate = LND_PRICES[svc.value] || 15;
-  const total = count * rate;
-  amtEl.value = total;
-  if (hint) hint.textContent = `${count} × SAR ${rate} = SAR ${total}`;
+  const rateSAR = LND_PRICES[svc.value] || 15;
+  const totalSAR = count * rateSAR;
+  const converted = convertPrice(totalSAR);
+  const sym = CURRENCIES[HotelCfg.currency]?.symbol || '﷼';
+  amtEl.value = `${sym}${Number(converted.toFixed(2))}`;
+  if (hint) hint.textContent = `${count} × ${formatPrice(rateSAR)} = ${formatPrice(totalSAR)} (editable)`;
 }
 
 async function saveAdminLaundryOrder(e) {
@@ -10107,7 +10124,7 @@ async function saveAdminLaundryOrder(e) {
     room: document.getElementById('mLndRoom').value,
     items,
     service: document.getElementById('mLndService').value,
-    amount: parseFloat(document.getElementById('mLndAmount').value)||0,
+    amount: parseFloat((document.getElementById('mLndAmount').value||'0').replace(/[^0-9.]/g,''))||0,
     pickupTime: document.getElementById('mLndPickup').value||new Date().toISOString(),
     deliveryTime: document.getElementById('mLndDelivery').value||'',
     status: 'pending',
