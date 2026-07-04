@@ -5885,7 +5885,7 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}</option>`).join('')
 <div id="laundryItemsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;margin-bottom:12px"></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
 <div class="form-row"><label class="lbl">${t('lndServiceType')}</label>
-<select class="inp" id="lndService">
+<select class="inp" id="lndService" onchange="renderLaundryItems()">
 <option value="standard">👕 Standard — ${formatPrice(15)}/item</option>
 <option value="express">⚡ Express — ${formatPrice(25)}/item</option>
 <option value="drycleaning">🧴 Dry Cleaning — ${formatPrice(35)}/item</option>
@@ -9853,9 +9853,15 @@ function renderMyLaundry() {
 function renderLaundryItems() {
   const el = document.getElementById('laundryItemsGrid');
   if (!el) return;
+  const svcEl = document.getElementById('lndService');
+  const svc = svcEl ? svcEl.value : 'standard';
+  const sarMap = { standard: 15, express: 25, drycleaning: 35 };
+  const pricePerItem = formatPrice(sarMap[svc] || 15);
+  const icons = { Shirt:'👔', 'T-Shirt':'👕', Trousers:'👖', Jeans:'🩳', Jacket:'🧥', Suit:'🤵', Dress:'👗', Saree:'🥻', Kurta:'🧣', Towel:'🛁', Bedsheet:'🛏️' };
   el.innerHTML = LAUNDRY_ITEMS.map(item=>`<div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center">
-    <div style="font-size:20px">👕</div>
+    <div style="font-size:20px">${icons[item]||'👕'}</div>
     <div style="font-size:11px;font-weight:600;margin:4px 0">${item}</div>
+    <div style="font-size:9px;color:var(--p1);font-weight:600;margin-bottom:4px">${pricePerItem}</div>
     <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px">
       <button style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--card2);cursor:pointer;font-size:14px;line-height:1" onclick="adjustLaundryItem('${item}',-1)">−</button>
       <span id="lqty-${item.replace(/\s+/g,'')}" style="font-weight:700;min-width:16px;text-align:center">${myLaundryCart[item]||0}</span>
@@ -10097,7 +10103,8 @@ function openLaundryModal() {
       <option value="drycleaning">🧴 Dry Cleaning — ${formatPrice(35)}/item</option>`;
   }
   const lbl = document.getElementById('mLndAmountLbl');
-  if (lbl) lbl.textContent = t('lndAmountLbl').replace('SAR', CURRENCIES[HotelCfg.currency]?.symbol || '﷼').replace('ريال','').replace('(SAR)','').trim() + ' ('+( CURRENCIES[HotelCfg.currency]?.symbol || '﷼')+')';
+  const curSym = CURRENCIES[HotelCfg.currency]?.symbol || '﷼';
+  if (lbl) { const hint = lbl.querySelector('#lndPriceHint'); lbl.textContent = `Amount (${curSym})`; if (hint) lbl.appendChild(hint); }
   openModal('laundryModal');
   lndAutoPrice();
 }
