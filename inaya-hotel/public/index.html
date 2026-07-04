@@ -798,6 +798,21 @@ conciergeOpen: 'open',
 conciergeClosed: 'closed',
 conciergeReplyBtn: '💬 Reply',
 conciergeCloseBtn: '✅ Close',
+conciergeConfirmBtn: '✔️ Confirm',
+conciergeConfirmed: 'confirmed',
+conciergePending: 'pending',
+cgModalTitle: '📍 Add Place to City Guide',
+cgEditTitle: '✏️ Edit Place',
+cgPlaceNameLbl: 'Place Name',
+cgEmojiLbl: 'Emoji',
+cgCatLbl: 'Category',
+cgDistLbl: 'Distance / KM',
+cgDescLbl: 'Description',
+cgTimingLbl: 'Opening Hours / Timing',
+cgSaveBtn: '💾 Save',
+cgNoPlaces: 'No places yet.',
+cgAddBtn: '+ Add Place',
+cgCityGuideTitle: '🗺️ City Guide Management',
 noConcierge: 'No concierge requests',
 conciergeRoom: 'Room',
 guestNameLbl: 'Guest Name',
@@ -1481,6 +1496,21 @@ conciergeOpen: 'खुला',
 conciergeClosed: 'बंद',
 conciergeReplyBtn: '💬 जवाब',
 conciergeCloseBtn: '✅ बंद करें',
+conciergeConfirmBtn: '✔️ पुष्टि करें',
+conciergeConfirmed: 'पुष्टि हुई',
+conciergePending: 'लंबित',
+cgModalTitle: '📍 सिटी गाइड में जगह जोड़ें',
+cgEditTitle: '✏️ जगह संपादित करें',
+cgPlaceNameLbl: 'जगह का नाम',
+cgEmojiLbl: 'इमोजी',
+cgCatLbl: 'श्रेणी',
+cgDistLbl: 'दूरी / KM',
+cgDescLbl: 'विवरण',
+cgTimingLbl: 'खुलने का समय',
+cgSaveBtn: '💾 सेव करें',
+cgNoPlaces: 'अभी कोई जगह नहीं।',
+cgAddBtn: '+ जगह जोड़ें',
+cgCityGuideTitle: '🗺️ सिटी गाइड प्रबंधन',
 noConcierge: 'कोई कंसीयर्ज अनुरोध नहीं',
 conciergeRoom: 'कमरा',
 guestNameLbl: 'अतिथि का नाम',
@@ -2164,6 +2194,21 @@ conciergeOpen: 'مفتوح',
 conciergeClosed: 'مغلق',
 conciergeReplyBtn: '💬 رد',
 conciergeCloseBtn: '✅ إغلاق',
+conciergeConfirmBtn: '✔️ تأكيد',
+conciergeConfirmed: 'مؤكد',
+conciergePending: 'معلق',
+cgModalTitle: '📍 إضافة مكان إلى دليل المدينة',
+cgEditTitle: '✏️ تعديل المكان',
+cgPlaceNameLbl: 'اسم المكان',
+cgEmojiLbl: 'رمز تعبيري',
+cgCatLbl: 'الفئة',
+cgDistLbl: 'المسافة / كم',
+cgDescLbl: 'الوصف',
+cgTimingLbl: 'مواعيد الفتح',
+cgSaveBtn: '💾 حفظ',
+cgNoPlaces: 'لا توجد أماكن بعد.',
+cgAddBtn: '+ إضافة مكان',
+cgCityGuideTitle: '🗺️ إدارة دليل المدينة',
 noConcierge: 'لا توجد طلبات الكونسيرج',
 conciergeRoom: 'الغرفة',
 guestNameLbl: 'اسم الضيف',
@@ -6634,8 +6679,8 @@ case 'concierge':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🎩 Concierge Desk</h3><button class="btn-primary" onclick="openModal('conciergeModal')">+ Log Request</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px"><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('all')"><div style="font-size:22px">📋</div><div class="stat-val" id="concAll" style="color:#6366f1">—</div><div class="stat-lbl">${t('statTotalToday')}</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('tours')"><div style="font-size:22px">🗺️</div><div class="stat-val" id="concTours" style="color:#10b981">—</div><div class="stat-lbl">${t('statTourReq')}</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('dining')"><div style="font-size:22px">🍽️</div><div class="stat-val" id="concDining" style="color:#f59e0b">—</div><div class="stat-lbl">${t('statDiningRes')}</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('transport')"><div style="font-size:22px">🚗</div><div class="stat-val" id="concTransport" style="color:#8b5cf6">—</div><div class="stat-lbl">${t('statConcTransport')}</div></div></div><div id="conciergeList" style="display:flex;flex-direction:column;gap:8px"></div>
 <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-    <h4 style="font-size:13px;font-weight:700;color:var(--fg)">🗺️ City Guide & Attractions</h4>
-    <button class="btn-primary" style="font-size:11px;padding:6px 12px" onclick="openModal('cgModal')">+ Add Place</button>
+    <h4 id="adminCGTitle" style="font-size:13px;font-weight:700;color:var(--fg)">🗺️ City Guide & Attractions</h4>
+    <button id="cgAddBtn" class="btn-primary" style="font-size:11px;padding:6px 12px" onclick="openCGModal(false)">+ Add Place</button>
   </div>
   <div id="adminCityGuideGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
 </div></div>`;
@@ -7470,22 +7515,22 @@ ${departments.filter(d => d.isEnabled).map(d => `<option value="${d.key}">${d.em
 
 <div class="modal-overlay" id="cgModal">
 <div class="modal-box">
-<div class="modal-h">📍 Add Place to City Guide</div>
+<div class="modal-h" id="cgModalTitle">📍</div>
 <form onsubmit="saveCGPlace(event)">
 <input type="hidden" id="cgEditId">
 <div class="form-2">
-<div class="form-row"><label class="lbl">Place Name</label><input class="inp" id="cgName" placeholder="e.g. Grand Mosque" required></div>
-<div class="form-row"><label class="lbl">Emoji</label><input class="inp" id="cgEmoji" placeholder="🕌" maxlength="4"></div>
+<div class="form-row"><label class="lbl" id="cgLblName">Place Name</label><input class="inp" id="cgName" required></div>
+<div class="form-row"><label class="lbl" id="cgLblEmoji">Emoji</label><input class="inp" id="cgEmoji" placeholder="🕌" maxlength="4"></div>
 </div>
 <div class="form-2">
-<div class="form-row"><label class="lbl">Category</label><input class="inp" id="cgCat" placeholder="Religious / Shopping / Nature…"></div>
-<div class="form-row"><label class="lbl">Distance / KM</label><input class="inp" id="cgDist" placeholder="e.g. 2.5 km"></div>
+<div class="form-row"><label class="lbl" id="cgLblCat">Category</label><input class="inp" id="cgCat"></div>
+<div class="form-row"><label class="lbl" id="cgLblDist">Distance / KM</label><input class="inp" id="cgDist"></div>
 </div>
-<div class="form-row"><label class="lbl">Description</label><textarea class="inp" id="cgDesc" rows="2" placeholder="Brief description of the place"></textarea></div>
-<div class="form-row"><label class="lbl">Opening Hours / Timing</label><input class="inp" id="cgTiming" placeholder="e.g. 9am – 6pm"></div>
+<div class="form-row"><label class="lbl" id="cgLblDesc">Description</label><textarea class="inp" id="cgDesc" rows="2"></textarea></div>
+<div class="form-row"><label class="lbl" id="cgLblTiming">Opening Hours</label><input class="inp" id="cgTiming" placeholder="e.g. 9am – 6pm"></div>
 <div style="display:flex;gap:6px;margin-top:14px">
-<button class="btn-primary" style="flex:1" type="submit">💾 Save</button>
-<button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('cgModal');document.getElementById('cgEditId').value='';document.querySelector('#cgModal .modal-h').textContent='📍 Add Place to City Guide'">Cancel</button>
+<button class="btn-primary" style="flex:1" type="submit" id="cgSaveBtn">💾 Save</button>
+<button class="btn-ghost" style="flex:1" type="button" onclick="closeCGModal()">Cancel</button>
 </div>
 </form>
 </div>
@@ -9638,18 +9683,28 @@ async function renderConcierge(filter='all') {
   const d = filter==='all' ? conciergeData : filter==='tours'?tours:filter==='dining'?dining:transport;
   const list = document.getElementById('conciergeList');
   if (!list) return;
-  list.innerHTML = d.length ? d.map(c=>`<div style="background:var(--card2);border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
-    <div style="flex:1">
+  list.innerHTML = d.length ? d.map(c=>{
+    const st = c.status||'open';
+    const isOpen = st!=='closed';
+    const isConfirmed = st==='confirmed';
+    const badgeBg = st==='closed'?'#10b98122':isConfirmed?'#3b82f622':'#f59e0b22';
+    const badgeColor = st==='closed'?'#10b981':isConfirmed?'#3b82f6':'#f59e0b';
+    const badgeLabel = st==='closed'?t('conciergeClosed'):isConfirmed?t('conciergeConfirmed'):st==='pending'?t('conciergePending'):t('conciergeOpen');
+    return `<div style="background:var(--card2);border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+    <div style="flex:1;min-width:0">
       <div style="font-weight:600;font-size:13px">${c.description||'—'}</div>
-      <div style="font-size:11px;opacity:.6;margin-top:2px">👤 ${c.guestName||'—'} · ${t('conciergeRoom')} ${c.room||'—'} · ${formatRelTime(c.time)}</div>
+      <div style="font-size:11px;opacity:.6;margin-top:2px">👤 ${c.guestName||'—'} · ${t('conciergeRoom')} ${c.roomNumber||c.room||'—'} · ${formatRelTime(c.time)}</div>
       ${c.adminReply?`<div style="font-size:11px;background:var(--card);border-radius:6px;padding:6px;margin-top:6px;color:var(--p1)">💬 ${c.adminReply}</div>`:''}
     </div>
-    <div style="display:flex;gap:4px;flex-wrap:wrap">
-      <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${c.status==='closed'?'#10b98122':'#f59e0b22'};color:${c.status==='closed'?'#10b981':'#f59e0b'}">${c.status==='closed'?t('conciergeClosed'):t('conciergeOpen')}</span>
-      ${c.status!=='closed'?`<button class="tbl-action" style="font-size:10px" onclick="conciergeReply('${c._id}')">${t('conciergeReplyBtn')}</button>
-      <button class="tbl-action" style="color:#10b981;font-size:10px" onclick="closeConciergeReq('${c._id}')">${t('conciergeCloseBtn')}</button>`:''}
+    <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${badgeBg};color:${badgeColor};font-weight:600">${badgeLabel}</span>
+      ${isOpen?`
+        ${!isConfirmed?`<button class="tbl-action" style="font-size:10px;background:#3b82f611;color:#3b82f6;border-color:#3b82f644" onclick="confirmConciergeReq('${c._id}')">${t('conciergeConfirmBtn')}</button>`:''}
+        <button class="tbl-action" style="font-size:10px" onclick="conciergeReply('${c._id}')">${t('conciergeReplyBtn')}</button>
+        <button class="tbl-action" style="color:#10b981;font-size:10px" onclick="closeConciergeReq('${c._id}')">${t('conciergeCloseBtn')}</button>
+      `:''}
     </div>
-  </div>`).join('') : `<div style="opacity:.4;text-align:center;padding:20px">${t('noConcierge')}</div>`;
+  </div>`;}).join('') : `<div style="opacity:.4;text-align:center;padding:20px">${t('noConcierge')}</div>`;
 }
 function filterConcierge(f) { renderConcierge(f); }
 
@@ -9657,6 +9712,21 @@ function filterConcierge(f) { renderConcierge(f); }
 // ADMIN CITY GUIDE MANAGEMENT
 // ============================================================
 let adminCityGuide = [];
+
+function openCGModal(isEdit) {
+  const titleEl = document.getElementById('cgModalTitle');
+  const saveEl = document.getElementById('cgSaveBtn');
+  if (titleEl) titleEl.textContent = isEdit ? t('cgEditTitle') : t('cgModalTitle');
+  if (saveEl) saveEl.textContent = t('cgSaveBtn');
+  const ids = { cgLblName:'cgPlaceNameLbl', cgLblEmoji:'cgEmojiLbl', cgLblCat:'cgCatLbl', cgLblDist:'cgDistLbl', cgLblDesc:'cgDescLbl', cgLblTiming:'cgTimingLbl' };
+  Object.entries(ids).forEach(([elId, key]) => { const el=document.getElementById(elId); if(el) el.textContent=t(key); });
+  openModal('cgModal');
+}
+function closeCGModal() {
+  closeModal('cgModal');
+  document.getElementById('cgEditId').value = '';
+}
+
 async function renderAdminCityGuide() {
   const el = document.getElementById('adminCityGuideGrid');
   if (!el) return;
@@ -9667,6 +9737,10 @@ async function renderAdminCityGuide() {
       adminCityGuide = data.length ? data : [...CITY_GUIDE];
     } else { adminCityGuide = [...CITY_GUIDE]; }
   } catch(_) { adminCityGuide = [...CITY_GUIDE]; }
+  const addBtn = document.getElementById('cgAddBtn');
+  if (addBtn) addBtn.textContent = t('cgAddBtn');
+  const titleEl = document.getElementById('adminCGTitle');
+  if (titleEl) titleEl.textContent = t('cgCityGuideTitle');
   el.innerHTML = adminCityGuide.map(p => `
     <div style="background:var(--card2);border-radius:10px;padding:10px;position:relative">
       <div style="font-size:22px;margin-bottom:4px">${p.emoji||'📍'}</div>
@@ -9675,10 +9749,10 @@ async function renderAdminCityGuide() {
       <div style="font-size:10px;opacity:.7;margin-bottom:2px">${p.desc||''}</div>
       <div style="font-size:9px;opacity:.5">⏰ ${p.timing||''}</div>
       <div style="display:flex;gap:4px;margin-top:8px">
-        <button class="tbl-action" style="font-size:10px;flex:1" onclick="editCGPlace('${p._id||''}','${p.name.replace(/'/g,"\\'")}','${p.emoji||''}','${p.cat||''}','${p.dist||p.km||''}','${(p.desc||'').replace(/'/g,"\\'")}','${p.timing||''}')">✏️ Edit</button>
+        <button class="tbl-action" style="font-size:10px;flex:1" onclick="editCGPlace(${JSON.stringify(p)})">✏️ ${t('cgEditTitle').replace('✏️ ','')}</button>
         ${p._id ? `<button class="tbl-action" style="font-size:10px;color:#ef4444" onclick="deleteCGPlace('${p._id}')">🗑️</button>` : ''}
       </div>
-    </div>`).join('') || '<p style="opacity:.5;font-size:12px">No places yet.</p>';
+    </div>`).join('') || `<p style="opacity:.5;font-size:12px">${t('cgNoPlaces')}</p>`;
 }
 async function saveCGPlace(e) {
   e.preventDefault();
@@ -9703,33 +9777,37 @@ async function saveCGPlace(e) {
     }
   } catch(_) {}
   renderAdminCityGuide();
-  closeModal('cgModal');
+  closeCGModal();
   e.target.reset();
-  document.getElementById('cgEditId').value = '';
-  showToast(id ? '✅ Place updated' : '📍 Place added', 'success');
+  showToast(id ? ('✅ '+t('cgEditTitle').replace('✏️ ','')) : ('📍 '+t('cgAddBtn').replace('+ ','')), 'success');
 }
 async function deleteCGPlace(id) {
   if (!confirm('Delete this place from city guide?')) return;
   try { await apiDelete(`/api/cityguide/${id}`); } catch(_){}
   adminCityGuide = adminCityGuide.filter(x => x._id !== id);
   renderAdminCityGuide();
-  showToast('🗑️ Place removed', 'info');
+  showToast('🗑️', 'info');
 }
-function editCGPlace(id, name, emoji, cat, dist, desc, timing) {
-  document.getElementById('cgEditId').value = id;
-  document.getElementById('cgName').value = name;
-  document.getElementById('cgEmoji').value = emoji;
-  document.getElementById('cgCat').value = cat;
-  document.getElementById('cgDist').value = dist;
-  document.getElementById('cgDesc').value = desc;
-  document.getElementById('cgTiming').value = timing;
-  document.querySelector('#cgModal .modal-h').textContent = '✏️ Edit Place';
-  openModal('cgModal');
+function editCGPlace(p) {
+  if (typeof p === 'string') { try { p = JSON.parse(p); } catch(_){ return; } }
+  document.getElementById('cgEditId').value = p._id||'';
+  document.getElementById('cgName').value = p.name||'';
+  document.getElementById('cgEmoji').value = p.emoji||'';
+  document.getElementById('cgCat').value = p.cat||'';
+  document.getElementById('cgDist').value = p.dist||p.km||'';
+  document.getElementById('cgDesc').value = p.desc||'';
+  document.getElementById('cgTiming').value = p.timing||'';
+  openCGModal(true);
 }
 async function closeConciergeReq(id) {
   await apiPut(`/api/requests/${id}`, { status: 'closed' });
   const c = conciergeData.find(x=>x._id===id); if(c) c.status='closed';
-  renderConcierge(); showToast('✅ Request closed', 'success');
+  renderConcierge(); showToast(t('conciergeClosed')+' ✅', 'success');
+}
+async function confirmConciergeReq(id) {
+  await apiPut(`/api/requests/${id}`, { status: 'confirmed' });
+  const c = conciergeData.find(x=>x._id===id); if(c) c.status='confirmed';
+  renderConcierge(); showToast('✔️ '+t('conciergeConfirmed'), 'success');
 }
 async function conciergeReply(id) {
   const reply = prompt('Your reply to guest:');
