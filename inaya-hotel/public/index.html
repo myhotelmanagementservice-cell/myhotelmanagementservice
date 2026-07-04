@@ -2676,7 +2676,8 @@ const GUEST_TABS = [
 { id: 'feedbackTab', icon: '⭐', label: 'tabRateStay' },
 { id: 'laundryTab', icon: '👕', label: 'tabLaundryG' },
 { id: 'digitalKeyTab', icon: '🔑', label: 'tabDigitalKey' },
-{ id: 'upgradeTab', icon: '⬆️', label: 'tabUpgrade' }
+{ id: 'upgradeTab', icon: '⬆️', label: 'tabUpgrade' },
+{ id: 'lostfoundTab', icon: '🧳', label: 'tabLostFound' }
 ];
 const TYPE_MAP = {
 'Standard': 'standard',
@@ -5486,6 +5487,25 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}</option>`).join('')
 <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)">🎁 Current Offers & Deals</h3>
 <p style="font-size:12px;opacity:.6;margin-bottom:12px">Exclusive discounts and special deals for our valued guests.</p>
 <div id="gOffersGrid"></div>
+</div>
+<div class="card hidden" id="gp-lostfoundTab">
+<h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="tabLostFound">💼 Lost &amp; Found</h3>
+<p style="font-size:12px;opacity:.6;margin-bottom:12px">Kisi item ke kho jaane par yahan report karein, ya apni report ka status check karein.</p>
+<form onsubmit="submitGuestLostFound(event)">
+<div class="form-row">
+<label class="lbl">Item Name</label>
+<input class="inp" id="glfItem" placeholder="e.g. Blue jacket" required>
+</div>
+<div class="form-row">
+<label class="lbl">Description</label>
+<textarea class="inp" id="glfDesc" rows="2" placeholder="Item aur kahan khoya, uska detail likhein…"></textarea>
+</div>
+<button class="btn-primary" style="width:100%;padding:10px" type="submit">📦 Report Lost Item</button>
+</form>
+<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+<h4 style="font-size:13px;font-weight:600;margin-bottom:8px">My Reports</h4>
+<div id="gLostFoundList"></div>
+</div>
 </div>
 <div class="card hidden" id="gp-roomctrlTab">
 <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--fg)">🌡️ Room Controls</h3>
