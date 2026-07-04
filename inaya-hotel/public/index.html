@@ -4223,6 +4223,32 @@ socket.on('chat_upd', (payload) => {
   } catch(e) { console.error('chat_upd error:', e); }
 });
 
+// City Guide real-time sync
+socket.on('cityguide_upd', (payload) => {
+  try {
+    const d = (payload && payload.data) ? payload.data : payload;
+    if (!d || d.hotelId !== HID) return;
+    try {
+      if (d.deleted) {
+        adminCityGuide = adminCityGuide.filter(x => String(x._id) !== String(d._id));
+        cityGuideData = cityGuideData.filter(x => String(x._id) !== String(d._id));
+      } else {
+        const idx = adminCityGuide.findIndex(x => String(x._id) === String(d._id));
+        if (idx > -1) adminCityGuide[idx] = { ...adminCityGuide[idx], ...d };
+        else adminCityGuide.push(d);
+        const idx2 = cityGuideData.findIndex(x => String(x._id) === String(d._id));
+        if (idx2 > -1) cityGuideData[idx2] = { ...cityGuideData[idx2], ...d };
+        else cityGuideData.push(d);
+      }
+    } catch(e) {}
+    try { if (sessionStorage.getItem('currentTab') === 'concierge') renderAdminCityGuide(); } catch(e) {}
+    try {
+      const cgEl = document.getElementById('gp-cityguideTab');
+      if (cgEl && !cgEl.classList.contains('hidden')) renderCityGuide();
+    } catch(e) {}
+  } catch(e) { console.error('cityguide_upd error:', e); }
+});
+
 // Housekeeping real-time (Admin re-render)
 socket.on('housekeeping_upd', (payload) => {
   try {
@@ -6605,7 +6631,14 @@ return `<div class="card"><div style="display:flex;justify-content:space-between
 case 'laundry':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">👕 Laundry Management</h3><button class="btn-primary" onclick="openModal('laundryModal')">+ New Order</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-bottom:12px"><div class="stat-card"><div class="stat-val" id="lndPending" style="color:#f59e0b">—</div><div class="stat-lbl">${t('filterPending')}</div></div><div class="stat-card"><div class="stat-val" id="lndInProgress" style="color:#6366f1">—</div><div class="stat-lbl">${t('filterInProgress')}</div></div><div class="stat-card"><div class="stat-val" id="lndReady" style="color:#10b981">—</div><div class="stat-lbl">Ready</div></div><div class="stat-card"><div class="stat-val" id="lndRevenue" style="color:#f59e0b">—</div><div class="stat-lbl">${t('statRevenue')}</div></div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>${t('thGuest')}</th><th>${t('thRoom')}</th><th>${t('thItems')}</th><th>${t('thService')}</th><th>${t('thPickup')}</th><th>Delivery</th><th>Amount</th><th>${t('thStatus')}</th><th>${t('thActions')}</th></tr></thead><tbody id="laundryTbody"></tbody></table></div></div>`;
 case 'concierge':
-return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🎩 Concierge Desk</h3><button class="btn-primary" onclick="openModal('conciergeModal')">+ Log Request</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px"><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('all')"><div style="font-size:22px">📋</div><div class="stat-val" id="concAll" style="color:#6366f1">—</div><div class="stat-lbl">${t('statTotalToday')}</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('tours')"><div style="font-size:22px">🗺️</div><div class="stat-val" id="concTours" style="color:#10b981">—</div><div class="stat-lbl">${t('statTourReq')}</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('dining')"><div style="font-size:22px">🍽️</div><div class="stat-val" id="concDining" style="color:#f59e0b">—</div><div class="stat-lbl">${t('statDiningRes')}</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('transport')"><div style="font-size:22px">🚗</div><div class="stat-val" id="concTransport" style="color:#8b5cf6">—</div><div class="stat-lbl">${t('statConcTransport')}</div></div></div><div id="conciergeList" style="display:flex;flex-direction:column;gap:8px"></div></div>`;
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🎩 Concierge Desk</h3><button class="btn-primary" onclick="openModal('conciergeModal')">+ Log Request</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px"><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('all')"><div style="font-size:22px">📋</div><div class="stat-val" id="concAll" style="color:#6366f1">—</div><div class="stat-lbl">${t('statTotalToday')}</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('tours')"><div style="font-size:22px">🗺️</div><div class="stat-val" id="concTours" style="color:#10b981">—</div><div class="stat-lbl">${t('statTourReq')}</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('dining')"><div style="font-size:22px">🍽️</div><div class="stat-val" id="concDining" style="color:#f59e0b">—</div><div class="stat-lbl">${t('statDiningRes')}</div></div><div class="stat-card" style="cursor:pointer" onclick="filterConcierge('transport')"><div style="font-size:22px">🚗</div><div class="stat-val" id="concTransport" style="color:#8b5cf6">—</div><div class="stat-lbl">${t('statConcTransport')}</div></div></div><div id="conciergeList" style="display:flex;flex-direction:column;gap:8px"></div>
+<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <h4 style="font-size:13px;font-weight:700;color:var(--fg)">🗺️ City Guide & Attractions</h4>
+    <button class="btn-primary" style="font-size:11px;padding:6px 12px" onclick="openModal('cgModal')">+ Add Place</button>
+  </div>
+  <div id="adminCityGuideGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
+</div></div>`;
 default:
 return '';
 }
@@ -6646,7 +6679,7 @@ if (id === 'feedback') { renderAdminFeedback(); }
 if (id === 'notifications') { renderNotifications(); }
 if (id === 'floormap') { renderFloorMap(); }
 if (id === 'laundry') { renderAdminLaundry(); }
-if (id === 'concierge') { renderConcierge(); }
+if (id === 'concierge') { renderConcierge(); renderAdminCityGuide(); }
 if (id === 'settings') { loadSubscriptionStatus(); }
 sessionStorage.setItem('currentTab', id);
 // Auto-scroll active tab into center of tabs bar (horizontal only)
@@ -7430,6 +7463,29 @@ ${departments.filter(d => d.isEnabled).map(d => `<option value="${d.key}">${d.em
 <div style="display:flex;gap:6px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit">${t('concLogBtn')}</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('conciergeModal')">${t('cancelBtn')}</button>
+</div>
+</form>
+</div>
+</div>
+
+<div class="modal-overlay" id="cgModal">
+<div class="modal-box">
+<div class="modal-h">📍 Add Place to City Guide</div>
+<form onsubmit="saveCGPlace(event)">
+<input type="hidden" id="cgEditId">
+<div class="form-2">
+<div class="form-row"><label class="lbl">Place Name</label><input class="inp" id="cgName" placeholder="e.g. Grand Mosque" required></div>
+<div class="form-row"><label class="lbl">Emoji</label><input class="inp" id="cgEmoji" placeholder="🕌" maxlength="4"></div>
+</div>
+<div class="form-2">
+<div class="form-row"><label class="lbl">Category</label><input class="inp" id="cgCat" placeholder="Religious / Shopping / Nature…"></div>
+<div class="form-row"><label class="lbl">Distance / KM</label><input class="inp" id="cgDist" placeholder="e.g. 2.5 km"></div>
+</div>
+<div class="form-row"><label class="lbl">Description</label><textarea class="inp" id="cgDesc" rows="2" placeholder="Brief description of the place"></textarea></div>
+<div class="form-row"><label class="lbl">Opening Hours / Timing</label><input class="inp" id="cgTiming" placeholder="e.g. 9am – 6pm"></div>
+<div style="display:flex;gap:6px;margin-top:14px">
+<button class="btn-primary" style="flex:1" type="submit">💾 Save</button>
+<button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('cgModal');document.getElementById('cgEditId').value='';document.querySelector('#cgModal .modal-h').textContent='📍 Add Place to City Guide'">Cancel</button>
 </div>
 </form>
 </div>
@@ -8227,9 +8283,13 @@ showToast('🗑️ Task deleted', 'info');
 // ============================================================
 // OFFERS & DISCOUNTS
 // ============================================================
-function renderOffers() {
+async function renderOffers() {
 const el = document.getElementById('offersGrid');
 if (!el) return;
+try {
+  const r = await fetch(`/api/offers?hotelId=${HID}`);
+  if (r.ok) offers = await r.json();
+} catch(_) {}
 el.innerHTML = offers.length ? offers.map(o => `
 <div class="req-card" style="border-left:4px solid ${o.isActive?'var(--p1)':'var(--border)'};margin-bottom:8px">
 <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">
@@ -9314,23 +9374,33 @@ const CITY_GUIDE = [
   {name:'Go-Kart Track',emoji:'🏎️',cat:'Entertainment',dist:'8.0 km',desc:'Racing tracks for all ages',timing:'2pm-11pm'},
   {name:'Camel Farm',emoji:'🐪',cat:'Nature',dist:'12 km',desc:'Authentic desert experience',timing:'7am-7pm'}
 ];
-function renderCityGuide() {
+let cityGuideData = [];
+async function renderCityGuide() {
   const el = document.getElementById('cityGuideGrid');
   if(!el) return;
-  el.innerHTML = CITY_GUIDE.map(p=>`<div style="background:var(--card2);border-radius:10px;padding:10px;cursor:pointer;transition:.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-    <div style="font-size:28px;margin-bottom:4px">${p.emoji}</div>
+  try {
+    const r = await fetch(`/api/cityguide?hotelId=${HID}`);
+    if (r.ok) {
+      const data = await r.json();
+      cityGuideData = data.length ? data : CITY_GUIDE;
+    } else { cityGuideData = CITY_GUIDE; }
+  } catch(_) { cityGuideData = CITY_GUIDE; }
+  el.innerHTML = cityGuideData.map(p=>`<div style="background:var(--card2);border-radius:10px;padding:10px;cursor:pointer;transition:.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+    <div style="font-size:28px;margin-bottom:4px">${p.emoji||'📍'}</div>
     <div style="font-weight:700;font-size:12px">${p.name}</div>
-    <div style="font-size:10px;background:var(--card);border-radius:4px;padding:1px 5px;display:inline-block;margin:2px 0">${p.cat}</div>
-    <div style="font-size:10px;opacity:.6">${p.dist} away</div>
-    <div style="font-size:10px;opacity:.7;margin-top:2px">${p.desc}</div>
-    <div style="font-size:9px;opacity:.5;margin-top:2px">⏰ ${p.timing}</div>
-    <button class="btn-ghost" style="width:100%;font-size:10px;padding:4px;margin-top:6px" onclick="requestConciergeTour('${p.name}')">📍 Request Tour</button>
+    <div style="font-size:10px;background:var(--card);border-radius:4px;padding:1px 5px;display:inline-block;margin:2px 0">${p.cat||''}</div>
+    <div style="font-size:10px;opacity:.6">${p.dist||p.km||''} away</div>
+    <div style="font-size:10px;opacity:.7;margin-top:2px">${p.desc||''}</div>
+    <div style="font-size:9px;opacity:.5;margin-top:2px">⏰ ${p.timing||''}</div>
+    <button class="btn-ghost" style="width:100%;font-size:10px;padding:4px;margin-top:6px" onclick="requestConciergeTour('${p.name.replace(/'/g,"\\'")}')">📍 Request Tour</button>
   </div>`).join('');
 }
 async function requestConciergeTour(place) {
   if(!currentUser) { showToast('Please login first', 'error'); return; }
-  await apiPost('/api/requests', { hotelId: HID, guestName: currentUser.name, room: currentUser.room, category: 'guest_relations', department: 'Concierge', description: `Tour request: ${place}`, status: 'open', priority: 'medium', time: new Date().toISOString() });
-  showToast(`🗺️ Tour request for ${place} sent to concierge!`, 'success');
+  try {
+    await apiPost('/api/requests', { hotelId: HID, guestName: currentUser.name, roomNumber: String(currentUser.room), room: String(currentUser.room), category: 'guest_relations', department: 'Concierge', description: `Tour request: ${place}`, status: 'open', priority: 'medium', time: new Date().toISOString() });
+    showToast(`🗺️ Tour request for ${place} sent to concierge!`, 'success');
+  } catch(e) { showToast('Request failed, please try again', 'error'); }
 }
 
 // ============================================================
@@ -9440,14 +9510,23 @@ function renderNotifications() {
   const list = document.getElementById('notifList');
   if (!list) return;
   const typeIcons = { billing:'💰', restaurant:'🍽️', tablebookings:'🪑', spa:'💆', events:'🎪', wakeupcalls:'⏰', parking:'🅿️', feedback:'⭐', laundry:'👕', requests:'📋', rooms:'🏨', default:'🔔' };
-  list.innerHTML = d.length ? d.map(n=>`<div style="display:flex;align-items:flex-start;gap:10px;background:var(--card2);border-radius:8px;padding:10px;border-left:3px solid ${n.read?'var(--border)':'var(--p1)'};cursor:pointer" onclick="markNotifRead(${n.id})">
+  list.innerHTML = d.length ? d.map(n=>{
+    const ts = n.time ? new Date(n.time) : null;
+    const clockTime = ts ? ts.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:true}) : '';
+    const dateStr = ts ? ts.toLocaleDateString([], {day:'2-digit', month:'short'}) : '';
+    const relTime = formatRelTime(n.time);
+    return `<div style="display:flex;align-items:flex-start;gap:10px;background:var(--card2);border-radius:8px;padding:10px;border-left:3px solid ${n.read?'var(--border)':'var(--p1)'};cursor:pointer" onclick="markNotifRead(${n.id})">
     <span style="font-size:20px;min-width:28px">${typeIcons[n.type]||'🔔'}</span>
     <div style="flex:1">
       <div style="font-size:12px;font-weight:${n.read?'400':'600'}">${n.message||''}</div>
-      <div style="font-size:10px;opacity:.5;margin-top:2px">${formatRelTime(n.time)}</div>
+      <div style="font-size:10px;opacity:.6;margin-top:3px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        ${clockTime?`<span style="background:var(--card);padding:1px 6px;border-radius:4px;font-weight:600">🕐 ${clockTime}</span>`:''}
+        ${dateStr?`<span>${dateStr}</span>`:''}
+        <span style="opacity:.7">${relTime}</span>
+      </div>
     </div>
     ${!n.read?'<span style="width:8px;height:8px;background:var(--p1);border-radius:50%;margin-top:4px;flex-shrink:0"></span>':''}
-  </div>`).join('') : `<div style="text-align:center;opacity:.4;padding:40px">${t('noNotifications')}</div>`;
+  </div>`;}).join('') : `<div style="text-align:center;opacity:.4;padding:40px">${t('noNotifications')}</div>`;
 }
 function markNotifRead(id) {
   const n = notifications.find(x=>x.id===id);
@@ -9573,6 +9652,80 @@ async function renderConcierge(filter='all') {
   </div>`).join('') : `<div style="opacity:.4;text-align:center;padding:20px">${t('noConcierge')}</div>`;
 }
 function filterConcierge(f) { renderConcierge(f); }
+
+// ============================================================
+// ADMIN CITY GUIDE MANAGEMENT
+// ============================================================
+let adminCityGuide = [];
+async function renderAdminCityGuide() {
+  const el = document.getElementById('adminCityGuideGrid');
+  if (!el) return;
+  try {
+    const r = await fetch(`/api/cityguide?hotelId=${HID}`);
+    if (r.ok) {
+      const data = await r.json();
+      adminCityGuide = data.length ? data : [...CITY_GUIDE];
+    } else { adminCityGuide = [...CITY_GUIDE]; }
+  } catch(_) { adminCityGuide = [...CITY_GUIDE]; }
+  el.innerHTML = adminCityGuide.map(p => `
+    <div style="background:var(--card2);border-radius:10px;padding:10px;position:relative">
+      <div style="font-size:22px;margin-bottom:4px">${p.emoji||'📍'}</div>
+      <div style="font-weight:700;font-size:12px;margin-bottom:2px">${p.name}</div>
+      <div style="font-size:10px;color:var(--p1);margin-bottom:2px">${p.cat||''} · ${p.dist||p.km||''}</div>
+      <div style="font-size:10px;opacity:.7;margin-bottom:2px">${p.desc||''}</div>
+      <div style="font-size:9px;opacity:.5">⏰ ${p.timing||''}</div>
+      <div style="display:flex;gap:4px;margin-top:8px">
+        <button class="tbl-action" style="font-size:10px;flex:1" onclick="editCGPlace('${p._id||''}','${p.name.replace(/'/g,"\\'")}','${p.emoji||''}','${p.cat||''}','${p.dist||p.km||''}','${(p.desc||'').replace(/'/g,"\\'")}','${p.timing||''}')">✏️ Edit</button>
+        ${p._id ? `<button class="tbl-action" style="font-size:10px;color:#ef4444" onclick="deleteCGPlace('${p._id}')">🗑️</button>` : ''}
+      </div>
+    </div>`).join('') || '<p style="opacity:.5;font-size:12px">No places yet.</p>';
+}
+async function saveCGPlace(e) {
+  e.preventDefault();
+  const id = document.getElementById('cgEditId').value;
+  const obj = {
+    hotelId: HID,
+    name: document.getElementById('cgName').value,
+    emoji: document.getElementById('cgEmoji').value || '📍',
+    cat: document.getElementById('cgCat').value,
+    dist: document.getElementById('cgDist').value,
+    desc: document.getElementById('cgDesc').value,
+    timing: document.getElementById('cgTiming').value
+  };
+  try {
+    if (id) {
+      await apiPut(`/api/cityguide/${id}`, obj);
+      const idx = adminCityGuide.findIndex(x => x._id === id);
+      if (idx > -1) adminCityGuide[idx] = { ...adminCityGuide[idx], ...obj };
+    } else {
+      const res = await apiPost('/api/cityguide', obj);
+      if (res && (res._id || res.insertedId)) adminCityGuide.push({ ...obj, _id: String(res._id || res.insertedId) });
+    }
+  } catch(_) {}
+  renderAdminCityGuide();
+  closeModal('cgModal');
+  e.target.reset();
+  document.getElementById('cgEditId').value = '';
+  showToast(id ? '✅ Place updated' : '📍 Place added', 'success');
+}
+async function deleteCGPlace(id) {
+  if (!confirm('Delete this place from city guide?')) return;
+  try { await apiDelete(`/api/cityguide/${id}`); } catch(_){}
+  adminCityGuide = adminCityGuide.filter(x => x._id !== id);
+  renderAdminCityGuide();
+  showToast('🗑️ Place removed', 'info');
+}
+function editCGPlace(id, name, emoji, cat, dist, desc, timing) {
+  document.getElementById('cgEditId').value = id;
+  document.getElementById('cgName').value = name;
+  document.getElementById('cgEmoji').value = emoji;
+  document.getElementById('cgCat').value = cat;
+  document.getElementById('cgDist').value = dist;
+  document.getElementById('cgDesc').value = desc;
+  document.getElementById('cgTiming').value = timing;
+  document.querySelector('#cgModal .modal-h').textContent = '✏️ Edit Place';
+  openModal('cgModal');
+}
 async function closeConciergeReq(id) {
   await apiPut(`/api/requests/${id}`, { status: 'closed' });
   const c = conciergeData.find(x=>x._id===id); if(c) c.status='closed';
@@ -9847,6 +10000,7 @@ async function saveConciergeRequest(e) {
   const req = {
     hotelId: HID,
     guestName: document.getElementById('mConcGuest').value,
+    roomNumber: document.getElementById('mConcRoom').value,
     room: document.getElementById('mConcRoom').value,
     category: 'guest_relations',
     department: 'Concierge',
@@ -9855,8 +10009,10 @@ async function saveConciergeRequest(e) {
     priority: document.getElementById('mConcPriority').value,
     time: new Date().toISOString()
   };
-  await apiPost('/api/requests', req);
-  conciergeData.unshift(req);
+  try {
+    const res = await apiPost('/api/requests', req);
+    if (res && (res._id || res.insertedId)) req._id = String(res._id || res.insertedId);
+  } catch(_){}
   renderConcierge();
   closeModal('conciergeModal');
   e.target.reset();

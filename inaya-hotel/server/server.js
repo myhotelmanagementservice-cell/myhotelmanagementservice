@@ -3838,6 +3838,53 @@ app.post('/api/feedback/guest', async (req, res) => {
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// ======================== CITY GUIDE ========================
+
+app.get('/api/cityguide', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json([]);
+    const data = await db.collection('cityguide').find({ hotelId }).sort({ _id: 1 }).toArray();
+    data.forEach(d => { if (d._id) d._id = d._id.toString(); });
+    res.json(data);
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/cityguide', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const entry = { hotelId, ...req.body };
+    if (!dbConnected) { entry._id = 'cg_'+Date.now(); return res.status(201).json({ ...entry, success: true }); }
+    const result = await db.collection('cityguide').insertOne(entry);
+    entry._id = result.insertedId.toString();
+    broadcast(hotelId, 'cityguide_upd', entry, req.clientId);
+    res.status(201).json({ ...entry, success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.put('/api/cityguide/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) return res.json({ success: true });
+    const update = { ...req.body }; delete update._id;
+    await db.collection('cityguide').updateOne({ _id: parseId(id), hotelId }, { $set: update });
+    broadcast(hotelId, 'cityguide_upd', { _id: id, hotelId, ...update }, req.clientId);
+    res.json({ success: true, _id: id, ...update });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.delete('/api/cityguide/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) return res.json({ success: true });
+    await db.collection('cityguide').deleteOne({ _id: parseId(id), hotelId });
+    broadcast(hotelId, 'cityguide_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 app.use('/api/*', (req, res) => {
   res.status(404).json({ success: false, error: 'API endpoint not found' });
 });
