@@ -5886,9 +5886,9 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}</option>`).join('')
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
 <div class="form-row"><label class="lbl">${t('lndServiceType')}</label>
 <select class="inp" id="lndService">
-<option value="standard">${t('gLndStd')}</option>
-<option value="express">${t('gLndExpress')}</option>
-<option value="drycleaning">${t('gLndDry')}</option>
+<option value="standard">👕 Standard — ${formatPrice(15)}/item</option>
+<option value="express">⚡ Express — ${formatPrice(25)}/item</option>
+<option value="drycleaning">🧴 Dry Cleaning — ${formatPrice(35)}/item</option>
 </select></div>
 <div class="form-row"><label class="lbl">${t('lndPickupTime')}</label><input class="inp" id="lndPickup" type="datetime-local"></div>
 </div>
@@ -9877,8 +9877,11 @@ async function submitLaundryOrder() {
   if (!items.length) { showToast('Please select at least one item','error'); return; }
   const service = document.getElementById('lndService')?.value || 'standard';
   const pickup = document.getElementById('lndPickup')?.value;
-  const prices = { standard: items.reduce((s,i)=>s+15,0), express: items.reduce((s,i)=>s+25,0), drycleaning: items.reduce((s,i)=>s+35,0) };
-  const order = { hotelId: HID, guestName: currentUser.name, room: currentUser.room, items, service, pickupTime: pickup||new Date().toISOString(), status: 'pending', amount: prices[service]||0, createdAt: new Date().toISOString() };
+  const sarPrices = { standard: 15, express: 25, drycleaning: 35 };
+  const totalItems = items.reduce((s,i)=>{ const qty=parseInt((i.match(/x(\d+)/)||[])[1]||'1'); return s+qty; },0)||items.length;
+  const sarBase = (sarPrices[service]||15) * totalItems;
+  const formattedAmt = formatPrice(sarBase);
+  const order = { hotelId: HID, guestName: currentUser.name, room: currentUser.room, items, service, pickupTime: pickup||new Date().toISOString(), status: 'pending', amount: formattedAmt, createdAt: new Date().toISOString() };
   await apiPost('/api/laundry', order);
   myLaundryCart = {};
   renderLaundryItems();
