@@ -746,6 +746,14 @@ lostUnclaimed: '📦 Unclaimed',
 lostClaimed: '🙋 Claimed',
 lostReturned: '✅ Returned',
 noLostFound: 'No lost & found items. Click "+ Add Item" to log one.',
+lfIntro: 'Report a lost item, or check the status of items you have reported.',
+lfItemLabel: 'Item Name',
+lfDescLabel: 'Description',
+lfItemPh: 'e.g. Blue jacket',
+lfDescPh: 'Describe the item and where you may have lost it…',
+lfReportBtn: '📦 Report Lost Item',
+lfMyReports: 'My Reports',
+lfNoReports: 'No reports yet.',
 noTransport: 'No transport bookings yet. Guests book cabs from their Transport tab.',
 noChat: 'No messages yet. Guests can chat from their Chat tab.',
 chatYou: 'You',
@@ -1421,6 +1429,14 @@ lostUnclaimed: '📦 बिना दावे का',
 lostClaimed: '🙋 दावा हुआ',
 lostReturned: '✅ वापस किया',
 noLostFound: 'कोई खोया-पाया आइटम नहीं। "+ आइटम जोड़ें" क्लिक करें।',
+lfIntro: 'किसी खोई हुई वस्तु की रिपोर्ट करें, या अपनी रिपोर्ट की स्थिति जांचें।',
+lfItemLabel: 'वस्तु का नाम',
+lfDescLabel: 'विवरण',
+lfItemPh: 'जैसे: नीली जैकेट',
+lfDescPh: 'वस्तु और कहाँ खोई, उसका विवरण लिखें…',
+lfReportBtn: '📦 खोई वस्तु रिपोर्ट करें',
+lfMyReports: 'मेरी रिपोर्ट्स',
+lfNoReports: 'अभी तक कोई रिपोर्ट नहीं।',
 noTransport: 'कोई ट्रांसपोर्ट बुकिंग नहीं। अतिथि अपने ट्रांसपोर्ट टैब से बुक करते हैं।',
 noChat: 'कोई संदेश नहीं। अतिथि चैट टैब से बात कर सकते हैं।',
 chatYou: 'आप',
@@ -2096,6 +2112,14 @@ lostUnclaimed: '📦 غير مطالب به',
 lostClaimed: '🙋 مطالب به',
 lostReturned: '✅ تم الإرجاع',
 noLostFound: 'لا توجد مفقودات. انقر على "+ إضافة عنصر".',
+lfIntro: 'أبلغ عن غرض مفقود، أو تحقق من حالة العناصر التي أبلغت عنها.',
+lfItemLabel: 'اسم العنصر',
+lfDescLabel: 'الوصف',
+lfItemPh: 'مثال: سترة زرقاء',
+lfDescPh: 'صف العنصر ومكان فقدانه…',
+lfReportBtn: '📦 الإبلاغ عن غرض مفقود',
+lfMyReports: 'تقاريري',
+lfNoReports: 'لا توجد تقارير حتى الآن.',
 noTransport: 'لا يوجد حجوزات نقل بعد. يحجز الضيوف من تبويب النقل.',
 noChat: 'لا توجد رسائل بعد. يمكن للضيوف الدردشة من تبويب المحادثة.',
 chatYou: 'أنت',
@@ -5490,20 +5514,20 @@ ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}">${n}</option>`).join('')
 </div>
 <div class="card hidden" id="gp-lostfoundTab">
 <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="tabLostFound">💼 Lost &amp; Found</h3>
-<p style="font-size:12px;opacity:.6;margin-bottom:12px">Kisi item ke kho jaane par yahan report karein, ya apni report ka status check karein.</p>
+<p style="font-size:12px;opacity:.6;margin-bottom:12px" data-i18n="lfIntro">Report a lost item, or check the status of items you have reported.</p>
 <form onsubmit="submitGuestLostFound(event)">
 <div class="form-row">
-<label class="lbl">Item Name</label>
-<input class="inp" id="glfItem" placeholder="e.g. Blue jacket" required>
+<label class="lbl" data-i18n="lfItemLabel">Item Name</label>
+<input class="inp" id="glfItem" data-i18n-ph="lfItemPh" placeholder="e.g. Blue jacket" required>
 </div>
 <div class="form-row">
-<label class="lbl">Description</label>
-<textarea class="inp" id="glfDesc" rows="2" placeholder="Item aur kahan khoya, uska detail likhein…"></textarea>
+<label class="lbl" data-i18n="lfDescLabel">Description</label>
+<textarea class="inp" id="glfDesc" rows="2" data-i18n-ph="lfDescPh" placeholder="Describe the item and where you may have lost it…"></textarea>
 </div>
-<button class="btn-primary" style="width:100%;padding:10px" type="submit">📦 Report Lost Item</button>
+<button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="lfReportBtn">📦 Report Lost Item</button>
 </form>
 <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
-<h4 style="font-size:13px;font-weight:600;margin-bottom:8px">My Reports</h4>
+<h4 style="font-size:13px;font-weight:600;margin-bottom:8px" data-i18n="lfMyReports">My Reports</h4>
 <div id="gLostFoundList"></div>
 </div>
 </div>
@@ -5772,6 +5796,7 @@ if (id === 'feedbackTab') { initStarRatings(); renderPublicReviews(); }
 if (id === 'laundryTab') { renderMyLaundry(); }
 if (id === 'digitalKeyTab') { renderDigitalKey(); }
 if (id === 'upgradeTab') { renderUpgradeRequest(); }
+if (id === 'lostfoundTab') { renderGuestLostFound(); }
 sessionStorage.setItem('currentTab', 'guest_' + id);
 }
 function renderGuestFood() {
@@ -8218,6 +8243,40 @@ closeModal('lfModal');
 e.target.reset();
 showToast('💼 Item logged in Lost & Found!', 'success');
 }
+async function submitGuestLostFound(e) {
+e.preventDefault();
+const obj = {
+_id: 'lf_' + Date.now(),
+hotelId: HID,
+item: document.getElementById('glfItem').value,
+description: document.getElementById('glfDesc').value,
+location: '',
+foundDate: new Date().toISOString().split('T')[0],
+guestName: currentUser?.name || '',
+room: currentUser?.room || '',
+status: 'unclaimed',
+_version: 1
+};
+lostfound.push(obj);
+try { await save('lostfound', lostfound); } catch(_){}
+renderGuestLostFound();
+showToast(t('lfReportBtn'), 'success');
+e.target.reset();
+}
+function renderGuestLostFound() {
+const el = document.getElementById('gLostFoundList');
+if (!el) return;
+const myItems = lostfound.filter(x => x.guestName === currentUser?.name);
+el.innerHTML = myItems.map(lf => `
+<div class="req-card">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<strong>${lf.item}</strong>
+<span class="badge badge-${lf.status}">${lf.status}</span>
+</div>
+<p style="font-size:12px;opacity:.7;margin-top:4px">${lf.description || ''}</p>
+</div>
+`).join('') || `<p style="font-size:12px;opacity:.5;text-align:center">${t('lfNoReports')}</p>`;
+}    
 async function updateLFStatus(id, status) {
 const lf = lostfound.find(x => x._id === id);
 if (!lf) return;
