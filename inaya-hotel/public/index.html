@@ -810,9 +810,13 @@ cgDistLbl: 'Distance / KM',
 cgDescLbl: 'Description',
 cgTimingLbl: 'Opening Hours / Timing',
 cgSaveBtn: '💾 Save',
+cgPriceLbl: 'Entry Fee / Price',
+cgPricePh: 'e.g. SAR 50 or Free',
 cgNoPlaces: 'No places yet.',
 cgAddBtn: '+ Add Place',
 cgCityGuideTitle: '🗺️ City Guide Management',
+cgFree: 'Free',
+cgRequestTourBtn: '📍 Request Visit',
 noConcierge: 'No concierge requests',
 conciergeRoom: 'Room',
 guestNameLbl: 'Guest Name',
@@ -1508,9 +1512,13 @@ cgDistLbl: 'दूरी / KM',
 cgDescLbl: 'विवरण',
 cgTimingLbl: 'खुलने का समय',
 cgSaveBtn: '💾 सेव करें',
+cgPriceLbl: 'प्रवेश शुल्क / मूल्य',
+cgPricePh: 'जैसे SAR 50 या मुफ़्त',
 cgNoPlaces: 'अभी कोई जगह नहीं।',
 cgAddBtn: '+ जगह जोड़ें',
 cgCityGuideTitle: '🗺️ सिटी गाइड प्रबंधन',
+cgFree: 'मुफ़्त',
+cgRequestTourBtn: '📍 विज़िट अनुरोध',
 noConcierge: 'कोई कंसीयर्ज अनुरोध नहीं',
 conciergeRoom: 'कमरा',
 guestNameLbl: 'अतिथि का नाम',
@@ -2206,9 +2214,13 @@ cgDistLbl: 'المسافة / كم',
 cgDescLbl: 'الوصف',
 cgTimingLbl: 'مواعيد الفتح',
 cgSaveBtn: '💾 حفظ',
+cgPriceLbl: 'رسوم الدخول / السعر',
+cgPricePh: 'مثال: ٥٠ ريال أو مجاني',
 cgNoPlaces: 'لا توجد أماكن بعد.',
 cgAddBtn: '+ إضافة مكان',
 cgCityGuideTitle: '🗺️ إدارة دليل المدينة',
+cgFree: 'مجاني',
+cgRequestTourBtn: '📍 طلب زيارة',
 noConcierge: 'لا توجد طلبات الكونسيرج',
 conciergeRoom: 'الغرفة',
 guestNameLbl: 'اسم الضيف',
@@ -7528,6 +7540,7 @@ ${departments.filter(d => d.isEnabled).map(d => `<option value="${d.key}">${d.em
 </div>
 <div class="form-row"><label class="lbl" id="cgLblDesc">Description</label><textarea class="inp" id="cgDesc" rows="2"></textarea></div>
 <div class="form-row"><label class="lbl" id="cgLblTiming">Opening Hours</label><input class="inp" id="cgTiming" placeholder="e.g. 9am – 6pm"></div>
+<div class="form-row"><label class="lbl" id="cgLblPrice">Entry Fee / Price</label><input class="inp" id="cgPrice" placeholder="e.g. SAR 50 or Free"></div>
 <div style="display:flex;gap:6px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit" id="cgSaveBtn">💾 Save</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeCGModal()">Cancel</button>
@@ -9437,14 +9450,16 @@ async function renderCityGuide() {
     <div style="font-size:10px;opacity:.6">${p.dist||p.km||''} away</div>
     <div style="font-size:10px;opacity:.7;margin-top:2px">${p.desc||''}</div>
     <div style="font-size:9px;opacity:.5;margin-top:2px">⏰ ${p.timing||''}</div>
-    <button class="btn-ghost" style="width:100%;font-size:10px;padding:4px;margin-top:6px" onclick="requestConciergeTour('${p.name.replace(/'/g,"\\'")}')">📍 Request Tour</button>
+    <div style="margin-top:5px;font-size:12px;font-weight:700;${p.price?'color:var(--p1)':'color:#10b981'}">${p.price ? '💰 '+p.price : '✅ '+t('cgFree')}</div>
+    <button class="btn-ghost" style="width:100%;font-size:10px;padding:4px;margin-top:6px" onclick="requestConciergeTour('${p.name.replace(/'/g,"\\'")}','${(p.price||'').replace(/'/g,"\\'")}')">📍 ${t('cgRequestTourBtn')}</button>
   </div>`).join('');
 }
-async function requestConciergeTour(place) {
+async function requestConciergeTour(place, price) {
   if(!currentUser) { showToast('Please login first', 'error'); return; }
+  const priceInfo = price ? ` | ${t('cgPriceLbl')}: ${price}` : ` | ${t('cgFree')}`;
   try {
-    await apiPost('/api/requests', { hotelId: HID, guestName: currentUser.name, roomNumber: String(currentUser.room), room: String(currentUser.room), category: 'guest_relations', department: 'Concierge', description: `Tour request: ${place}`, status: 'open', priority: 'medium', time: new Date().toISOString() });
-    showToast(`🗺️ Tour request for ${place} sent to concierge!`, 'success');
+    await apiPost('/api/requests', { hotelId: HID, guestName: currentUser.name, roomNumber: String(currentUser.room), room: String(currentUser.room), category: 'guest_relations', department: 'Concierge', description: `Tour request: ${place}${priceInfo}`, status: 'open', priority: 'medium', time: new Date().toISOString() });
+    showToast(`🗺️ ${place} — ${t('cgRequestTourBtn')}!`, 'success');
   } catch(e) { showToast('Request failed, please try again', 'error'); }
 }
 
@@ -9718,8 +9733,10 @@ function openCGModal(isEdit) {
   const saveEl = document.getElementById('cgSaveBtn');
   if (titleEl) titleEl.textContent = isEdit ? t('cgEditTitle') : t('cgModalTitle');
   if (saveEl) saveEl.textContent = t('cgSaveBtn');
-  const ids = { cgLblName:'cgPlaceNameLbl', cgLblEmoji:'cgEmojiLbl', cgLblCat:'cgCatLbl', cgLblDist:'cgDistLbl', cgLblDesc:'cgDescLbl', cgLblTiming:'cgTimingLbl' };
+  const ids = { cgLblName:'cgPlaceNameLbl', cgLblEmoji:'cgEmojiLbl', cgLblCat:'cgCatLbl', cgLblDist:'cgDistLbl', cgLblDesc:'cgDescLbl', cgLblTiming:'cgTimingLbl', cgLblPrice:'cgPriceLbl' };
   Object.entries(ids).forEach(([elId, key]) => { const el=document.getElementById(elId); if(el) el.textContent=t(key); });
+  const priceEl = document.getElementById('cgPrice');
+  if (priceEl) priceEl.placeholder = t('cgPricePh');
   openModal('cgModal');
 }
 function closeCGModal() {
@@ -9748,6 +9765,7 @@ async function renderAdminCityGuide() {
       <div style="font-size:10px;color:var(--p1);margin-bottom:2px">${p.cat||''} · ${p.dist||p.km||''}</div>
       <div style="font-size:10px;opacity:.7;margin-bottom:2px">${p.desc||''}</div>
       <div style="font-size:9px;opacity:.5">⏰ ${p.timing||''}</div>
+      ${p.price ? `<div style="font-size:11px;font-weight:700;color:var(--p1);margin-top:4px">💰 ${p.price}</div>` : `<div style="font-size:10px;color:#10b981;margin-top:4px">✅ ${t('cgFree')}</div>`}
       <div style="display:flex;gap:4px;margin-top:8px">
         <button class="tbl-action" style="font-size:10px;flex:1" onclick="editCGPlace(${JSON.stringify(p)})">✏️ ${t('cgEditTitle').replace('✏️ ','')}</button>
         ${p._id ? `<button class="tbl-action" style="font-size:10px;color:#ef4444" onclick="deleteCGPlace('${p._id}')">🗑️</button>` : ''}
@@ -9764,7 +9782,8 @@ async function saveCGPlace(e) {
     cat: document.getElementById('cgCat').value,
     dist: document.getElementById('cgDist').value,
     desc: document.getElementById('cgDesc').value,
-    timing: document.getElementById('cgTiming').value
+    timing: document.getElementById('cgTiming').value,
+    price: document.getElementById('cgPrice').value.trim()
   };
   try {
     if (id) {
@@ -9797,6 +9816,7 @@ function editCGPlace(p) {
   document.getElementById('cgDist').value = p.dist||p.km||'';
   document.getElementById('cgDesc').value = p.desc||'';
   document.getElementById('cgTiming').value = p.timing||'';
+  document.getElementById('cgPrice').value = p.price||'';
   openCGModal(true);
 }
 async function closeConciergeReq(id) {
