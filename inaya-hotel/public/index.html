@@ -42,6 +42,17 @@ body.theme-sunset{--p1:#f59e0b;--p2:#ef4444;--p3:#b45309;--header:linear-gradien
 body.theme-forest{--p1:#10b981;--p2:#34d399;--p3:#059669;--header:linear-gradient(135deg,#10b981,#059669);--toolbar-bg:rgba(16,185,129,.97)}
 body.theme-ocean{--p1:#06b6d4;--p2:#3b82f6;--p3:#0e7490;--header:linear-gradient(135deg,#06b6d4,#3b82f6);--toolbar-bg:rgba(6,182,212,.97)}
 body.theme-royal{--p1:#ec4899;--p2:#8b5cf6;--p3:#be185d;--header:linear-gradient(135deg,#ec4899,#8b5cf6);--toolbar-bg:rgba(236,72,153,.97)}
+body.theme-midnight{--p1:#1e40af;--p2:#60a5fa;--p3:#1e3a8a;--bg:#eef2ff;--fg:#1e1b4b;--card:#fff;--card2:#f0f4ff;--border:#c7d2fe;--header:linear-gradient(135deg,#1e3a8a,#1e40af);--toolbar-bg:rgba(30,64,175,.97)}
+body.theme-rose{--p1:#f43f5e;--p2:#fb7185;--p3:#be123c;--bg:#fff1f2;--fg:#4c0519;--card:#fff;--card2:#fff1f2;--border:#fecdd3;--header:linear-gradient(135deg,#be123c,#f43f5e);--toolbar-bg:rgba(244,63,94,.97)}
+body.theme-amber{--p1:#d97706;--p2:#fbbf24;--p3:#b45309;--bg:#fffbeb;--fg:#451a03;--card:#fff;--card2:#fef9ee;--border:#fde68a;--header:linear-gradient(135deg,#b45309,#d97706);--toolbar-bg:rgba(217,119,6,.97)}
+body.theme-mint{--p1:#0d9488;--p2:#2dd4bf;--p3:#0f766e;--bg:#f0fdfa;--fg:#042f2e;--card:#fff;--card2:#f0fdfa;--border:#99f6e4;--header:linear-gradient(135deg,#0f766e,#0d9488);--toolbar-bg:rgba(13,148,136,.97)}
+body.theme-ruby{--p1:#dc2626;--p2:#f87171;--p3:#991b1b;--bg:#fff5f5;--fg:#450a0a;--card:#fff;--card2:#fef2f2;--border:#fecaca;--header:linear-gradient(135deg,#991b1b,#dc2626);--toolbar-bg:rgba(220,38,38,.97)}
+body.theme-lavender{--p1:#7c3aed;--p2:#c4b5fd;--p3:#5b21b6;--bg:#f5f3ff;--fg:#2e1065;--card:#fff;--card2:#f5f3ff;--border:#ddd6fe;--header:linear-gradient(135deg,#5b21b6,#7c3aed);--toolbar-bg:rgba(124,58,237,.97)}
+body.theme-coral{--p1:#ea580c;--p2:#fb923c;--p3:#c2410c;--bg:#fff7ed;--fg:#431407;--card:#fff;--card2:#fff7ed;--border:#fed7aa;--header:linear-gradient(135deg,#c2410c,#ea580c);--toolbar-bg:rgba(234,88,12,.97)}
+body.theme-slate{--p1:#475569;--p2:#94a3b8;--p3:#334155;--bg:#f1f5f9;--fg:#0f172a;--card:#fff;--card2:#f8fafc;--border:#cbd5e1;--header:linear-gradient(135deg,#334155,#475569);--toolbar-bg:rgba(71,85,105,.97)}
+body.theme-copper{--p1:#b45309;--p2:#f59e0b;--p3:#92400e;--bg:#fef3c7;--fg:#451a03;--card:#fff;--card2:#fffbeb;--border:#fde68a;--header:linear-gradient(135deg,#92400e,#b45309);--toolbar-bg:rgba(180,83,9,.97)}
+body.theme-sakura{--p1:#db2777;--p2:#f472b6;--p3:#9d174d;--bg:#fdf2f8;--fg:#500724;--card:#fff;--card2:#fdf2f8;--border:#fbcfe8;--header:linear-gradient(135deg,#9d174d,#db2777);--toolbar-bg:rgba(219,39,119,.97)}
+body.theme-emerald{--p1:#059669;--p2:#34d399;--p3:#047857;--bg:#ecfdf5;--fg:#022c22;--card:#fff;--card2:#f0fdf9;--border:#a7f3d0;--header:linear-gradient(135deg,#047857,#059669);--toolbar-bg:rgba(5,150,105,.97)}
 body.high-contrast{filter:contrast(1.4) saturate(1.3)}
 #toolbar{width:100%!important;left:0!important;right:0!important;margin:0!important;position:fixed!important;bottom:0!important;background:var(--toolbar-bg)!important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:none!important;padding:12px 14px!important;display:flex!important;flex-direction:column!important;justify-content:center;align-items:center;gap:4px;z-index:99999!important;box-shadow:0 -4px 24px rgba(0,0,0,.18)!important}
 .toolbar-row{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;align-items:center!important;gap:4px;width:100%;margin-bottom:4px}.toolbar-row:last-child{margin-bottom:0}
@@ -233,13 +244,24 @@ font-size: 14px;
 </div>
 </div>
 <div id="themeDD">
-<div style="font-size:10px;font-weight:700;margin-bottom:6px;color:var(--fg)" data-i18n="selectTheme">Theme</div>
-<div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center">
-<div class="th-dot active" style="background:linear-gradient(135deg,#6c63ff,#a78bfa)" onclick="setTheme('default')" title="Default"></div>
-<div class="th-dot" style="background:linear-gradient(135deg,#f59e0b,#ef4444)" onclick="setTheme('sunset')" title="Sunset"></div>
-<div class="th-dot" style="background:linear-gradient(135deg,#10b981,#059669)" onclick="setTheme('forest')" title="Forest"></div>
-<div class="th-dot" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)" onclick="setTheme('ocean')" title="Ocean"></div>
-<div class="th-dot" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)" onclick="setTheme('royal')" title="Royal"></div>
+<div style="font-size:10px;font-weight:700;margin-bottom:6px;color:var(--fg)" data-i18n="selectTheme">🎨 Theme</div>
+<div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;max-width:200px">
+<div class="th-dot active" data-theme="default" style="background:linear-gradient(135deg,#6c63ff,#a78bfa)" onclick="setTheme('default')" title="Default 💜"></div>
+<div class="th-dot" data-theme="sunset" style="background:linear-gradient(135deg,#f59e0b,#ef4444)" onclick="setTheme('sunset')" title="Sunset 🌅"></div>
+<div class="th-dot" data-theme="forest" style="background:linear-gradient(135deg,#10b981,#059669)" onclick="setTheme('forest')" title="Forest 🌿"></div>
+<div class="th-dot" data-theme="ocean" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)" onclick="setTheme('ocean')" title="Ocean 🌊"></div>
+<div class="th-dot" data-theme="royal" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)" onclick="setTheme('royal')" title="Royal 👑"></div>
+<div class="th-dot" data-theme="midnight" style="background:linear-gradient(135deg,#1e3a8a,#1e40af)" onclick="setTheme('midnight')" title="Midnight 🌙"></div>
+<div class="th-dot" data-theme="rose" style="background:linear-gradient(135deg,#be123c,#f43f5e)" onclick="setTheme('rose')" title="Rose 🌹"></div>
+<div class="th-dot" data-theme="amber" style="background:linear-gradient(135deg,#b45309,#d97706)" onclick="setTheme('amber')" title="Amber 🍯"></div>
+<div class="th-dot" data-theme="mint" style="background:linear-gradient(135deg,#0f766e,#0d9488)" onclick="setTheme('mint')" title="Mint 🌱"></div>
+<div class="th-dot" data-theme="ruby" style="background:linear-gradient(135deg,#991b1b,#dc2626)" onclick="setTheme('ruby')" title="Ruby ♦️"></div>
+<div class="th-dot" data-theme="lavender" style="background:linear-gradient(135deg,#5b21b6,#7c3aed)" onclick="setTheme('lavender')" title="Lavender 🔮"></div>
+<div class="th-dot" data-theme="coral" style="background:linear-gradient(135deg,#c2410c,#ea580c)" onclick="setTheme('coral')" title="Coral 🪸"></div>
+<div class="th-dot" data-theme="slate" style="background:linear-gradient(135deg,#334155,#475569)" onclick="setTheme('slate')" title="Slate 🩶"></div>
+<div class="th-dot" data-theme="copper" style="background:linear-gradient(135deg,#92400e,#b45309)" onclick="setTheme('copper')" title="Copper 🥉"></div>
+<div class="th-dot" data-theme="sakura" style="background:linear-gradient(135deg,#9d174d,#db2777)" onclick="setTheme('sakura')" title="Sakura 🌸"></div>
+<div class="th-dot" data-theme="emerald" style="background:linear-gradient(135deg,#047857,#059669)" onclick="setTheme('emerald')" title="Emerald 💚"></div>
 </div>
 </div>
 <div id="loginPage">
@@ -2906,8 +2928,7 @@ const slider = document.getElementById('brightSlider');
 if (slider) slider.value = brightness;
 const hcFilter = highContrast ? ' contrast(1.4) saturate(1.3)' : '';
 document.body.style.filter = `brightness(${brightness})${hcFilter}`;
-document.documentElement.style.fontSize = fontSize + 'px';
-document.body.style.fontSize = fontSize + 'px';
+applyFontZoom(fontSize);
 setTheme(theme);
 }
 // ============================================================
@@ -4473,22 +4494,30 @@ document.body.classList.toggle('dark', dark);
 document.getElementById('darkBtn').textContent = dark ? '☀️' : '🌙';
 saveUIPrefs();
 }
-function adjustFont(d) {
-fontSize = parseInt(localStorage.getItem('hotel_fontSize')) || fontSize || 16;
-if (d === 0) {
-fontSize = 16;
-showToast('Font Reset', 'success');
-} else if (d === -1) {
-fontSize = Math.max(12, fontSize - 2);
-showToast('Font Decreased', 'success');
-} else if (d === 1) {
-fontSize = Math.min(24, fontSize + 2);
-showToast('Font Increased', 'success');
+function applyFontZoom(size) {
+  const scale = size / 16;
+  ['loginPage','adminDash','guestDash'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.zoom = scale; el.style.fontSize = size + 'px'; }
+  });
+  document.documentElement.style.setProperty('font-size', size + 'px', 'important');
+  document.body.style.setProperty('font-size', size + 'px', 'important');
 }
-document.documentElement.style.setProperty('font-size', fontSize + 'px', 'important');
-document.body.style.setProperty('font-size', fontSize + 'px', 'important');
-localStorage.setItem('hotel_fontSize', fontSize);
-saveUIPrefs();
+function adjustFont(d) {
+  fontSize = parseInt(localStorage.getItem('hotel_fontSize')) || fontSize || 16;
+  if (d === 0) {
+    fontSize = 16;
+    showToast('🔤 Font Reset (16px)', 'success');
+  } else if (d === -1) {
+    fontSize = Math.max(10, fontSize - 1);
+    showToast('🔤 Font: ' + fontSize + 'px', 'info');
+  } else if (d === 1) {
+    fontSize = Math.min(24, fontSize + 1);
+    showToast('🔤 Font: ' + fontSize + 'px', 'info');
+  }
+  applyFontZoom(fontSize);
+  localStorage.setItem('hotel_fontSize', fontSize);
+  saveUIPrefs();
 }
 function setBrightness(v) {
 brightness = parseFloat(v);
@@ -4507,16 +4536,15 @@ document.body.style.filter = `brightness(${brightness})${hcFilter}`;
 showToast(highContrast ? (t('highContrastOn') || '🔆 High contrast ON') : (t('highContrastOff') || '🔆 High contrast OFF'), 'success');
 }
 function setTheme(th) {
-theme = th;
-document.body.className = document.body.className.replace(/theme-\S+/g, '').trim();
-if (th !== 'default') document.body.classList.add('theme-' + th);
-document.querySelectorAll('.th-dot').forEach(d => d.classList.remove('active'));
-const themes = ['default', 'sunset', 'forest', 'ocean', 'royal'];
-const idx = themes.indexOf(th);
-document.querySelectorAll('.th-dot')[idx]?.classList.add('active');
-saveUIPrefs();
-if (dark) document.body.classList.add('dark');
-document.getElementById('themeDD').classList.remove('show');
+  theme = th;
+  document.body.className = document.body.className.replace(/theme-\S+/g, '').trim();
+  if (th !== 'default') document.body.classList.add('theme-' + th);
+  document.querySelectorAll('.th-dot').forEach(d => {
+    d.classList.toggle('active', d.dataset.theme === th);
+  });
+  if (dark) document.body.classList.add('dark');
+  saveUIPrefs();
+  document.getElementById('themeDD').classList.remove('show');
 }
 function toggleThemeDD() { document.getElementById('themeDD').classList.toggle('show'); }
 function reqNotif() {
