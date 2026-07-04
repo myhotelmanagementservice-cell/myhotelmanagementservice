@@ -9097,7 +9097,7 @@ function filterRestMenu(cat) {
 }
 async function orderRestItem(id, name, price) {
   if(!currentUser) { showToast('Please login first', 'error'); return; }
-  await apiPost('/api/requests', { hotelId: HID, guestName: currentUser.name, room: currentUser.room, category: 'room_service', department: 'Restaurant', description: `Food Order: ${name}`, status: 'open', priority: 'medium', time: new Date().toISOString() });
+  await apiPost('/api/requests', { hotelId: HID, guestName: currentUser.name, roomNumber: currentUser.room, category: 'room_service', department: 'Restaurant', description: `Food Order: ${name}`, status: 'open', priority: 'medium', time: new Date().toISOString() });
   addToCart(id, name, price);
   showToast(`🍽️ ${name} added to order!`, 'success');
 }
@@ -10029,8 +10029,9 @@ function renderUpgradeRequest() {
 }
 async function requestUpgrade(upgradeTo, price) {
   if (!currentUser) return;
-  await apiPost('/api/requests', { hotelId: HID, guestName: currentUser.name, room: currentUser.room, category: 'guest_relations', department: 'Front Desk', description: `Room Upgrade Request: Current room ${currentUser.room} → ${upgradeTo} (${formatPrice(price)}/night)`, status: 'open', priority: 'high', time: new Date().toISOString() });
-  showToast(`⬆️ Upgrade to ${upgradeTo} requested! Front desk will confirm soon.`, 'success');
+  const res = await apiPost('/api/requests', { hotelId: HID, guestName: currentUser.name, roomNumber: currentUser.room, category: 'guest_relations', department: 'Front Desk', description: `Room Upgrade Request: Current room ${currentUser.room} → ${upgradeTo} (${formatPrice(price)}/night)`, status: 'open', priority: 'high', time: new Date().toISOString() });
+  if (res) showToast(`⬆️ Upgrade to ${upgradeTo} requested! Front desk will confirm soon.`, 'success');
+  else showToast('❌ Request failed. Please try again.', 'error');
 }
 
 // ============================================================
