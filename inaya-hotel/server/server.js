@@ -514,17 +514,16 @@ app.use('/api/cab', cabRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/info', infoRoutes);
 // New Guest Dashboard Routes
-app.use('/api/offers', offerRoutes);
+// NOTE: offers, spa, laundry are handled by makeCRUD + inline routes below (plain array format)
+// Keeping only routes that don't conflict with makeCRUD or inline handlers
 app.use('/api/room-control', roomControlRoutes);
 app.use('/api/live-chat', liveChatRoutes);
 app.use('/api/my-bill', myBillRoutes);
 app.use('/api/menu', menuRoutes);
-app.use('/api/spa', spaRoutes);
 app.use('/api/alarm', alarmRoutes);
 app.use('/api/city-guide', cityGuideRoutes);
 app.use('/api/weather', weatherRoutes);
 app.use('/api/rate-us', rateUsRoutes);
-app.use('/api/laundry', laundryRoutes);
 app.use('/api/digital-key', digitalKeyRoutes);
 app.use('/api/upgrade', upgradeRoutes);
 
