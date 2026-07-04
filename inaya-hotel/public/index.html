@@ -9649,7 +9649,7 @@ async function renderAdminLaundry() {
   const pend = laundryData.filter(l=>l.status==='pending').length;
   const inprog = laundryData.filter(l=>l.status==='in_progress').length;
   const ready = laundryData.filter(l=>l.status==='ready').length;
-  const rev = laundryData.filter(l=>l.status==='delivered').reduce((s,l)=>s+Number(l.amount||0),0);
+  const rev = laundryData.filter(l=>l.status==='delivered').reduce((s,l)=>s+parseFloat(String(l.amount||'0').replace(/[^0-9.]/g,'')||'0'),0);
   const e=(id,v)=>{const x=document.getElementById(id);if(x)x.textContent=v;};
   e('lndPending',pend); e('lndInProgress',inprog); e('lndReady',ready); e('lndRevenue',formatPrice(rev));
   tbody.innerHTML = laundryData.length ? laundryData.map(l=>`<tr>
@@ -9658,7 +9658,7 @@ async function renderAdminLaundry() {
     <td><span style="background:var(--card2);border-radius:4px;padding:2px 6px;font-size:10px">${l.service||t('laundryStd')}</span></td>
     <td style="font-size:11px">${(l.pickupTime||'').slice(0,16).replace('T',' ')}</td>
     <td style="font-size:11px">${(l.deliveryTime||'—').slice(0,16).replace('T',' ')}</td>
-    <td style="font-weight:700">${formatPrice(l.amount||0)}</td>
+    <td style="font-weight:700">${l.amount||'—'}</td>
     <td><span style="color:${l.status==='delivered'?'#10b981':l.status==='ready'?'#6366f1':l.status==='in_progress'?'#f59e0b':'#888'};font-size:11px">${l.status||'pending'}</span></td>
     <td style="white-space:nowrap">
       <button class="tbl-action" onclick="updateLaundry('${l._id}','in_progress')">🔄</button>
@@ -9901,7 +9901,7 @@ async function renderMyLaundryOrders() {
         <div style="font-weight:600;font-size:12px;margin-bottom:3px">👕 ${(l.items||[]).join(', ')||'—'}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px">
           <span style="font-size:10px;background:var(--card);border-radius:4px;padding:1px 6px">${svcLabel}</span>
-          <span style="font-size:11px;font-weight:700;color:var(--p1)">💰 ${formatPrice(l.amount||0)}</span>
+          <span style="font-size:11px;font-weight:700;color:var(--p1)">💰 ${l.amount||'—'}</span>
           <span style="font-size:10px;opacity:.55">📅 ${(l.pickupTime||'').slice(0,10)}</span>
         </div>
         ${l.deliveryTime?`<div style="font-size:10px;opacity:.5;margin-top:2px">🚚 Delivery: ${l.deliveryTime.slice(0,10)}</div>`:''}
@@ -10124,7 +10124,7 @@ async function saveAdminLaundryOrder(e) {
     room: document.getElementById('mLndRoom').value,
     items,
     service: document.getElementById('mLndService').value,
-    amount: parseFloat((document.getElementById('mLndAmount').value||'0').replace(/[^0-9.]/g,''))||0,
+    amount: document.getElementById('mLndAmount').value.trim() || '0',
     pickupTime: document.getElementById('mLndPickup').value||new Date().toISOString(),
     deliveryTime: document.getElementById('mLndDelivery').value||'',
     status: 'pending',
