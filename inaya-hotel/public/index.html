@@ -7469,15 +7469,18 @@ ${departments.filter(d => d.isEnabled).map(d => `<option value="${d.key}">${d.em
 <div class="form-row"><label class="lbl">${t('guestNameLbl')}</label><input class="inp" id="mLndGuest" required></div>
 <div class="form-row"><label class="lbl">${t('roomNumLbl')}</label><input class="inp" id="mLndRoom" type="number"></div>
 </div>
-<div class="form-row"><label class="lbl">${t('lndItemsLbl')}</label><input class="inp" id="mLndItems" placeholder="${t('lndItemsPh')}" required></div>
+<div class="form-row"><label class="lbl">${t('lndItemsLbl')}</label><input class="inp" id="mLndItems" placeholder="${t('lndItemsPh')}" required oninput="lndAutoPrice()"></div>
 <div class="form-2">
 <div class="form-row"><label class="lbl">${t('serviceLbl')}</label>
-<select class="inp" id="mLndService">
+<select class="inp" id="mLndService" onchange="lndAutoPrice()">
 <option value="standard">${t('lndSvcStd')}</option>
 <option value="express">${t('lndSvcExpress')}</option>
 <option value="drycleaning">${t('lndSvcDry')}</option>
 </select></div>
-<div class="form-row"><label class="lbl">${t('lndAmountLbl')}</label><input class="inp" id="mLndAmount" type="number" placeholder="0"></div>
+<div class="form-row">
+<label class="lbl" style="display:flex;justify-content:space-between">${t('lndAmountLbl')} <span id="lndPriceHint" style="font-size:9px;color:var(--p1);font-weight:400"></span></label>
+<input class="inp" id="mLndAmount" type="number" step="0.01" min="0" placeholder="0">
+</div>
 </div>
 <div class="form-2">
 <div class="form-row"><label class="lbl">${t('lndPickupLbl')}</label><input class="inp" id="mLndPickup" type="datetime-local"></div>
@@ -9888,13 +9891,24 @@ async function renderMyLaundryOrders() {
   if (!el || !currentUser) return;
   try { const r = await fetch(`/api/laundry?hotelId=${HID}`); laundryData = await r.json(); } catch(e) { laundryData=[]; }
   const mine = laundryData.filter(l=>l.room===String(currentUser.room)||l.guestName===currentUser.name);
-  el.innerHTML = mine.length ? mine.map(l=>`<div style="background:var(--card2);border-radius:8px;padding:10px;border-left:3px solid ${l.status==='delivered'?'#10b981':l.status==='ready'?'#6366f1':'#f59e0b'}">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <span style="font-weight:600;font-size:12px">👕 ${(l.items||[]).join(', ')}</span>
-      <span style="font-size:11px;color:${l.status==='delivered'?'#10b981':l.status==='ready'?'#6366f1':'#f59e0b'}">${l.status}</span>
+  el.innerHTML = mine.length ? mine.map(l=>{
+    const stColor = l.status==='delivered'?'#10b981':l.status==='ready'?'#6366f1':l.status==='in_progress'?'#f59e0b':'#888';
+    const stLabel = l.status==='delivered'?'✅ Delivered':l.status==='ready'?'📦 Ready':l.status==='in_progress'?'🔄 In Progress':'⏳ Pending';
+    const svcLabel = l.service==='express'?'⚡ Express':l.service==='drycleaning'?'🧴 Dry Clean':'👕 Standard';
+    return `<div style="background:var(--card2);border-radius:10px;padding:12px;border-left:3px solid ${stColor}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:12px;margin-bottom:3px">👕 ${(l.items||[]).join(', ')||'—'}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px">
+          <span style="font-size:10px;background:var(--card);border-radius:4px;padding:1px 6px">${svcLabel}</span>
+          <span style="font-size:11px;font-weight:700;color:var(--p1)">💰 ${formatPrice(l.amount||0)}</span>
+          <span style="font-size:10px;opacity:.55">📅 ${(l.pickupTime||'').slice(0,10)}</span>
+        </div>
+        ${l.deliveryTime?`<div style="font-size:10px;opacity:.5;margin-top:2px">🚚 Delivery: ${l.deliveryTime.slice(0,10)}</div>`:''}
+      </div>
+      <span style="font-size:11px;font-weight:600;color:${stColor};white-space:nowrap">${stLabel}</span>
     </div>
-    <div style="font-size:10px;opacity:.6;margin-top:2px">${l.service} · ${formatPrice(l.amount||0)} · ${(l.pickupTime||'').slice(0,10)}</div>
-  </div>`).join('') : '<p style="opacity:.5;text-align:center;padding:12px">No laundry orders yet</p>';
+  </div>`;}).join('') : '<p style="opacity:.5;text-align:center;padding:12px">No laundry orders yet</p>';
 }
 
 // ============================================================
@@ -10069,6 +10083,21 @@ async function saveWakeupCall(e) {
   showToast('⏰ Wake-up call scheduled!', 'success');
   addLog('Wake-up Call', `${wk.guestName} @ ${wk.time}`);
 }
+const LND_PRICES = { standard: 15, express: 25, drycleaning: 35 };
+function lndAutoPrice() {
+  const svc = document.getElementById('mLndService');
+  const itemsEl = document.getElementById('mLndItems');
+  const amtEl = document.getElementById('mLndAmount');
+  const hint = document.getElementById('lndPriceHint');
+  if (!svc || !itemsEl || !amtEl) return;
+  const items = itemsEl.value.split(',').map(s=>s.trim()).filter(Boolean);
+  const count = items.length || 1;
+  const rate = LND_PRICES[svc.value] || 15;
+  const total = count * rate;
+  amtEl.value = total;
+  if (hint) hint.textContent = `${count} × SAR ${rate} = SAR ${total}`;
+}
+
 async function saveAdminLaundryOrder(e) {
   e.preventDefault();
   const items = document.getElementById('mLndItems').value.split(',').map(s=>s.trim()).filter(Boolean);
