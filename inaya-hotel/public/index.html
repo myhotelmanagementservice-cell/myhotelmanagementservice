@@ -4134,38 +4134,78 @@ socket.on('laundry_upd', (payload) => {
 // Offers real-time (Admin → Guest + Admin re-render)
 socket.on('offers_upd', (payload) => {
   try {
-    const d = payload.data || payload;
+    const d = (payload && payload.data) ? payload.data : payload;
     if (!d || d.hotelId !== HID) return;
-    if (d.deleted) {
-      offers = offers.filter(x => String(x._id) !== String(d._id));
-    } else {
-      const idx = offers.findIndex(x => String(x._id) === String(d._id));
-      if (idx > -1) offers[idx] = { ...offers[idx], ...d };
-      else offers.push(d);
-    }
-    addNotification({ type: 'offers', message: `🎁 Offer updated: ${d.title||''}`, time: new Date().toISOString(), data: d });
-    if (sessionStorage.getItem('currentTab') === 'offers') renderOffers();
-    const gOffersEl = document.getElementById('gp-offersTab');
-    if (gOffersEl && !gOffersEl.classList.contains('hidden')) renderGuestOffers();
+    // Step 1: Update in-memory array (independent try)
+    try {
+      if (d.deleted) {
+        offers = offers.filter(x => String(x._id) !== String(d._id));
+      } else {
+        const idx = offers.findIndex(x => String(x._id) === String(d._id));
+        if (idx > -1) offers[idx] = { ...offers[idx], ...d };
+        else offers.push(d);
+      }
+    } catch(e) {}
+    // Step 2: Admin notification + admin re-render
+    try {
+      addNotification({ type: 'offers', message: `🎁 Offer updated: ${d.title||''}`, time: new Date().toISOString(), data: d });
+    } catch(e) {}
+    try {
+      if (sessionStorage.getItem('currentTab') === 'offers') renderOffers();
+    } catch(e) {}
+    // Step 3: Guest — always show toast + re-render if tab open
+    try {
+      const guestDash = document.getElementById('guestDash');
+      if (guestDash && !guestDash.classList.contains('hidden') && !d.deleted) {
+        showToast(`🎁 New offer: ${d.title || 'Check the latest deals!'}`, 'success');
+      }
+    } catch(e) {}
+    try {
+      const gOffersEl = document.getElementById('gp-offersTab');
+      if (gOffersEl && !gOffersEl.classList.contains('hidden')) renderGuestOffers();
+    } catch(e) {}
   } catch(e) { console.error('offers_upd error:', e); }
 });
 
-// Lost & Found real-time (Admin → Guest + Admin re-render)
+// Lost & Found real-time (Admin → Guest + Guest → Admin)
 socket.on('lostfound_upd', (payload) => {
   try {
-    const d = payload.data || payload;
+    const d = (payload && payload.data) ? payload.data : payload;
     if (!d || d.hotelId !== HID) return;
-    if (d.deleted) {
-      lostfound = lostfound.filter(x => String(x._id) !== String(d._id));
-    } else {
-      const idx = lostfound.findIndex(x => String(x._id) === String(d._id));
-      if (idx > -1) lostfound[idx] = { ...lostfound[idx], ...d };
-      else lostfound.push(d);
-    }
-    addNotification({ type: 'lostfound', message: `💼 Lost & Found updated: ${d.item||''}`, time: new Date().toISOString(), data: d });
-    if (sessionStorage.getItem('currentTab') === 'lostfound') renderLostFound();
-    const gLFEl = document.getElementById('gp-lostfoundTab');
-    if (gLFEl && !gLFEl.classList.contains('hidden')) renderGuestLostFound();
+    // Step 1: Update in-memory array
+    try {
+      if (d.deleted) {
+        lostfound = lostfound.filter(x => String(x._id) !== String(d._id));
+      } else {
+        const idx = lostfound.findIndex(x => String(x._id) === String(d._id));
+        if (idx > -1) lostfound[idx] = { ...lostfound[idx], ...d };
+        else lostfound.push(d);
+      }
+    } catch(e) {}
+    // Step 2: Admin toast + re-render (when guest submits a lost item)
+    try {
+      const adminDash = document.getElementById('adminDash');
+      if (adminDash && !adminDash.classList.contains('hidden') && !d.deleted) {
+        showToast(`📦 Lost item reported: "${d.item || '?'}" by ${d.guestName || 'Guest'}${d.description ? ' — '+d.description : ''}`, 'info');
+      }
+    } catch(e) {}
+    try {
+      addNotification({ type: 'lostfound', message: `💼 Lost & Found: ${d.item||''} (${d.guestName||'—'})`, time: new Date().toISOString(), data: d });
+    } catch(e) {}
+    try {
+      if (sessionStorage.getItem('currentTab') === 'lostfound') renderLostFound();
+    } catch(e) {}
+    // Step 3: Guest toast + re-render (when admin logs found item)
+    try {
+      const guestDash = document.getElementById('guestDash');
+      if (guestDash && !guestDash.classList.contains('hidden') && !d.deleted) {
+        showToast(`🔍 Lost & Found updated: "${d.item || 'an item'}" — check Lost & Found tab`, 'info');
+      }
+    } catch(e) {}
+    try {
+      const gLFEl = document.getElementById('gp-lostfoundTab');
+      if (gLFEl && !gLFEl.classList.contains('hidden')) renderGuestLostFound();
+    } catch(e) {}
   } catch(e) { console.error('lostfound_upd error:', e); }
 });
 
@@ -8276,10 +8316,14 @@ showToast(val ? '✅ Offer activated' : '⏸️ Offer deactivated', 'info');
 // LOST & FOUND
 // ============================================================
 let _lfFilter = 'all';
-function renderLostFound(filter) {
+async function renderLostFound(filter) {
 if (filter) _lfFilter = filter;
 const tbody = document.getElementById('lfTbody');
 if (!tbody) return;
+try {
+  const r = await fetch(`/api/lostfound?hotelId=${HID}`);
+  if (r.ok) lostfound = await r.json();
+} catch(_) {}
 const data = _lfFilter === 'all' ? lostfound : lostfound.filter(x => x.status === _lfFilter);
 tbody.innerHTML = data.map(lf => {
 const sc = { unclaimed: '#f59e0b', claimed: '#3b82f6', returned: '#10b981' };
@@ -8352,16 +8396,31 @@ try {
   const r = await fetch(`/api/lostfound?hotelId=${HID}`);
   if (r.ok) lostfound = await r.json();
 } catch(_) {}
-const myItems = lostfound.filter(x => x.guestName === currentUser?.name);
-el.innerHTML = myItems.map(lf => `
-<div class="req-card">
+const myItems = lostfound.filter(x => x.guestName && x.guestName.toLowerCase() === (currentUser?.name||'').toLowerCase());
+const hotelFoundItems = lostfound.filter(x => !x.guestName || x.guestName.toLowerCase() !== (currentUser?.name||'').toLowerCase());
+const statusColors = { unclaimed: '#f59e0b', claimed: '#3b82f6', returned: '#10b981' };
+const statusLabel = s => ({ unclaimed: 'Unclaimed', claimed: 'Claimed', returned: 'Returned' }[s] || s);
+const cardHtml = (lf, showByLine) => `
+<div class="req-card" style="border-left:3px solid ${statusColors[lf.status]||'var(--border)'}">
 <div style="display:flex;justify-content:space-between;align-items:center">
-<strong>${lf.item}</strong>
-<span class="badge badge-${lf.status}">${lf.status}</span>
+<strong style="font-size:13px">${lf.item || '—'}</strong>
+<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${statusColors[lf.status]||'#999'};color:#fff;font-weight:600">${statusLabel(lf.status)}</span>
 </div>
-<p style="font-size:12px;opacity:.7;margin-top:4px">${lf.description || ''}</p>
+${lf.description ? `<p style="font-size:12px;opacity:.7;margin-top:4px">${lf.description}</p>` : ''}
+${lf.location ? `<p style="font-size:11px;opacity:.5;margin-top:2px">📍 ${lf.location}</p>` : ''}
+${lf.foundDate ? `<p style="font-size:11px;opacity:.5">📅 ${new Date(lf.foundDate).toLocaleDateString()}</p>` : ''}
+${showByLine && lf.guestName ? `<p style="font-size:11px;opacity:.5;margin-top:2px">👤 Reported by: ${lf.guestName}${lf.room?' | Room '+lf.room:''}</p>` : ''}
+</div>`;
+el.innerHTML = `
+<div style="margin-bottom:14px">
+  <h4 style="font-size:12px;font-weight:700;color:var(--p1);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">📋 My Reports</h4>
+  ${myItems.length ? myItems.map(lf => cardHtml(lf, false)).join('') : '<p style="font-size:12px;opacity:.45;text-align:center;padding:10px">No items reported by you yet.</p>'}
 </div>
-`).join('') || `<p style="font-size:12px;opacity:.5;text-align:center">${t('lfNoReports')}</p>`;
+${hotelFoundItems.length ? `
+<div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+  <h4 style="font-size:12px;font-weight:700;color:var(--p2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">🔍 Hotel Found Items</h4>
+  ${hotelFoundItems.map(lf => cardHtml(lf, true)).join('')}
+</div>` : ''}`;
 }    
 async function updateLFStatus(id, status) {
 const lf = lostfound.find(x => x._id === id);
