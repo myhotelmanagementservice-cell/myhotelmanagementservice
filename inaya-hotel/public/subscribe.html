@@ -73,6 +73,12 @@
             box-shadow: 0 15px 40px rgba(0,0,0,0.3);
         }
         .plan-card.popular { border: 3px solid #ffd700; }
+        .plan-card.color-gray { border: 3px solid #9ca3af; }
+        .plan-card.color-blue { border: 3px solid #3b82f6; }
+        .plan-card.color-purple { border: 3px solid #8b5cf6; }
+        .plan-card.color-green { border: 3px solid #10b981; }
+        .plan-card.color-amber { border: 3px solid #f59e0b; }
+        .plan-card.color-red { border: 3px solid #ef4444; }
         .popular-badge {
             position: absolute;
             top: 20px;
@@ -443,7 +449,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             plans.forEach(plan => {
                 const card = document.createElement('div');
-                card.className = 'plan-card' + (plan.id === 'pro' ? ' popular' : '');
+                const colorClass = plan.color ? ` color-${plan.color}` : '';
+                card.className = 'plan-card' + (plan.id === 'pro' ? ' popular' : '') + colorClass;
 
                 const durationText = plan.duration === null
                     ? '♾️ Lifetime Access'
