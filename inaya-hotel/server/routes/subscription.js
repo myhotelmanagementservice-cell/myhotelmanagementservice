@@ -51,7 +51,7 @@ async function getEffectivePlanData(db, planId) {
             return {
                 name:     p.name     || planId,
                 price:    p.price    || 0,
-                duration: p.duration || p.days || 30,
+                duration: p.duration !== undefined ? p.duration : (p.days || 30),
                 features: p.features || [],
                 currency: p.currency || 'USD'
             };
