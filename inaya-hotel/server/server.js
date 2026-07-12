@@ -99,6 +99,7 @@ app.get('/api/subscription/plans', async (req, res) => {
       name:     p.name,
       price:    p.price,
       currency: p.currency || 'USD',
+      color:    p.color || 'blue',
       duration: p.duration !== undefined ? p.duration : 30,
       features: p.features || []
     }));
