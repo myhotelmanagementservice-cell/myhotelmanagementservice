@@ -92,17 +92,16 @@ app.get('/api/subscription/plans', async (req, res) => {
       pro:        { name: 'Pro',          price: 99,  enabled: true,  features: ['Up to 5 Hotels', 'Unlimited Rooms', 'Priority Support', 'Analytics Dashboard'] },
       enterprise: { name: 'Enterprise',   price: 499, enabled: true,  features: ['Unlimited Hotels', 'Custom Branding', 'Dedicated Manager', 'API Access'] }
     };
-    const planDuration = { basic: 7, pro: 30, enterprise: null };
     const plans = Object.entries(planSettings)
-      .filter(([, p]) => p.enabled !== false)
-      .map(([id, p]) => ({
-        id,
-        name:     p.name,
-        price:    p.price,
-        currency: p.currency || 'USD',
-        duration: planDuration[id] !== undefined ? planDuration[id] : 30,
-        features: p.features || []
-      }));
+    .filter(([, p]) => p.enabled !== false)
+    .map(([id, p]) => ({
+      id,
+      name:     p.name,
+      price:    p.price,
+      currency: p.currency || 'USD',
+      duration: p.duration !== undefined ? p.duration : 30,
+      features: p.features || []
+    }));
     res.json({ success: true, data: plans });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
