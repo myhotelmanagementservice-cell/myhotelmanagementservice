@@ -2192,6 +2192,54 @@
                 </table>
                 </div>
             </section>
+<section id="landingPage" class="section-content hidden fade-in">
+    <div class="flex justify-between items-center mb-6 flex-wrap gap-3">
+        <div>
+            <h2 class="text-xl font-bold">🚀 Landing Page Management</h2>
+            <p class="text-sm text-gray-500 mt-1">Manage public landing page content for FB/Insta/TikTok ad campaigns.</p>
+        </div>
+        <div class="flex items-center gap-3 bg-white dark:bg-darkCard px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+            <span class="text-sm font-medium">Status:</span>
+            <span id="lpStatusBadge" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">LIVE</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="lpToggle" class="sr-only peer" checked onchange="toggleLandingPage()">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+            </label>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+        <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-heading text-primary"></i> Hero Section</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><label class="block text-sm font-medium mb-1">Title (English)</label><input type="text" id="lpHeroTitleEn" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Run Your Hotel From Your Phone"></div>
+            <div><label class="block text-sm font-medium mb-1">Title (Hindi)</label><input type="text" id="lpHeroTitleHi" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="अपने होटल को मोबाइल से चलाएं"></div>
+            <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Subtitle (English)</label><input type="text" id="lpHeroSubEn" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Complete hotel management system for owners"></div>
+            <div class="md:col-span-2"><label class="block text-sm font-medium mb-1">Subtitle (Hindi)</label><input type="text" id="lpHeroSubHi" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="होटल मालिकों के लिए पूर्ण प्रबंधन प्रणाली"></div>
+            <div><label class="block text-sm font-medium mb-1">CTA Button Text (English)</label><input type="text" id="lpCtaEn" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Start Free Trial"></div>
+            <div><label class="block text-sm font-medium mb-1">CTA Button Text (Hindi)</label><input type="text" id="lpCtaHi" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="मुफ्त ट्रायल शुरू करें"></div>
+            <div><label class="block text-sm font-medium mb-1">CTA Link / WhatsApp Number</label><input type="text" id="lpCtaLink" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="https://wa.me/91XXXXXXXXXX"></div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+        <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-star text-primary"></i> Key Selling Points (one per line)</h3>
+        <textarea id="lpFeatures" rows="6" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="✅ Guest Self-Service Ordering&#10;✅ Real-time Staff Dashboard&#10;✅ WhatsApp Booking Alerts&#10;✅ Multi-language Support"></textarea>
+    </div>
+
+    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+        <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-bullseye text-primary"></i> Ad Tracking (Facebook/Insta/TikTok Pixels)</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div><label class="block text-sm font-medium mb-1">Facebook Pixel ID</label><input type="text" id="lpFbPixel" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="1234567890"></div>
+            <div><label class="block text-sm font-medium mb-1">TikTok Pixel ID</label><input type="text" id="lpTiktokPixel" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="XXXXXXXXXXXX"></div>
+            <div><label class="block text-sm font-medium mb-1">Google Analytics ID</label><input type="text" id="lpGaId" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="G-XXXXXXXXXX"></div>
+        </div>
+    </div>
+
+    <div class="flex gap-3 flex-wrap">
+        <button onclick="saveLandingPageContent()" class="btn-primary px-6 py-3 rounded-lg font-semibold flex items-center gap-2"><i class="fas fa-save"></i> Save Changes</button>
+        <button onclick="window.open('/landing.html','_blank')" class="px-6 py-3 rounded-lg font-semibold border border-gray-300 dark:border-gray-600 flex items-center gap-2"><i class="fas fa-eye"></i> Preview Live Page</button>
+    </div>
+</section>            
         </main>
     </div>
 
