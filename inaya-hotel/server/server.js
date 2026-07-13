@@ -527,6 +527,102 @@ app.get('/api/public/plans', async (req, res) => {
     }
 });
 // ============================================
+// PUBLIC SIGNUP — New Hotel Registration (from Landing Page)
+// ============================================
+app.post('/api/public/signup', async (req, res) => {
+    try {
+        if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+        const { hotelName, ownerName, email, phone, plan } = req.body;
+
+        if (!hotelName || !ownerName || !email || !phone) {
+            return res.status(400).json({ success: false, error: 'Hotel name, owner name, email and phone are required' });
+        }
+
+        const existingUser = await db.collection('tenants').findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ success: false, error: 'This email is already registered' });
+        }
+
+        let hotelId;
+        let isUnique = false;
+        while (!isUnique) {
+            const rand = Math.floor(1000 + Math.random() * 9000);
+            hotelId = `HOTEL${rand}`;
+            const exists = await db.collection('tenants').findOne({ hotelId });
+            if (!exists) isUnique = true;
+        }
+
+        const generatedPassword = Math.random().toString(36).slice(-4).toUpperCase() +
+                                   Math.random().toString(36).slice(-4) +
+                                   Math.floor(10 + Math.random() * 89);
+
+        const hotel = {
+            hotelId,
+            hotelName,
+            ownerName,
+            country: 'N/A',
+            countryCode: 'IN',
+            currency: 'USD',
+            currencySymbol: '$',
+            timezone: 'Asia/Kolkata',
+            language: 'en',
+            phone,
+            email,
+            address: '',
+            logo: '',
+            theme: { primaryColor: '#8B5CF6', secondaryColor: '#F59E0B' },
+            subscriptionType: plan || 'basic',
+            subscriptionExpiry: null,
+            isActive: false,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        const result = await db.collection('tenants').insertOne(hotel);
+        hotel._id = result.insertedId;
+
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+        const defaultAdmin = {
+            hotelId: hotel.hotelId,
+            email,
+            password: hashedPassword,
+            name: ownerName,
+            role: 'hotel_admin',
+            permissions: ['rooms', 'guests', 'food', 'inventory', 'requests', 'settings', 'staff', 'bookings'],
+            isActive: true,
+            createdAt: new Date()
+        };
+        await db.collection('users').insertOne(defaultAdmin);
+
+        await db.collection('settings').insertOne({
+            hotelId: hotel.hotelId,
+            hotelName,
+            currencySymbol: '$',
+            priceFormat: 'symbol-first',
+            taxRate: 0,
+            wifiSSID: `${hotelName.replace(/\s+/g, '_')}_Guest`,
+            wifiPassword: `${hotelName}@2024`,
+            language: 'en',
+            theme: { primaryColor: '#667eea' },
+            transport: { airport: 30, local: 15 },
+            updatedAt: new Date()
+        });
+
+        res.status(201).json({
+            success: true,
+            data: {
+                hotelId: hotel.hotelId,
+                email,
+                password: generatedPassword,
+                plan: plan || 'basic'
+            }
+        });
+    } catch (error) {
+        console.error('Signup error:', error);
+        res.status(500).json({ success: false, error: 'Server error during signup' });
+    }
+});
+// ============================================
 // ======================== NEW ROUTES USE ========================
 app.use('/api/logs', logsRoutes);
 app.use('/api/loyalty', loyaltyRoutes);

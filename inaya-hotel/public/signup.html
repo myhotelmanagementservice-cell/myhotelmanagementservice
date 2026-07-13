@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up | HotelPro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md">
+        <div class="text-center mb-6">
+            <i class="fas fa-crown text-blue-600 text-4xl mb-3"></i>
+            <h1 class="text-2xl font-bold text-gray-900">Create Your Hotel Account</h1>
+            <p class="text-gray-500 mt-1" id="planLabel">Get started in seconds</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg p-8">
+            <div id="formStep">
+                <form id="signupForm" onsubmit="return handleSignup(event)">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Hotel Name *</label>
+                        <input type="text" id="hotelName" required class="w-full p-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="e.g. Grand Plaza Hotel">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Your Name *</label>
+                        <input type="text" id="ownerName" required class="w-full p-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="e.g. Rajesh Kumar">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Email *</label>
+                        <input type="email" id="email" required class="w-full p-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="you@example.com">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-1">Phone / WhatsApp *</label>
+                        <input type="tel" id="phone" required class="w-full p-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="+91 98765 43210">
+                    </div>
+                    <button type="submit" id="submitBtn" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-md">
+                        Continue to Payment
+                    </button>
+                    <p id="formError" class="text-red-500 text-sm mt-3 text-center hidden"></p>
+                </form>
+            </div>
+
+            <div id="successStep" class="hidden text-center">
+                <i class="fas fa-check-circle text-green-500 text-5xl mb-4"></i>
+                <h2 class="text-xl font-bold mb-2">Account Created!</h2>
+                <p class="text-gray-500 mb-4">Redirecting you to payment...</p>
+                <i class="fas fa-spinner fa-spin text-blue-600 text-2xl"></i>
+            </div>
+        </div>
+        <p class="text-center text-sm text-gray-400 mt-4">
+            Already have an account? <a href="/" class="text-blue-600 font-semibold">Login here</a>
+        </p>
+    </div>
+
+    <script>
+        // Get plan from URL query (?plan=pro)
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedPlan = urlParams.get('plan') || 'basic';
+        document.getElementById('planLabel').textContent = `Selected Plan: ${selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)}`;
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const errEl = document.getElementById('formError');
+            errEl.classList.add('hidden');
+            btn.disabled = true;
+            btn.textContent = 'Creating your account...';
+
+            const payload = {
+                hotelName: document.getElementById('hotelName').value.trim(),
+                ownerName: document.getElementById('ownerName').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                plan: selectedPlan
+            };
+
+            try {
+                const res = await fetch('/api/public/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    document.getElementById('formStep').classList.add('hidden');
+                    document.getElementById('successStep').classList.remove('hidden');
+                    // Redirect to subscribe page with new hotelId
+                    setTimeout(() => {
+                        window.location.href = `/subscribe.html?hotelId=${data.data.hotelId}&plan=${data.data.plan}&newEmail=${encodeURIComponent(data.data.email)}&newPass=${encodeURIComponent(data.data.password)}`;
+                    }, 1500);
+                } else {
+                    errEl.textContent = data.error || 'Something went wrong. Please try again.';
+                    errEl.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.textContent = 'Continue to Payment';
+                }
+            } catch (err) {
+                errEl.textContent = 'Network error. Please check your connection and try again.';
+                errEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Continue to Payment';
+            }
+            return false;
+        }
+    </script>
+</body>
+</html>
