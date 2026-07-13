@@ -49,8 +49,27 @@
             <div id="successStep" class="hidden text-center">
                 <i class="fas fa-check-circle text-green-500 text-5xl mb-4"></i>
                 <h2 class="text-xl font-bold mb-2">Account Created!</h2>
-                <p class="text-gray-500 mb-4">Redirecting you to payment...</p>
-                <i class="fas fa-spinner fa-spin text-blue-600 text-2xl"></i>
+                <p class="text-gray-500 mb-4 text-sm">Save these login details — you'll need them after payment:</p>
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-left mb-4">
+                    <div class="mb-2">
+                        <span class="text-xs text-gray-400 uppercase font-semibold">Hotel ID</span>
+                        <p class="font-mono font-bold text-gray-800" id="successHotelId">-</p>
+                    </div>
+                    <div class="mb-2">
+                        <span class="text-xs text-gray-400 uppercase font-semibold">Email</span>
+                        <p class="font-mono font-bold text-gray-800" id="successEmail">-</p>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-400 uppercase font-semibold">Password</span>
+                        <p class="font-mono font-bold text-gray-800" id="successPassword">-</p>
+                    </div>
+                </div>
+                <button onclick="copyCredentials()" class="w-full py-2.5 mb-3 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50 transition">
+                    <i class="fas fa-copy"></i> Copy Details
+                </button>
+                <button onclick="proceedToPayment()" id="proceedBtn" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-md">
+                    Continue to Payment
+                </button>
             </div>
         </div>
         <p class="text-center text-sm text-gray-400 mt-4">
@@ -89,12 +108,12 @@
                 const data = await res.json();
 
                 if (data.success) {
+                    window._signupData = data.data;
                     document.getElementById('formStep').classList.add('hidden');
                     document.getElementById('successStep').classList.remove('hidden');
-                    // Redirect to subscribe page with new hotelId
-                    setTimeout(() => {
-                        window.location.href = `/subscribe.html?hotelId=${data.data.hotelId}&plan=${data.data.plan}&newEmail=${encodeURIComponent(data.data.email)}&newPass=${encodeURIComponent(data.data.password)}`;
-                    }, 1500);
+                    document.getElementById('successHotelId').textContent = data.data.hotelId;
+                    document.getElementById('successEmail').textContent = data.data.email;
+                    document.getElementById('successPassword').textContent = data.data.password;
                 } else {
                     errEl.textContent = data.error || 'Something went wrong. Please try again.';
                     errEl.classList.remove('hidden');
@@ -108,6 +127,19 @@
                 btn.textContent = 'Continue to Payment';
             }
             return false;
+        }
+
+        function copyCredentials() {
+            const d = window._signupData;
+            const text = `Hotel ID: ${d.hotelId}\nEmail: ${d.email}\nPassword: ${d.password}`;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Copied to clipboard!');
+            });
+        }
+
+        function proceedToPayment() {
+            const d = window._signupData;
+            window.location.href = `/subscribe.html?hotelId=${d.hotelId}&plan=${d.plan}`;
         }
     </script>
 </body>
