@@ -329,6 +329,9 @@
                 <button onclick="showSection('featureFlags')" class="nav-btn" id="nav-featureFlags">
                     <i class="fas fa-toggle-on w-5"></i> <span>Feature Flags</span>
                 </button>
+                <button onclick="showSection('landingPage')" class="nav-btn" id="nav-landingPage">
+                    <i class="fas fa-rocket w-5"></i> <span>Landing Page</span>
+                </button>
             </div>
         </nav>
 
@@ -393,6 +396,7 @@
                         </div>
                     </div>
                 </div>
+
 
                 <!-- REAL-TIME ACTIVITY LOG -->
                 <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
@@ -2757,6 +2761,7 @@
             if (sectionId === 'reviewsRatings') renderReviewsRatings();
             if (sectionId === 'ratePlans') renderRatePlans();
             if (sectionId === 'featureFlags') renderFeatureFlags();
+            if (sectionId === 'landingPage') loadLandingPageData();
         }
 
         // ================= HOTELS =================
@@ -3315,6 +3320,58 @@
 
         function getPlanSettings() { try { return JSON.parse(localStorage.getItem('planSettings') || 'null') || DEFAULT_PLANS; } catch (e) { return DEFAULT_PLANS; } }
         function savePlanSettings(plans) { localStorage.setItem('planSettings', JSON.stringify(plans)); syncPlanToServer(plans); }
+        function getLandingPageData() {
+            try { return JSON.parse(localStorage.getItem('landingPageData') || 'null') || {}; } catch(e) { return {}; }
+        }
+        function loadLandingPageData() {
+            const d = getLandingPageData();
+            if (document.getElementById('lpHeroTitleEn')) document.getElementById('lpHeroTitleEn').value = d.heroTitleEn || '';
+            if (document.getElementById('lpHeroTitleHi')) document.getElementById('lpHeroTitleHi').value = d.heroTitleHi || '';
+            if (document.getElementById('lpHeroSubEn')) document.getElementById('lpHeroSubEn').value = d.heroSubEn || '';
+            if (document.getElementById('lpHeroSubHi')) document.getElementById('lpHeroSubHi').value = d.heroSubHi || '';
+            if (document.getElementById('lpCtaEn')) document.getElementById('lpCtaEn').value = d.ctaEn || '';
+            if (document.getElementById('lpCtaHi')) document.getElementById('lpCtaHi').value = d.ctaHi || '';
+            if (document.getElementById('lpCtaLink')) document.getElementById('lpCtaLink').value = d.ctaLink || '';
+            if (document.getElementById('lpFeatures')) document.getElementById('lpFeatures').value = (d.features || []).join('\n');
+            if (document.getElementById('lpFbPixel')) document.getElementById('lpFbPixel').value = d.fbPixel || '';
+            if (document.getElementById('lpTiktokPixel')) document.getElementById('lpTiktokPixel').value = d.tiktokPixel || '';
+            if (document.getElementById('lpGaId')) document.getElementById('lpGaId').value = d.gaId || '';
+            if (document.getElementById('lpToggle')) document.getElementById('lpToggle').checked = d.isLive !== false;
+            updateLpStatusBadge();
+        }
+        function saveLandingPageContent() {
+            const data = {
+                heroTitleEn: document.getElementById('lpHeroTitleEn').value,
+                heroTitleHi: document.getElementById('lpHeroTitleHi').value,
+                heroSubEn: document.getElementById('lpHeroSubEn').value,
+                heroSubHi: document.getElementById('lpHeroSubHi').value,
+                ctaEn: document.getElementById('lpCtaEn').value,
+                ctaHi: document.getElementById('lpCtaHi').value,
+                ctaLink: document.getElementById('lpCtaLink').value,
+                features: document.getElementById('lpFeatures').value.split('\n').map(f => f.trim()).filter(Boolean),
+                fbPixel: document.getElementById('lpFbPixel').value,
+                tiktokPixel: document.getElementById('lpTiktokPixel').value,
+                gaId: document.getElementById('lpGaId').value,
+                isLive: document.getElementById('lpToggle').checked,
+                updatedAt: new Date().toISOString()
+            };
+            localStorage.setItem('landingPageData', JSON.stringify(data));
+            showToast('✅ Landing page content saved!', 'success');
+        }
+        function toggleLandingPage() {
+            const data = getLandingPageData();
+            data.isLive = document.getElementById('lpToggle').checked;
+            localStorage.setItem('landingPageData', JSON.stringify(data));
+            updateLpStatusBadge();
+            showToast(data.isLive ? '🟢 Landing page is now LIVE' : '🔴 Landing page hidden', data.isLive ? 'success' : 'warning');
+        }
+        function updateLpStatusBadge() {
+            const badge = document.getElementById('lpStatusBadge');
+            if (!badge) return;
+            const isLive = document.getElementById('lpToggle').checked;
+            badge.textContent = isLive ? 'LIVE' : 'HIDDEN';
+            badge.className = isLive ? 'px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold' : 'px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold';
+        }
 
         function renderPlanEditor() {
             const grid = document.getElementById('planEditorGrid');

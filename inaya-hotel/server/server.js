@@ -504,7 +504,32 @@ app.use('/api/subscription', subscriptionRoutes);
 // Auth routes
 const authRoutes = require('./routes/auth');
 app.use('/api', authRoutes);
+// GET /api/public/plans (Public API for Landing Page)
+app.get('/api/public/plans', async (req, res) => {
+    try {
+        // Apne GlobalConfig/Settings model ko yahan call karein
+        const config = await GlobalConfig.findOne(); 
+        
+        if (!config || !config.planSettings) {
+            return res.json({ success: true, plans: [] });
+        }
 
+        const plansObj = config.planSettings;
+        
+        // Object ko array mein convert karein aur sirf 'enabled' plans ko filter karein
+        const activePlans = Object.entries(plansObj)
+            .filter(([key, plan]) => plan.enabled !== false)
+            .map(([key, plan]) => ({
+                id: key,
+                ...plan
+            }));
+
+        res.json({ success: true, plans: activePlans });
+    } catch (error) {
+        console.error('Error fetching public plans:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
 // ======================== NEW ROUTES USE ========================
 app.use('/api/logs', logsRoutes);
 app.use('/api/loyalty', loyaltyRoutes);

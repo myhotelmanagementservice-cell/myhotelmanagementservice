@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Hotel Management System | Cloud PMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html { scroll-behavior: smooth; }
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased">
+
+    <!-- Navbar -->
+    <nav class="fixed w-full bg-white/90 backdrop-blur-md z-50 border-b border-gray-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-crown text-blue-600 text-2xl"></i>
+                    <span class="text-xl font-bold text-gray-900">HotelPro</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="#pricing" class="hidden sm:block text-gray-600 hover:text-blue-600 font-medium" data-i18n="nav_pricing">Pricing</a>
+                    <button onclick="toggleLanguage()" class="px-4 py-2 border border-gray-300 rounded-full text-sm font-semibold hover:bg-gray-50 transition" id="langBtn">
+                        العربية
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg text-white pt-32 pb-20 px-4">
+        <div class="max-w-5xl mx-auto text-center">
+            <div class="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-sm font-semibold mb-6 border border-white/30" data-i18n="hero_badge">
+                #1 Hotel Management Platform
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold mb-6 leading-tight" data-i18n="hero_title">
+                Manage Your Hotel Like a Pro
+            </h1>
+            <p class="text-xl md:text-2xl text-blue-100 mb-10 max-w-3xl mx-auto" data-i18n="hero_subtitle">
+                The all-in-one cloud solution to streamline bookings, rooms, and guests. Boost your revenue and delight your guests.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="#pricing" class="px-8 py-4 bg-white text-blue-600 font-bold rounded-xl shadow-lg hover:shadow-xl transition transform hover:scale-105" data-i18n="hero_cta">
+                    Start Free Trial
+                </a>
+                <a href="#features" class="px-8 py-4 bg-blue-700/50 border border-white/30 text-white font-bold rounded-xl hover:bg-blue-700/70 transition" data-i18n="hero_secondary">
+                    View Features
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 px-4 bg-white">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4" data-i18n="feat_title">Everything You Need to Run Your Hotel</h2>
+                <p class="text-lg text-gray-500" data-i18n="feat_sub">Powerful features designed for modern hoteliers</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Feature 1 -->
+                <div class="p-6 bg-gray-50 rounded-2xl hover:shadow-lg transition">
+                    <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-2xl mb-4">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2" data-i18n="feat_1_t">Smart Booking Calendar</h3>
+                    <p class="text-gray-600" data-i18n="feat_1_d">Drag-and-drop calendar to manage reservations effortlessly and avoid double bookings.</p>
+                </div>
+                <!-- Feature 2 -->
+                <div class="p-6 bg-gray-50 rounded-2xl hover:shadow-lg transition">
+                    <div class="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center text-2xl mb-4">
+                        <i class="fas fa-bed"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2" data-i18n="feat_2_t">Real-Time Room Status</h3>
+                    <p class="text-gray-600" data-i18n="feat_2_d">Track clean, dirty, and occupied rooms in real-time to optimize housekeeping.</p>
+                </div>
+                <!-- Feature 3 -->
+                <div class="p-6 bg-gray-50 rounded-2xl hover:shadow-lg transition">
+                    <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-2xl mb-4">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2" data-i18n="feat_3_t">Multi-Currency & Global</h3>
+                    <p class="text-gray-600" data-i18n="feat_3_d">Accept payments in multiple currencies and manage guests from around the world.</p>
+                </div>
+                <!-- Feature 4 -->
+                <div class="p-6 bg-gray-50 rounded-2xl hover:shadow-lg transition">
+                    <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-2xl mb-4">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2" data-i18n="feat_4_t">Super Admin Dashboard</h3>
+                    <p class="text-gray-600" data-i18n="feat_4_d">Complete control over your properties, staff, and revenue from one screen.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section (Dynamic) -->
+    <section id="pricing" class="py-20 px-4 bg-gray-50">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4" data-i18n="pricing_title">Simple, Transparent Pricing</h2>
+                <p class="text-lg text-gray-500" data-i18n="pricing_sub">Choose the perfect plan for your property. No hidden fees.</p>
+            </div>
+
+            <!-- Plans will be injected here -->
+            <div id="plans-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="col-span-full text-center py-10 text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
+                    <p data-i18n="loading_plans">Loading plans...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-8 px-4 text-center">
+        <p data-i18n="footer_text">© 2026 Hotel Management Service. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // ================= LANGUAGE SYSTEM =================
+        let currentLang = 'en';
+        let fetchedPlans = [];
+
+        const translations = {
+            en: {
+                nav_pricing: "Pricing",
+                hero_badge: "#1 Hotel Management Platform",
+                hero_title: "Manage Your Hotel Like a Pro",
+                hero_subtitle: "The all-in-one cloud solution to streamline bookings, rooms, and guests. Boost your revenue and delight your guests.",
+                hero_cta: "Start Free Trial",
+                hero_secondary: "View Features",
+                feat_title: "Everything You Need to Run Your Hotel",
+                feat_sub: "Powerful features designed for modern hoteliers",
+                feat_1_t: "Smart Booking Calendar", feat_1_d: "Drag-and-drop calendar to manage reservations effortlessly and avoid double bookings.",
+                feat_2_t: "Real-Time Room Status", feat_2_d: "Track clean, dirty, and occupied rooms in real-time to optimize housekeeping.",
+                feat_3_t: "Multi-Currency & Global", feat_3_d: "Accept payments in multiple currencies and manage guests from around the world.",
+                feat_4_t: "Super Admin Dashboard", feat_4_d: "Complete control over your properties, staff, and revenue from one screen.",
+                pricing_title: "Simple, Transparent Pricing",
+                pricing_sub: "Choose the perfect plan for your property. No hidden fees.",
+                loading_plans: "Loading plans...",
+                subscribe_btn: "Subscribe Now",
+                lifetime: "Lifetime",
+                days: "days",
+                popular_badge: "MOST POPULAR",
+                footer_text: "© 2026 Hotel Management Service. All rights reserved."
+            },
+            ar: {
+                nav_pricing: "الأسعار",
+                hero_badge: "منصة إدارة الفنادق رقم 1",
+                hero_title: "أدر فندقك باحترافية",
+                hero_subtitle: "الحل السحابي المتكامل لتبسيط الحجوزات والغرف والضيوف. زد إيراداتك وأسعد ضيوفك.",
+                hero_cta: "ابدأ التجربة المجانية",
+                hero_secondary: "عرض المميزات",
+                feat_title: "كل ما تحتاجه لإدارة فندقك",
+                feat_sub: "ميزات قوية مصممة لأصحاب الفنادق الحديثين",
+                feat_1_t: "تقويم حجوزات ذكي", feat_1_d: "تقويم سهل السحب والإفلات لإدارة الحجوزات بكل سهولة وتجنب الحجز المزدوج.",
+                feat_2_t: "حالة الغرف في الوقت الفعلي", feat_2_d: "تتبع الغرف النظيفة والمتسخة والمشغولة في الوقت الفعلي لتحسين خدمة التنظيف.",
+                feat_3_t: "عملات متعددة وعالمي", feat_3_d: "اقبل المدفوعات بعملات متعددة وأدر ضيوفاً من جميع أنحاء العالم.",
+                feat_4_t: "لوحة تحكم المدير الفائق", feat_4_d: "تحكم كامل في منشآتك وموظفيك وإيراداتك من شاشة واحدة.",
+                pricing_title: "أسعار بسيطة وشفافة",
+                pricing_sub: "اختر الخطة المثالية لمنشأتك. بدون رسوم خفية.",
+                loading_plans: "جاري تحميل الخطط...",
+                subscribe_btn: "اشترك الآن",
+                lifetime: "مدى الحياة",
+                days: "يوم",
+                popular_badge: "الأكثر شعبية",
+                footer_text: "© 2026 خدمة إدارة الفنادق. جميع الحقوق محفوظة."
+            }
+        };
+
+        function applyLanguage(lang) {
+            currentLang = lang;
+            const html = document.documentElement;
+            html.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+            html.setAttribute('lang', lang);
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+
+            // Re-render plans to update button text and badges
+            if (fetchedPlans.length > 0) renderPlans();
+        }
+
+        function toggleLanguage() {
+            const newLang = currentLang === 'en' ? 'ar' : 'en';
+            applyLanguage(newLang);
+            document.getElementById('langBtn').textContent = newLang === 'en' ? 'العربية' : 'English';
+        }
+
+        // ================= DYNAMIC PLANS SYSTEM =================
+        async function loadPlans() {
+            const container = document.getElementById('plans-container');
+            container.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500"><p>${translations[currentLang].loading_plans}</p></div>`;
+
+            try {
+                // Fetch plans from your Node.js Public API
+                const response = await fetch('https://myhotelmanagementservice.com/api/public/plans');
+                const data = await response.json();
+
+                if (data.success && data.plans) {
+                    fetchedPlans = data.plans;
+                    renderPlans();
+                } else {
+                    container.innerHTML = '<p class="text-center text-red-500 col-span-full">Failed to load plans.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading plans:', error);
+                container.innerHTML = '<p class="text-center text-red-500 col-span-full">Network error. Please refresh.</p>';
+            }
+        }
+
+        function renderPlans() {
+            const container = document.getElementById('plans-container');
+            container.innerHTML = ''; 
+
+            fetchedPlans.forEach(plan => {
+                // Map admin panel colors to Tailwind classes
+                let borderClass = 'border-gray-200';
+                let btnClass = 'bg-blue-600 hover:bg-blue-700';
+                let isPopular = false;
+
+                if (plan.color === 'purple') {
+                    borderClass = 'border-purple-500 ring-2 ring-purple-600 ring-offset-2';
+                    btnClass = 'bg-purple-600 hover:bg-purple-700';
+                    isPopular = true;
+                } else if (plan.color === 'green') {
+                    borderClass = 'border-green-500';
+                    btnClass = 'bg-green-600 hover:bg-green-700';
+                } else if (plan.color === 'amber' || plan.color === 'gold') {
+                    borderClass = 'border-amber-500';
+                    btnClass = 'bg-amber-600 hover:bg-amber-700';
+                } else if (plan.color === 'red') {
+                    borderClass = 'border-red-500';
+                    btnClass = 'bg-red-600 hover:bg-red-700';
+                }
+
+                // Duration Logic
+                let durationText = '';
+                if (plan.duration === null || plan.duration === 'null' || plan.duration === 0) {
+                    durationText = translations[currentLang].lifetime;
+                } else {
+                    durationText = `/ ${plan.duration} ${translations[currentLang].days}`;
+                }
+
+                // Features List
+                const featuresHtml = (plan.features || []).map(f => `
+                    <li class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span class="text-gray-600">${f}</span>
+                    </li>
+                `).join('');
+
+                // Popular Badge
+                const badgeHtml = isPopular ? `
+                    <div class="absolute top-0 inset-x-0 -mt-4 flex justify-center">
+                        <span class="bg-purple-600 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-md">
+                            ${translations[currentLang].popular_badge}
+                        </span>
+                    </div>
+                ` : '';
+
+                // Final Card HTML
+                const cardHtml = `
+                    <div class="bg-white rounded-2xl shadow-lg p-8 flex flex-col border-2 ${borderClass} relative transition-transform hover:scale-105 pt-12">
+                        ${badgeHtml}
+                        <div class="text-4xl mb-4">${plan.icon || '📋'}</div>
+                        <h3 class="text-2xl font-bold text-gray-900">${plan.name}</h3>
+                        <div class="mt-4 flex items-baseline">
+                            <span class="text-4xl font-extrabold text-gray-900">$${plan.price}</span>
+                            <span class="ml-2 text-xl text-gray-500">${durationText}</span>
+                        </div>
+                        <ul class="mt-6 space-y-4 flex-1">
+                            ${featuresHtml}
+                        </ul>
+                        <a href="https://myhotelmanagementservice.com/subscribe.html?hotelId=HOTEL002&plan=${plan.id}" 
+                           class="mt-8 block text-center py-3.5 px-6 rounded-xl text-white font-bold ${btnClass} transition shadow-md hover:shadow-xl">
+                           ${translations[currentLang].subscribe_btn}
+                        </a>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        // ================= INITIALIZATION =================
+        document.addEventListener('DOMContentLoaded', () => {
+            applyLanguage('en');
+            loadPlans();
+        });
+    </script>
+</body>
+</html>
