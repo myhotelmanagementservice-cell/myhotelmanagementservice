@@ -507,23 +507,19 @@ app.use('/api', authRoutes);
 // GET /api/public/plans (Public API for Landing Page)
 app.get('/api/public/plans', async (req, res) => {
     try {
-        // Apne GlobalConfig/Settings model ko yahan call karein
-        const config = await GlobalConfig.findOne(); 
-        
-        if (!config || !config.planSettings) {
-            return res.json({ success: true, plans: [] });
-        }
+        const cfg = dbConnected
+          ? await db.collection('globalConfig').findOne({ _id: 'main' })
+          : null;
+        const plansObj = (cfg && cfg.planSettings) || {};
 
-        const plansObj = config.planSettings;
-        
-        // Object ko array mein convert karein aur sirf 'enabled' plans ko filter karein
         const activePlans = Object.entries(plansObj)
             .filter(([key, plan]) => plan.enabled !== false)
             .map(([key, plan]) => ({
                 id: key,
+                color: plan.color || 'blue',
+                duration: plan.duration !== undefined ? plan.duration : 30,
                 ...plan
             }));
-
         res.json({ success: true, plans: activePlans });
     } catch (error) {
         console.error('Error fetching public plans:', error);
