@@ -527,32 +527,6 @@ app.get('/api/public/plans', async (req, res) => {
     }
 });
 // ============================================
-// LANDING PAGE CONTENT — Save (Admin) & Get (Public)
-// ============================================
-app.post('/api/admin/landing-content', authMiddleware, async (req, res) => {
-    try {
-        if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
-        const content = { ...req.body, updatedAt: new Date() };
-        await db.collection('globalConfig').updateOne(
-            { _id: 'main' },
-            { $set: { landingContent: content } },
-            { upsert: true }
-        );
-        res.json({ success: true, data: content });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
-});
-
-app.get('/api/public/landing-content', async (req, res) => {
-    try {
-        if (!dbConnected) return res.json({ success: true, data: {} });
-        const cfg = await db.collection('globalConfig').findOne({ _id: 'main' });
-        res.json({ success: true, data: (cfg && cfg.landingContent) || {} });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
-});
 // ======================== NEW ROUTES USE ========================
 app.use('/api/logs', logsRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
@@ -671,6 +645,32 @@ const authMiddleware = (req, res, next) => {
     return res.status(401).json({ success: false, error: 'Invalid token' });
   }
 };
+// LANDING PAGE CONTENT — Save (Admin) & Get (Public)
+// ============================================
+app.post('/api/admin/landing-content', authMiddleware, async (req, res) => {
+    try {
+        if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+        const content = { ...req.body, updatedAt: new Date() };
+        await db.collection('globalConfig').updateOne(
+            { _id: 'main' },
+            { $set: { landingContent: content } },
+            { upsert: true }
+        );
+        res.json({ success: true, data: content });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get('/api/public/landing-content', async (req, res) => {
+    try {
+        if (!dbConnected) return res.json({ success: true, data: {} });
+        const cfg = await db.collection('globalConfig').findOne({ _id: 'main' });
+        res.json({ success: true, data: (cfg && cfg.landingContent) || {} });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
 
 const superAdminMiddleware = async (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
