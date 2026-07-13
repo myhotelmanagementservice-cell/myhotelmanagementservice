@@ -3368,51 +3368,79 @@
 
         function getPlanSettings() { try { return JSON.parse(localStorage.getItem('planSettings') || 'null') || DEFAULT_PLANS; } catch (e) { return DEFAULT_PLANS; } }
         function savePlanSettings(plans) { localStorage.setItem('planSettings', JSON.stringify(plans)); syncPlanToServer(plans); }
-        function getLandingPageData() {
-            try { return JSON.parse(localStorage.getItem('landingPageData') || 'null') || {}; } catch(e) { return {}; }
-        }
-        function loadLandingPageData() {
-            const d = getLandingPageData();
-            if (document.getElementById('lpHeroTitleEn')) document.getElementById('lpHeroTitleEn').value = d.heroTitleEn || '';
-            if (document.getElementById('lpHeroTitleHi')) document.getElementById('lpHeroTitleHi').value = d.heroTitleHi || '';
-            if (document.getElementById('lpHeroSubEn')) document.getElementById('lpHeroSubEn').value = d.heroSubEn || '';
-            if (document.getElementById('lpHeroSubHi')) document.getElementById('lpHeroSubHi').value = d.heroSubHi || '';
-            if (document.getElementById('lpCtaEn')) document.getElementById('lpCtaEn').value = d.ctaEn || '';
-            if (document.getElementById('lpCtaHi')) document.getElementById('lpCtaHi').value = d.ctaHi || '';
-            if (document.getElementById('lpCtaLink')) document.getElementById('lpCtaLink').value = d.ctaLink || '';
-            if (document.getElementById('lpFeatures')) document.getElementById('lpFeatures').value = (d.features || []).join('\n');
-            if (document.getElementById('lpFbPixel')) document.getElementById('lpFbPixel').value = d.fbPixel || '';
-            if (document.getElementById('lpTiktokPixel')) document.getElementById('lpTiktokPixel').value = d.tiktokPixel || '';
-            if (document.getElementById('lpGaId')) document.getElementById('lpGaId').value = d.gaId || '';
-            if (document.getElementById('lpToggle')) document.getElementById('lpToggle').checked = d.isLive !== false;
-            updateLpStatusBadge();
-        }
-        function saveLandingPageContent() {
-            const data = {
-                heroTitleEn: document.getElementById('lpHeroTitleEn').value,
-                heroTitleHi: document.getElementById('lpHeroTitleHi').value,
-                heroSubEn: document.getElementById('lpHeroSubEn').value,
-                heroSubHi: document.getElementById('lpHeroSubHi').value,
-                ctaEn: document.getElementById('lpCtaEn').value,
-                ctaHi: document.getElementById('lpCtaHi').value,
-                ctaLink: document.getElementById('lpCtaLink').value,
-                features: document.getElementById('lpFeatures').value.split('\n').map(f => f.trim()).filter(Boolean),
-                fbPixel: document.getElementById('lpFbPixel').value,
-                tiktokPixel: document.getElementById('lpTiktokPixel').value,
-                gaId: document.getElementById('lpGaId').value,
-                isLive: document.getElementById('lpToggle').checked,
-                updatedAt: new Date().toISOString()
-            };
-            localStorage.setItem('landingPageData', JSON.stringify(data));
+let _lpCache = {};
+function getLandingPageData() {
+    return _lpCache || {};
+}
+async function loadLandingPageData() {
+    try {
+        const r = await fetch('/api/public/landing-content');
+        const res = await r.json();
+        _lpCache = (res.success && res.data) ? res.data : {};
+    } catch(e) { _lpCache = {}; }
+    const d = _lpCache;
+    if (document.getElementById('lpHeroTitleEn')) document.getElementById('lpHeroTitleEn').value = d.heroTitleEn || '';
+    if (document.getElementById('lpHeroTitleHi')) document.getElementById('lpHeroTitleHi').value = d.heroTitleHi || '';
+    if (document.getElementById('lpHeroSubEn')) document.getElementById('lpHeroSubEn').value = d.heroSubEn || '';
+    if (document.getElementById('lpHeroSubHi')) document.getElementById('lpHeroSubHi').value = d.heroSubHi || '';
+    if (document.getElementById('lpCtaEn')) document.getElementById('lpCtaEn').value = d.ctaEn || '';
+    if (document.getElementById('lpCtaHi')) document.getElementById('lpCtaHi').value = d.ctaHi || '';
+    if (document.getElementById('lpCtaLink')) document.getElementById('lpCtaLink').value = d.ctaLink || '';
+    if (document.getElementById('lpFeatures')) document.getElementById('lpFeatures').value = (d.features || []).join('\n');
+    if (document.getElementById('lpFbPixel')) document.getElementById('lpFbPixel').value = d.fbPixel || '';
+    if (document.getElementById('lpTiktokPixel')) document.getElementById('lpTiktokPixel').value = d.tiktokPixel || '';
+    if (document.getElementById('lpGaId')) document.getElementById('lpGaId').value = d.gaId || '';
+    if (document.getElementById('lpToggle')) document.getElementById('lpToggle').checked = d.isLive !== false;
+    updateLpStatusBadge();
+}
+async function saveLandingPageContent() {
+    const data = {
+        heroTitleEn: document.getElementById('lpHeroTitleEn').value,
+        heroTitleHi: document.getElementById('lpHeroTitleHi').value,
+        heroSubEn: document.getElementById('lpHeroSubEn').value,
+        heroSubHi: document.getElementById('lpHeroSubHi').value,
+        ctaEn: document.getElementById('lpCtaEn').value,
+        ctaHi: document.getElementById('lpCtaHi').value,
+        ctaLink: document.getElementById('lpCtaLink').value,
+        features: document.getElementById('lpFeatures').value.split('\n').map(f => f.trim()).filter(Boolean),
+        fbPixel: document.getElementById('lpFbPixel').value,
+        tiktokPixel: document.getElementById('lpTiktokPixel').value,
+        gaId: document.getElementById('lpGaId').value,
+        isLive: document.getElementById('lpToggle').checked
+    };
+    try {
+        const r = await fetch('/api/admin/landing-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+            body: JSON.stringify(data)
+        });
+        const res = await r.json();
+        if (res.success) {
+            _lpCache = res.data;
             showToast('✅ Landing page content saved!', 'success');
+        } else {
+            showToast('❌ Save failed: ' + (res.error || 'Unknown error'), 'error');
         }
-        function toggleLandingPage() {
-            const data = getLandingPageData();
-            data.isLive = document.getElementById('lpToggle').checked;
-            localStorage.setItem('landingPageData', JSON.stringify(data));
-            updateLpStatusBadge();
-            showToast(data.isLive ? '🟢 Landing page is now LIVE' : '🔴 Landing page hidden', data.isLive ? 'success' : 'warning');
-        }
+    } catch(e) {
+        showToast('❌ Network error while saving', 'error');
+    }
+}
+async function toggleLandingPage() {
+    const data = getLandingPageData();
+    data.isLive = document.getElementById('lpToggle').checked;
+    updateLpStatusBadge();
+    try {
+        await fetch('/api/admin/landing-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+            body: JSON.stringify(data)
+        });
+        _lpCache = data;
+        showToast(data.isLive ? '🟢 Landing page is now LIVE' : '🔴 Landing page hidden', data.isLive ? 'success' : 'warning');
+    } catch(e) {
+        showToast('❌ Network error', 'error');
+    }
+}
         function updateLpStatusBadge() {
             const badge = document.getElementById('lpStatusBadge');
             if (!badge) return;

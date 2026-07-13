@@ -63,7 +63,6 @@
                 <p class="text-lg text-gray-500" data-i18n="feat_sub">Powerful features designed for modern hoteliers</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <!-- Feature 1 -->
                 <div class="p-6 bg-gray-50 rounded-2xl hover:shadow-lg transition">
                     <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-2xl mb-4">
                         <i class="fas fa-calendar-check"></i>
@@ -71,7 +70,6 @@
                     <h3 class="text-xl font-bold mb-2" data-i18n="feat_1_t">Smart Booking Calendar</h3>
                     <p class="text-gray-600" data-i18n="feat_1_d">Drag-and-drop calendar to manage reservations effortlessly and avoid double bookings.</p>
                 </div>
-                <!-- Feature 2 -->
                 <div class="p-6 bg-gray-50 rounded-2xl hover:shadow-lg transition">
                     <div class="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center text-2xl mb-4">
                         <i class="fas fa-bed"></i>
@@ -79,7 +77,6 @@
                     <h3 class="text-xl font-bold mb-2" data-i18n="feat_2_t">Real-Time Room Status</h3>
                     <p class="text-gray-600" data-i18n="feat_2_d">Track clean, dirty, and occupied rooms in real-time to optimize housekeeping.</p>
                 </div>
-                <!-- Feature 3 -->
                 <div class="p-6 bg-gray-50 rounded-2xl hover:shadow-lg transition">
                     <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-2xl mb-4">
                         <i class="fas fa-coins"></i>
@@ -87,7 +84,6 @@
                     <h3 class="text-xl font-bold mb-2" data-i18n="feat_3_t">Multi-Currency & Global</h3>
                     <p class="text-gray-600" data-i18n="feat_3_d">Accept payments in multiple currencies and manage guests from around the world.</p>
                 </div>
-                <!-- Feature 4 -->
                 <div class="p-6 bg-gray-50 rounded-2xl hover:shadow-lg transition">
                     <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-2xl mb-4">
                         <i class="fas fa-chart-line"></i>
@@ -106,8 +102,6 @@
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4" data-i18n="pricing_title">Simple, Transparent Pricing</h2>
                 <p class="text-lg text-gray-500" data-i18n="pricing_sub">Choose the perfect plan for your property. No hidden fees.</p>
             </div>
-
-            <!-- Plans will be injected here -->
             <div id="plans-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div class="col-span-full text-center py-10 text-gray-500">
                     <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
@@ -174,6 +168,24 @@
             }
         };
 
+        // ================= DYNAMIC HERO CONTENT (from Admin Panel) =================
+        async function loadHeroContent() {
+            try {
+                const r = await fetch('https://myhotelmanagementservice.com/api/public/landing-content');
+                const res = await r.json();
+                if (res.success && res.data && Object.keys(res.data).length > 0) {
+                    const d = res.data;
+                    // Sirf English content override hota hai (admin panel se).
+                    // Arabic hardcoded rehta hai kyunki admin panel Arabic collect nahi karta.
+                    if (d.heroTitleEn) translations.en.hero_title = d.heroTitleEn;
+                    if (d.heroSubEn) translations.en.hero_subtitle = d.heroSubEn;
+                    if (d.ctaEn) translations.en.hero_cta = d.ctaEn;
+                }
+            } catch(e) {
+                console.warn('Hero content load skipped:', e.message);
+            }
+        }
+
         function applyLanguage(lang) {
             currentLang = lang;
             const html = document.documentElement;
@@ -187,7 +199,6 @@
                 }
             });
 
-            // Re-render plans to update button text and badges
             if (fetchedPlans.length > 0) renderPlans();
         }
 
@@ -203,7 +214,6 @@
             container.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500"><p>${translations[currentLang].loading_plans}</p></div>`;
 
             try {
-                // Fetch plans from your Node.js Public API
                 const response = await fetch('https://myhotelmanagementservice.com/api/public/plans');
                 const data = await response.json();
 
@@ -224,7 +234,6 @@
             container.innerHTML = ''; 
 
             fetchedPlans.forEach(plan => {
-                // Map admin panel colors to Tailwind classes
                 let borderClass = 'border-gray-200';
                 let btnClass = 'bg-blue-600 hover:bg-blue-700';
                 let isPopular = false;
@@ -244,7 +253,6 @@
                     btnClass = 'bg-red-600 hover:bg-red-700';
                 }
 
-                // Duration Logic
                 let durationText = '';
                 if (plan.duration === null || plan.duration === 'null' || plan.duration === 0) {
                     durationText = translations[currentLang].lifetime;
@@ -252,7 +260,6 @@
                     durationText = `/ ${plan.duration} ${translations[currentLang].days}`;
                 }
 
-                // Features List
                 const featuresHtml = (plan.features || []).map(f => `
                     <li class="flex items-center gap-3">
                         <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -262,7 +269,6 @@
                     </li>
                 `).join('');
 
-                // Popular Badge
                 const badgeHtml = isPopular ? `
                     <div class="absolute top-0 inset-x-0 -mt-4 flex justify-center">
                         <span class="bg-purple-600 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-md">
@@ -271,7 +277,6 @@
                     </div>
                 ` : '';
 
-                // Final Card HTML
                 const cardHtml = `
                     <div class="bg-white rounded-2xl shadow-lg p-8 flex flex-col border-2 ${borderClass} relative transition-transform hover:scale-105 pt-12">
                         ${badgeHtml}
@@ -295,7 +300,8 @@
         }
 
         // ================= INITIALIZATION =================
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadHeroContent();
             applyLanguage('en');
             loadPlans();
         });
