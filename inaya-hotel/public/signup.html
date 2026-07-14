@@ -108,12 +108,8 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    window._signupData = data.data;
-                    document.getElementById('formStep').classList.add('hidden');
-                    document.getElementById('successStep').classList.remove('hidden');
-                    document.getElementById('successHotelId').textContent = data.data.hotelId;
-                    document.getElementById('successEmail').textContent = data.data.email;
-                    document.getElementById('successPassword').textContent = data.data.password;
+                    // Seedha payment page par bhejo — credentials payment success ke baad milenge
+                    window.location.href = `/subscribe.html?hotelId=${data.data.hotelId}&plan=${data.data.plan}`;
                 } else {
                     errEl.textContent = data.error || 'Something went wrong. Please try again.';
                     errEl.classList.remove('hidden');

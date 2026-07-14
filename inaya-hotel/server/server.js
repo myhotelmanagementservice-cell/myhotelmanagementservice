@@ -589,10 +589,15 @@ app.post('/api/public/signup', async (req, res) => {
             name: ownerName,
             role: 'hotel_admin',
             permissions: ['rooms', 'guests', 'food', 'inventory', 'requests', 'settings', 'staff', 'bookings'],
-            isActive: true,
+            active: false,
             createdAt: new Date()
         };
         await db.collection('users').insertOne(defaultAdmin);
+        // Plain password ko temporarily tenants mein save karo — payment success ke baad ek baar dikhane ke liye
+        await db.collection('tenants').updateOne(
+            { hotelId: hotel.hotelId },
+            { $set: { _tempPassword: generatedPassword } }
+        );
 
         await db.collection('settings').insertOne({
             hotelId: hotel.hotelId,
@@ -613,7 +618,6 @@ app.post('/api/public/signup', async (req, res) => {
             data: {
                 hotelId: hotel.hotelId,
                 email,
-                password: generatedPassword,
                 plan: plan || 'basic'
             }
         });

@@ -222,7 +222,7 @@ router.post('/create', authMiddleware, async (req, res) => {
                 customer_phone: req.user?.phone || '9999999999'
             },
             order_meta: {
-                return_url: `${process.env.FRONTEND_URL || 'https://myhotelmanagementservice.onrender.com'}/subscription-success.html?order_id={order_id}`,
+                return_url: `${process.env.FRONTEND_URL || 'https://myhotelmanagementservice.onrender.com'}/subscription-success.html?order_id={order_id}&hotelId=${hotelId}`,
                 notify_url: `${process.env.BACKEND_URL || 'https://myhotelmanagementservice.onrender.com'}/api/subscription/webhook`
             }
         };
@@ -364,6 +364,77 @@ router.get('/verify/:orderId', authMiddleware, async (req, res) => {
 });
 
 // ============================================================
+// PUBLIC VERIFY (for new signups — no login yet)
+// ============================================================
+router.get('/verify-public/:orderId', async (req, res) => {
+    try {
+        const db = getDB(req);
+        const { orderId } = req.params;
+        const hotelId = req.query.hotelId;
+        if (!hotelId) return error(res, 'Hotel ID is required', 400);
+        if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
+            return error(res, 'Payment gateway not configured', 500);
+        }
+        const cashfreeResponse = await safeFetch(`${CASHFREE_BASE_URL}/orders/${orderId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-version': '2023-08-01',
+                'x-client-id': CASHFREE_APP_ID,
+                'x-client-secret': CASHFREE_SECRET_KEY
+            }
+        });
+        const orderData = await cashfreeResponse.json();
+        if (!cashfreeResponse.ok) {
+            return error(res, orderData.message || 'Failed to verify payment', 500);
+        }
+        if (orderData.order_status === 'PAID') {
+            const subscription = await db.collection('subscriptions').findOne({ transactionId: orderId });
+            if (subscription) {
+                let expiryDate = null;
+                const planData = await getEffectivePlanData(db, subscription.plan);
+                if (planData && planData.duration) {
+                    expiryDate = new Date();
+                    expiryDate.setDate(expiryDate.getDate() + planData.duration);
+                }
+                await db.collection('subscriptions').updateOne(
+                    { _id: subscription._id },
+                    { $set: { paymentStatus: 'completed', status: 'active', expiryDate, updatedAt: new Date() } }
+                );
+                await db.collection('tenants').updateOne(
+                    { hotelId },
+                    { $set: { subscriptionType: subscription.plan, subscriptionExpiry: expiryDate, active: true, isActive: true, updatedAt: new Date() } }
+                );
+                await db.collection('users').updateOne(
+                    { hotelId, role: 'hotel_admin' },
+                    { $set: { active: true } }
+                );
+            }
+            // Fetch aur delete temp password (sirf ek baar milega)
+            const tenant = await db.collection('tenants').findOne({ hotelId });
+            const tempPassword = tenant?._tempPassword || null;
+            if (tempPassword) {
+                await db.collection('tenants').updateOne({ hotelId }, { $unset: { _tempPassword: '' } });
+            }
+            return success(res, {
+                status: 'PAID',
+                message: 'Payment successful! Subscription activated.',
+                hotelId,
+                email: tenant?.email,
+                password: tempPassword
+            });
+        } else if (orderData.order_status === 'FAILED') {
+            return success(res, { status: 'FAILED', message: 'Payment failed. Please try again.' });
+        } else {
+            return success(res, { status: orderData.order_status, message: 'Payment pending.' });
+        }
+    } catch (err) {
+        console.error('❌ Public verify error:', err);
+        return error(res, err.message, 500);
+    }
+});
+
+// ============================================================
 // CASHFREE WEBHOOK
 // ============================================================
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -409,7 +480,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                     );
                     await db.collection('tenants').updateOne(
                         { hotelId },
-                        { $set: { subscriptionType: sub.plan, subscriptionExpiry: expiryDate, active: true, updatedAt: new Date() } }
+                        { $set: { subscriptionType: sub.plan, subscriptionExpiry: expiryDate, active: true, isActive: true, updatedAt: new Date() } }
+                    );
+                    // Hotel admin user ko bhi activate karo — payment confirm hone ke baad hi login allow ho
+                    await db.collection('users').updateOne(
+                        { hotelId, role: 'hotel_admin' },
+                        { $set: { active: true } }
                     );
                     console.log(`✅ Subscription activated for hotel: ${hotelId}`);
                 }
