@@ -102,6 +102,19 @@
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4" data-i18n="pricing_title">Simple, Transparent Pricing</h2>
                 <p class="text-lg text-gray-500" data-i18n="pricing_sub">Choose the perfect plan for your property. No hidden fees.</p>
             </div>
+            <div class="max-w-md mx-auto mb-10 bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-center gap-3 flex-wrap">
+                <label class="text-sm font-semibold text-gray-600">💱 Pay in Currency:</label>
+                <select id="currencySelect" onchange="changeCurrency(this.value)" class="border border-gray-300 rounded-lg px-3 py-2 text-sm font-semibold">
+                    <option value="USD" data-symbol="$" data-rate="1.00" data-flag="🇺🇸">🇺🇸 USD - US Dollar</option>
+                    <option value="INR" data-symbol="₹" data-rate="83.50" data-flag="🇮🇳">🇮🇳 INR - Indian Rupee</option>
+                    <option value="USDT" data-symbol="₮" data-rate="1.00" data-flag="💎">💎 USDT - Tether (Crypto)</option>
+                    <option value="SAR" data-symbol="﷼" data-rate="3.75" data-flag="🇸🇦">🇸🇦 SAR - Saudi Riyal</option>
+                    <option value="AED" data-symbol="د.إ" data-rate="3.67" data-flag="🇦🇪">🇦🇪 AED - UAE Dirham</option>
+                    <option value="EUR" data-symbol="€" data-rate="0.92" data-flag="🇪🇺">🇪🇺 EUR - Euro</option>
+                    <option value="GBP" data-symbol="£" data-rate="0.79" data-flag="🇬🇧">🇬🇧 GBP - British Pound</option>
+                    <option value="KWD" data-symbol="د.ك" data-rate="0.31" data-flag="🇰🇼">🇰🇼 KWD - Kuwaiti Dinar</option>
+                </select>
+            </div>
             <div id="plans-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div class="col-span-full text-center py-10 text-gray-500">
                     <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
@@ -120,6 +133,36 @@
         // ================= LANGUAGE SYSTEM =================
         let currentLang = 'en';
         let fetchedPlans = [];
+        let selectedCurrency = localStorage.getItem('preferred_currency') || 'USD';
+
+        function changeCurrency(currency) {
+            selectedCurrency = currency;
+            localStorage.setItem('preferred_currency', currency);
+            if (fetchedPlans.length > 0) renderPlans();
+        }
+
+        function convertPrice(usdPrice, currency) {
+            const select = document.getElementById('currencySelect');
+            const option = Array.from(select.options).find(opt => opt.value === currency);
+            if (!option) return usdPrice;
+            const rate = parseFloat(option.dataset.rate) || 1;
+            return (usdPrice * rate);
+        }
+
+        function getCurrencySymbol(currency) {
+            const select = document.getElementById('currencySelect');
+            const option = Array.from(select.options).find(opt => opt.value === currency);
+            return option ? option.dataset.symbol : '$';
+        }
+
+        function formatPriceDisplay(amount, currency) {
+            const symbol = getCurrencySymbol(currency);
+            if (currency === 'USDT') return { symbol, amount: amount.toFixed(2) };
+            if (['INR', 'KWD'].includes(currency) && amount >= 100) {
+                return { symbol, amount: Math.round(amount).toLocaleString() };
+            }
+            return { symbol, amount: amount.toFixed(2) };
+        }
 
         const translations = {
             en: {
@@ -277,13 +320,15 @@
                     </div>
                 ` : '';
 
+                const convertedPrice = convertPrice(plan.price, selectedCurrency);
+                const { symbol, amount } = formatPriceDisplay(convertedPrice, selectedCurrency);
                 const cardHtml = `
                     <div class="bg-white rounded-2xl shadow-lg p-8 flex flex-col border-2 ${borderClass} relative transition-transform hover:scale-105 pt-12">
                         ${badgeHtml}
                         <div class="text-4xl mb-4">${plan.icon || '📋'}</div>
                         <h3 class="text-2xl font-bold text-gray-900">${plan.name}</h3>
                         <div class="mt-4 flex items-baseline">
-                            <span class="text-4xl font-extrabold text-gray-900">$${plan.price}</span>
+                            <span class="text-4xl font-extrabold text-gray-900">${symbol}${amount}</span>
                             <span class="ml-2 text-xl text-gray-500">${durationText}</span>
                         </div>
                         <ul class="mt-6 space-y-4 flex-1">
@@ -301,6 +346,8 @@
 
         // ================= INITIALIZATION =================
         document.addEventListener('DOMContentLoaded', async () => {
+            const currencySelect = document.getElementById('currencySelect');
+            if (currencySelect) currencySelect.value = selectedCurrency;
             await loadHeroContent();
             applyLanguage('en');
             loadPlans();
