@@ -253,8 +253,8 @@
         }
 
         const urlParams = new URLSearchParams(window.location.search);
-        let hotelId = urlParams.get('hotelId') || urlParams.get('hotel') || getHotelIdFromToken();
-
+        const urlHotelId = urlParams.get('hotelId') || urlParams.get('hotel');
+        let hotelId = urlHotelId || getHotelIdFromToken();
         if (!hotelId) {
             try {
                 const session = localStorage.getItem('h_default_session');
@@ -264,12 +264,21 @@
                 }
             } catch(e) {}
         }
-
         if (!hotelId) {
             hotelId = localStorage.getItem('hotelId') || 'HOTEL001';
         }
-
-        const authToken = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
+        let authToken = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
+        // Agar URL mein hotelId diya hai aur purane token ka hotelId usse match nahi karta,
+        // to purana token clear karo (naya signup / different hotel session hai)
+        if (urlHotelId && authToken) {
+            const tokenHotelId = getHotelIdFromToken();
+            if (tokenHotelId && tokenHotelId !== urlHotelId) {
+                localStorage.removeItem('hotel_token');
+                sessionStorage.removeItem('hotel_token');
+                authToken = null;
+                hotelId = urlHotelId;
+            }
+        }
 
         let selectedCurrency = localStorage.getItem('preferred_currency') || 'INR';
         let plansData = [];
