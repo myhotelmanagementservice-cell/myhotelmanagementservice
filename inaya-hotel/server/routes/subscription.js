@@ -39,10 +39,7 @@ function getDB(req) {
 // HELPER: Resolve plan data from hardcoded list OR DB custom plans
 // ============================================================
 async function getEffectivePlanData(db, planId) {
-    // 1. Check hardcoded plans first
-    if (SUBSCRIPTION_PLANS[planId]) return SUBSCRIPTION_PLANS[planId];
-
-    // 2. Fall back to globalConfig.planSettings (admin-created custom plans)
+    // 1. Check admin-created custom plans first (source of truth — Plan Editor)
     try {
         const cfg = await db.collection('globalConfig').findOne({ _id: 'main' });
         const planSettings = cfg && cfg.planSettings;
@@ -57,6 +54,8 @@ async function getEffectivePlanData(db, planId) {
             };
         }
     } catch (_) {}
+    // 2. Fall back to hardcoded plans (only if not found in DB)
+    if (SUBSCRIPTION_PLANS[planId]) return SUBSCRIPTION_PLANS[planId];
 
     return null;
 }
