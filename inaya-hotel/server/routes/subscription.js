@@ -166,7 +166,16 @@ router.post('/create-public', async (req, res) => {
                 { hotelId, role: 'hotel_admin' },
                 { $set: { active: true } }
             );
-            return success(res, { subscription }, 'Free trial activated successfully');
+            const tempPassword = tenant?._tempPassword || null;
+            if (tempPassword) {
+                await db.collection('tenants').updateOne({ hotelId }, { $unset: { _tempPassword: '' } });
+            }
+            return success(res, {
+                subscription,
+                hotelId,
+                email: tenant?.email,
+                password: tempPassword
+            }, 'Free trial activated successfully');
         }
         if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
             console.error('❌ Cashfree credentials missing');
@@ -275,17 +284,7 @@ router.post('/create', authMiddleware, async (req, res) => {
                 { hotelId, role: 'hotel_admin' },
                 { $set: { active: true } }
             );
-            // Fetch aur delete temp password — free plan turant activate hota hai, isliye turant credentials de dete hain
-            const tempPassword = tenant?._tempPassword || null;
-            if (tempPassword) {
-                await db.collection('tenants').updateOne({ hotelId }, { $unset: { _tempPassword: '' } });
-            }
-            return success(res, {
-                subscription,
-                hotelId,
-                email: tenant?.email,
-                password: tempPassword
-            }, 'Free trial activated successfully');
+            return success(res, { subscription }, 'Free trial activated successfully');
         }
 
         // FIX 3: Validate Cashfree credentials before calling API
