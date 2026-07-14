@@ -131,6 +131,106 @@ router.get('/current', authMiddleware, async (req, res) => {
         return error(res, err.message, 500);
     }
 });
+// ============================================================
+// CREATE SUBSCRIPTION & CASHFREE ORDER — PUBLIC (New Signups, No Login)
+// ============================================================
+router.post('/create-public', async (req, res) => {
+    try {
+        const db = getDB(req);
+        const { hotelId, plan, email } = req.body;
+        if (!hotelId) return error(res, 'Hotel ID is required', 400);
+        if (!plan) return error(res, 'Plan is required', 400);
+        const tenant = await db.collection('tenants').findOne({ hotelId });
+        if (!tenant) return error(res, 'Hotel not found', 404);
+        const planData = await getEffectivePlanData(db, plan);
+        if (!planData) {
+            return error(res, 'Invalid plan. Please select a valid subscription plan.', 400);
+        }
+        let expiryDate = null;
+        if (planData.duration) {
+            expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + planData.duration);
+        }
+        if (planData.price === 0) {
+            const subscription = {
+                hotelId, plan, planName: planData.name, price: 0, currency: 'USD',
+                status: 'active', startDate: new Date(), expiryDate,
+                paymentStatus: 'completed', paymentMethod: 'free',
+                createdAt: new Date(), updatedAt: new Date()
+            };
+            await db.collection('subscriptions').insertOne(subscription);
+            await db.collection('tenants').updateOne(
+                { hotelId },
+                { $set: { subscriptionType: plan, subscriptionExpiry: expiryDate, active: true, isActive: true, updatedAt: new Date() } }
+            );
+            await db.collection('users').updateOne(
+                { hotelId, role: 'hotel_admin' },
+                { $set: { active: true } }
+            );
+            return success(res, { subscription }, 'Free trial activated successfully');
+        }
+        if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
+            console.error('❌ Cashfree credentials missing');
+            return error(res, 'Payment gateway not configured. Please contact support.', 500);
+        }
+        const existing = await db.collection('subscriptions').findOne({ hotelId, status: 'active' });
+        if (existing) return error(res, 'Already has an active subscription', 400);
+        const orderId = `hotel_${hotelId}_${Date.now()}`;
+        const orderAmount = planData.price * 83.5;
+        const orderCurrency = 'INR';
+        const subscription = {
+            hotelId, plan, planName: planData.name,
+            price: orderAmount, currency: orderCurrency,
+            status: 'pending', startDate: new Date(),
+            paymentStatus: 'pending', paymentMethod: 'cashfree',
+            transactionId: orderId,
+            createdAt: new Date(), updatedAt: new Date()
+        };
+        const result = await db.collection('subscriptions').insertOne(subscription);
+        subscription._id = result.insertedId;
+        const orderPayload = {
+            order_id: orderId,
+            order_amount: orderAmount,
+            order_currency: orderCurrency,
+            customer_details: {
+                customer_id: String(hotelId),
+                customer_email: email || tenant.email || 'admin@hotel.com',
+                customer_phone: tenant.phone || '9999999999'
+            },
+            order_meta: {
+                return_url: `${process.env.FRONTEND_URL || 'https://myhotelmanagementservice.onrender.com'}/subscription-success.html?order_id={order_id}&hotelId=${hotelId}`,
+                notify_url: `${process.env.BACKEND_URL || 'https://myhotelmanagementservice.onrender.com'}/api/subscription/webhook`
+            }
+        };
+        console.log('📤 [Public] Creating Cashfree order:', orderId, '| Amount:', orderAmount, orderCurrency);
+        const cashfreeResponse = await safeFetch(`${CASHFREE_BASE_URL}/orders`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-version': '2023-08-01',
+                'x-client-id': CASHFREE_APP_ID,
+                'x-client-secret': CASHFREE_SECRET_KEY
+            },
+            body: JSON.stringify(orderPayload)
+        });
+        const cashfreeData = await cashfreeResponse.json();
+        if (!cashfreeResponse.ok) {
+            console.error('❌ Cashfree order creation failed:', cashfreeData);
+            return error(res, cashfreeData.message || 'Failed to create payment order', 500);
+        }
+        return success(res, {
+            subscription,
+            paymentSession: {
+                paymentSessionId: cashfreeData.payment_session_id,
+                orderId,
+                environment: CASHFREE_ENVIRONMENT
+            }
+        });
+    } catch (err) {
+        console.error('❌ Create public subscription error:', err);
+        return error(res, err.message, 500);
+    }
+});
 
 // ============================================================
 // CREATE SUBSCRIPTION & CASHFREE ORDER

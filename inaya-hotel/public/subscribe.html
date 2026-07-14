@@ -499,17 +499,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         async function subscribe(planId, currency, amount) {
+        // Disable all buttons during processing
+        document.querySelectorAll('.subscribe-btn').forEach(btn => btn.disabled = true);
+        try {
+            let response;
             if (!authToken) {
-                alert('❌ Please login first to subscribe');
-                window.location.href = '/';
-                return;
-            }
-
-            // Disable all buttons during processing
-            document.querySelectorAll('.subscribe-btn').forEach(btn => btn.disabled = true);
-
-            try {
-                const response = await fetch(`${API_BASE}/subscription/create`, {
+                // New signup customer — no login yet, use public endpoint
+                response = await fetch(`${API_BASE}/subscription/create-public`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        hotelId: hotelId,
+                        plan: planId,
+                        email: urlParams.get('newEmail') || ''
+                    })
+                });
+            } else {
+                // Existing logged-in customer — upgrade/renew
+                response = await fetch(`${API_BASE}/subscription/create`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -519,9 +526,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     body: JSON.stringify({
                         plan: planId,
                         currency: currency,
-                        amount: Math.round(amount * 100) / 100  // ✅ Round to 2 decimal places
+                        amount: Math.round(amount * 100) / 100
                     })
                 });
+            }
 
                 const data = await response.json();
 
