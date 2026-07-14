@@ -269,9 +269,23 @@ router.post('/create', authMiddleware, async (req, res) => {
             await db.collection('subscriptions').insertOne(subscription);
             await db.collection('tenants').updateOne(
                 { hotelId },
-                { $set: { subscriptionType: plan, subscriptionExpiry: expiryDate, active: true, updatedAt: new Date() } }
+                { $set: { subscriptionType: plan, subscriptionExpiry: expiryDate, active: true, isActive: true, updatedAt: new Date() } }
             );
-            return success(res, { subscription }, 'Free trial activated successfully');
+            await db.collection('users').updateOne(
+                { hotelId, role: 'hotel_admin' },
+                { $set: { active: true } }
+            );
+            // Fetch aur delete temp password — free plan turant activate hota hai, isliye turant credentials de dete hain
+            const tempPassword = tenant?._tempPassword || null;
+            if (tempPassword) {
+                await db.collection('tenants').updateOne({ hotelId }, { $unset: { _tempPassword: '' } });
+            }
+            return success(res, {
+                subscription,
+                hotelId,
+                email: tenant?.email,
+                password: tempPassword
+            }, 'Free trial activated successfully');
         }
 
         // FIX 3: Validate Cashfree credentials before calling API
