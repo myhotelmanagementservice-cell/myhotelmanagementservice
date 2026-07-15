@@ -2288,6 +2288,30 @@
             <div class="space-y-4"><div><label class="block text-sm font-medium mb-1">Extension Duration</label><select id="extendDuration" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="7">7 Days</option><option value="14">14 Days</option><option value="30">30 Days</option><option value="90">90 Days</option><option value="365">1 Year</option><option value="custom">Custom</option></select></div><div id="customDaysWrap" class="hidden"><label class="block text-sm font-medium mb-1">Custom Days</label><input type="number" id="extendCustomDays" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" min="1" placeholder="Enter number of days"></div><div><label class="block text-sm font-medium mb-1">Reason (optional)</label><textarea id="extendReason" rows="2" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 resize-none" placeholder="Reason for extension..."></textarea></div><div class="flex gap-3 pt-2"><button onclick="confirmExtend()" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Extend</button><button onclick="closeModal('extendModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div></div>
         </div>
     </div>
+    <!-- Reset Password Modal -->
+    <div id="resetPasswordModal" class="modal-overlay" onclick="if(event.target===this)closeModal('resetPasswordModal')">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg">🔑 Reset Password</h3><button onclick="closeModal('resetPasswordModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+            <p class="text-sm text-gray-500 mb-4">Setting new password for: <strong id="rpHotelName"></strong></p>
+            <input type="hidden" id="rpHotelId">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">New Password</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="rpNewPassword" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Min 8 characters" minlength="8">
+                        <button onclick="generateRandomPassword()" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-sm whitespace-nowrap" title="Generate random password">🎲 Generate</button>
+                    </div>
+                </div>
+                <div id="rpResultBox" class="hidden bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3 text-sm">
+                    ✅ Password reset successfully! New password: <strong id="rpResultPassword"></strong>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="confirmResetPassword()" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Reset Password</button>
+                    <button onclick="closeModal('resetPasswordModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Change Plan Modal -->
     <div id="changePlanModal" class="modal-overlay" onclick="if(event.target===this)closeModal('changePlanModal')">
@@ -2987,6 +3011,45 @@
             const hotel = hotels.find(h => (h.hotelId === hotelId || h._id === hotelId));
             const currentExpiry = hotel?.subscriptionExpiry ? new Date(hotel.subscriptionExpiry) : new Date();
             const newExpiry = new Date(Math.max(currentExpiry.getTime(), Date.now()) + days * 86400000);
+        function openResetPasswordModal(hotelId, hotelName) {
+            document.getElementById('rpHotelId').value = hotelId;
+            document.getElementById('rpHotelName').textContent = hotelName;
+            document.getElementById('rpNewPassword').value = '';
+            document.getElementById('rpResultBox').classList.add('hidden');
+            openModal('resetPasswordModal');
+        }
+        function generateRandomPassword() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+            let pwd = '';
+            for (let i = 0; i < 10; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+            document.getElementById('rpNewPassword').value = pwd;
+        }
+        async function confirmResetPassword() {
+            const hotelId = document.getElementById('rpHotelId').value;
+            const newPassword = document.getElementById('rpNewPassword').value;
+            if (!newPassword || newPassword.length < 8) {
+                showToast('Password must be at least 8 characters', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/api/super/reset-hotel-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({ hotelId, newPassword })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('rpResultPassword').textContent = newPassword;
+                    document.getElementById('rpResultBox').classList.remove('hidden');
+                    showToast('✅ Password reset successfully!', 'success');
+                    addAuditLog('Password Reset', hotelId, 'hotel');
+                } else {
+                    showToast('❌ ' + (data.error || 'Failed to reset password'), 'error');
+                }
+            } catch (e) {
+                showToast('❌ Network error', 'error');
+            }
+        }    
             if (hotel) { hotel.subscriptionExpiry = newExpiry.toISOString(); renderHotelsTable(); showToast(`Extended by ${days} days`, 'success'); addAuditLog('Subscription Extended', hotel.hotelName, 'hotel'); }
             closeModal('extendModal');
         }
