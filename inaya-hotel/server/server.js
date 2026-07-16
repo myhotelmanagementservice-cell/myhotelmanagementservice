@@ -1699,6 +1699,35 @@ app.get('/api/super/bookings', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ============================================
+// GET ALL ROOMS ACROSS ALL HOTELS (Super Admin Only)
+// ============================================
+app.get('/api/super/rooms', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const rooms = await db.collection('rooms').find({}).sort({ number: 1 }).limit(500).toArray();
+    const hotelIds = [...new Set(rooms.map(r => r.hotelId).filter(Boolean))];
+    const tenants = await db.collection('tenants').find({ hotelId: { $in: hotelIds } }).toArray();
+    const hotelNameMap = {};
+    tenants.forEach(t => { hotelNameMap[t.hotelId] = t.hotelName; });
+    const roomsWithHotel = rooms.map(r => ({
+      id: r._id.toString(),
+      roomNumber: r.number || r.roomNumber || 'N/A',
+      hotelId: r.hotelId,
+      hotelName: hotelNameMap[r.hotelId] || r.hotelId || 'N/A',
+      type: r.type || 'Standard',
+      floor: r.floor || 'N/A',
+      status: (r.status || 'available').toLowerCase(),
+      guest: r.currentGuest || r.guest || '',
+      checkout: r.checkoutDate ? new Date(r.checkoutDate).toLocaleDateString() : '--'
+    }));
+    res.json({ success: true, data: roomsWithHotel, count: roomsWithHotel.length });
+  } catch (err) {
+    console.error('Get rooms error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',
