@@ -4128,9 +4128,27 @@ async function toggleLandingPage() {
                 </div>`).join('');
         }
 
-        function generateReport(type) {
+        async function generateReport(type) {
             const titles = { financial: 'Financial Report', occupancy: 'Occupancy Report', guest: 'Guest Satisfaction Report' };
-            const report = { id: 'RPT' + Date.now(), title: titles[type] || 'Report', type, date: new Date().toLocaleString(), data: 'Sample report data' };
+            let reportData = 'Sample report data';
+            if (type === 'financial') {
+                try {
+                    const res = await fetch(`${API_BASE}/subscription/stats`, {
+                        headers: { 'Authorization': 'Bearer ' + authToken }
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        const s = data.data;
+                        const planLines = Object.entries(s.byPlan || {}).map(([plan, v]) => `${plan}: ${v.count} subscriptions, $${v.revenue.toFixed(2)} revenue`).join('\n');
+                        reportData = `Total Subscriptions: ${s.total}\nTotal Revenue: $${(s.revenue || 0).toFixed(2)}\n\nBy Plan:\n${planLines || 'No data'}\n\nBy Status:\n${Object.entries(s.byStatus || {}).map(([k,v]) => `${k}: ${v}`).join('\n') || 'No data'}`;
+                    }
+                } catch (e) {
+                    reportData = 'Failed to load financial data: ' + e.message;
+                }
+            } else {
+                reportData = `${titles[type] || 'Report'} — this report type is not yet connected to live data.`;
+            }
+            const report = { id: 'RPT' + Date.now(), title: titles[type] || 'Report', type, date: new Date().toLocaleString(), data: reportData };
             generatedReports.unshift(report);
             localStorage.setItem('generatedReports', JSON.stringify(generatedReports));
             renderReportsList();
