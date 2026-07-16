@@ -198,6 +198,24 @@ let client;
 let dbConnected = false;
 let dbReconnectTimer = null;
 
+// ============================================
+// ACTIVITY LOGGING (for Audit Logs — Super Admin)
+// ============================================
+async function logActivity(action, target, type, extra = {}) {
+  try {
+    if (!dbConnected || !db) return;
+    await db.collection('activityLogs').insertOne({
+      action, target, type,
+      user: extra.user || 'System',
+      ip: extra.ip || 'N/A',
+      details: extra.details || '',
+      timestamp: new Date()
+    });
+  } catch (err) {
+    console.error('logActivity error:', err.message);
+  }
+}
+
 // ✅ Idempotency store - prevents duplicate submissions
 const idempotencyStore = new Map();
 setInterval(() => {
@@ -613,6 +631,7 @@ app.post('/api/public/signup', async (req, res) => {
             updatedAt: new Date()
         });
 
+      await logActivity('New Hotel Signup', hotel.hotelId, 'hotel', { user: ownerName, details: `${hotelName} signed up via landing page` });
         res.status(201).json({
             success: true,
             data: {
@@ -1635,6 +1654,7 @@ app.post('/api/super/reset-hotel-password', superAdminMiddleware, async (req, re
     if (result.matchedCount === 0) {
       return res.status(404).json({ success: false, error: 'Hotel admin not found' });
     }
+    await logActivity('Password Reset', hotelId, 'user', { user: 'Super Admin', details: `Password reset for hotel admin` });
     res.json({ success: true, message: 'Password reset successfully' });
   } catch (err) {
     console.error('Reset hotel password error:', err);

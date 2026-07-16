@@ -600,6 +600,14 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                         { $set: { active: true } }
                     );
                     console.log(`✅ Subscription activated for hotel: ${hotelId}`);
+                    try {
+                        await db.collection('activityLogs').insertOne({
+                            action: 'Payment Success', target: hotelId, type: 'payment',
+                            user: 'System', ip: 'N/A',
+                            details: `Payment completed for plan: ${sub.plan}`,
+                            timestamp: new Date()
+                        });
+                    } catch (_) {}
                 }
             }
         }
