@@ -1642,6 +1642,33 @@ app.post('/api/super/reset-hotel-password', superAdminMiddleware, async (req, re
   }
 });
 
+// ============================================
+// GET ALL USERS/STAFF (Super Admin Only)
+// ============================================
+app.get('/api/super/users', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const users = await db.collection('users').find({}).sort({ createdAt: -1 }).toArray();
+    const hotelIds = [...new Set(users.map(u => u.hotelId).filter(Boolean))];
+    const tenants = await db.collection('tenants').find({ hotelId: { $in: hotelIds } }).toArray();
+    const hotelNameMap = {};
+    tenants.forEach(t => { hotelNameMap[t.hotelId] = t.hotelName; });
+    const usersWithHotel = users.map(u => ({
+      id: u._id.toString(),
+      name: u.name || u.email,
+      email: u.email,
+      hotelId: u.hotelId,
+      hotelName: hotelNameMap[u.hotelId] || u.hotelId || 'N/A',
+      role: u.role || 'staff',
+      active: u.active !== false
+    }));
+    res.json({ success: true, data: usersWithHotel, count: usersWithHotel.length });
+  } catch (err) {
+    console.error('Get users error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',

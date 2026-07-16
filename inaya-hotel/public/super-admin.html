@@ -2732,7 +2732,7 @@
             await loadHotelsFromServer();
             generateDummyRooms();
             generateDummyBookings();
-            generateDummyUsers();
+            await loadUsersFromServer();
             generateDummyAuditLogs();
             generateDummyApiKeys();
             loadStats();
@@ -3782,6 +3782,19 @@ async function toggleLandingPage() {
         }
 
         // ================= USERS & STAFF =================
+        async function loadUsersFromServer() {
+            try {
+                const res = await fetch(`${API_BASE}/super/users`, {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                users = (data.success && Array.isArray(data.data)) ? data.data : [];
+            } catch (e) {
+                console.error('Failed to load users:', e);
+                users = [];
+            }
+            renderUsersTable();
+        }
         function renderUsersTable() {
             const tbody = document.getElementById('usersTableBody');
             if (!tbody) return;
