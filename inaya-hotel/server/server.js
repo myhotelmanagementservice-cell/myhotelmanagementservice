@@ -1772,6 +1772,60 @@ app.get('/api/super/activity-logs', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ============================================
+// API KEYS — List, Generate, Revoke (Super Admin Only)
+// ============================================
+app.get('/api/super/api-keys', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const keys = await db.collection('apiKeys').find({}).sort({ createdAt: -1 }).toArray();
+    const formatted = keys.map(k => ({
+      id: k._id.toString(),
+      name: k.name,
+      hotelId: k.hotelId,
+      key: k.key,
+      created: k.createdAt ? new Date(k.createdAt).toLocaleDateString() : 'N/A',
+      lastUsed: k.lastUsed ? new Date(k.lastUsed).toLocaleDateString() : 'Never',
+      active: k.active !== false
+    }));
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get API keys error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/super/api-keys', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, hotelId } = req.body;
+    if (!name || !hotelId) return res.status(400).json({ success: false, error: 'name and hotelId are required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const crypto = require('crypto');
+    const key = 'pk_live_' + crypto.randomBytes(24).toString('hex');
+    const doc = { name, hotelId, key, active: true, createdAt: new Date(), lastUsed: null };
+    const result = await db.collection('apiKeys').insertOne(doc);
+    doc._id = result.insertedId;
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create API key error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/super/api-keys/:id/toggle', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const key = await db.collection('apiKeys').findOne({ _id: new ObjectId(id) });
+    if (!key) return res.status(404).json({ success: false, error: 'Key not found' });
+    await db.collection('apiKeys').updateOne({ _id: new ObjectId(id) }, { $set: { active: !key.active } });
+    res.json({ success: true, active: !key.active });
+  } catch (err) {
+    console.error('Toggle API key error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',
