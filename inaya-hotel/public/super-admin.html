@@ -541,38 +541,8 @@
 
             <!-- SECTION: SUBSCRIPTIONS -->
             <section id="subscriptions" class="section-content hidden fade-in">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center">
-                        <h3 class="font-bold text-xl mb-2">Free</h3>
-                        <p class="text-3xl font-bold text-gray-500">$0<span class="text-sm">/mo</span></p>
-                        <ul class="text-sm text-gray-500 mt-6 space-y-2 mb-6 text-left px-4">
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> 1 Hotel</li>
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> 5 Rooms Max</li>
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> Basic Support</li>
-                        </ul>
-                        <button onclick="managePlan('free')" class="w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Manage Free Users</button>
-                    </div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-lg border-2 border-primary relative text-center">
-                        <div class="absolute top-0 right-0 bg-primary text-white text-xs px-2 py-1 rounded-bl-lg rounded-tr-lg">POPULAR</div>
-                        <h3 class="font-bold text-xl mb-2 text-primary">Pro</h3>
-                        <p class="text-3xl font-bold">$99<span class="text-sm">/mo</span></p>
-                        <ul class="text-sm text-gray-500 mt-6 space-y-2 mb-6 text-left px-4">
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> Up to 5 Hotels</li>
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> Unlimited Rooms</li>
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> Priority Support</li>
-                        </ul>
-                        <button onclick="managePlan('pro')" class="w-full py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Manage Pro Users</button>
-                    </div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center">
-                        <h3 class="font-bold text-xl mb-2">Enterprise</h3>
-                        <p class="text-3xl font-bold">$499<span class="text-sm">/mo</span></p>
-                        <ul class="text-sm text-gray-500 mt-6 space-y-2 mb-6 text-left px-4">
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> Unlimited Hotels</li>
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> Custom Branding</li>
-                            <li><i class="fas fa-check text-green-500 mr-2"></i> Dedicated Manager</li>
-                        </ul>
-                        <button onclick="managePlan('enterprise')" class="w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Manage Enterprise Users</button>
-                    </div>
+                <div id="subPlanCardsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="col-span-full text-center py-8 text-gray-400">Loading plans...</div>
                 </div>
                 <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <h3 class="font-bold mb-4">Subscription Growth</h3>
@@ -2786,6 +2756,7 @@
             const pageTitleEl = document.getElementById('pageTitle');
             if (pageTitleEl) pageTitleEl.textContent = titles[sectionId] || sectionId;
             if (sectionId === 'hotels') renderHotelsTable();
+            if (sectionId === 'subscriptions') { renderSubscriptionPlanCards(); }
             if (sectionId === 'currencies') { renderCurrenciesTable(); renderCurrencyToggles(); }
             if (sectionId === 'subPlans') { renderPlanEditor(); loadGlobalSubSettings(); }
             if (sectionId === 'settings') { loadGlobalConfig(); }
@@ -3144,6 +3115,30 @@
 
         // ================= CHARTS =================
         function renderCharts() {
+            const ctxSub = document.getElementById('subGrowthChart');
+            if (ctxSub) {
+                if (subGrowthChartInstance) subGrowthChartInstance.destroy();
+                const monthCounts = {};
+                const monthLabels = [];
+                const now = new Date();
+                for (let i = 5; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const key = d.toLocaleString('default', { month: 'short', year: '2-digit' });
+                    monthLabels.push(key);
+                    monthCounts[key] = 0;
+                }
+                hotels.forEach(h => {
+                    if (!h.createdAt) return;
+                    const d = new Date(h.createdAt);
+                    const key = d.toLocaleString('default', { month: 'short', year: '2-digit' });
+                    if (monthCounts[key] !== undefined) monthCounts[key]++;
+                });
+                subGrowthChartInstance = new Chart(ctxSub, {
+                    type: 'line',
+                    data: { labels: monthLabels, datasets: [{ label: 'New Hotels', data: monthLabels.map(k => monthCounts[k]), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                });
+            }
             const ctx1 = document.getElementById('revenueChart');
             if (ctx1) {
                 if (revenueChartInstance) revenueChartInstance.destroy();
@@ -3714,6 +3709,36 @@ async function toggleLandingPage() {
                 document.getElementById('autoRenewalToggle').checked = s.autoRenewal !== false;
                 document.getElementById('registrationsToggle').checked = s.openRegistrations !== false;
             } catch (e) {}
+        }
+
+        async function renderSubscriptionPlanCards() {
+            const container = document.getElementById('subPlanCardsContainer');
+            if (!container) return;
+            try {
+                const res = await fetch(`${API_BASE}/public/plans`);
+                const data = await res.json();
+                const plans = (data.success && Array.isArray(data.plans)) ? data.plans : [];
+                if (plans.length === 0) {
+                    container.innerHTML = `<div class="col-span-full text-center py-8 text-gray-400">No plans configured yet.</div>`;
+                    return;
+                }
+                container.innerHTML = plans.map(p => {
+                    const hotelCount = hotels.filter(h => (h.subscriptionType || h.plan) === p.id).length;
+                    const durationText = p.duration === null ? 'Lifetime' : `${p.duration} days`;
+                    const featuresHtml = (p.features || []).slice(0, 4).map(f => `<li><i class="fas fa-check text-green-500 mr-2"></i>${f}</li>`).join('');
+                    return `<div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center">
+                        <div class="text-2xl mb-2">${p.icon || '📋'}</div>
+                        <h3 class="font-bold text-xl mb-2">${p.name}</h3>
+                        <p class="text-3xl font-bold">$${p.price}<span class="text-sm text-gray-400"> / ${durationText}</span></p>
+                        <ul class="text-sm text-gray-500 mt-6 space-y-2 mb-6 text-left px-4">${featuresHtml}</ul>
+                        <p class="text-xs text-gray-400 mb-3">${hotelCount} hotel(s) on this plan</p>
+                        <button onclick="managePlan('${p.id}')" class="w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Manage ${p.name} Users</button>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                console.error('Failed to load subscription plans:', e);
+                container.innerHTML = `<div class="col-span-full text-center py-8 text-red-400">Failed to load plans</div>`;
+            }
         }
 
         function managePlan(planType) {
