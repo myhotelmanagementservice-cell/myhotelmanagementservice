@@ -1748,6 +1748,30 @@ app.get('/api/super/rooms', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ============================================
+// GET ACTIVITY/AUDIT LOGS (Super Admin Only)
+// ============================================
+app.get('/api/super/activity-logs', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const logs = await db.collection('activityLogs').find({}).sort({ timestamp: -1 }).limit(200).toArray();
+    const formatted = logs.map(log => ({
+      id: log._id.toString(),
+      timestamp: log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A',
+      user: log.user || 'System',
+      action: log.action || 'N/A',
+      target: log.target || 'N/A',
+      ip: log.ip || 'N/A',
+      type: log.type || 'setting',
+      details: log.details || ''
+    }));
+    res.json({ success: true, data: formatted, count: formatted.length });
+  } catch (err) {
+    console.error('Get activity logs error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',
