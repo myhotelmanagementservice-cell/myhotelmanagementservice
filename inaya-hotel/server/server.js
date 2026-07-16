@@ -1614,6 +1614,34 @@ app.post('/api/super/admins/register', superAdminMiddleware, async (req, res) =>
   }
 });
 
+// ============================================
+// RESET HOTEL ADMIN PASSWORD (Super Admin Only)
+// ============================================
+app.post('/api/super/reset-hotel-password', superAdminMiddleware, async (req, res) => {
+  try {
+    const { hotelId, newPassword } = req.body;
+    if (!hotelId || !newPassword) {
+      return res.status(400).json({ success: false, error: 'hotelId and newPassword are required' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
+    }
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const result = await db.collection('users').updateOne(
+      { hotelId, role: 'hotel_admin' },
+      { $set: { password: hashedPassword, updatedAt: new Date() } }
+    );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Hotel admin not found' });
+    }
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (err) {
+    console.error('Reset hotel password error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',
