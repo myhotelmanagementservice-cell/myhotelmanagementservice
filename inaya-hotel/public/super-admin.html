@@ -2729,13 +2729,12 @@
         async function initDashboard() {
             if (isDashboardInitialized) return;
             isDashboardInitialized = true;
-            generateDummyHotels();
+            await loadHotelsFromServer();
             generateDummyRooms();
             generateDummyBookings();
             generateDummyUsers();
             generateDummyAuditLogs();
             generateDummyApiKeys();
-            loadHotels();
             loadStats();
             renderCharts();
             renderCurrenciesTable();
@@ -2840,7 +2839,24 @@
         }
 
         // ================= HOTELS =================
-        function loadHotels() { renderHotelsTable(); }
+        async function loadHotelsFromServer() {
+            try {
+                const res = await fetch(`${API_BASE}/super/tenants`, {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                if (data.success && Array.isArray(data.data)) {
+                    hotels = data.data;
+                } else {
+                    hotels = [];
+                }
+            } catch (e) {
+                console.error('Failed to load hotels:', e);
+                hotels = [];
+            }
+            renderHotelsTable();
+        }
+        function loadHotels() { loadHotelsFromServer(); }
 
         function renderHotelsTable(filteredHotels = null) {
             const tbody = document.getElementById('hotelsTableBody');
