@@ -2731,7 +2731,7 @@
             isDashboardInitialized = true;
             await loadHotelsFromServer();
             generateDummyRooms();
-            generateDummyBookings();
+            await loadBookingsFromServer();
             await loadUsersFromServer();
             generateDummyAuditLogs();
             generateDummyApiKeys();
@@ -3935,9 +3935,23 @@ async function toggleLandingPage() {
         }
 
         // ================= BOOKINGS =================
+        async function loadBookingsFromServer() {
+            try {
+                const res = await fetch(`${API_BASE}/super/bookings`, {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                bookings = (data.success && Array.isArray(data.data)) ? data.data : [];
+            } catch (e) {
+                console.error('Failed to load bookings:', e);
+                bookings = [];
+            }
+            renderBookingsTable();
+        }
         function renderBookingsTable() {
-            document.getElementById('todayArrivals').textContent = bookings.filter(b => b.status === 'confirmed' && Math.random() > 0.7).length;
-            document.getElementById('todayDepartures').textContent = bookings.filter(b => b.status === 'checkedin' && Math.random() > 0.6).length;
+            const today = new Date().toDateString();
+            document.getElementById('todayArrivals').textContent = bookings.filter(b => b.checkin && new Date(b.checkin).toDateString() === today).length;
+            document.getElementById('todayDepartures').textContent = bookings.filter(b => b.checkout && new Date(b.checkout).toDateString() === today).length;
             document.getElementById('upcomingBookings').textContent = bookings.filter(b => b.status === 'confirmed' || b.status === 'pending').length;
             const cancelled = bookings.filter(b => b.status === 'cancelled').length;
             document.getElementById('cancellationRate').textContent = (bookings.length > 0 ? Math.floor(cancelled / bookings.length * 100) : 0) + '%';

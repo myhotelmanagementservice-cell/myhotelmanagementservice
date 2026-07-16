@@ -1669,6 +1669,36 @@ app.get('/api/super/users', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ============================================
+// GET ALL BOOKINGS ACROSS ALL HOTELS (Super Admin Only)
+// ============================================
+app.get('/api/super/bookings', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const bookings = await db.collection('bookings').find({}).sort({ createdAt: -1 }).limit(200).toArray();
+    const hotelIds = [...new Set(bookings.map(b => b.hotelId).filter(Boolean))];
+    const tenants = await db.collection('tenants').find({ hotelId: { $in: hotelIds } }).toArray();
+    const hotelNameMap = {};
+    tenants.forEach(t => { hotelNameMap[t.hotelId] = t.hotelName; });
+    const bookingsWithHotel = bookings.map(b => ({
+      id: b._id.toString(),
+      guest: b.guestName || b.guest || 'N/A',
+      hotelId: b.hotelId,
+      hotelName: hotelNameMap[b.hotelId] || b.hotelId || 'N/A',
+      room: b.roomNumber || b.room || 'N/A',
+      checkin: b.checkIn ? new Date(b.checkIn).toLocaleDateString() : (b.checkin || 'N/A'),
+      checkout: b.checkOut ? new Date(b.checkOut).toLocaleDateString() : (b.checkout || 'N/A'),
+      amount: b.totalAmount || b.amount || 0,
+      status: b.status || 'pending',
+      createdAt: b.createdAt
+    }));
+    res.json({ success: true, data: bookingsWithHotel, count: bookingsWithHotel.length });
+  } catch (err) {
+    console.error('Get bookings error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',
