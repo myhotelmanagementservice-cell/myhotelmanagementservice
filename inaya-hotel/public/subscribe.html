@@ -535,8 +535,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (!data.success) {
                     if (data.error === 'Hotel not found') {
-                        alert('This link is no longer valid. Redirecting you to start a new signup.');
-                        window.location.href = '/landing.html';
+                        document.body.innerHTML = `
+                            <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f3ff;font-family:system-ui,sans-serif;">
+                                <div style="text-align:center;padding:30px;">
+                                    <div style="font-size:40px;margin-bottom:10px;">🔄</div>
+                                    <p style="color:#555;font-size:16px;">Taking you to the sign-up page...</p>
+                                </div>
+                            </div>`;
+                        setTimeout(() => { window.location.href = '/landing.html'; }, 800);
                         return;
                     }
                     alert('❌ ' + (data.error || 'Failed to create subscription'));
