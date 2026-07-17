@@ -534,6 +534,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const data = await response.json();
 
                 if (!data.success) {
+                    if (data.error === 'Hotel not found') {
+                        alert('This link is no longer valid. Redirecting you to start a new signup.');
+                        window.location.href = '/landing.html';
+                        return;
+                    }
                     alert('❌ ' + (data.error || 'Failed to create subscription'));
                     document.querySelectorAll('.subscribe-btn').forEach(btn => btn.disabled = false);
                     return;
