@@ -1,4 +1,9 @@
 User-agent: *
 Allow: /
+Disallow: /subscribe.html
+Disallow: /subscription-success.html
+Disallow: /admin.html
+Disallow: /super-admin.html
+Disallow: /index.html
 
 Sitemap: https://myhotelmanagementservice.com/sitemap.xml
