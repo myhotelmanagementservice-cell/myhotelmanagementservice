@@ -2762,6 +2762,7 @@ const ADMIN_TABS = [
 { id: 'housekeeping', label: 'tabHousekeeping' },
 { id: 'offers', label: 'tabOffers' },
 { id: 'lostfound', label: 'tabLostFound' },
+{ id: 'upgradeOptionsTab', label: 'Upgrade Options' },  
 { id: 'transport', label: 'tabTransport' },
 { id: 'chat', label: 'tabChat' },
 { id: 'billing', label: 'tabBilling' },
@@ -6853,6 +6854,8 @@ case 'offers':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🎁 Offers & Discounts</h3><button class="btn-primary" onclick="openModal('offerModal')">+ Add Offer</button></div><div style="background:var(--card2);border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:10px;opacity:.7">💡 Active offers are shown to guests in their Offers tab. Promo codes can be applied at booking.</div><div id="offersGrid"></div></div>`;
 case 'lostfound':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">💼 Lost & Found</h3><button class="btn-primary" onclick="openModal('lfModal')">+ Add Item</button></div><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderLostFound('all')">${t('filterAll')}</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderLostFound('unclaimed')">${t('filterUnclaimed')}</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderLostFound('claimed')">${t('filterClaimed')}</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px;border-color:#10b981;color:#10b981" onclick="renderLostFound('returned')">${t('filterReturned')}</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>${t('thItem')}</th><th>${t('thDesc')}</th><th>${t('thFoundAt')}</th><th>${t('thDate')}</th><th>${t('thGuestRoom')}</th><th>${t('thStatus')}</th><th>${t('thActions')}</th></tr></thead><tbody id="lfTbody"></tbody></table></div></div>`;
+case 'upgradeOptionsTab':
+return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">⬆️ Room Upgrade Options</h3><button class="btn-primary" onclick="openModal('upgradeOptModal')">+ Add Upgrade Option</button></div><div style="background:var(--card2);border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:10px;opacity:.7">💡 These upgrade options and prices are shown to guests in their Upgrade tab.</div><div id="upgradeOptGrid"></div></div>`;    
 case 'transport':
 return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h3 style="font-size:14px;font-weight:700;color:var(--fg)">🚗 All Transport Bookings</h3><button class="btn-primary" style="background:#10b981" onclick="exportTransport()">📥 Export</button></div><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderTransport('all')">${t('filterAll')}</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderTransport('airport')">✈️ Airport</button><button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderTransport('local')">🚕 Local Cab</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>${t('thGuest')}</th><th>${t('thRoom')}</th><th>${t('thType')}</th><th>${t('thPrice')}</th><th>${t('thPickup')}</th><th>${t('thBookedAt')}</th><th>${t('thStatus')}</th></tr></thead><tbody id="transportTbody"></tbody></table></div></div>`;
 case 'chat':
@@ -7489,6 +7492,32 @@ ${departments.filter(d => d.isEnabled).map(d => `<option value="${d.key}">${d.em
 <div style="display:flex;gap:4px;margin-top:14px">
 <button class="btn-primary" style="flex:1" type="submit">${t('offerCreate')}</button>
 <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('offerModal')">${t('cancelBtn')}</button>
+</div>
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="upgradeOptModal">
+<div class="modal-box">
+<div class="modal-h">⬆️ Add Upgrade Option</div>
+<form onsubmit="saveUpgradeOpt(event)">
+<div class="form-2">
+<div class="form-row"><label class="lbl">From (Room Type)</label><input class="inp" id="mUpgFrom" placeholder="Standard" required></div>
+<div class="form-row"><label class="lbl">To (Room Type)</label><input class="inp" id="mUpgTo" placeholder="Deluxe" required></div>
+</div>
+<div class="form-row"><label class="lbl">Description</label><input class="inp" id="mUpgDesc" placeholder="Extra space, premium amenities, better view"></div>
+<div class="form-2">
+<div class="form-row"><label class="lbl">Price</label><input class="inp" id="mUpgPrice" type="number" min="0" placeholder="250" required></div>
+<div class="form-row"><label class="lbl">Icon (emoji)</label><input class="inp" id="mUpgIcon" placeholder="⬆️" value="⬆️"></div>
+</div>
+<div class="form-row"><label class="lbl">Per Night?</label>
+<select class="inp" id="mUpgPerNight">
+<option value="true">Yes — per night</option>
+<option value="false">No — one-time</option>
+</select>
+</div>
+<div style="display:flex;gap:4px;margin-top:14px">
+<button class="btn-primary" style="flex:1" type="submit">Save</button>
+<button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('upgradeOptModal')">Cancel</button>
 </div>
 </form>
 </div>
@@ -8637,6 +8666,57 @@ try { await apiPut(`/api/offers/${id}`, { isActive: val }); } catch(_){}
 renderOffers();
 showToast(val ? '✅ Offer activated' : '⏸️ Offer deactivated', 'info');
 }
+let upgradeOpts = [];
+async function renderUpgradeOpt() {
+const el = document.getElementById('upgradeOptGrid');
+if (!el) return;
+try {
+  const r = await fetch(`/api/upgrade-options?hotelId=${HID}`);
+  if (r.ok) upgradeOpts = await r.json();
+} catch(_) {}
+el.innerHTML = upgradeOpts.length ? upgradeOpts.map(o => `
+<div class="req-card" style="margin-bottom:8px">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">
+<div>
+<div style="font-weight:700;font-size:15px">${o.icon || '⬆️'} ${o.from} → ${o.to}</div>
+<div style="font-size:12px;margin-top:2px;opacity:.7">${o.desc || ''}</div>
+<div style="margin-top:6px;font-size:13px;font-weight:700;color:var(--p1)">+${formatPrice(o.price)} ${o.perNight ? '/ night' : ''}</div>
+</div>
+<button class="tbl-action" onclick="deleteUpgradeOpt('${o._id}')" title="Delete">🗑️</button>
+</div>
+</div>
+`).join('') : '<p style="text-align:center;opacity:.5;padding:20px">No upgrade options yet. Click "+ Add Upgrade Option" to create one.</p>';
+}
+async function saveUpgradeOpt(e) {
+e.preventDefault();
+const obj = {
+hotelId: HID,
+from: document.getElementById('mUpgFrom').value,
+to: document.getElementById('mUpgTo').value,
+desc: document.getElementById('mUpgDesc').value,
+price: Number(document.getElementById('mUpgPrice').value),
+icon: document.getElementById('mUpgIcon').value || '⬆️',
+perNight: document.getElementById('mUpgPerNight').value === 'true'
+};
+try {
+  const res = await apiPost('/api/upgrade-options', obj);
+  if (res && (res._id || res.insertedId)) {
+    obj._id = String(res._id || res.insertedId);
+    upgradeOpts.push(obj);
+  }
+} catch(_){}
+renderUpgradeOpt();
+closeModal('upgradeOptModal');
+e.target.reset();
+showToast('⬆️ Upgrade option saved!', 'success');
+}
+async function deleteUpgradeOpt(id) {
+if (!confirm('Delete this upgrade option?')) return;
+try { await apiDelete(`/api/upgrade-options/${id}`); } catch(_){}
+upgradeOpts = upgradeOpts.filter(o => o._id !== id);
+renderUpgradeOpt();
+showToast('🗑️ Upgrade option deleted', 'info');
+}  
 // ============================================================
 // LOST & FOUND
 // ============================================================

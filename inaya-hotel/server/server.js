@@ -4056,6 +4056,49 @@ app.delete('/api/offers/:id', authMiddleware, async (req, res) => {
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// ======================== UPGRADE OPTIONS ========================
+app.get('/api/upgrade-options', async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    if (!dbConnected) return res.json([]);
+    const data = await db.collection('upgradeOptions').find({ hotelId }).sort({ _id: -1 }).toArray();
+    data.forEach(d => { if (d._id) d._id = d._id.toString(); });
+    res.json(data);
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+app.post('/api/upgrade-options', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const entry = { hotelId, ...req.body, _version: 1 };
+    if (!dbConnected) { entry._id = 'upg_'+Date.now(); return res.status(201).json({ ...entry, success: true }); }
+    const result = await db.collection('upgradeOptions').insertOne(entry);
+    entry._id = result.insertedId.toString();
+    broadcast(hotelId, 'upgrade_upd', entry, req.clientId);
+    res.status(201).json({ ...entry, success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+app.put('/api/upgrade-options/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) return res.json({ success: true });
+    const update = { ...req.body }; delete update._id;
+    await db.collection('upgradeOptions').updateOne({ _id: parseId(id), hotelId }, { $set: update });
+    broadcast(hotelId, 'upgrade_upd', { _id: id, hotelId, ...update }, req.clientId);
+    res.json({ success: true, _id: id, ...update });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+app.delete('/api/upgrade-options/:id', authMiddleware, async (req, res) => {
+  try {
+    const hotelId = req.hotelId;
+    const { id } = req.params;
+    if (!dbConnected) return res.json({ success: true });
+    await db.collection('upgradeOptions').deleteOne({ _id: parseId(id), hotelId });
+    broadcast(hotelId, 'upgrade_upd', { _id: id, hotelId, deleted: true }, req.clientId);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 // ======================== LOST & FOUND ========================
 
 app.get('/api/lostfound', async (req, res) => {
