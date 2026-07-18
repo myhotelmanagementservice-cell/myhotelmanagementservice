@@ -4593,10 +4593,17 @@ function speakText(text) {
   function assignVoiceAndSpeak() {
     const voices = window.speechSynthesis.getVoices();
     if (voices.length > 0) {
+      const baseLang = targetLang.split('-')[0];
       const exact = voices.find(v => v.lang === targetLang);
-      const partial = voices.find(v => v.lang.startsWith(targetLang.split('-')[0]));
-      const fallback = voices.find(v => v.default) || voices[0];
-      utterance.voice = exact || partial || fallback || null;
+      const partial = voices.find(v => v.lang.toLowerCase().startsWith(baseLang));
+      const anyArabicLike = baseLang === 'ar' ? voices.find(v => v.lang.toLowerCase().includes('ar')) : null;
+      const foundVoice = exact || partial || anyArabicLike;
+      if (foundVoice) {
+        utterance.voice = foundVoice;
+      } else {
+        // No matching voice installed on this device — still try to speak using the lang attribute only
+        utterance.voice = null;
+      }
     }
     window.speechSynthesis.cancel();
     setTimeout(() => window.speechSynthesis.speak(utterance), 80);
