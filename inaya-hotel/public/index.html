@@ -6918,6 +6918,7 @@ if (id === 'departments') renderDepartments();
 if (id === 'housekeeping') renderHousekeeping('all');
 if (id === 'offers') renderOffers();
 if (id === 'lostfound') renderLostFound('all');
+if (id === 'upgradeOptionsTab') renderUpgradeOpt();
 if (id === 'transport') renderTransport('all');
 if (id === 'chat') renderAdminChat();
 if (id === 'billing') { renderBilling(); }
@@ -10280,22 +10281,25 @@ function requestNewKey() { showToast('🔑 New digital key generated!','success'
 // ============================================================
 // GUEST: ROOM UPGRADE REQUEST
 // ============================================================
-const UPGRADE_OPTIONS = [
-  { from:'Standard', to:'Deluxe', price:250, perNight:true, desc:'Extra space, premium amenities, better view', icon:'⬆️' },
-  { from:'Standard', to:'Suite', price:600, perNight:true, desc:'Living room, jacuzzi, butler service', icon:'🌟' },
-  { from:'Deluxe', to:'Suite', price:400, perNight:true, desc:'Upgrade to full suite experience', icon:'👑' },
-  { from:'Any', to:'Presidential', price:1200, perNight:true, desc:'Top floor, panoramic views, exclusive services', icon:'🏆' }
-];
-function renderUpgradeRequest() {
+async function renderUpgradeRequest() {
   const el = document.getElementById('upgradeContainer');
   if (!el) return;
   if (!currentUser) { el.innerHTML = '<p style="opacity:.5;text-align:center;padding:20px">Please login to request an upgrade</p>'; return; }
+  let opts = [];
+  try {
+    const r = await fetch(`/api/upgrade-options?hotelId=${HID}`);
+    if (r.ok) opts = await r.json();
+  } catch(_) {}
+  if (opts.length === 0) {
+    el.innerHTML = '<p style="opacity:.5;text-align:center;padding:20px">No upgrade options available right now.</p>';
+    return;
+  }
   el.innerHTML = `<div style="background:linear-gradient(135deg,#f59e0b18,#f59e0b08);border:1px solid #f59e0b44;border-radius:12px;padding:14px;margin-bottom:14px">
     <div style="font-size:13px;font-weight:600;color:#f59e0b">✨ Current Room: ${currentUser.room}</div>
     <div style="font-size:11px;opacity:.7;margin-top:2px">Upgrade available based on availability. Subject to confirmation.</div>
   </div>
   <div style="display:flex;flex-direction:column;gap:10px">
-  ${UPGRADE_OPTIONS.map(opt=>`<div style="background:var(--card2);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+  ${opts.map(opt=>`<div style="background:var(--card2);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <div style="display:flex;align-items:center;gap:10px">
       <span style="font-size:28px">${opt.icon}</span>
       <div>
