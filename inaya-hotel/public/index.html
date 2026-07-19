@@ -4494,6 +4494,7 @@ dark = !dark;
 document.body.classList.toggle('dark', dark);
 document.getElementById('darkBtn').textContent = dark ? '☀️' : '🌙';
 saveUIPrefs();
+showToast('DEBUG: body class = "' + document.body.className + '"', 'info');
 }
 function applyFontZoom(size) {
   const scale = size / 16;
