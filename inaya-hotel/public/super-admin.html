@@ -3045,10 +3045,7 @@
                 showToast('❌ Network error', 'error');
             }
         }    
-            if (hotel) { hotel.subscriptionExpiry = newExpiry.toISOString(); renderHotelsTable(); showToast(`Extended by ${days} days`, 'success'); addAuditLog('Subscription Extended', hotel.hotelName, 'hotel'); }
-            closeModal('extendModal');
-        }
-
+        
         function toggleHotelSuspend(hotelId, isActive) {
             const action = isActive ? 'suspend' : 'activate';
             if (!confirm(`Are you sure you want to ${action} this hotel?`)) return;
