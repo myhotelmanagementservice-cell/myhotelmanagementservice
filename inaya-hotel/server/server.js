@@ -1826,6 +1826,109 @@ app.post('/api/super/api-keys/:id/toggle', superAdminMiddleware, async (req, res
   }
 });
 
+// ✅ RATE PLANS — dynamic pricing rules per hotel (MongoDB backed)
+app.get('/api/super/rate-plans', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [], stats: { active: 0, avgRate: 0, highestRate: 0 } });
+    const plans = await db.collection('ratePlans').find({}).sort({ createdAt: -1 }).toArray();
+
+    // Attach hotel name for display
+    const hotelIds = [...new Set(plans.map(p => p.hotelId).filter(id => id && id !== 'ALL'))];
+    const hotelsMap = {};
+    if (hotelIds.length) {
+      const hotelDocs = await db.collection('tenants').find({ hotelId: { $in: hotelIds } }).toArray();
+      hotelDocs.forEach(h => { hotelsMap[h.hotelId] = h.hotelName || h.name || h.hotelId; });
+    }
+
+    const formatted = plans.map(p => ({
+      id: p._id.toString(),
+      name: p.name,
+      hotelId: p.hotelId,
+      hotelName: p.hotelId === 'ALL' ? 'All Hotels' : (hotelsMap[p.hotelId] || p.hotelId),
+      baseRate: p.baseRate,
+      season: p.season,
+      minStay: p.minStay,
+      status: p.status,
+      createdAt: p.createdAt
+    }));
+
+    const activePlans = formatted.filter(p => p.status === 'active');
+    const stats = {
+      active: activePlans.length,
+      avgRate: activePlans.length ? Math.round(activePlans.reduce((s, p) => s + Number(p.baseRate || 0), 0) / activePlans.length) : 0,
+      highestRate: formatted.length ? Math.max(...formatted.map(p => Number(p.baseRate || 0))) : 0
+    };
+
+    res.json({ success: true, data: formatted, stats });
+  } catch (err) {
+    console.error('Get rate plans error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/super/rate-plans', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, hotelId, baseRate, season, minStay, status } = req.body;
+    if (!name || !hotelId || baseRate === undefined || baseRate === null) {
+      return res.status(400).json({ success: false, error: 'name, hotelId and baseRate are required' });
+    }
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+
+    const doc = {
+      name: String(name).trim(),
+      hotelId: String(hotelId).trim(),
+      baseRate: Number(baseRate),
+      season: season ? String(season).trim() : 'All Year',
+      minStay: minStay ? Number(minStay) : 1,
+      status: status === 'draft' ? 'draft' : 'active',
+      createdAt: new Date()
+    };
+    const result = await db.collection('ratePlans').insertOne(doc);
+    doc._id = result.insertedId;
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create rate plan error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/super/rate-plans/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const { name, hotelId, baseRate, season, minStay, status } = req.body;
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = String(name).trim();
+    if (hotelId !== undefined) updateData.hotelId = String(hotelId).trim();
+    if (baseRate !== undefined) updateData.baseRate = Number(baseRate);
+    if (season !== undefined) updateData.season = String(season).trim();
+    if (minStay !== undefined) updateData.minStay = Number(minStay);
+    if (status !== undefined) updateData.status = status === 'draft' ? 'draft' : 'active';
+    updateData.updatedAt = new Date();
+
+    const result = await db.collection('ratePlans').updateOne({ _id: new ObjectId(id) }, { $set: updateData });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Rate plan not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update rate plan error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/super/rate-plans/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('ratePlans').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Rate plan not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete rate plan error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',

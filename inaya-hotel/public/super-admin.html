@@ -2123,22 +2123,36 @@
                     <button onclick="openRatePlanModal()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-plus mr-2"></i>New Rate Plan</button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Active Rate Plans</p><h3 class="text-3xl font-bold mt-2">24</h3><p class="text-xs text-green-500 mt-1">Across all hotels</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Avg Daily Rate</p><h3 class="text-3xl font-bold mt-2">$185</h3><p class="text-xs text-green-500 mt-1"><i class="fas fa-arrow-up"></i> +12% vs last year</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Revenue per Room</p><h3 class="text-3xl font-bold mt-2">$142</h3><p class="text-xs text-green-500 mt-1"><i class="fas fa-arrow-up"></i> +8% vs last month</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Active Rate Plans</p><h3 class="text-3xl font-bold mt-2" id="rpActiveCount">0</h3><p class="text-xs text-gray-500 mt-1">Across all hotels</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Avg Base Rate</p><h3 class="text-3xl font-bold mt-2" id="rpAvgRate">$0</h3><p class="text-xs text-gray-500 mt-1">Active plans only</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Highest Rate</p><h3 class="text-3xl font-bold mt-2" id="rpHighestRate">$0</h3><p class="text-xs text-gray-500 mt-1">All plans</p></div>
                 </div>
                 <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <h3 class="font-bold mb-4">Rate Plan List</h3>
-                    <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-4 text-left text-sm font-semibold">Plan Name</th><th class="p-4 text-left text-sm font-semibold">Hotel</th><th class="p-4 text-left text-sm font-semibold">Base Rate</th><th class="p-4 text-left text-sm font-semibold">Season</th><th class="p-4 text-left text-sm font-semibold">Min Stay</th><th class="p-4 text-left text-sm font-semibold">Status</th></tr></thead>
-                    <tbody>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">Summer Weekend Special</td><td class="p-4 text-sm">Grand Plaza Dubai</td><td class="p-4 text-sm font-bold">$220</td><td class="p-4 text-sm">Peak (Jun-Aug)</td><td class="p-4 text-sm">2 nights</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">Early Bird Discount</td><td class="p-4 text-sm">Royal Orchid</td><td class="p-4 text-sm font-bold">$150</td><td class="p-4 text-sm">All Year</td><td class="p-4 text-sm">Book 30d early</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">Corporate Flex</td><td class="p-4 text-sm">Seaside Resort</td><td class="p-4 text-sm font-bold">$180</td><td class="p-4 text-sm">Weekdays</td><td class="p-4 text-sm">1 night</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">Festive Package</td><td class="p-4 text-sm">All Hotels</td><td class="p-4 text-sm font-bold">$350</td><td class="p-4 text-sm">Dec 20-Jan 5</td><td class="p-4 text-sm">3 nights</td><td class="p-4"><span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">Draft</span></td></tr>
+                    <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-4 text-left text-sm font-semibold">Plan Name</th><th class="p-4 text-left text-sm font-semibold">Hotel</th><th class="p-4 text-left text-sm font-semibold">Base Rate</th><th class="p-4 text-left text-sm font-semibold">Season</th><th class="p-4 text-left text-sm font-semibold">Min Stay</th><th class="p-4 text-left text-sm font-semibold">Status</th><th class="p-4 text-left text-sm font-semibold">Actions</th></tr></thead>
+                    <tbody id="ratePlansTableBody">
+                        <tr><td colspan="7" class="p-4 text-center text-gray-500">Loading...</td></tr>
                     </tbody>
                 </table>
                 </div>
             </section>
+
+            <!-- Rate Plan Modal -->
+            <div id="ratePlanModal" class="modal-overlay" onclick="if(event.target===this)closeModal('ratePlanModal')">
+                <div class="modal-box">
+                    <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg" id="rpModalTitle">New Rate Plan</h3><button onclick="closeModal('ratePlanModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+                    <form id="ratePlanForm" class="space-y-4" onsubmit="saveRatePlan(event)">
+                        <input type="hidden" id="rpEditId">
+                        <div><label class="block text-sm font-medium mb-1">Plan Name</label><input type="text" id="rpName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Summer Weekend Special" required></div>
+                        <div><label class="block text-sm font-medium mb-1">Hotel</label><select id="rpHotelSelect" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"></select></div>
+                        <div><label class="block text-sm font-medium mb-1">Base Rate ($)</label><input type="number" id="rpBaseRate" min="0" step="0.01" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="150" required></div>
+                        <div><label class="block text-sm font-medium mb-1">Season</label><input type="text" id="rpSeason" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Peak (Jun-Aug) or All Year"></div>
+                        <div><label class="block text-sm font-medium mb-1">Min Stay (nights)</label><input type="number" id="rpMinStay" min="1" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="1"></div>
+                        <div><label class="block text-sm font-medium mb-1">Status</label><select id="rpStatus" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="active">Active</option><option value="draft">Draft</option></select></div>
+                        <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('ratePlanModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
+                    </form>
+                </div>
+            </div>
 
             <!-- SECTION: FEATURE FLAGS -->
             <section id="featureFlags" class="section-content hidden fade-in">
@@ -2804,7 +2818,7 @@
             if (sectionId === 'paymentGateways') renderPaymentGateways();
             if (sectionId === 'loyaltyProgram') renderLoyaltyProgram();
             if (sectionId === 'reviewsRatings') renderReviewsRatings();
-            if (sectionId === 'ratePlans') renderRatePlans();
+            if (sectionId === 'ratePlans') loadRatePlansFromServer();
             if (sectionId === 'featureFlags') renderFeatureFlags();
             if (sectionId === 'landingPage') loadLandingPageData();
         }
@@ -4649,8 +4663,133 @@ async function toggleLandingPage() {
         function renderReviewsRatings() { showToast('Reviews loaded', 'info'); }
 
         // ================= RATE PLANS =================
-        function renderRatePlans() { showToast('Rate plans loaded', 'info'); }
-        function openRatePlanModal() { showToast('Rate plan modal (demo)', 'info'); }
+        let ratePlans = [];
+        async function loadRatePlansFromServer() {
+            try {
+                const res = await fetch(`${API_BASE}/super/rate-plans`, {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    ratePlans = data.data || [];
+                    renderRatePlans(data.stats);
+                } else {
+                    ratePlans = [];
+                    renderRatePlans();
+                }
+            } catch (e) {
+                console.error('Failed to load rate plans:', e);
+                ratePlans = [];
+                renderRatePlans();
+            }
+        }
+        function renderRatePlans(stats = null) {
+            const tbody = document.getElementById('ratePlansTableBody');
+            if (!tbody) return;
+            if (ratePlans.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500">No rate plans yet</td></tr>';
+            } else {
+                tbody.innerHTML = ratePlans.map(p => `<tr class="border-b border-gray-200 dark:border-gray-700">
+                    <td class="p-4 text-sm font-medium">${p.name}</td>
+                    <td class="p-4 text-sm">${p.hotelName}</td>
+                    <td class="p-4 text-sm font-bold">$${p.baseRate}</td>
+                    <td class="p-4 text-sm">${p.season}</td>
+                    <td class="p-4 text-sm">${p.minStay} night${p.minStay > 1 ? 's' : ''}</td>
+                    <td class="p-4"><span class="px-2 py-1 ${p.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'} rounded text-xs">${p.status === 'active' ? 'Active' : 'Draft'}</span></td>
+                    <td class="p-4"><div class="flex gap-1">
+                        <button onclick="openRatePlanModal('${p.id}')" class="p-2 text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteRatePlan('${p.id}')" class="p-2 text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                    </div></td>
+                </tr>`).join('');
+            }
+            if (stats) {
+                const elA = document.getElementById('rpActiveCount');
+                const elB = document.getElementById('rpAvgRate');
+                const elC = document.getElementById('rpHighestRate');
+                if (elA) elA.textContent = stats.active;
+                if (elB) elB.textContent = '$' + stats.avgRate;
+                if (elC) elC.textContent = '$' + stats.highestRate;
+            }
+        }
+        function openRatePlanModal(id = null) {
+            const hotelSelect = document.getElementById('rpHotelSelect');
+            hotelSelect.innerHTML = '<option value="ALL">All Hotels</option>' + hotels.map(h => `<option value="${h.hotelId}">${(h.hotelName || h.name || '').replace(/"/g,'')}</option>`).join('');
+
+            if (id) {
+                const plan = ratePlans.find(p => p.id === id);
+                if (!plan) return;
+                document.getElementById('rpModalTitle').textContent = 'Edit Rate Plan';
+                document.getElementById('rpEditId').value = plan.id;
+                document.getElementById('rpName').value = plan.name;
+                hotelSelect.value = plan.hotelId;
+                document.getElementById('rpBaseRate').value = plan.baseRate;
+                document.getElementById('rpSeason').value = plan.season;
+                document.getElementById('rpMinStay').value = plan.minStay;
+                document.getElementById('rpStatus').value = plan.status;
+            } else {
+                document.getElementById('rpModalTitle').textContent = 'New Rate Plan';
+                document.getElementById('rpEditId').value = '';
+                document.getElementById('rpName').value = '';
+                document.getElementById('rpBaseRate').value = '';
+                document.getElementById('rpSeason').value = '';
+                document.getElementById('rpMinStay').value = 1;
+                document.getElementById('rpStatus').value = 'active';
+            }
+            openModal('ratePlanModal');
+        }
+        async function saveRatePlan(event) {
+            event.preventDefault();
+            const id = document.getElementById('rpEditId').value;
+            const payload = {
+                name: document.getElementById('rpName').value.trim(),
+                hotelId: document.getElementById('rpHotelSelect').value,
+                baseRate: parseFloat(document.getElementById('rpBaseRate').value),
+                season: document.getElementById('rpSeason').value.trim(),
+                minStay: parseInt(document.getElementById('rpMinStay').value) || 1,
+                status: document.getElementById('rpStatus').value
+            };
+            if (!payload.name || !payload.baseRate) { showToast('Name and base rate are required', 'error'); return; }
+            try {
+                const url = id ? `${API_BASE}/super/rate-plans/${id}` : `${API_BASE}/super/rate-plans`;
+                const method = id ? 'PUT' : 'POST';
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(id ? 'Rate plan updated' : 'Rate plan created', 'success');
+                    closeModal('ratePlanModal');
+                    loadRatePlansFromServer();
+                    addAuditLog(id ? 'Rate Plan Updated' : 'Rate Plan Created', payload.name, 'ratePlan');
+                } else {
+                    showToast(data.error || 'Failed to save rate plan', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        }
+        async function deleteRatePlan(id) {
+            if (!confirm('Delete this rate plan?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/super/rate-plans/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Rate plan deleted', 'success');
+                    loadRatePlansFromServer();
+                } else {
+                    showToast(data.error || 'Failed to delete', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        }
 
         // ================= FEATURE FLAGS =================
         function renderFeatureFlags() { showToast('Feature flags loaded', 'info'); }
