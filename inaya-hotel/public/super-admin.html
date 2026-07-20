@@ -4666,8 +4666,135 @@ async function toggleLandingPage() {
         function openGatewayModal() { showToast('Gateway modal (demo)', 'info'); }
 
         // ================= LOYALTY PROGRAM =================
-        function renderLoyaltyProgram() { showToast('Loyalty program loaded', 'info'); }
-        function openLoyaltyModal() { showToast('Loyalty modal (demo)', 'info'); }
+        let loyaltyRewards = [];
+        const LOYALTY_TIER_META = {
+            bronze:   { label: 'Bronze',   icon: 'fa-medal',  color: 'gray',   threshold: '0+' },
+            silver:   { label: 'Silver',   icon: 'fa-medal',  color: 'blue',   threshold: '1,000+' },
+            gold:     { label: 'Gold',     icon: 'fa-medal',  color: 'yellow', threshold: '5,000+' },
+            platinum: { label: 'Platinum', icon: 'fa-crown',  color: 'purple', threshold: '15,000+' },
+            diamond:  { label: 'Diamond',  icon: 'fa-gem',    color: 'cyan',   threshold: '50,000+' }
+        };
+        async function loadLoyaltyProgramFromServer() {
+            try {
+                const [statsRes, rewardsRes] = await Promise.all([
+                    fetch(`${API_BASE}/super/loyalty/stats`, { headers: { 'Authorization': 'Bearer ' + authToken } }),
+                    fetch(`${API_BASE}/super/loyalty-rewards`, { headers: { 'Authorization': 'Bearer ' + authToken } })
+                ]);
+                const statsData = await statsRes.json();
+                const rewardsData = await rewardsRes.json();
+                loyaltyRewards = (rewardsData.success && Array.isArray(rewardsData.data)) ? rewardsData.data : [];
+                renderLoyaltyProgram(statsData.success ? statsData.data : null);
+            } catch (e) {
+                console.error('Failed to load loyalty program:', e);
+                loyaltyRewards = [];
+                renderLoyaltyProgram(null);
+            }
+        }
+        function renderLoyaltyProgram(stats) {
+            if (stats) {
+                document.getElementById('loyEnrolledMembers').textContent = stats.totalMembers.toLocaleString();
+                document.getElementById('loyPointsIssued').textContent = stats.totalPointsIssued.toLocaleString();
+                document.getElementById('loyPointsRedeemed').textContent = stats.totalPointsRedeemed.toLocaleString();
+                document.getElementById('loyAvgPoints').textContent = stats.avgPointsPerMember.toLocaleString();
+
+                const tierList = document.getElementById('loyTierList');
+                tierList.innerHTML = Object.keys(LOYALTY_TIER_META).map(tierKey => {
+                    const meta = LOYALTY_TIER_META[tierKey];
+                    const count = (stats.byTier && stats.byTier[tierKey]) || 0;
+                    return `<div class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div class="w-12 h-12 bg-${meta.color}-100 dark:bg-${meta.color}-900/30 rounded-full flex items-center justify-center"><i class="fas ${meta.icon} text-${meta.color}-500"></i></div>
+                        <div class="flex-1"><p class="font-bold text-sm">${meta.label}</p><p class="text-xs text-gray-500">${meta.threshold} points</p></div>
+                        <span class="text-sm font-bold">${count} member${count === 1 ? '' : 's'}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            const rewardsList = document.getElementById('loyRewardsList');
+            if (loyaltyRewards.length === 0) {
+                rewardsList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No rewards added yet</p>';
+            } else {
+                const statusClass = { active: 'bg-green-100 text-green-700', limited: 'bg-yellow-100 text-yellow-700', inactive: 'bg-gray-100 text-gray-700' };
+                rewardsList.innerHTML = loyaltyRewards.map(r => `<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div><p class="text-sm font-medium">${r.name}</p><p class="text-xs text-gray-500">${r.pointsCost.toLocaleString()} points</p></div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-1 ${statusClass[r.status] || statusClass.active} rounded text-xs">${r.status.charAt(0).toUpperCase() + r.status.slice(1)}</span>
+                        <button onclick="openLoyaltyModal('${r.id}')" class="p-1 text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteLoyaltyReward('${r.id}')" class="p-1 text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>`).join('');
+            }
+        }
+        function openLoyaltyModal(id = null) {
+            if (id) {
+                const reward = loyaltyRewards.find(r => r.id === id);
+                if (!reward) return;
+                document.getElementById('loyModalTitle').textContent = 'Edit Reward';
+                document.getElementById('loyEditId').value = reward.id;
+                document.getElementById('loyName').value = reward.name;
+                document.getElementById('loyPointsCost').value = reward.pointsCost;
+                document.getElementById('loyDescription').value = reward.description || '';
+                document.getElementById('loyStatus').value = reward.status;
+            } else {
+                document.getElementById('loyModalTitle').textContent = 'Add Reward';
+                document.getElementById('loyEditId').value = '';
+                document.getElementById('loyName').value = '';
+                document.getElementById('loyPointsCost').value = '';
+                document.getElementById('loyDescription').value = '';
+                document.getElementById('loyStatus').value = 'active';
+            }
+            openModal('loyaltyModal');
+        }
+        async function saveLoyaltyReward(event) {
+            event.preventDefault();
+            const id = document.getElementById('loyEditId').value;
+            const payload = {
+                name: document.getElementById('loyName').value.trim(),
+                pointsCost: parseInt(document.getElementById('loyPointsCost').value),
+                description: document.getElementById('loyDescription').value.trim(),
+                status: document.getElementById('loyStatus').value
+            };
+            if (!payload.name || !payload.pointsCost) { showToast('Name and points cost are required', 'error'); return; }
+            try {
+                const url = id ? `${API_BASE}/super/loyalty-rewards/${id}` : `${API_BASE}/super/loyalty-rewards`;
+                const method = id ? 'PUT' : 'POST';
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(id ? 'Reward updated' : 'Reward added', 'success');
+                    closeModal('loyaltyModal');
+                    loadLoyaltyProgramFromServer();
+                    addAuditLog(id ? 'Loyalty Reward Updated' : 'Loyalty Reward Added', payload.name, 'loyalty');
+                } else {
+                    showToast(data.error || 'Failed to save reward', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        }
+        async function deleteLoyaltyReward(id) {
+            if (!confirm('Delete this reward?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/super/loyalty-rewards/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Reward deleted', 'success');
+                    loadLoyaltyProgramFromServer();
+                } else {
+                    showToast(data.error || 'Failed to delete', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        }
 
         // ================= REVIEWS & RATINGS =================
         function renderReviewsRatings() { showToast('Reviews loaded', 'info'); }
