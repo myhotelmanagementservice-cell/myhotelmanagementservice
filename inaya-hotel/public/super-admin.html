@@ -2103,6 +2103,23 @@
                     </form>
                 </div>
             </div>
+
+            <!-- Feature Flag Modal -->
+            <div id="featureFlagModal" class="modal-overlay" onclick="if(event.target===this)closeModal('featureFlagModal')">
+                <div class="modal-box">
+                    <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg">New Feature Flag</h3><button onclick="closeModal('featureFlagModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+                    <form id="featureFlagForm" class="space-y-4" onsubmit="saveFeatureFlag(event)">
+                        <div><label class="block text-sm font-medium mb-1">Feature Name</label><input type="text" id="ffName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="AI Chatbot" required></div>
+                        <div><label class="block text-sm font-medium mb-1">Scope</label><select id="ffScope" onchange="toggleFFHotelPicker()" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="global">Global (all hotels)</option><option value="perHotel">Per Hotel (select specific hotels)</option><option value="experiment">Experiment (A/B test)</option></select></div>
+                        <div id="ffHotelPicker" class="hidden">
+                            <label class="block text-sm font-medium mb-1">Select Hotels</label>
+                            <div id="ffHotelCheckboxes" class="max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2"></div>
+                        </div>
+                        <div class="flex items-center gap-2"><input type="checkbox" id="ffEnabled" class="w-4 h-4"><label for="ffEnabled" class="text-sm font-medium">Enable immediately</label></div>
+                        <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Create</button><button type="button" onclick="closeModal('featureFlagModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
+                    </form>
+                </div>
+            </div>
             
             <!-- SECTION: REVIEWS & RATINGS -->
             <section id="reviewsRatings" class="section-content hidden fade-in">
@@ -2171,20 +2188,15 @@
                     <button onclick="openFeatureFlagModal()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-plus mr-2"></i>New Flag</button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Active Flags</p><h3 class="text-3xl font-bold mt-2">18</h3><p class="text-xs text-green-500 mt-1">Globally enabled</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Hotel-Specific</p><h3 class="text-3xl font-bold mt-2">34</h3><p class="text-xs text-gray-500 mt-1">Custom per hotel</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Experiments</p><h3 class="text-3xl font-bold mt-2">5</h3><p class="text-xs text-gray-500 mt-1">A/B tests running</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Active Flags</p><h3 class="text-3xl font-bold mt-2" id="ffActiveCount">0</h3><p class="text-xs text-gray-500 mt-1">Globally enabled</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Hotel-Specific</p><h3 class="text-3xl font-bold mt-2" id="ffHotelSpecific">0</h3><p class="text-xs text-gray-500 mt-1">Custom per hotel</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Experiments</p><h3 class="text-3xl font-bold mt-2" id="ffExperiments">0</h3><p class="text-xs text-gray-500 mt-1">A/B tests running</p></div>
                 </div>
                 <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <h3 class="font-bold mb-4">Feature Flags List</h3>
                     <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-4 text-left text-sm font-semibold">Feature</th><th class="p-4 text-left text-sm font-semibold">Scope</th><th class="p-4 text-left text-sm font-semibold">Hotels</th><th class="p-4 text-left text-sm font-semibold">Status</th><th class="p-4 text-left text-sm font-semibold">Toggle</th></tr></thead>
-                    <tbody>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">AI Chatbot</td><td class="p-4 text-sm">Global</td><td class="p-4 text-sm">All (156)</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Enabled</span></td><td class="p-4"><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" class="sr-only peer" checked><div class="w-9 h-5 bg-gray-200 peer-focus:ring-3 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div></label></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">Dynamic Pricing</td><td class="p-4 text-sm">Global</td><td class="p-4 text-sm">All (156)</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Enabled</span></td><td class="p-4"><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" class="sr-only peer" checked><div class="w-9 h-5 bg-gray-200 peer-focus:ring-3 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div></label></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">Guest Self Check-in</td><td class="p-4 text-sm">Per Hotel</td><td class="p-4 text-sm">45 hotels</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Enabled</span></td><td class="p-4"><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" class="sr-only peer" checked><div class="w-9 h-5 bg-gray-200 peer-focus:ring-3 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div></label></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">Loyalty Program</td><td class="p-4 text-sm">Per Hotel</td><td class="p-4 text-sm">78 hotels</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Enabled</span></td><td class="p-4"><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" class="sr-only peer" checked><div class="w-9 h-5 bg-gray-200 peer-focus:ring-3 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div></label></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">Room Service App</td><td class="p-4 text-sm">Per Hotel</td><td class="p-4 text-sm">12 hotels</td><td class="p-4"><span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">Disabled</span></td><td class="p-4"><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" class="sr-only peer"><div class="w-9 h-5 bg-gray-200 peer-focus:ring-3 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div></label></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">Beta: Voice Booking</td><td class="p-4 text-sm">Experiment</td><td class="p-4 text-sm">5 hotels</td><td class="p-4"><span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">Beta</span></td><td class="p-4"><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" class="sr-only peer"><div class="w-9 h-5 bg-gray-200 peer-focus:ring-3 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div></label></td></tr>
+                    <tbody id="featureFlagsTableBody">
+                        <tr><td colspan="5" class="p-4 text-center text-gray-500">Loading...</td></tr>
                     </tbody>
                 </table>
                 </div>
@@ -2829,7 +2841,7 @@
             if (sectionId === 'loyaltyProgram') renderLoyaltyProgram();
             if (sectionId === 'reviewsRatings') renderReviewsRatings();
             if (sectionId === 'ratePlans') loadRatePlansFromServer();
-            if (sectionId === 'featureFlags') renderFeatureFlags();
+            if (sectionId === 'featureFlags') loadFeatureFlagsFromServer();
             if (sectionId === 'landingPage') loadLandingPageData();
         }
 
@@ -4929,8 +4941,140 @@ async function toggleLandingPage() {
         }
 
         // ================= FEATURE FLAGS =================
-        function renderFeatureFlags() { showToast('Feature flags loaded', 'info'); }
-        function openFeatureFlagModal() { showToast('Feature flag modal (demo)', 'info'); }
+        let featureFlags = [];
+        async function loadFeatureFlagsFromServer() {
+            try {
+                const res = await fetch(`${API_BASE}/super/feature-flags`, {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    featureFlags = data.data || [];
+                    renderFeatureFlags(data.stats);
+                } else {
+                    featureFlags = [];
+                    renderFeatureFlags();
+                }
+            } catch (e) {
+                console.error('Failed to load feature flags:', e);
+                featureFlags = [];
+                renderFeatureFlags();
+            }
+        }
+        function renderFeatureFlags(stats = null) {
+            const tbody = document.getElementById('featureFlagsTableBody');
+            if (!tbody) return;
+            if (featureFlags.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">No feature flags yet</td></tr>';
+            } else {
+                const scopeLabel = { global: 'Global', perHotel: 'Per Hotel', experiment: 'Experiment' };
+                tbody.innerHTML = featureFlags.map(f => `<tr class="border-b border-gray-200 dark:border-gray-700">
+                    <td class="p-4 text-sm font-medium">${f.name}</td>
+                    <td class="p-4 text-sm">${scopeLabel[f.scope] || f.scope}</td>
+                    <td class="p-4 text-sm">${f.hotelsLabel}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded text-xs ${f.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">${f.enabled ? 'Enabled' : 'Disabled'}</span></td>
+                    <td class="p-4"><div class="flex items-center gap-2">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer" ${f.enabled ? 'checked' : ''} onchange="toggleFeatureFlag('${f.id}')">
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:ring-3 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                        </label>
+                        <button onclick="deleteFeatureFlag('${f.id}')" class="p-1 text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                    </div></td>
+                </tr>`).join('');
+            }
+            if (stats) {
+                const elA = document.getElementById('ffActiveCount');
+                const elB = document.getElementById('ffHotelSpecific');
+                const elC = document.getElementById('ffExperiments');
+                if (elA) elA.textContent = stats.activeFlags;
+                if (elB) elB.textContent = stats.hotelSpecific;
+                if (elC) elC.textContent = stats.experiments;
+            }
+        }
+        function openFeatureFlagModal() {
+            document.getElementById('ffName').value = '';
+            document.getElementById('ffScope').value = 'global';
+            document.getElementById('ffEnabled').checked = false;
+            toggleFFHotelPicker();
+            renderFFHotelCheckboxes();
+            openModal('featureFlagModal');
+        }
+        function toggleFFHotelPicker() {
+            const scope = document.getElementById('ffScope').value;
+            const picker = document.getElementById('ffHotelPicker');
+            picker.classList.toggle('hidden', scope === 'global');
+        }
+        function renderFFHotelCheckboxes() {
+            const container = document.getElementById('ffHotelCheckboxes');
+            container.innerHTML = hotels.map(h => `<label class="flex items-center gap-2 text-sm py-1">
+                <input type="checkbox" value="${h.hotelId}" class="ff-hotel-checkbox">
+                ${(h.hotelName || h.name || h.hotelId)}
+            </label>`).join('');
+        }
+        async function saveFeatureFlag(event) {
+            event.preventDefault();
+            const name = document.getElementById('ffName').value.trim();
+            const scope = document.getElementById('ffScope').value;
+            const enabled = document.getElementById('ffEnabled').checked;
+            const hotelIds = Array.from(document.querySelectorAll('.ff-hotel-checkbox:checked')).map(cb => cb.value);
+            if (!name) { showToast('Flag name is required', 'error'); return; }
+            try {
+                const res = await fetch(`${API_BASE}/super/feature-flags`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({ name, scope, hotelIds, enabled })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Feature flag created', 'success');
+                    closeModal('featureFlagModal');
+                    loadFeatureFlagsFromServer();
+                    addAuditLog('Feature Flag Created', name, 'featureFlag');
+                } else {
+                    showToast(data.error || 'Failed to create flag', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        }
+        async function toggleFeatureFlag(id) {
+            try {
+                const res = await fetch(`${API_BASE}/super/feature-flags/${id}/toggle`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Flag ${data.enabled ? 'enabled' : 'disabled'}`, data.enabled ? 'success' : 'warning');
+                    loadFeatureFlagsFromServer();
+                } else {
+                    showToast(data.error || 'Failed to toggle flag', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        }
+        async function deleteFeatureFlag(id) {
+            if (!confirm('Delete this feature flag?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/super/feature-flags/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Flag deleted', 'success');
+                    loadFeatureFlagsFromServer();
+                } else {
+                    showToast(data.error || 'Failed to delete', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        }
 
         // ================= NOTIFICATIONS =================
         function addNotification(message, type = 'info') {

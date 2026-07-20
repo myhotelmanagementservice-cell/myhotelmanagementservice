@@ -2038,6 +2038,92 @@ app.delete('/api/super/loyalty-rewards/:id', superAdminMiddleware, async (req, r
   }
 });
 
+// ✅ FEATURE FLAGS — global / per-hotel / experiment toggles (MongoDB backed)
+app.get('/api/super/feature-flags', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [], stats: { activeFlags: 0, hotelSpecific: 0, experiments: 0 } });
+    const flags = await db.collection('featureFlags').find({}).sort({ createdAt: -1 }).toArray();
+    const totalHotels = await db.collection('tenants').countDocuments({});
+
+    const formatted = flags.map(f => {
+      let hotelsLabel;
+      if (f.scope === 'global') hotelsLabel = `All (${totalHotels})`;
+      else if (f.scope === 'perHotel') hotelsLabel = `${(f.hotelIds || []).length} hotel${(f.hotelIds || []).length === 1 ? '' : 's'}`;
+      else hotelsLabel = `${(f.hotelIds || []).length || 0} hotels`;
+      return {
+        id: f._id.toString(),
+        name: f.name,
+        scope: f.scope,
+        hotelIds: f.hotelIds || [],
+        hotelsLabel,
+        enabled: !!f.enabled
+      };
+    });
+
+    const stats = {
+      activeFlags: formatted.filter(f => f.scope === 'global' && f.enabled).length,
+      hotelSpecific: formatted.filter(f => f.scope === 'perHotel').length,
+      experiments: formatted.filter(f => f.scope === 'experiment').length
+    };
+
+    res.json({ success: true, data: formatted, stats });
+  } catch (err) {
+    console.error('Get feature flags error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/super/feature-flags', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, scope, hotelIds, enabled } = req.body;
+    if (!name || !scope) return res.status(400).json({ success: false, error: 'name and scope are required' });
+    if (!['global', 'perHotel', 'experiment'].includes(scope)) {
+      return res.status(400).json({ success: false, error: 'scope must be global, perHotel, or experiment' });
+    }
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      name: String(name).trim(),
+      scope,
+      hotelIds: scope === 'global' ? [] : (Array.isArray(hotelIds) ? hotelIds : []),
+      enabled: !!enabled,
+      createdAt: new Date()
+    };
+    const result = await db.collection('featureFlags').insertOne(doc);
+    doc._id = result.insertedId;
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create feature flag error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/super/feature-flags/:id/toggle', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const flag = await db.collection('featureFlags').findOne({ _id: new ObjectId(id) });
+    if (!flag) return res.status(404).json({ success: false, error: 'Flag not found' });
+    await db.collection('featureFlags').updateOne({ _id: new ObjectId(id) }, { $set: { enabled: !flag.enabled } });
+    res.json({ success: true, enabled: !flag.enabled });
+  } catch (err) {
+    console.error('Toggle feature flag error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/super/feature-flags/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('featureFlags').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Flag not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete feature flag error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',
