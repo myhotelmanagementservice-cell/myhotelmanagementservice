@@ -2068,32 +2068,42 @@
                     <button onclick="openLoyaltyModal()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-plus mr-2"></i>Add Reward</button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Enrolled Members</p><h3 class="text-3xl font-bold mt-2">8,420</h3><p class="text-xs text-green-500 mt-1"><i class="fas fa-arrow-up"></i> +520 this month</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Points Issued</p><h3 class="text-3xl font-bold mt-2">2.4M</h3><p class="text-xs text-gray-500 mt-1">Lifetime points</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Points Redeemed</p><h3 class="text-3xl font-bold mt-2">1.1M</h3><p class="text-xs text-gray-500 mt-1">45.8% redemption rate</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Avg Member Value</p><h3 class="text-3xl font-bold mt-2">$420</h3><p class="text-xs text-green-500 mt-1">+18% vs non-members</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Enrolled Members</p><h3 class="text-3xl font-bold mt-2" id="loyEnrolledMembers">0</h3><p class="text-xs text-gray-500 mt-1">Across all hotels</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Points Issued</p><h3 class="text-3xl font-bold mt-2" id="loyPointsIssued">0</h3><p class="text-xs text-gray-500 mt-1">Lifetime points</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Points Redeemed</p><h3 class="text-3xl font-bold mt-2" id="loyPointsRedeemed">0</h3><p class="text-xs text-gray-500 mt-1">Lifetime redeemed</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Avg Points / Member</p><h3 class="text-3xl font-bold mt-2" id="loyAvgPoints">0</h3><p class="text-xs text-gray-500 mt-1">Lifetime earned</p></div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <h3 class="font-bold mb-4">Membership Tiers</h3>
-                        <div class="space-y-4">
-                            <div class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><div class="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center"><i class="fas fa-medal text-gray-500"></i></div><div class="flex-1"><p class="font-bold text-sm">Silver</p><p class="text-xs text-gray-500">0-5,000 points | 1x multiplier</p></div><span class="text-sm font-bold">4,200 members</span></div>
-                            <div class="flex items-center gap-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg"><div class="w-12 h-12 bg-yellow-200 dark:bg-yellow-800 rounded-full flex items-center justify-center"><i class="fas fa-medal text-yellow-600"></i></div><div class="flex-1"><p class="font-bold text-sm">Gold</p><p class="text-xs text-gray-500">5,001-20,000 points | 1.5x multiplier</p></div><span class="text-sm font-bold">2,850 members</span></div>
-                            <div class="flex items-center gap-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg"><div class="w-12 h-12 bg-purple-200 dark:bg-purple-800 rounded-full flex items-center justify-center"><i class="fas fa-crown text-purple-600"></i></div><div class="flex-1"><p class="font-bold text-sm">Platinum</p><p class="text-xs text-gray-500">20,000+ points | 2x multiplier</p></div><span class="text-sm font-bold">1,370 members</span></div>
+                        <div class="space-y-4" id="loyTierList">
+                            <p class="text-sm text-gray-500 text-center py-4">Loading...</p>
                         </div>
                     </div>
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <h3 class="font-bold mb-4">Active Rewards</h3>
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><div><p class="text-sm font-medium">Free Room Upgrade</p><p class="text-xs text-gray-500">5,000 points</p></div><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></div>
-                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><div><p class="text-sm font-medium">Late Checkout</p><p class="text-xs text-gray-500">2,500 points</p></div><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></div>
-                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><div><p class="text-sm font-medium">Spa Voucher ($50)</p><p class="text-xs text-gray-500">10,000 points</p></div><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></div>
-                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><div><p class="text-sm font-medium">Free Night Stay</p><p class="text-xs text-gray-500">25,000 points</p></div><span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">Limited</span></div>
+                        <div class="space-y-3" id="loyRewardsList">
+                            <p class="text-sm text-gray-500 text-center py-4">Loading...</p>
                         </div>
                     </div>
                 </div>
             </section>
 
+            <!-- Loyalty Reward Modal -->
+            <div id="loyaltyModal" class="modal-overlay" onclick="if(event.target===this)closeModal('loyaltyModal')">
+                <div class="modal-box">
+                    <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg" id="loyModalTitle">Add Reward</h3><button onclick="closeModal('loyaltyModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+                    <form id="loyaltyForm" class="space-y-4" onsubmit="saveLoyaltyReward(event)">
+                        <input type="hidden" id="loyEditId">
+                        <div><label class="block text-sm font-medium mb-1">Reward Name</label><input type="text" id="loyName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Free Room Upgrade" required></div>
+                        <div><label class="block text-sm font-medium mb-1">Points Cost</label><input type="number" id="loyPointsCost" min="0" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="5000" required></div>
+                        <div><label class="block text-sm font-medium mb-1">Description (optional)</label><input type="text" id="loyDescription" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Short description"></div>
+                        <div><label class="block text-sm font-medium mb-1">Status</label><select id="loyStatus" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="active">Active</option><option value="limited">Limited</option><option value="inactive">Inactive</option></select></div>
+                        <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('loyaltyModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
+                    </form>
+                </div>
+            </div>
+            
             <!-- SECTION: REVIEWS & RATINGS -->
             <section id="reviewsRatings" class="section-content hidden fade-in">
                 <div class="flex justify-between items-center mb-6">

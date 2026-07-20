@@ -1929,6 +1929,115 @@ app.delete('/api/super/rate-plans/:id', superAdminMiddleware, async (req, res) =
   }
 });
 
+// ✅ LOYALTY PROGRAM — cross-hotel stats + rewards catalog (MongoDB backed)
+app.get('/api/super/loyalty/stats', superAdminMiddleware, async (req, res) => {
+  try {
+    const tiers = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
+    if (!dbConnected) {
+      const byTier = {}; tiers.forEach(t => byTier[t] = 0);
+      return res.json({ success: true, data: { totalMembers: 0, totalPointsIssued: 0, totalPointsRedeemed: 0, avgPointsPerMember: 0, byTier } });
+    }
+    const agg = await db.collection('loyalty').aggregate([
+      { $group: { _id: null, totalMembers: { $sum: 1 }, totalPointsIssued: { $sum: '$totalEarned' }, totalPointsRedeemed: { $sum: '$totalRedeemed' } } }
+    ]).toArray();
+    const byTierAgg = await db.collection('loyalty').aggregate([
+      { $group: { _id: '$tier', count: { $sum: 1 } } }
+    ]).toArray();
+    const byTier = {};
+    tiers.forEach(t => byTier[t] = 0);
+    byTierAgg.forEach(t => { if (t._id && byTier.hasOwnProperty(t._id)) byTier[t._id] = t.count; });
+    const result = agg[0] || { totalMembers: 0, totalPointsIssued: 0, totalPointsRedeemed: 0 };
+    const avgPointsPerMember = result.totalMembers ? Math.round(result.totalPointsIssued / result.totalMembers) : 0;
+    res.json({
+      success: true,
+      data: {
+        totalMembers: result.totalMembers,
+        totalPointsIssued: result.totalPointsIssued,
+        totalPointsRedeemed: result.totalPointsRedeemed,
+        avgPointsPerMember,
+        byTier
+      }
+    });
+  } catch (err) {
+    console.error('Get loyalty stats error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/super/loyalty-rewards', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const rewards = await db.collection('loyaltyRewards').find({}).sort({ createdAt: -1 }).toArray();
+    const formatted = rewards.map(r => ({
+      id: r._id.toString(),
+      name: r.name,
+      pointsCost: r.pointsCost,
+      status: r.status,
+      description: r.description || ''
+    }));
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get loyalty rewards error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/super/loyalty-rewards', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, pointsCost, status, description } = req.body;
+    if (!name || pointsCost === undefined || pointsCost === null) {
+      return res.status(400).json({ success: false, error: 'name and pointsCost are required' });
+    }
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      name: String(name).trim(),
+      pointsCost: Number(pointsCost),
+      status: ['active', 'limited', 'inactive'].includes(status) ? status : 'active',
+      description: description ? String(description).trim() : '',
+      createdAt: new Date()
+    };
+    const result = await db.collection('loyaltyRewards').insertOne(doc);
+    doc._id = result.insertedId;
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create loyalty reward error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/super/loyalty-rewards/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const { name, pointsCost, status, description } = req.body;
+    const updateData = {};
+    if (name !== undefined) updateData.name = String(name).trim();
+    if (pointsCost !== undefined) updateData.pointsCost = Number(pointsCost);
+    if (status !== undefined) updateData.status = ['active', 'limited', 'inactive'].includes(status) ? status : 'active';
+    if (description !== undefined) updateData.description = String(description).trim();
+    updateData.updatedAt = new Date();
+    const result = await db.collection('loyaltyRewards').updateOne({ _id: new ObjectId(id) }, { $set: updateData });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Reward not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update loyalty reward error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/super/loyalty-rewards/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('loyaltyRewards').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Reward not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete loyalty reward error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',
