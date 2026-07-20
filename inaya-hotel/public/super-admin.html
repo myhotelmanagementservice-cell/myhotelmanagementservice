@@ -2998,6 +2998,14 @@
             const hotel = hotels.find(h => (h.hotelId === hotelId || h._id === hotelId));
             const currentExpiry = hotel?.subscriptionExpiry ? new Date(hotel.subscriptionExpiry) : new Date();
             const newExpiry = new Date(Math.max(currentExpiry.getTime(), Date.now()) + days * 86400000);
+            if (hotel) {
+                hotel.subscriptionExpiry = newExpiry.toISOString();
+                renderHotelsTable();
+                showToast(`Extended by ${days} days`, 'success');
+                addAuditLog('Subscription Extended', hotel.hotelName, 'hotel');
+            }
+            closeModal('extendModal');
+        }
         function openResetPasswordModal(hotelId, hotelName) {
             document.getElementById('rpHotelId').value = hotelId;
             document.getElementById('rpHotelName').textContent = hotelName;
