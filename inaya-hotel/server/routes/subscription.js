@@ -653,7 +653,7 @@ router.post('/cancel', authMiddleware, async (req, res) => {
 // ============================================================
 // GET ALL SUBSCRIPTIONS (Super Admin Only)
 // ============================================================
-router.get('/all', superAdminOnly, async (req, res) => {
+router.get('/all', authMiddleware, superAdminOnly, async (req, res) => {
     try {
         const db = getDB(req);
         const { status, plan } = req.query;
@@ -681,7 +681,7 @@ router.get('/all', superAdminOnly, async (req, res) => {
 // ============================================================
 // GET SUBSCRIPTION STATS (Super Admin Only)
 // ============================================================
-router.get('/stats', superAdminOnly, async (req, res) => {
+router.get('/stats', authMiddleware, superAdminOnly, async (req, res) => {
     try {
         const db = getDB(req);
 
