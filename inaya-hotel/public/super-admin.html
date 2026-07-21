@@ -1910,22 +1910,17 @@
             <!-- SECTION: CHANNEL MANAGER -->
             <section id="channelManager" class="section-content hidden fade-in">
                 <div class="flex justify-between items-center mb-6">
-                    <div><h3 class="font-bold text-xl">Channel Manager</h3><p class="text-sm text-gray-500">OTA connections & inventory sync</p></div>
+                    <div><h3 class="font-bold text-xl">Channel Manager</h3><p class="text-sm text-gray-500">OTA connection tracking (manual connect/disconnect)</p></div>
                     <button onclick="openChannelModal()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-plus mr-2"></i>Add Channel</button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-14 h-14 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mx-auto mb-3"><i class="fab fa-booking text-2xl text-blue-600"></i></div><h4 class="font-bold">Booking.com</h4><p class="text-xs text-gray-500 mt-1">42 hotels connected</p><div class="flex items-center justify-center gap-2 mt-2"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">Synced</span><span class="text-xs text-gray-400">2m ago</span></div></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-14 h-14 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mx-auto mb-3"><i class="fas fa-hotel text-2xl text-green-600"></i></div><h4 class="font-bold">Expedia</h4><p class="text-xs text-gray-500 mt-1">38 hotels connected</p><div class="flex items-center justify-center gap-2 mt-2"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">Synced</span><span class="text-xs text-gray-400">5m ago</span></div></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-14 h-14 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center mx-auto mb-3"><i class="fab fa-airbnb text-2xl text-red-600"></i></div><h4 class="font-bold">Airbnb</h4><p class="text-xs text-gray-500 mt-1">15 hotels connected</p><div class="flex items-center justify-center gap-2 mt-2"><span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs">Syncing</span><span class="text-xs text-gray-400">now</span></div></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-14 h-14 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mx-auto mb-3"><i class="fas fa-globe text-2xl text-purple-600"></i></div><h4 class="font-bold">Agoda</h4><p class="text-xs text-gray-500 mt-1">22 hotels connected</p><div class="flex items-center justify-center gap-2 mt-2"><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">Synced</span><span class="text-xs text-gray-400">8m ago</span></div></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" id="cmChannelCards">
+                    <p class="text-sm text-gray-500 text-center py-4 col-span-full">Loading...</p>
                 </div>
                 <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold mb-4">Sync Logs (Last 24h)</h3>
+                    <h3 class="font-bold mb-4">Recent Activity</h3>
                     <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-3 text-left text-sm font-semibold">Channel</th><th class="p-3 text-left text-sm font-semibold">Hotel</th><th class="p-3 text-left text-sm font-semibold">Action</th><th class="p-3 text-left text-sm font-semibold">Status</th><th class="p-3 text-left text-sm font-semibold">Time</th></tr></thead>
-                    <tbody>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-3 text-sm font-medium">Booking.com</td><td class="p-3 text-sm">Grand Plaza Dubai</td><td class="p-3 text-sm">Inventory update</td><td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Success</span></td><td class="p-3 text-sm text-gray-500">2 min ago</td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-3 text-sm font-medium">Expedia</td><td class="p-3 text-sm">Royal Orchid</td><td class="p-3 text-sm">Rate update</td><td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Success</span></td><td class="p-3 text-sm text-gray-500">5 min ago</td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-3 text-sm font-medium">Airbnb</td><td class="p-3 text-sm">Seaside Resort</td><td class="p-3 text-sm">Booking import</td><td class="p-3"><span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">Pending</span></td><td class="p-3 text-sm text-gray-500">8 min ago</td></tr>
+                    <tbody id="cmLogsTableBody">
+                        <tr><td colspan="5" class="p-4 text-center text-gray-500">Loading...</td></tr>
                     </tbody>
                 </table>
                 </div>
@@ -2277,6 +2272,18 @@
                 <div><label class="block text-sm font-medium mb-1">Status</label><select id="stmStatus" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="online">Online</option><option value="on-duty">On Duty</option><option value="offline">Offline</option><option value="on-leave">On Leave</option><option value="inactive">Inactive</option></select></div>
                 <div><label class="block text-sm font-medium mb-1">Shift</label><select id="stmShift" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="morning">Morning</option><option value="evening">Evening</option><option value="night">Night</option></select></div>
                 <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Add Staff</button><button type="button" onclick="closeModal('staffModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Channel Manager Modal -->
+    <div id="channelModal" class="modal-overlay" onclick="if(event.target===this)closeModal('channelModal')">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg">Connect Channel</h3><button onclick="closeModal('channelModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+            <form id="channelForm" class="space-y-4" onsubmit="connectChannel(event)">
+                <div><label class="block text-sm font-medium mb-1">Hotel</label><select id="cmHotelSelect" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"></select></div>
+                <div><label class="block text-sm font-medium mb-1">Channel</label><select id="cmChannelSelect" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="Booking.com">Booking.com</option><option value="Expedia">Expedia</option><option value="Airbnb">Airbnb</option><option value="Agoda">Agoda</option></select></div>
+                <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Connect</button><button type="button" onclick="closeModal('channelModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
             </form>
         </div>
     </div>
@@ -2828,7 +2835,7 @@
             if (sectionId === 'multiTenant') renderMultiTenant();
             if (sectionId === 'pwaSettings') renderPWASettings();
             if (sectionId === 'smsGateway') renderSMSGateway();
-            if (sectionId === 'channelManager') renderChannelManager();
+            if (sectionId === 'channelManager') loadChannelManagerFromServer();
             if (sectionId === 'housekeeping') loadHousekeepingFromServer();
             if (sectionId === 'staffMgmt') loadStaffFromServer();
             if (sectionId === 'posSystem') renderPOSSystem();
@@ -4664,8 +4671,104 @@ async function toggleLandingPage() {
         function renderSMSGateway() { showToast('SMS gateway data loaded', 'info'); }
 
         // ================= CHANNEL MANAGER =================
-        function renderChannelManager() { showToast('Channel manager loaded', 'info'); }
-        function openChannelModal() { showToast('Channel modal (demo)', 'info'); }
+        let channelStats = [];
+        let channelLogs = [];
+        const CHANNEL_ICON_META = {
+            'Booking.com': { icon: 'fa-hotel', bg: 'bg-blue-600' },
+            'Expedia':     { icon: 'fa-globe', bg: 'bg-green-600' },
+            'Airbnb':      { icon: 'fa-home',  bg: 'bg-red-600' },
+            'Agoda':       { icon: 'fa-globe-asia', bg: 'bg-purple-600' }
+        };
+        function timeAgo(dateStr) {
+            if (!dateStr) return 'Never';
+            const diffMs = Date.now() - new Date(dateStr).getTime();
+            const mins = Math.floor(diffMs / 60000);
+            if (mins < 1) return 'just now';
+            if (mins < 60) return mins + 'm ago';
+            const hrs = Math.floor(mins / 60);
+            if (hrs < 24) return hrs + 'h ago';
+            return Math.floor(hrs / 24) + 'd ago';
+        }
+        async function loadChannelManagerFromServer() {
+            try {
+                const [statsRes, logsRes] = await Promise.all([
+                    fetch(`${API_BASE}/super/channels/stats`, { headers: { 'Authorization': 'Bearer ' + authToken } }),
+                    fetch(`${API_BASE}/super/channels/logs`, { headers: { 'Authorization': 'Bearer ' + authToken } })
+                ]);
+                const statsData = await statsRes.json();
+                const logsData = await logsRes.json();
+                channelStats = (statsData.success && Array.isArray(statsData.data)) ? statsData.data : [];
+                channelLogs = (logsData.success && Array.isArray(logsData.data)) ? logsData.data : [];
+                renderChannelManager();
+            } catch (e) {
+                console.error('Failed to load channel manager:', e);
+                channelStats = [];
+                channelLogs = [];
+                renderChannelManager();
+            }
+        }
+        function renderChannelManager() {
+            const cardsContainer = document.getElementById('cmChannelCards');
+            if (cardsContainer) {
+                cardsContainer.innerHTML = channelStats.map(c => {
+                    const meta = CHANNEL_ICON_META[c.channel] || { icon: 'fa-plug', bg: 'bg-gray-600' };
+                    const statusBadge = c.lastStatus === 'success' ? '<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Synced</span>' : (c.connectedCount > 0 ? '<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">Pending</span>' : '<span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">No activity</span>');
+                    return `<div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center">
+                        <div class="w-14 h-14 ${meta.bg} rounded-xl flex items-center justify-center mx-auto mb-3"><i class="fas ${meta.icon} text-white text-xl"></i></div>
+                        <p class="font-bold">${c.channel}</p>
+                        <p class="text-xs text-gray-500 mt-1">${c.connectedCount} hotel${c.connectedCount === 1 ? '' : 's'} connected</p>
+                        <div class="flex items-center justify-center gap-2 mt-2">${statusBadge}<span class="text-xs text-gray-400">${timeAgo(c.lastSyncAt)}</span></div>
+                    </div>`;
+                }).join('');
+            }
+
+            const logsBody = document.getElementById('cmLogsTableBody');
+            if (logsBody) {
+                if (channelLogs.length === 0) {
+                    logsBody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">No sync activity yet</td></tr>';
+                } else {
+                    logsBody.innerHTML = channelLogs.map(l => {
+                        const statusClass = l.status === 'success' ? 'bg-green-100 text-green-700' : (l.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700');
+                        return `<tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="p-3 text-sm font-medium">${l.channel}</td>
+                            <td class="p-3 text-sm">${l.hotelName}</td>
+                            <td class="p-3 text-sm">${l.action}</td>
+                            <td class="p-3"><span class="px-2 py-1 ${statusClass} rounded text-xs">${l.status.charAt(0).toUpperCase() + l.status.slice(1)}</span></td>
+                            <td class="p-3 text-sm text-gray-500">${timeAgo(l.createdAt)}</td>
+                        </tr>`;
+                    }).join('');
+                }
+            }
+        }
+        function openChannelModal() {
+            document.getElementById('cmHotelSelect').innerHTML = hotels.map(h => `<option value="${h.hotelId}">${(h.hotelName || h.name || h.hotelId)}</option>`).join('');
+            document.getElementById('cmChannelSelect').value = 'Booking.com';
+            openModal('channelModal');
+        }
+        async function connectChannel(event) {
+            event.preventDefault();
+            const hotelId = document.getElementById('cmHotelSelect').value;
+            const channel = document.getElementById('cmChannelSelect').value;
+            try {
+                const res = await fetch(`${API_BASE}/super/channels/connect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({ hotelId, channel })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Channel connected', 'success');
+                    closeModal('channelModal');
+                    loadChannelManagerFromServer();
+                    addAuditLog('Channel Connected', `${channel} - ${hotelId}`, 'channelManager');
+                } else {
+                    showToast(data.error || 'Failed to connect', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        }
 
         // ================= HOUSEKEEPING =================
         let housekeepingRooms = [];
