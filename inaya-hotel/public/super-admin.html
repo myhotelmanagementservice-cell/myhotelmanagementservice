@@ -1935,34 +1935,19 @@
             <section id="housekeeping" class="section-content hidden fade-in">
                 <div class="flex justify-between items-center mb-6">
                     <div><h3 class="font-bold text-xl">Housekeeping</h3><p class="text-sm text-gray-500">Room cleaning status & schedules</p></div>
-                    <div class="flex gap-2">
-                        <select class="p-2 rounded-lg bg-white dark:bg-darkCard border border-gray-300 dark:border-gray-600"><option>All Hotels</option><option>Grand Plaza Dubai</option><option>Royal Orchid</option></select>
-                        <button onclick="showSection('housekeeping')" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-sync mr-2"></i>Refresh</button>
-                    </div>
+                    <button onclick="loadHousekeepingFromServer()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-sync mr-2"></i>Refresh</button>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-                    <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl text-center border border-green-200 dark:border-green-800"><p class="text-3xl font-bold text-green-600">245</p><p class="text-xs text-gray-500 mt-1">Clean</p></div>
-                    <div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-xl text-center border border-yellow-200 dark:border-yellow-800"><p class="text-3xl font-bold text-yellow-600">32</p><p class="text-xs text-gray-500 mt-1">In Progress</p></div>
-                    <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl text-center border border-red-200 dark:border-red-800"><p class="text-3xl font-bold text-red-600">58</p><p class="text-xs text-gray-500 mt-1">Dirty</p></div>
-                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl text-center border border-blue-200 dark:border-blue-800"><p class="text-3xl font-bold text-blue-600">12</p><p class="text-xs text-gray-500 mt-1">Out of Order</p></div>
-                    <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl text-center border border-purple-200 dark:border-purple-800"><p class="text-3xl font-bold text-purple-600">18</p><p class="text-xs text-gray-500 mt-1">Inspection</p></div>
-                    <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl text-center border border-gray-200 dark:border-gray-700"><p class="text-3xl font-bold text-gray-600">86</p><p class="text-xs text-gray-500 mt-1">Occupied</p></div>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                    <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl text-center border border-green-200 dark:border-green-800"><p class="text-3xl font-bold text-green-600" id="hkVacant">0</p><p class="text-xs text-gray-500 mt-1">Vacant</p></div>
+                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl text-center border border-blue-200 dark:border-blue-800"><p class="text-3xl font-bold text-blue-600" id="hkOccupied">0</p><p class="text-xs text-gray-500 mt-1">Occupied</p></div>
+                    <div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-xl text-center border border-yellow-200 dark:border-yellow-800"><p class="text-3xl font-bold text-yellow-600" id="hkCleaning">0</p><p class="text-xs text-gray-500 mt-1">Cleaning</p></div>
+                    <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl text-center border border-red-200 dark:border-red-800"><p class="text-3xl font-bold text-red-600" id="hkMaintenance">0</p><p class="text-xs text-gray-500 mt-1">Maintenance</p></div>
+                    <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl text-center border border-purple-200 dark:border-purple-800"><p class="text-3xl font-bold text-purple-600" id="hkReserved">0</p><p class="text-xs text-gray-500 mt-1">Reserved</p></div>
                 </div>
                 <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold mb-4">Room Status Board</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                        <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg text-center"><p class="font-bold text-sm">101</p><p class="text-xs text-green-700 dark:text-green-300">Clean</p></div>
-                        <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg text-center"><p class="font-bold text-sm">102</p><p class="text-xs text-green-700 dark:text-green-300">Clean</p></div>
-                        <div class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg text-center"><p class="font-bold text-sm">103</p><p class="text-xs text-yellow-700 dark:text-yellow-300">Cleaning</p></div>
-                        <div class="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg text-center"><p class="font-bold text-sm">104</p><p class="text-xs text-red-700 dark:text-red-300">Dirty</p></div>
-                        <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg text-center"><p class="font-bold text-sm">105</p><p class="text-xs text-green-700 dark:text-green-300">Clean</p></div>
-                        <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-center"><p class="font-bold text-sm">106</p><p class="text-xs text-blue-700 dark:text-blue-300">Occupied</p></div>
-                        <div class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-center"><p class="font-bold text-sm">107</p><p class="text-xs text-purple-700 dark:text-purple-300">Inspect</p></div>
-                        <div class="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-center"><p class="font-bold text-sm">108</p><p class="text-xs text-gray-700 dark:text-gray-300">OOO</p></div>
-                        <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg text-center"><p class="font-bold text-sm">201</p><p class="text-xs text-green-700 dark:text-green-300">Clean</p></div>
-                        <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg text-center"><p class="font-bold text-sm">202</p><p class="text-xs text-green-700 dark:text-green-300">Clean</p></div>
-                        <div class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg text-center"><p class="font-bold text-sm">203</p><p class="text-xs text-yellow-700 dark:text-yellow-300">Cleaning</p></div>
-                        <div class="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg text-center"><p class="font-bold text-sm">204</p><p class="text-xs text-red-700 dark:text-red-300">Dirty</p></div>
+                    <h3 class="font-bold mb-4">Room Status Board <span class="text-xs font-normal text-gray-500">(showing up to 200 rooms across all hotels)</span></h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" id="hkRoomBoard">
+                        <p class="text-sm text-gray-500 text-center py-4 col-span-full">Loading...</p>
                     </div>
                 </div>
             </section>
