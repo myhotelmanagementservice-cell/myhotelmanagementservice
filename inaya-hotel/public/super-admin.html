@@ -2965,12 +2965,25 @@
                 phone: document.getElementById('hotelPhone').value
             };
             if (!editId) {
-                hotelData._id = Date.now().toString();
-                hotelData.subscriptionExpiry = new Date(Date.now() + 30 * 86400000).toISOString();
-                hotelData.active = true;
-                hotels.push(hotelData);
-                showToast('Hotel added!', 'success');
-                addAuditLog('Hotel Created', hotelData.hotelName, 'hotel');
+                try {
+                    const res = await fetch(`${API_BASE}/super/create-hotel`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                        body: JSON.stringify(hotelData)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast('✅ Hotel added successfully!', 'success');
+                        addAuditLog('Hotel Created', hotelData.hotelName, 'hotel');
+                        await loadHotelsFromServer();
+                    } else {
+                        showToast('❌ ' + (data.error || 'Failed to add hotel'), 'error');
+                        return;
+                    }
+                } catch (err) {
+                    showToast('❌ Network error while adding hotel', 'error');
+                    return;
+                }
             } else {
                 const idx = hotels.findIndex(h => (h.hotelId === editId || h._id === editId));
                 if (idx !== -1) { hotels[idx] = { ...hotels[idx], ...hotelData }; showToast('Hotel updated!', 'success'); addAuditLog('Hotel Updated', hotelData.hotelName, 'hotel'); }

@@ -1773,6 +1773,71 @@ app.get('/api/super/activity-logs', superAdminMiddleware, async (req, res) => {
 });
 
 // ============================================
+// CREATE NEW HOTEL (Super Admin — Add Hotel Modal)
+// ============================================
+app.post('/api/super/create-hotel', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const { hotelId, hotelName, adminEmail, password, subscriptionType, currency, address, phone } = req.body;
+    if (!hotelId || !hotelName || !adminEmail || !password) {
+      return res.status(400).json({ success: false, error: 'hotelId, hotelName, adminEmail, and password are required' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
+    }
+    const existingTenant = await db.collection('tenants').findOne({ hotelId });
+    if (existingTenant) {
+      return res.status(400).json({ success: false, error: `Hotel with ID "${hotelId}" already exists` });
+    }
+    const hotel = {
+      hotelId,
+      hotelName,
+      email: adminEmail,
+      phone: phone || '',
+      address: address || '',
+      currency: currency || 'USD',
+      subscriptionType: subscriptionType || 'basic',
+      subscriptionExpiry: new Date(Date.now() + 30 * 86400000),
+      active: true,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    const result = await db.collection('tenants').insertOne(hotel);
+    hotel._id = result.insertedId;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const adminUser = {
+      hotelId,
+      email: adminEmail,
+      password: hashedPassword,
+      name: `${hotelName} Administrator`,
+      role: 'hotel_admin',
+      permissions: ['rooms', 'guests', 'food', 'inventory', 'requests', 'settings', 'staff', 'bookings'],
+      active: true,
+      createdAt: new Date()
+    };
+    await db.collection('users').insertOne(adminUser);
+    await db.collection('settings').insertOne({
+      hotelId,
+      hotelName,
+      currencySymbol: '$',
+      priceFormat: 'symbol-first',
+      taxRate: 0,
+      wifiSSID: `${hotelName.replace(/\s+/g, '_')}_Guest`,
+      wifiPassword: `${hotelName}@2024`,
+      language: 'en',
+      theme: { primaryColor: '#667eea' },
+      transport: { airport: 30, local: 15 },
+      updatedAt: new Date()
+    });
+    res.status(201).json({ success: true, data: hotel, message: 'Hotel created successfully' });
+  } catch (err) {
+    console.error('Create hotel error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================
 // API KEYS — List, Generate, Revoke (Super Admin Only)
 // ============================================
 app.get('/api/super/api-keys', superAdminMiddleware, async (req, res) => {
