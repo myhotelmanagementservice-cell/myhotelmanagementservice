@@ -2310,6 +2310,100 @@ app.get('/api/super/housekeeping/rooms', superAdminMiddleware, async (req, res) 
   }
 });
 
+// ✅ STAFF MANAGEMENT — cross-hotel staff directory (MongoDB backed)
+app.get('/api/super/staff/stats', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: { totalStaff: 0, onDuty: 0, onLeave: 0, departments: 0 } });
+    const staff = await db.collection('staff').find({ isDeleted: { $ne: true } }).toArray();
+    const totalStaff = staff.length;
+    const onDuty = staff.filter(s => s.status === 'online' || s.status === 'on-duty').length;
+    const onLeave = staff.filter(s => s.status === 'on-leave').length;
+    const departments = new Set(staff.map(s => s.department || 'General')).size;
+    res.json({ success: true, data: { totalStaff, onDuty, onLeave, departments } });
+  } catch (err) {
+    console.error('Get staff stats error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/super/staff', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const staff = await db.collection('staff')
+      .find({ isDeleted: { $ne: true } })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .toArray();
+
+    const hotelIds = [...new Set(staff.map(s => s.hotelId).filter(Boolean))];
+    const hotelsMap = {};
+    if (hotelIds.length) {
+      const hotelDocs = await db.collection('tenants').find({ hotelId: { $in: hotelIds } }).toArray();
+      hotelDocs.forEach(h => { hotelsMap[h.hotelId] = h.hotelName || h.name || h.hotelId; });
+    }
+
+    const formatted = staff.map(s => ({
+      id: s._id.toString(),
+      name: s.name,
+      role: s.role,
+      department: s.department || 'General',
+      hotelId: s.hotelId,
+      hotelName: hotelsMap[s.hotelId] || s.hotelId || 'Unknown',
+      status: s.status || 'offline',
+      shift: s.shift || 'morning'
+    }));
+
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get staff error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/super/staff', superAdminMiddleware, async (req, res) => {
+  try {
+    const { hotelId, name, role, department, status, shift } = req.body;
+    if (!hotelId || !name || !role) {
+      return res.status(400).json({ success: false, error: 'hotelId, name and role are required' });
+    }
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const validStatuses = ['online', 'offline', 'on-duty', 'on-leave', 'inactive'];
+    const validShifts = ['morning', 'evening', 'night'];
+    const doc = {
+      hotelId: String(hotelId).trim(),
+      name: String(name).trim(),
+      role: String(role).trim(),
+      department: department ? String(department).trim() : 'General',
+      status: validStatuses.includes(status) ? status : 'online',
+      shift: validShifts.includes(shift) ? shift : 'morning',
+      isDeleted: false,
+      createdAt: new Date()
+    };
+    const result = await db.collection('staff').insertOne(doc);
+    doc._id = result.insertedId;
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create staff error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/super/staff/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('staff').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { isDeleted: true, deletedAt: new Date() } }
+    );
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Staff not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete staff error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',

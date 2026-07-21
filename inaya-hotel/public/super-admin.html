@@ -1959,18 +1959,16 @@
                     <button onclick="openStaffModal()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-plus mr-2"></i>Add Staff</button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Total Staff</p><h3 class="text-3xl font-bold mt-2">482</h3><p class="text-xs text-green-500 mt-1"><i class="fas fa-arrow-up"></i> +8 this month</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">On Duty</p><h3 class="text-3xl font-bold mt-2">364</h3><p class="text-xs text-gray-500 mt-1">75.5% attendance</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">On Leave</p><h3 class="text-3xl font-bold mt-2">42</h3><p class="text-xs text-gray-500 mt-1">8.7% on leave</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Departments</p><h3 class="text-3xl font-bold mt-2">12</h3><p class="text-xs text-gray-500 mt-1">Front Desk, HK, F&B, etc</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Total Staff</p><h3 class="text-3xl font-bold mt-2" id="stmTotalStaff">0</h3><p class="text-xs text-gray-500 mt-1">Across all hotels</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">On Duty</p><h3 class="text-3xl font-bold mt-2" id="stmOnDuty">0</h3><p class="text-xs text-gray-500 mt-1">Online / on-duty</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">On Leave</p><h3 class="text-3xl font-bold mt-2" id="stmOnLeave">0</h3><p class="text-xs text-gray-500 mt-1">Currently on leave</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Departments</p><h3 class="text-3xl font-bold mt-2" id="stmDepartments">0</h3><p class="text-xs text-gray-500 mt-1">Distinct departments</p></div>
                 </div>
                 <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <h3 class="font-bold mb-4">Staff Directory</h3>
-                    <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-4 text-left text-sm font-semibold">Name</th><th class="p-4 text-left text-sm font-semibold">Role</th><th class="p-4 text-left text-sm font-semibold">Department</th><th class="p-4 text-left text-sm font-semibold">Hotel</th><th class="p-4 text-left text-sm font-semibold">Status</th><th class="p-4 text-left text-sm font-semibold">Shift</th></tr></thead>
-                    <tbody>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">RJ</div><span class="text-sm font-medium">Rajesh Kumar</span></div></td><td class="p-4 text-sm">Manager</td><td class="p-4 text-sm">Front Desk</td><td class="p-4 text-sm">Grand Plaza</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></td><td class="p-4 text-sm">Day</td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">AP</div><span class="text-sm font-medium">Anita Patel</span></div></td><td class="p-4 text-sm">HK Supervisor</td><td class="p-4 text-sm">Housekeeping</td><td class="p-4 text-sm">Royal Orchid</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></td><td class="p-4 text-sm">Day</td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">MK</div><span class="text-sm font-medium">Mohammed Khan</span></div></td><td class="p-4 text-sm">Chef</td><td class="p-4 text-sm">F&B</td><td class="p-4 text-sm">Seaside Resort</td><td class="p-4"><span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">On Leave</span></td><td class="p-4 text-sm">-</td></tr>
+                    <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-4 text-left text-sm font-semibold">Name</th><th class="p-4 text-left text-sm font-semibold">Role</th><th class="p-4 text-left text-sm font-semibold">Department</th><th class="p-4 text-left text-sm font-semibold">Hotel</th><th class="p-4 text-left text-sm font-semibold">Status</th><th class="p-4 text-left text-sm font-semibold">Shift</th><th class="p-4 text-left text-sm font-semibold">Actions</th></tr></thead>
+                    <tbody id="staffTableBody">
+                        <tr><td colspan="7" class="p-4 text-center text-gray-500">Loading...</td></tr>
                     </tbody>
                 </table>
                 </div>
@@ -2816,7 +2814,7 @@
             if (sectionId === 'smsGateway') renderSMSGateway();
             if (sectionId === 'channelManager') renderChannelManager();
             if (sectionId === 'housekeeping') loadHousekeepingFromServer();
-            if (sectionId === 'staffMgmt') renderStaffMgmt();
+            if (sectionId === 'staffMgmt') loadStaffFromServer();
             if (sectionId === 'posSystem') renderPOSSystem();
             if (sectionId === 'guestCRM') renderGuestCRM();
             if (sectionId === 'paymentGateways') renderPaymentGateways();
@@ -4700,8 +4698,116 @@ async function toggleLandingPage() {
         }
 
         // ================= STAFF MANAGEMENT =================
-        function renderStaffMgmt() { showToast('Staff directory loaded', 'info'); }
-        function openStaffModal() { showToast('Staff modal (demo)', 'info'); }
+        let staffList = [];
+        const STAFF_STATUS_META = {
+            'online':   { label: 'Online',   class: 'bg-green-100 text-green-700' },
+            'on-duty':  { label: 'On Duty',   class: 'bg-green-100 text-green-700' },
+            'offline':  { label: 'Offline',   class: 'bg-gray-100 text-gray-700' },
+            'on-leave': { label: 'On Leave',  class: 'bg-yellow-100 text-yellow-700' },
+            'inactive': { label: 'Inactive',  class: 'bg-red-100 text-red-700' }
+        };
+        async function loadStaffFromServer() {
+            try {
+                const [statsRes, listRes] = await Promise.all([
+                    fetch(`${API_BASE}/super/staff/stats`, { headers: { 'Authorization': 'Bearer ' + authToken } }),
+                    fetch(`${API_BASE}/super/staff`, { headers: { 'Authorization': 'Bearer ' + authToken } })
+                ]);
+                const statsData = await statsRes.json();
+                const listData = await listRes.json();
+                staffList = (listData.success && Array.isArray(listData.data)) ? listData.data : [];
+                renderStaffMgmt(statsData.success ? statsData.data : null);
+            } catch (e) {
+                console.error('Failed to load staff:', e);
+                staffList = [];
+                renderStaffMgmt(null);
+            }
+        }
+        function renderStaffMgmt(stats) {
+            if (stats) {
+                document.getElementById('stmTotalStaff').textContent = stats.totalStaff.toLocaleString();
+                document.getElementById('stmOnDuty').textContent = stats.onDuty.toLocaleString();
+                document.getElementById('stmOnLeave').textContent = stats.onLeave.toLocaleString();
+                document.getElementById('stmDepartments').textContent = stats.departments;
+            }
+            const tbody = document.getElementById('staffTableBody');
+            if (!tbody) return;
+            if (staffList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500">No staff added yet</td></tr>';
+            } else {
+                tbody.innerHTML = staffList.map(s => {
+                    const initials = (s.name || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+                    const meta = STAFF_STATUS_META[s.status] || STAFF_STATUS_META.offline;
+                    return `<tr class="border-b border-gray-200 dark:border-gray-700">
+                        <td class="p-4"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">${initials}</div><span class="text-sm font-medium">${s.name}</span></div></td>
+                        <td class="p-4 text-sm">${s.role}</td>
+                        <td class="p-4 text-sm">${s.department}</td>
+                        <td class="p-4 text-sm">${s.hotelName}</td>
+                        <td class="p-4"><span class="px-2 py-1 ${meta.class} rounded text-xs">${meta.label}</span></td>
+                        <td class="p-4 text-sm capitalize">${s.shift}</td>
+                        <td class="p-4"><button onclick="deleteStaff('${s.id}')" class="p-1 text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button></td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+        function openStaffModal() {
+            document.getElementById('stmHotelSelect').innerHTML = hotels.map(h => `<option value="${h.hotelId}">${(h.hotelName || h.name || h.hotelId)}</option>`).join('');
+            document.getElementById('stmName').value = '';
+            document.getElementById('stmRole').value = '';
+            document.getElementById('stmDepartment').value = '';
+            document.getElementById('stmStatus').value = 'online';
+            document.getElementById('stmShift').value = 'morning';
+            openModal('staffModal');
+        }
+        async function saveStaff(event) {
+            event.preventDefault();
+            const payload = {
+                hotelId: document.getElementById('stmHotelSelect').value,
+                name: document.getElementById('stmName').value.trim(),
+                role: document.getElementById('stmRole').value.trim(),
+                department: document.getElementById('stmDepartment').value.trim(),
+                status: document.getElementById('stmStatus').value,
+                shift: document.getElementById('stmShift').value
+            };
+            if (!payload.hotelId || !payload.name || !payload.role) { showToast('Hotel, name and role are required', 'error'); return; }
+            try {
+                const res = await fetch(`${API_BASE}/super/staff`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Staff added', 'success');
+                    closeModal('staffModal');
+                    loadStaffFromServer();
+                    addAuditLog('Staff Added', payload.name, 'staff');
+                } else {
+                    showToast(data.error || 'Failed to add staff', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        }
+        async function deleteStaff(id) {
+            if (!confirm('Remove this staff member?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/super/staff/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Staff removed', 'success');
+                    loadStaffFromServer();
+                } else {
+                    showToast(data.error || 'Failed to remove', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        }
 
         // ================= POS SYSTEM =================
         function renderPOSSystem() { showToast('POS system loaded', 'info'); }
