@@ -2404,6 +2404,196 @@ app.delete('/api/super/staff/:id', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ CHANNEL MANAGER — real OTA connection tracking per hotel (MongoDB backed)
+const OTA_CHANNELS = ['Booking.com', 'Expedia', 'Airbnb', 'Agoda'];
+
+app.get('/api/super/channels/stats', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) {
+      return res.json({ success: true, data: OTA_CHANNELS.map(c => ({ channel: c, connectedCount: 0, lastSyncAt: null, lastStatus: null })) });
+    }
+    const connections = await db.collection('channelConnections').find({ status: 'connected' }).toArray();
+    const logs = await db.collection('channelSyncLogs').find({}).sort({ createdAt: -1 }).toArray();
+
+    const data = OTA_CHANNELS.map(channel => {
+      const connectedCount = connections.filter(c => c.channel === channel).length;
+      const lastLog = logs.find(l => l.channel === channel);
+      return {
+        channel,
+        connectedCount,
+        lastSyncAt: lastLog ? lastLog.createdAt : null,
+        lastStatus: lastLog ? lastLog.status : null
+      };
+    });
+
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('Get channel stats error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/super/channels/logs', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const logs = await db.collection('channelSyncLogs').find({}).sort({ createdAt: -1 }).limit(20).toArray();
+
+    const hotelIds = [...new Set(logs.map(l => l.hotelId).filter(Boolean))];
+    const hotelsMap = {};
+    if (hotelIds.length) {
+      const hotelDocs = await db.collection('tenants').find({ hotelId: { $in: hotelIds } }).toArray();
+      hotelDocs.forEach(h => { hotelsMap[h.hotelId] = h.hotelName || h.name || h.hotelId; });
+    }
+
+    const formatted = logs.map(l => ({
+      id: l._id.toString(),
+      channel: l.channel,
+      hotelName: hotelsMap[l.hotelId] || l.hotelId || 'Unknown',
+      action: l.action,
+      status: l.status,
+      createdAt: l.createdAt
+    }));
+
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get channel logs error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/super/channels/connect', superAdminMiddleware, async (req, res) => {
+  try {
+    const { hotelId, channel } = req.body;
+    if (!hotelId || !channel || !OTA_CHANNELS.includes(channel)) {
+      return res.status(400).json({ success: false, error: 'Valid hotelId and channel are required' });
+    }
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+
+    const existing = await db.collection('channelConnections').findOne({ hotelId, channel });
+    if (existing && existing.status === 'connected') {
+      return res.status(400).json({ success: false, error: 'Hotel is already connected to this channel' });
+    }
+
+    if (existing) {
+      await db.collection('channelConnections').updateOne({ _id: existing._id }, { $set: { status: 'connected', connectedAt: new Date() } });
+    } else {
+      await db.collection('channelConnections').insertOne({ hotelId, channel, status: 'connected', connectedAt: new Date() });
+    }
+
+    await db.collection('channelSyncLogs').insertOne({
+      hotelId, channel, action: 'Channel connected', status: 'success', createdAt: new Date()
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Connect channel error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/super/channels/disconnect', superAdminMiddleware, async (req, res) => {
+  try {
+    const { hotelId, channel } = req.body;
+    if (!hotelId || !channel) return res.status(400).json({ success: false, error: 'hotelId and channel are required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+
+    const result = await db.collection('channelConnections').updateOne(
+      { hotelId, channel },
+      { $set: { status: 'disconnected', disconnectedAt: new Date() } }
+    );
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Connection not found' });
+
+    await db.collection('channelSyncLogs').insertOne({
+      hotelId, channel, action: 'Channel disconnected', status: 'success', createdAt: new Date()
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Disconnect channel error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/super/channels/connections', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const connections = await db.collection('channelConnections').find({ status: 'connected' }).sort({ connectedAt: -1 }).toArray();
+
+    const hotelIds = [...new Set(connections.map(c => c.hotelId).filter(Boolean))];
+    const hotelsMap = {};
+    if (hotelIds.length) {
+      const hotelDocs = await db.collection('tenants').find({ hotelId: { $in: hotelIds } }).toArray();
+      hotelDocs.forEach(h => { hotelsMap[h.hotelId] = h.hotelName || h.name || h.hotelId; });
+    }
+
+    const formatted = connections.map(c => ({
+      hotelId: c.hotelId,
+      hotelName: hotelsMap[c.hotelId] || c.hotelId || 'Unknown',
+      channel: c.channel,
+      connectedAt: c.connectedAt
+    }));
+
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get channel connections error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ✅ MULTI-TENANT — regional grouping of hotels/tenants (MongoDB backed)
+const PLAN_PRICES = { basic: 0, pro: 99, enterprise: 499 };
+
+app.get('/api/super/multi-tenant/stats', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: { totalTenants: 0, activeClusters: 0, avgGuestsPerTenant: 0, clusterNames: [] } });
+    const tenants = await db.collection('tenants').find({}).toArray();
+    const totalTenants = tenants.length;
+    const regions = [...new Set(tenants.map(t => t.region).filter(Boolean))];
+
+    const guestCounts = await Promise.all(tenants.map(t => db.collection('guests').countDocuments({ hotelId: t.hotelId })));
+    const totalGuests = guestCounts.reduce((sum, c) => sum + c, 0);
+    const avgGuestsPerTenant = totalTenants > 0 ? Math.round(totalGuests / totalTenants) : 0;
+
+    res.json({
+      success: true,
+      data: { totalTenants, activeClusters: regions.length, avgGuestsPerTenant, clusterNames: regions }
+    });
+  } catch (err) {
+    console.error('Get multi-tenant stats error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/super/multi-tenant/list', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const tenants = await db.collection('tenants').find({}).sort({ createdAt: -1 }).toArray();
+
+    const formatted = await Promise.all(tenants.map(async (t) => {
+      const [guests, rooms] = await Promise.all([
+        db.collection('guests').countDocuments({ hotelId: t.hotelId }),
+        db.collection('rooms').countDocuments({ hotelId: t.hotelId })
+      ]);
+      const plan = (t.subscriptionType || 'basic').toLowerCase();
+      const monthlyRevenue = PLAN_PRICES.hasOwnProperty(plan) ? PLAN_PRICES[plan] : 0;
+      return {
+        hotelId: t.hotelId,
+        hotelName: t.hotelName || t.hotelId,
+        region: t.region || 'Unassigned',
+        rooms,
+        guests,
+        monthlyRevenue,
+        status: t.active !== false ? 'active' : 'inactive'
+      };
+    }));
+
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get multi-tenant list error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',
