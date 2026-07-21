@@ -2189,6 +2189,74 @@ app.delete('/api/super/feature-flags/:id', superAdminMiddleware, async (req, res
   }
 });
 
+// ✅ REVIEWS & RATINGS — cross-hotel guest feedback (MongoDB backed)
+app.get('/api/super/reviews/stats', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: { avgRating: 0, totalReviews: 0, recommendRate: 0, pendingCount: 0 } });
+    const reviews = await db.collection('reviews').find({ isDeleted: { $ne: true } }).toArray();
+    const total = reviews.length;
+    const avgRating = total > 0 ? (reviews.reduce((sum, r) => sum + (r.overall || 0), 0) / total).toFixed(1) : 0;
+    const recommendCount = reviews.filter(r => r.recommend !== false).length;
+    const recommendRate = total > 0 ? Math.round((recommendCount / total) * 100) : 0;
+    const pendingCount = reviews.filter(r => r.status === 'pending').length;
+
+    res.json({ success: true, data: { avgRating: Number(avgRating), totalReviews: total, recommendRate, pendingCount } });
+  } catch (err) {
+    console.error('Get review stats error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/super/reviews', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const reviews = await db.collection('reviews')
+      .find({ isDeleted: { $ne: true } })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .toArray();
+
+    const hotelIds = [...new Set(reviews.map(r => r.hotelId).filter(Boolean))];
+    const hotelsMap = {};
+    if (hotelIds.length) {
+      const hotelDocs = await db.collection('tenants').find({ hotelId: { $in: hotelIds } }).toArray();
+      hotelDocs.forEach(h => { hotelsMap[h.hotelId] = h.hotelName || h.name || h.hotelId; });
+    }
+
+    const formatted = reviews.map(r => ({
+      id: r._id.toString(),
+      hotelId: r.hotelId,
+      hotelName: hotelsMap[r.hotelId] || r.hotelId || 'Unknown',
+      overall: r.overall || 0,
+      comment: r.comment || '',
+      status: r.status || 'pending',
+      recommend: r.recommend !== false,
+      createdAt: r.createdAt
+    }));
+
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get reviews error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/super/reviews/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('reviews').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { isDeleted: true, deletedAt: new Date() } }
+    );
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Review not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete review error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',

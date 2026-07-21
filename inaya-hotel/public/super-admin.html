@@ -2125,20 +2125,17 @@
             <section id="reviewsRatings" class="section-content hidden fade-in">
                 <div class="flex justify-between items-center mb-6">
                     <div><h3 class="font-bold text-xl">Reviews & Ratings</h3><p class="text-sm text-gray-500">Guest feedback & reputation management</p></div>
-                    <div class="flex gap-2"><select class="p-2 rounded-lg bg-white dark:bg-darkCard border border-gray-300 dark:border-gray-600"><option>All Platforms</option><option>Google</option><option>Booking.com</option><option>TripAdvisor</option></select></div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Avg Rating</p><h3 class="text-3xl font-bold mt-2">4.6<span class="text-lg text-gray-400">/5</span></h3><div class="flex gap-1 mt-1 text-yellow-400 text-sm"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Total Reviews</p><h3 class="text-3xl font-bold mt-2">3,847</h3><p class="text-xs text-green-500 mt-1"><i class="fas fa-arrow-up"></i> +124 this week</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Response Rate</p><h3 class="text-3xl font-bold mt-2">94.2%</h3><p class="text-xs text-gray-500 mt-1">Target: 95%</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">NPS Score</p><h3 class="text-3xl font-bold mt-2">72</h3><p class="text-xs text-green-500 mt-1">Excellent</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Avg Rating</p><h3 class="text-3xl font-bold mt-2"><span id="rrAvgRating">0</span><span class="text-lg text-gray-400">/5</span></h3><div class="flex gap-1 mt-1 text-yellow-400 text-sm" id="rrAvgStars"></div></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Total Reviews</p><h3 class="text-3xl font-bold mt-2" id="rrTotalReviews">0</h3><p class="text-xs text-gray-500 mt-1">Across all hotels</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Recommend Rate</p><h3 class="text-3xl font-bold mt-2" id="rrRecommendRate">0%</h3><p class="text-xs text-gray-500 mt-1">Guests who recommend</p></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Pending Reviews</p><h3 class="text-3xl font-bold mt-2" id="rrPendingCount">0</h3><p class="text-xs text-gray-500 mt-1">Awaiting moderation</p></div>
                 </div>
                 <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <h3 class="font-bold mb-4">Recent Reviews</h3>
-                    <div class="space-y-4">
-                        <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"><div class="flex justify-between items-start mb-2"><div class="flex items-center gap-2"><div class="flex gap-1 text-yellow-400 text-xs"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><span class="text-sm font-medium">Grand Plaza Dubai</span></div><span class="text-xs text-gray-500">Google • 2h ago</span></div><p class="text-sm text-gray-600 dark:text-gray-300">"Amazing stay! The staff was incredibly helpful and the room was spotless. Will definitely return."</p><div class="flex gap-2 mt-2"><button class="px-3 py-1 bg-primary text-white rounded text-xs">Reply</button><button class="px-3 py-1 border border-gray-300 rounded text-xs">Flag</button></div></div>
-                        <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"><div class="flex justify-between items-start mb-2"><div class="flex items-center gap-2"><div class="flex gap-1 text-yellow-400 text-xs"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i></div><span class="text-sm font-medium">Royal Orchid</span></div><span class="text-xs text-gray-500">Booking.com • 5h ago</span></div><p class="text-sm text-gray-600 dark:text-gray-300">"Good location but breakfast could be better. Room service was prompt though."</p><div class="flex gap-2 mt-2"><button class="px-3 py-1 bg-primary text-white rounded text-xs">Reply</button><button class="px-3 py-1 border border-gray-300 rounded text-xs">Flag</button></div></div>
-                        <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"><div class="flex justify-between items-start mb-2"><div class="flex items-center gap-2"><div class="flex gap-1 text-yellow-400 text-xs"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><span class="text-sm font-medium">Seaside Resort</span></div><span class="text-xs text-gray-500">TripAdvisor • 1d ago</span></div><p class="text-sm text-gray-600 dark:text-gray-300">"Perfect beachfront property. The sunset view from our balcony was unforgettable. Highly recommended!"</p><div class="flex gap-2 mt-2"><button class="px-3 py-1 bg-primary text-white rounded text-xs">Reply</button><button class="px-3 py-1 border border-gray-300 rounded text-xs">Flag</button></div></div>
+                    <div class="space-y-4" id="rrReviewsList">
+                        <p class="text-sm text-gray-500 text-center py-4">Loading...</p>
                     </div>
                 </div>
             </section>
@@ -2838,8 +2835,8 @@
             if (sectionId === 'posSystem') renderPOSSystem();
             if (sectionId === 'guestCRM') renderGuestCRM();
             if (sectionId === 'paymentGateways') renderPaymentGateways();
-            if (sectionId === 'loyaltyProgram') renderLoyaltyProgram();
-            if (sectionId === 'reviewsRatings') renderReviewsRatings();
+            if (sectionId === 'loyaltyProgram') loadLoyaltyProgramFromServer();
+            if (sectionId === 'reviewsRatings') loadReviewsRatingsFromServer();
             if (sectionId === 'ratePlans') loadRatePlansFromServer();
             if (sectionId === 'featureFlags') loadFeatureFlagsFromServer();
             if (sectionId === 'landingPage') loadLandingPageData();
@@ -4822,7 +4819,82 @@ async function toggleLandingPage() {
         }
 
         // ================= REVIEWS & RATINGS =================
-        function renderReviewsRatings() { showToast('Reviews loaded', 'info'); }
+        let guestReviews = [];
+        async function loadReviewsRatingsFromServer() {
+            try {
+                const [statsRes, listRes] = await Promise.all([
+                    fetch(`${API_BASE}/super/reviews/stats`, { headers: { 'Authorization': 'Bearer ' + authToken } }),
+                    fetch(`${API_BASE}/super/reviews`, { headers: { 'Authorization': 'Bearer ' + authToken } })
+                ]);
+                const statsData = await statsRes.json();
+                const listData = await listRes.json();
+                guestReviews = (listData.success && Array.isArray(listData.data)) ? listData.data : [];
+                renderReviewsRatings(statsData.success ? statsData.data : null);
+            } catch (e) {
+                console.error('Failed to load reviews:', e);
+                guestReviews = [];
+                renderReviewsRatings(null);
+            }
+        }
+        function renderStarIcons(rating) {
+            let html = '';
+            for (let i = 1; i <= 5; i++) {
+                html += `<i class="fa${i <= rating ? 's' : 'r'} fa-star"></i>`;
+            }
+            return html;
+        }
+        function renderReviewsRatings(stats) {
+            if (stats) {
+                document.getElementById('rrAvgRating').textContent = stats.avgRating;
+                document.getElementById('rrTotalReviews').textContent = stats.totalReviews.toLocaleString();
+                document.getElementById('rrRecommendRate').textContent = stats.recommendRate + '%';
+                document.getElementById('rrPendingCount').textContent = stats.pendingCount;
+                document.getElementById('rrAvgStars').innerHTML = renderStarIcons(Math.round(stats.avgRating));
+            }
+
+            const container = document.getElementById('rrReviewsList');
+            if (guestReviews.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No reviews yet</p>';
+            } else {
+                const statusClass = { pending: 'bg-yellow-100 text-yellow-700', approved: 'bg-green-100 text-green-700', rejected: 'bg-red-100 text-red-700' };
+                container.innerHTML = guestReviews.map(r => {
+                    const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'N/A';
+                    return `<div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center gap-2">
+                                <div class="flex gap-1 text-yellow-400 text-xs">${renderStarIcons(r.overall)}</div>
+                                <span class="text-sm font-medium">${r.hotelName}</span>
+                                <span class="px-2 py-0.5 rounded text-xs ${statusClass[r.status] || statusClass.pending}">${r.status.charAt(0).toUpperCase() + r.status.slice(1)}</span>
+                            </div>
+                            <span class="text-xs text-gray-500">${dateStr}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">${r.comment || '(No comment)'}</p>
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="deleteReview('${r.id}')" class="px-3 py-1 border border-red-300 text-red-500 rounded text-xs hover:bg-red-50 dark:hover:bg-red-900/20">Delete</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        }
+        async function deleteReview(id) {
+            if (!confirm('Delete this review?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/super/reviews/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Review deleted', 'success');
+                    loadReviewsRatingsFromServer();
+                } else {
+                    showToast(data.error || 'Failed to delete', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        }
 
         // ================= RATE PLANS =================
         let ratePlans = [];
