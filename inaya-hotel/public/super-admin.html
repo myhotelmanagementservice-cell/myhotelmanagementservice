@@ -2832,7 +2832,7 @@
             if (sectionId === 'calendarView') renderCalendarView();
             if (sectionId === 'dataImportExport') renderImportExport();
             if (sectionId === 'whiteLabel') renderWhiteLabel();
-            if (sectionId === 'multiTenant') renderMultiTenant();
+            if (sectionId === 'multiTenant') loadMultiTenantFromServer();
             if (sectionId === 'pwaSettings') renderPWASettings();
             if (sectionId === 'smsGateway') renderSMSGateway();
             if (sectionId === 'channelManager') loadChannelManagerFromServer();
@@ -4660,8 +4660,72 @@ async function toggleLandingPage() {
         function openWhiteLabelModal() { showToast('White-label editor (demo)', 'info'); }
 
         // ================= MULTI-TENANT =================
-        function renderMultiTenant() { showToast('Multi-tenant data loaded', 'info'); }
-        function openTenantModal() { showToast('New tenant modal (demo)', 'info'); }
+        let multiTenantList = [];
+        async function loadMultiTenantFromServer() {
+            try {
+                const [statsRes, listRes] = await Promise.all([
+                    fetch(`${API_BASE}/super/multi-tenant/stats`, { headers: { 'Authorization': 'Bearer ' + authToken } }),
+                    fetch(`${API_BASE}/super/multi-tenant/list`, { headers: { 'Authorization': 'Bearer ' + authToken } })
+                ]);
+                const statsData = await statsRes.json();
+                const listData = await listRes.json();
+                multiTenantList = (listData.success && Array.isArray(listData.data)) ? listData.data : [];
+                renderMultiTenant(statsData.success ? statsData.data : null);
+            } catch (e) {
+                console.error('Failed to load multi-tenant data:', e);
+                multiTenantList = [];
+                renderMultiTenant(null);
+            }
+        }
+        function renderMultiTenant(stats) {
+            if (stats) {
+                document.getElementById('mtTotalTenants').textContent = stats.totalTenants.toLocaleString();
+                document.getElementById('mtActiveClusters').textContent = stats.activeClusters;
+                document.getElementById('mtClusterNames').textContent = stats.clusterNames.length ? stats.clusterNames.join(', ') : 'No regions assigned yet';
+                document.getElementById('mtAvgGuests').textContent = stats.avgGuestsPerTenant.toLocaleString();
+            }
+            const tbody = document.getElementById('mtTableBody');
+            if (!tbody) return;
+            if (multiTenantList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500">No tenants found</td></tr>';
+            } else {
+                tbody.innerHTML = multiTenantList.map(t => `<tr class="border-b border-gray-200 dark:border-gray-700">
+                    <td class="p-4 text-sm font-medium">${t.hotelName}<br><span class="text-xs text-gray-400">${t.hotelId}</span></td>
+                    <td class="p-4 text-sm">
+                        <select onchange="updateTenantRegion('${t.hotelId}', this.value)" class="p-1 rounded bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 text-sm">
+                            <option value="" ${t.region === 'Unassigned' ? 'selected' : ''}>Unassigned</option>
+                            <option value="US-East" ${t.region === 'US-East' ? 'selected' : ''}>US-East</option>
+                            <option value="EU-West" ${t.region === 'EU-West' ? 'selected' : ''}>EU-West</option>
+                            <option value="AP-South" ${t.region === 'AP-South' ? 'selected' : ''}>AP-South</option>
+                            <option value="MENA" ${t.region === 'MENA' ? 'selected' : ''}>MENA</option>
+                        </select>
+                    </td>
+                    <td class="p-4 text-sm">${t.rooms}</td>
+                    <td class="p-4 text-sm">${t.guests.toLocaleString()}</td>
+                    <td class="p-4 text-sm font-bold">$${t.monthlyRevenue.toLocaleString()}/mo</td>
+                    <td class="p-4"><span class="px-2 py-1 ${t.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'} rounded text-xs">${t.status === 'active' ? 'Active' : 'Inactive'}</span></td>
+                </tr>`).join('');
+            }
+        }
+        async function updateTenantRegion(hotelId, region) {
+            try {
+                const res = await fetch(`${API_BASE}/super/tenants/${hotelId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({ region: region || null })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Region updated', 'success');
+                    loadMultiTenantFromServer();
+                } else {
+                    showToast(data.error || 'Failed to update region', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        }
 
         // ================= PWA SETTINGS =================
         function renderPWASettings() { showToast('PWA settings loaded', 'info'); }
