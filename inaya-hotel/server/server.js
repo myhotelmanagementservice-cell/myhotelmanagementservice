@@ -2257,6 +2257,59 @@ app.delete('/api/super/reviews/:id', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ HOUSEKEEPING — cross-hotel room status overview (MongoDB backed)
+app.get('/api/super/housekeeping/stats', superAdminMiddleware, async (req, res) => {
+  try {
+    const statuses = ['Vacant', 'Occupied', 'Cleaning', 'Maintenance', 'Reserved'];
+    if (!dbConnected) {
+      const byStatus = {}; statuses.forEach(s => byStatus[s] = 0);
+      return res.json({ success: true, data: byStatus });
+    }
+    const agg = await db.collection('rooms').aggregate([
+      { $match: { isDeleted: { $ne: true } } },
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]).toArray();
+    const byStatus = {};
+    statuses.forEach(s => byStatus[s] = 0);
+    agg.forEach(a => { if (a._id && byStatus.hasOwnProperty(a._id)) byStatus[a._id] = a.count; });
+    res.json({ success: true, data: byStatus });
+  } catch (err) {
+    console.error('Get housekeeping stats error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/super/housekeeping/rooms', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const rooms = await db.collection('rooms')
+      .find({ isDeleted: { $ne: true } })
+      .sort({ hotelId: 1, number: 1 })
+      .limit(200)
+      .toArray();
+
+    const hotelIds = [...new Set(rooms.map(r => r.hotelId).filter(Boolean))];
+    const hotelsMap = {};
+    if (hotelIds.length) {
+      const hotelDocs = await db.collection('tenants').find({ hotelId: { $in: hotelIds } }).toArray();
+      hotelDocs.forEach(h => { hotelsMap[h.hotelId] = h.hotelName || h.name || h.hotelId; });
+    }
+
+    const formatted = rooms.map(r => ({
+      id: r._id.toString(),
+      hotelId: r.hotelId,
+      hotelName: hotelsMap[r.hotelId] || r.hotelId || 'Unknown',
+      number: r.number,
+      status: r.status || 'Vacant'
+    }));
+
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get housekeeping rooms error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',

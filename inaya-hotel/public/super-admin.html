@@ -2830,7 +2830,7 @@
             if (sectionId === 'pwaSettings') renderPWASettings();
             if (sectionId === 'smsGateway') renderSMSGateway();
             if (sectionId === 'channelManager') renderChannelManager();
-            if (sectionId === 'housekeeping') renderHousekeeping();
+            if (sectionId === 'housekeeping') loadHousekeepingFromServer();
             if (sectionId === 'staffMgmt') renderStaffMgmt();
             if (sectionId === 'posSystem') renderPOSSystem();
             if (sectionId === 'guestCRM') renderGuestCRM();
@@ -4669,7 +4669,50 @@ async function toggleLandingPage() {
         function openChannelModal() { showToast('Channel modal (demo)', 'info'); }
 
         // ================= HOUSEKEEPING =================
-        function renderHousekeeping() { showToast('Housekeeping board loaded', 'info'); }
+        let housekeepingRooms = [];
+        const HK_STATUS_META = {
+            Vacant:      { label: 'Vacant',      color: 'green' },
+            Occupied:    { label: 'Occupied',    color: 'blue' },
+            Cleaning:    { label: 'Cleaning',    color: 'yellow' },
+            Maintenance: { label: 'Maintenance', color: 'red' },
+            Reserved:    { label: 'Reserved',    color: 'purple' }
+        };
+        async function loadHousekeepingFromServer() {
+            try {
+                const [statsRes, roomsRes] = await Promise.all([
+                    fetch(`${API_BASE}/super/housekeeping/stats`, { headers: { 'Authorization': 'Bearer ' + authToken } }),
+                    fetch(`${API_BASE}/super/housekeeping/rooms`, { headers: { 'Authorization': 'Bearer ' + authToken } })
+                ]);
+                const statsData = await statsRes.json();
+                const roomsData = await roomsRes.json();
+                housekeepingRooms = (roomsData.success && Array.isArray(roomsData.data)) ? roomsData.data : [];
+                renderHousekeeping(statsData.success ? statsData.data : null);
+            } catch (e) {
+                console.error('Failed to load housekeeping:', e);
+                housekeepingRooms = [];
+                renderHousekeeping(null);
+            }
+        }
+        function renderHousekeeping(byStatus) {
+            if (byStatus) {
+                Object.keys(HK_STATUS_META).forEach(status => {
+                    const el = document.getElementById('hk' + status);
+                    if (el) el.textContent = byStatus[status] || 0;
+                });
+            }
+            const board = document.getElementById('hkRoomBoard');
+            if (housekeepingRooms.length === 0) {
+                board.innerHTML = '<p class="text-sm text-gray-500 text-center py-4 col-span-full">No rooms found</p>';
+            } else {
+                board.innerHTML = housekeepingRooms.map(r => {
+                    const meta = HK_STATUS_META[r.status] || HK_STATUS_META.Vacant;
+                    return `<div class="p-3 bg-${meta.color}-100 dark:bg-${meta.color}-900/30 rounded-lg text-center" title="${r.hotelName}">
+                        <p class="font-bold text-sm">${r.number}</p>
+                        <p class="text-xs text-${meta.color}-700 dark:text-${meta.color}-300">${meta.label}</p>
+                    </div>`;
+                }).join('');
+            }
+        }
 
         // ================= STAFF MANAGEMENT =================
         function renderStaffMgmt() { showToast('Staff directory loaded', 'info'); }
