@@ -2265,6 +2265,22 @@
         </div>
     </div>
 
+    <!-- Staff Modal -->
+    <div id="staffModal" class="modal-overlay" onclick="if(event.target===this)closeModal('staffModal')">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg">Add Staff</h3><button onclick="closeModal('staffModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+            <form id="staffForm" class="space-y-4" onsubmit="saveStaff(event)">
+                <div><label class="block text-sm font-medium mb-1">Hotel</label><select id="stmHotelSelect" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"></select></div>
+                <div><label class="block text-sm font-medium mb-1">Name</label><input type="text" id="stmName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Rajesh Kumar" required></div>
+                <div><label class="block text-sm font-medium mb-1">Role</label><input type="text" id="stmRole" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Manager" required></div>
+                <div><label class="block text-sm font-medium mb-1">Department</label><input type="text" id="stmDepartment" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Front Desk"></div>
+                <div><label class="block text-sm font-medium mb-1">Status</label><select id="stmStatus" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="online">Online</option><option value="on-duty">On Duty</option><option value="offline">Offline</option><option value="on-leave">On Leave</option><option value="inactive">Inactive</option></select></div>
+                <div><label class="block text-sm font-medium mb-1">Shift</label><select id="stmShift" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="morning">Morning</option><option value="evening">Evening</option><option value="night">Night</option></select></div>
+                <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Add Staff</button><button type="button" onclick="closeModal('staffModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
+            </form>
+        </div>
+    </div>
+
     <!-- Extend Subscription Modal -->
     <div id="extendModal" class="modal-overlay" onclick="if(event.target===this)closeModal('extendModal')">
         <div class="modal-box">
