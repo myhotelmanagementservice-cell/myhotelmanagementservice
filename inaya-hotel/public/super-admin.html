@@ -1991,23 +1991,10 @@
             <!-- SECTION: GUEST CRM -->
             <section id="guestCRM" class="section-content hidden fade-in">
                 <div class="flex justify-between items-center mb-6">
-                    <div><h3 class="font-bold text-xl">Guest CRM</h3><p class="text-sm text-gray-500">Guest profiles, preferences & history</p></div>
-                    <div class="flex gap-2"><input type="text" placeholder="Search guests..." class="p-2 rounded-lg bg-white dark:bg-darkCard border border-gray-300 dark:border-gray-600"><button onclick="openGuestModal()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-plus mr-2"></i>Add Guest</button></div>
+                    <div><h3 class="font-bold text-xl">Guest CRM</h3><p class="text-sm text-gray-500">Marketing contact list, segments & CSV export</p></div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Total Guests</p><h3 class="text-3xl font-bold mt-2">24,580</h3><p class="text-xs text-green-500 mt-1"><i class="fas fa-arrow-up"></i> +1,240 this month</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">VIP Guests</p><h3 class="text-3xl font-bold mt-2">156</h3><p class="text-xs text-gray-500 mt-1">Repeat guests</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Avg Stay</p><h3 class="text-3xl font-bold mt-2">3.4 nights</h3><p class="text-xs text-gray-500 mt-1">Up from 3.1 last year</p></div>
-                </div>
-                <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold mb-4">Guest Profiles</h3>
-                    <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-4 text-left text-sm font-semibold">Guest</th><th class="p-4 text-left text-sm font-semibold">Stays</th><th class="p-4 text-left text-sm font-semibold">Total Spend</th><th class="p-4 text-left text-sm font-semibold">Preferences</th><th class="p-4 text-left text-sm font-semibold">Last Visit</th><th class="p-4 text-left text-sm font-semibold">Status</th></tr></thead>
-                    <tbody>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-gold rounded-full flex items-center justify-center text-white text-xs font-bold">SK</div><div><p class="text-sm font-medium">Sanjay Kapoor</p><p class="text-xs text-gray-500">sanjay.k@email.com</p></div></div></td><td class="p-4 text-sm">12</td><td class="p-4 text-sm font-bold">$24,500</td><td class="p-4 text-sm text-gray-500">Suite, Non-smoking</td><td class="p-4 text-sm text-gray-500">Jun 28, 2026</td><td class="p-4"><span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">VIP</span></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">LP</div><div><p class="text-sm font-medium">Lisa Park</p><p class="text-xs text-gray-500">lisa.park@email.com</p></div></div></td><td class="p-4 text-sm">5</td><td class="p-4 text-sm font-bold">$8,200</td><td class="p-4 text-sm text-gray-500">Ocean view, King bed</td><td class="p-4 text-sm text-gray-500">Jun 15, 2026</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Regular</span></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">AH</div><div><p class="text-sm font-medium">Ahmed Hassan</p><p class="text-xs text-gray-500">ahmed@email.com</p></div></div></td><td class="p-4 text-sm">8</td><td class="p-4 text-sm font-bold">$15,800</td><td class="p-4 text-sm text-gray-500">High floor, Halal</td><td class="p-4 text-sm text-gray-500">Jun 20, 2026</td><td class="p-4"><span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Loyal</span></td></tr>
-                    </tbody>
-                </table>
+                <div id="guestCRMContainer">
+                    <p class="text-sm text-gray-500 text-center py-8">Loading...</p>
                 </div>
             </section>
 
@@ -2279,6 +2266,23 @@
                 <div><label class="block text-sm font-medium mb-1">Hotel</label><select id="cmHotelSelect" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"></select></div>
                 <div><label class="block text-sm font-medium mb-1">Channel</label><select id="cmChannelSelect" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="Booking.com">Booking.com</option><option value="Expedia">Expedia</option><option value="Airbnb">Airbnb</option><option value="Agoda">Agoda</option></select></div>
                 <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Connect</button><button type="button" onclick="closeModal('channelModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Guest CRM Modal -->
+    <div id="guestModal" class="modal-overlay" onclick="if(event.target===this)closeModal('guestModal')">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg" id="guestModalTitle">Add Guest</h3><button onclick="closeModal('guestModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+            <form id="guestForm" class="space-y-4" onsubmit="saveGuest(event)">
+                <input type="hidden" id="guestId">
+                <div><label class="block text-sm font-medium mb-1">Name</label><input type="text" id="guestName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Guest name" required></div>
+                <div><label class="block text-sm font-medium mb-1">Email</label><input type="email" id="guestEmail" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="guest@email.com"></div>
+                <div><label class="block text-sm font-medium mb-1">Phone</label><input type="text" id="guestPhone" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="+1 234 567 8900"></div>
+                <div><label class="block text-sm font-medium mb-1">Segment</label><input type="text" id="guestSegment" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="e.g. VIP, Corporate"></div>
+                <div><label class="block text-sm font-medium mb-1">Status</label><select id="guestStatus" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+                <div><label class="block text-sm font-medium mb-1">Total Spent ($)</label><input type="number" id="guestSpent" min="0" step="0.01" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="0"></div>
+                <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('guestModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
             </form>
         </div>
     </div>
