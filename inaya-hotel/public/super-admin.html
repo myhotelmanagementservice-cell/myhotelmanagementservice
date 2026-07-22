@@ -5157,9 +5157,6 @@ async function toggleLandingPage() {
         // ADVANCED ANALYTICS — REAL DATA FROM SERVER
         // ============================================
 
-        let cohortChartInstance = null;
-        let geoChartInstance = null;
-
         async function loadAdvancedAnalytics() {
             try {
                 const res = await fetch(`${API_BASE}/advanced-analytics`, {
