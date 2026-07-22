@@ -1866,39 +1866,11 @@
 
             <!-- SECTION: SMS GATEWAY -->
             <section id="smsGateway" class="section-content hidden fade-in">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><div class="flex justify-between items-start mb-4"><div><p class="text-gray-500 text-sm">SMS Sent Today</p><h3 class="text-3xl font-bold mt-2">4,728</h3></div><div class="p-2 bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300 rounded-lg"><i class="fas fa-paper-plane"></i></div></div><p class="text-xs text-green-500"><i class="fas fa-arrow-up"></i> +12% from yesterday</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><div class="flex justify-between items-start mb-4"><div><p class="text-gray-500 text-sm">Delivery Rate</p><h3 class="text-3xl font-bold mt-2">98.7%</h3></div><div class="p-2 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg"><i class="fas fa-check-double"></i></div></div><p class="text-xs text-gray-500">63 failed out of 4,728</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><div class="flex justify-between items-start mb-4"><div><p class="text-gray-500 text-sm">Cost Today</p><h3 class="text-3xl font-bold mt-2">$142.50</h3></div><div class="p-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300 rounded-lg"><i class="fas fa-dollar-sign"></i></div></div><p class="text-xs text-gray-500">$0.03 avg per SMS</p></div>
+                <div class="flex justify-between items-center mb-6">
+                    <div><h3 class="font-bold text-xl">SMS Gateway</h3><p class="text-sm text-gray-500">Configure SMS provider & view delivery logs</p></div>
                 </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                        <h3 class="font-bold mb-4">SMS Templates</h3>
-                        <div class="space-y-3">
-                            <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><div class="flex justify-between items-start mb-2"><span class="text-sm font-medium">Booking Confirmation</span><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">Active</span></div><p class="text-xs text-gray-500">"Dear [Guest], your booking at [Hotel] is confirmed for [Date]. Room: [Room]..."</p><div class="flex gap-2 mt-2"><button class="text-xs text-blue-500 hover:text-blue-700">Edit</button><button class="text-xs text-gray-500 hover:text-gray-700">Preview</button></div></div>
-                            <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><div class="flex justify-between items-start mb-2"><span class="text-sm font-medium">Check-in Reminder</span><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">Active</span></div><p class="text-xs text-gray-500">"Reminder: Check-in at [Hotel] tomorrow at [Time]. Address: [Address]..."</p><div class="flex gap-2 mt-2"><button class="text-xs text-blue-500 hover:text-blue-700">Edit</button><button class="text-xs text-gray-500 hover:text-gray-700">Preview</button></div></div>
-                            <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><div class="flex justify-between items-start mb-2"><span class="text-sm font-medium">Payment Receipt</span><span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">Draft</span></div><p class="text-xs text-gray-500">"Payment of $[Amount] received. Transaction ID: [ID]..."</p><div class="flex gap-2 mt-2"><button class="text-xs text-blue-500 hover:text-blue-700">Edit</button><button class="text-xs text-gray-500 hover:text-gray-700">Preview</button></div></div>
-                        </div>
-                    </div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                        <h3 class="font-bold mb-4">SMS Gateway Providers</h3>
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><div class="flex items-center gap-3"><i class="fas fa-plug text-green-500"></i><div><p class="text-sm font-medium">Twilio</p><p class="text-xs text-gray-500">Primary provider</p></div></div><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></div>
-                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><div class="flex items-center gap-3"><i class="fas fa-plug text-blue-500"></i><div><p class="text-sm font-medium">MessageBird</p><p class="text-xs text-gray-500">EU fallback</p></div></div><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></div>
-                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><div class="flex items-center gap-3"><i class="fas fa-plug text-gray-500"></i><div><p class="text-sm font-medium">AWS SNS</p><p class="text-xs text-gray-500">Backup provider</p></div></div><span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">Standby</span></div>
-                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"><div class="flex items-center gap-3"><i class="fas fa-plug text-orange-500"></i><div><p class="text-sm font-medium">TextLocal (India)</p><p class="text-xs text-gray-500">India specific</p></div></div><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold mb-4">Recent SMS Activity</h3>
-                    <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-3 text-left text-sm font-semibold">Template</th><th class="p-3 text-left text-sm font-semibold">Sent To</th><th class="p-3 text-left text-sm font-semibold">Provider</th><th class="p-3 text-left text-sm font-semibold">Status</th><th class="p-3 text-left text-sm font-semibold">Time</th></tr></thead>
-                    <tbody>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-3 text-sm">Booking Confirmation</td><td class="p-3 text-sm">+91-98xxx-xxxxx</td><td class="p-3 text-sm">TextLocal</td><td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Delivered</span></td><td class="p-3 text-sm text-gray-500">2 min ago</td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-3 text-sm">Check-in Reminder</td><td class="p-3 text-sm">+971-50xxx-xxxxx</td><td class="p-3 text-sm">Twilio</td><td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Delivered</span></td><td class="p-3 text-sm text-gray-500">5 min ago</td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-3 text-sm">Payment Receipt</td><td class="p-3 text-sm">+1-415-xxx-xxxx</td><td class="p-3 text-sm">Twilio</td><td class="p-3"><span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">Failed</span></td><td class="p-3 text-sm text-gray-500">12 min ago</td></tr>
-                    </tbody>
-                </table>
+                <div id="smsGatewayContainer">
+                    <p class="text-sm text-gray-500 text-center py-8">Loading...</p>
                 </div>
             </section>
 
@@ -2834,7 +2806,7 @@
             if (sectionId === 'whiteLabel') loadWhiteLabelFromServer();
             if (sectionId === 'multiTenant') loadMultiTenantFromServer();
             if (sectionId === 'pwaSettings') loadPWASettingsFromServer();
-            if (sectionId === 'smsGateway') loadSMSGatewayFromServer();
+            if (sectionId === 'smsGateway') loadSMSGateway();
             if (sectionId === 'channelManager') loadChannelManagerFromServer();
             if (sectionId === 'housekeeping') loadHousekeepingFromServer();
             if (sectionId === 'staffMgmt') loadStaffFromServer();

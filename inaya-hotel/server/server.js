@@ -2882,6 +2882,76 @@ app.post('/api/pos/checkout', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ SMS GATEWAY — configuration storage + logs (no real provider integration configured)
+app.get('/api/sms-gateway/config', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: {} });
+    const config = await db.collection('smsGatewayConfig').findOne({ _id: 'singleton' });
+    res.json({ success: true, data: config || {} });
+  } catch (err) {
+    console.error('Get SMS gateway config error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/sms-gateway/config', superAdminMiddleware, async (req, res) => {
+  try {
+    const { provider, apiKey, apiSecret, senderId, testNumber, isActive } = req.body;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const updateData = {
+      provider: provider || 'twilio',
+      apiKey: apiKey || '',
+      apiSecret: apiSecret || '',
+      senderId: senderId || '',
+      testNumber: testNumber || '',
+      isActive: isActive !== false,
+      updatedAt: new Date()
+    };
+    await db.collection('smsGatewayConfig').updateOne(
+      { _id: 'singleton' },
+      { $set: updateData },
+      { upsert: true }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Save SMS gateway config error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/sms-gateway/logs', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const logs = await db.collection('smsGatewayLogs').find({}).sort({ createdAt: -1 }).limit(50).toArray();
+    res.json({ success: true, data: logs.map(l => ({ to: l.to, status: l.status, createdAt: l.createdAt })) });
+  } catch (err) {
+    console.error('Get SMS gateway logs error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Honest: no real SMS provider (Twilio/MSG91/Africa's Talking) SDK is integrated in this
+// environment. We log the attempt for visibility but do not fabricate a successful send.
+app.post('/api/sms-gateway/test', superAdminMiddleware, async (req, res) => {
+  try {
+    const { to } = req.body;
+    if (!to) return res.status(400).json({ success: false, error: 'Phone number is required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+
+    await db.collection('smsGatewayLogs').insertOne({
+      to,
+      status: 'failed',
+      reason: 'No SMS provider integration configured',
+      createdAt: new Date()
+    });
+
+    res.status(503).json({ success: false, error: 'No SMS provider is connected yet. Add real Twilio/MSG91 credentials and enable provider integration to send SMS.' });
+  } catch (err) {
+    console.error('Test SMS error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'HOTEL001',
