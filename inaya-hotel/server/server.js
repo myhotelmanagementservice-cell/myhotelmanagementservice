@@ -2753,6 +2753,135 @@ app.get('/api/guest-crm/export/:token', (req, res) => {
   res.send(entry.csv);
 });
 
+// ✅ POS SYSTEM — items catalog, cart checkout, transaction history (MongoDB backed)
+app.get('/api/pos/items', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const items = await db.collection('posItems').find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, data: items.map(i => ({ _id: i._id.toString(), name: i.name, price: i.price, category: i.category, emoji: i.emoji })) });
+  } catch (err) {
+    console.error('Get POS items error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/pos/categories', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const items = await db.collection('posItems').find({ isDeleted: { $ne: true } }).toArray();
+    const categories = [...new Set(items.map(i => i.category).filter(Boolean))];
+    res.json({ success: true, data: categories.map(c => ({ _id: c, name: c })) });
+  } catch (err) {
+    console.error('Get POS categories error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/pos/items', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, price, category, emoji } = req.body;
+    if (!name || price === undefined || price === null) {
+      return res.status(400).json({ success: false, error: 'name and price are required' });
+    }
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      name: String(name).trim(),
+      price: Number(price),
+      category: category ? String(category).trim() : 'Uncategorized',
+      emoji: emoji || '📦',
+      isDeleted: false,
+      createdAt: new Date()
+    };
+    const result = await db.collection('posItems').insertOne(doc);
+    res.status(201).json({ success: true, data: { _id: result.insertedId.toString(), ...doc } });
+  } catch (err) {
+    console.error('Create POS item error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/pos/items/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const { name, price, category, emoji } = req.body;
+    const updateData = { updatedAt: new Date() };
+    if (name !== undefined) updateData.name = String(name).trim();
+    if (price !== undefined) updateData.price = Number(price);
+    if (category !== undefined) updateData.category = String(category).trim();
+    if (emoji !== undefined) updateData.emoji = emoji;
+    const result = await db.collection('posItems').updateOne({ _id: new ObjectId(id) }, { $set: updateData });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Item not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update POS item error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/pos/items/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('posItems').updateOne({ _id: new ObjectId(id) }, { $set: { isDeleted: true, deletedAt: new Date() } });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Item not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete POS item error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/pos/transactions', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const transactions = await db.collection('posTransactions').find({}).sort({ createdAt: -1 }).limit(50).toArray();
+    const formatted = transactions.map(t => {
+      const count = Array.isArray(t.items) ? t.items.reduce((sum, i) => sum + (i.quantity || 1), 0) : 0;
+      return {
+        transactionId: t.transactionId,
+        items: `${count} item${count === 1 ? '' : 's'}`,
+        total: t.total,
+        paymentMethod: t.paymentMethod || 'Cash',
+        status: t.status || 'completed',
+        createdAt: t.createdAt
+      };
+    });
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get POS transactions error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/pos/checkout', superAdminMiddleware, async (req, res) => {
+  try {
+    const { items, total, paymentMethod } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'Cart is empty' });
+    }
+    if (total === undefined || total === null || isNaN(Number(total))) {
+      return res.status(400).json({ success: false, error: 'Valid total is required' });
+    }
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+
+    const count = await db.collection('posTransactions').countDocuments({});
+    const doc = {
+      transactionId: String(9000 + count + 1),
+      items: items.map(i => ({ name: i.name, price: i.price, quantity: i.quantity })),
+      total: Number(total),
+      paymentMethod: paymentMethod || 'Cash',
+      status: 'completed',
+      createdAt: new Date()
+    };
+    await db.collection('posTransactions').insertOne(doc);
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('POS checkout error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'HOTEL001',

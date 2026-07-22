@@ -1968,23 +1968,9 @@
             <section id="posSystem" class="section-content hidden fade-in">
                 <div class="flex justify-between items-center mb-6">
                     <div><h3 class="font-bold text-xl">POS System</h3><p class="text-sm text-gray-500">Restaurant, Bar & Spa billing</p></div>
-                    <button onclick="openPOSModal()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-plus mr-2"></i>New Order</button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Today's Sales</p><h3 class="text-3xl font-bold mt-2">$12,450</h3><p class="text-xs text-green-500 mt-1"><i class="fas fa-arrow-up"></i> +8.2% from yesterday</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Orders</p><h3 class="text-3xl font-bold mt-2">186</h3><p class="text-xs text-gray-500 mt-1">Avg $67 per order</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Restaurant</p><h3 class="text-3xl font-bold mt-2">$8,200</h3><p class="text-xs text-gray-500 mt-1">65.8% of total</p></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><p class="text-gray-500 text-sm">Bar & Spa</p><h3 class="text-3xl font-bold mt-2">$4,250</h3><p class="text-xs text-gray-500 mt-1">34.2% of total</p></div>
-                </div>
-                <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold mb-4">Recent POS Transactions</h3>
-                    <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-3 text-left text-sm font-semibold">Order #</th><th class="p-3 text-left text-sm font-semibold">Outlet</th><th class="p-3 text-left text-sm font-semibold">Items</th><th class="p-3 text-left text-sm font-semibold">Amount</th><th class="p-3 text-left text-sm font-semibold">Payment</th><th class="p-3 text-left text-sm font-semibold">Time</th></tr></thead>
-                    <tbody>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-3 text-sm font-medium">#POS-8921</td><td class="p-3 text-sm">Restaurant</td><td class="p-3 text-sm">3 items</td><td class="p-3 text-sm font-bold">$145.00</td><td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Card</span></td><td class="p-3 text-sm text-gray-500">2 min ago</td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-3 text-sm font-medium">#POS-8920</td><td class="p-3 text-sm">Bar</td><td class="p-3 text-sm">2 items</td><td class="p-3 text-sm font-bold">$58.50</td><td class="p-3"><span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Room Charge</span></td><td class="p-3 text-sm text-gray-500">5 min ago</td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-3 text-sm font-medium">#POS-8919</td><td class="p-3 text-sm">Spa</td><td class="p-3 text-sm">1 item</td><td class="p-3 text-sm font-bold">$120.00</td><td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Card</span></td><td class="p-3 text-sm text-gray-500">12 min ago</td></tr>
-                    </tbody>
-                </table>
+                <div id="posContainer">
+                    <p class="text-sm text-gray-500 text-center py-8">Loading...</p>
                 </div>
             </section>
 
@@ -2283,6 +2269,21 @@
                 <div><label class="block text-sm font-medium mb-1">Status</label><select id="guestStatus" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
                 <div><label class="block text-sm font-medium mb-1">Total Spent ($)</label><input type="number" id="guestSpent" min="0" step="0.01" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="0"></div>
                 <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('guestModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- POS Item Modal -->
+    <div id="posModal" class="modal-overlay" onclick="if(event.target===this)closeModal('posModal')">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg" id="posModalTitle">Add POS Item</h3><button onclick="closeModal('posModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+            <form id="posForm" class="space-y-4" onsubmit="savePOSItem(event)">
+                <input type="hidden" id="posItemId">
+                <div><label class="block text-sm font-medium mb-1">Item Name</label><input type="text" id="posItemName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Cappuccino" required></div>
+                <div><label class="block text-sm font-medium mb-1">Price ($)</label><input type="number" id="posItemPrice" min="0" step="0.01" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="4.50" required></div>
+                <div><label class="block text-sm font-medium mb-1">Category</label><input type="text" id="posItemCategory" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Restaurant / Bar / Spa"></div>
+                <div><label class="block text-sm font-medium mb-1">Emoji</label><input type="text" id="posItemEmoji" maxlength="4" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="☕"></div>
+                <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('posModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
             </form>
         </div>
     </div>
