@@ -4426,9 +4426,6 @@ async function toggleLandingPage() {
         // SYSTEM HEALTH — REAL DATA FROM SERVER
         // ============================================
 
-        let apiResponseChartInstance = null;
-        let errorDistChartInstance = null;
-
         async function loadSystemHealthData() {
             try {
                 const res = await fetch(`${API_BASE}/system-health`, {
