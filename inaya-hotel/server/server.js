@@ -2594,6 +2594,165 @@ app.get('/api/super/multi-tenant/list', superAdminMiddleware, async (req, res) =
   }
 });
 
+// ✅ GUEST CRM — marketing contact list, segments, CSV export (MongoDB backed)
+const crypto = require('crypto');
+const guestCRMExportTokens = new Map(); // token -> { csv, expiresAt }
+
+function toCSV(rows) {
+  const escape = (val) => {
+    const s = String(val === undefined || val === null ? '' : val);
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  };
+  const header = ['Name', 'Email', 'Phone', 'Segment', 'Status', 'Total Spent'];
+  const lines = [header.join(',')];
+  rows.forEach(g => {
+    lines.push([g.name, g.email || '', g.phone || '', g.segment || '', g.status || 'active', g.totalSpent || 0].map(escape).join(','));
+  });
+  return lines.join('\n');
+}
+
+app.get('/api/guest-crm/guests', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const guests = await db.collection('guestCRM').find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).toArray();
+    const formatted = guests.map(g => ({ _id: g._id.toString(), name: g.name, email: g.email, phone: g.phone, segment: g.segment, status: g.status, totalSpent: g.totalSpent }));
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get CRM guests error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/guest-crm/guests/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const guest = await db.collection('guestCRM').findOne({ _id: new ObjectId(req.params.id) });
+    if (!guest) return res.status(404).json({ success: false, error: 'Guest not found' });
+    res.json({ success: true, data: { _id: guest._id.toString(), name: guest.name, email: guest.email, phone: guest.phone, segment: guest.segment, status: guest.status, totalSpent: guest.totalSpent } });
+  } catch (err) {
+    console.error('Get CRM guest error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/guest-crm/guests', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, email, phone, segment, status, totalSpent } = req.body;
+    if (!name || !String(name).trim()) return res.status(400).json({ success: false, error: 'Name is required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      name: String(name).trim(),
+      email: email ? String(email).trim() : '',
+      phone: phone ? String(phone).trim() : '',
+      segment: segment ? String(segment).trim() : '',
+      status: status || 'active',
+      totalSpent: parseFloat(totalSpent) || 0,
+      isDeleted: false,
+      createdAt: new Date()
+    };
+    const result = await db.collection('guestCRM').insertOne(doc);
+    res.status(201).json({ success: true, data: { _id: result.insertedId.toString(), ...doc } });
+  } catch (err) {
+    console.error('Create CRM guest error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/guest-crm/guests/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const { name, email, phone, segment, status, totalSpent } = req.body;
+    const updateData = { updatedAt: new Date() };
+    if (name !== undefined) updateData.name = String(name).trim();
+    if (email !== undefined) updateData.email = String(email).trim();
+    if (phone !== undefined) updateData.phone = String(phone).trim();
+    if (segment !== undefined) updateData.segment = String(segment).trim();
+    if (status !== undefined) updateData.status = status;
+    if (totalSpent !== undefined) updateData.totalSpent = parseFloat(totalSpent) || 0;
+    const result = await db.collection('guestCRM').updateOne({ _id: new ObjectId(id) }, { $set: updateData });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Guest not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update CRM guest error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/guest-crm/guests/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('guestCRM').updateOne({ _id: new ObjectId(id) }, { $set: { isDeleted: true, deletedAt: new Date() } });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Guest not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete CRM guest error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/guest-crm/segments', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const segments = await db.collection('guestCRMSegments').find({}).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, data: segments.map(s => ({ _id: s._id.toString(), name: s.name })) });
+  } catch (err) {
+    console.error('Get CRM segments error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/guest-crm/segments', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !String(name).trim()) return res.status(400).json({ success: false, error: 'Segment name is required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = { name: String(name).trim(), createdAt: new Date() };
+    const result = await db.collection('guestCRMSegments').insertOne(doc);
+    res.status(201).json({ success: true, data: { _id: result.insertedId.toString(), name: doc.name } });
+  } catch (err) {
+    console.error('Create CRM segment error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Honest: no email service (SMTP/SendGrid) is configured in this environment.
+app.post('/api/guest-crm/guests/:id/email', superAdminMiddleware, async (req, res) => {
+  res.status(503).json({ success: false, error: 'Email service not configured. Connect an SMTP/SendGrid provider to enable this feature.' });
+});
+
+app.get('/api/guest-crm/export', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const guests = await db.collection('guestCRM').find({ isDeleted: { $ne: true } }).toArray();
+    const csv = toCSV(guests);
+    const token = crypto.randomBytes(24).toString('hex');
+    guestCRMExportTokens.set(token, { csv, expiresAt: Date.now() + 5 * 60 * 1000 });
+    res.json({ success: true, url: `/api/guest-crm/export/${token}` });
+  } catch (err) {
+    console.error('Export CRM guests error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Public download route (short-lived random token acts as the access control, since a
+// plain window.open() navigation cannot send an Authorization header).
+app.get('/api/guest-crm/export/:token', (req, res) => {
+  const entry = guestCRMExportTokens.get(req.params.token);
+  if (!entry || entry.expiresAt < Date.now()) {
+    guestCRMExportTokens.delete(req.params.token);
+    return res.status(404).send('Export link expired or invalid. Please export again.');
+  }
+  guestCRMExportTokens.delete(req.params.token);
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="guests_export.csv"');
+  res.send(entry.csv);
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'CROWN',

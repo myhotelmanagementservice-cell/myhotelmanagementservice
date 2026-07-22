@@ -9011,11 +9011,11 @@ async function toggleLandingPage() {
         }
 
         function renderGuestCRM() {
-            const container = document.getElementById('guestCRMContainer');
-            if (!container) return;
-
-            // Calculate stats
-            const totalGuests = crmGuests.length;
+        const container = document.getElementById('guestCRMContainer');
+        if (!container) return;
+        const displayGuests = crmActiveSegment === 'all' ? crmGuests : crmGuests.filter(g => g.segment === crmSegments.find(s => s._id === crmActiveSegment)?.name);
+        // Calculate stats
+        const totalGuests = crmGuests.length;
             const activeGuests = crmGuests.filter(g => g.status === 'active').length;
             const totalSpent = crmGuests.reduce((sum, g) => sum + (g.totalSpent || 0), 0);
 
@@ -9041,9 +9041,9 @@ async function toggleLandingPage() {
 
                 <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
                     <div class="flex gap-2 flex-wrap">
-                        <button onclick="filterCRMGuest('all')" class="px-3 py-1 text-xs rounded-full bg-primary text-white">All</button>
+                        <button onclick="filterCRMGuest('all')" class="px-3 py-1 text-xs rounded-full ${crmActiveSegment === 'all' ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'} transition">All</button>
                         ${crmSegments.map(s => `
-                            <button onclick="filterCRMGuest('${s._id}')" class="px-3 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                            <button onclick="filterCRMGuest('${s._id}')" class="px-3 py-1 text-xs rounded-full ${crmActiveSegment === s._id ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'} transition">
                                 ${s.name}
                             </button>
                         `).join('')}
@@ -9072,9 +9072,9 @@ async function toggleLandingPage() {
                                     <th class="p-4 text-left text-sm font-semibold">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>${crmGuests.length === 0 ? `
+                            <tbody>${displayGuests.length === 0 ? `
                                 <tr><td colspan="7" class="p-4 text-center text-gray-500">No guests found</td></tr>
-                            ` : crmGuests.map(g => `
+                            ` : displayGuests.map(g => `
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                                     <td class="p-4 font-medium">${g.name}</td>
                                     <td class="p-4 text-sm">${g.email || '--'}</td>
@@ -9095,9 +9095,10 @@ async function toggleLandingPage() {
             `;
         }
 
+        let crmActiveSegment = 'all';
         function filterCRMGuest(segmentId) {
-            // Filter logic - would re-render with filtered data
-            showToast(`Filtering by segment`, 'info');
+            crmActiveSegment = segmentId;
+            renderGuestCRM();
         }
 
         function openGuestModal(data) {
