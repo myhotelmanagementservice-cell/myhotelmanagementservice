@@ -2755,7 +2755,7 @@ app.get('/api/guest-crm/export/:token', (req, res) => {
 
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
-  defaultHotelId: 'CROWN',
+  defaultHotelId: 'HOTEL001',
   planSettings: {
     basic:      { name: 'Free / Basic', price: 0,   currency: 'USD', enabled: true,  features: ['1 Hotel', 'Up to 20 Rooms', 'Basic Reports', '7-day Trial'] },
     pro:        { name: 'Pro',          price: 99,  currency: 'USD', enabled: true,  features: ['Up to 5 Hotels', 'Unlimited Rooms', 'Priority Support', 'Analytics Dashboard'] },
