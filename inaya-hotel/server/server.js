@@ -2952,6 +2952,47 @@ app.post('/api/sms-gateway/test', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ PWA SETTINGS — manifest configuration (MongoDB backed)
+app.get('/api/pwa/settings', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: {} });
+    const settings = await db.collection('pwaSettings').findOne({ _id: 'singleton' });
+    res.json({ success: true, data: settings || {} });
+  } catch (err) {
+    console.error('Get PWA settings error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/pwa/settings', superAdminMiddleware, async (req, res) => {
+  try {
+    const { appName, shortName, description, themeColor, bgColor, iconUrl, startUrl, displayMode, orientation, offlineSupport } = req.body;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const updateData = {
+      appName: appName || 'My Hotel App',
+      shortName: shortName || 'Hotel',
+      description: description || 'Hotel Management System',
+      themeColor: themeColor || '#6c63ff',
+      bgColor: bgColor || '#ffffff',
+      iconUrl: iconUrl || '',
+      startUrl: startUrl || '/',
+      displayMode: ['standalone', 'fullscreen', 'minimal-ui', 'browser'].includes(displayMode) ? displayMode : 'standalone',
+      orientation: ['any', 'portrait', 'landscape'].includes(orientation) ? orientation : 'any',
+      offlineSupport: offlineSupport !== false,
+      updatedAt: new Date()
+    };
+    await db.collection('pwaSettings').updateOne(
+      { _id: 'singleton' },
+      { $set: updateData },
+      { upsert: true }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Save PWA settings error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'HOTEL001',
