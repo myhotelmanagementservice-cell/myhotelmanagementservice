@@ -2993,6 +2993,135 @@ app.put('/api/pwa/settings', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ PAYMENT GATEWAYS — configuration storage + CRUD (no real provider SDK integrated)
+app.get('/api/payment-gateways', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const gateways = await db.collection('paymentGateways').find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).toArray();
+    const formatted = gateways.map(g => ({
+      _id: g._id.toString(),
+      name: g.name,
+      provider: g.provider,
+      mode: g.mode,
+      currency: g.currency,
+      fee: g.fee,
+      apiKey: g.apiKey,
+      apiSecret: g.apiSecret,
+      isActive: g.isActive,
+      icon: g.icon
+    }));
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get payment gateways error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/payment-gateways/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const gateway = await db.collection('paymentGateways').findOne({ _id: new ObjectId(req.params.id) });
+    if (!gateway) return res.status(404).json({ success: false, error: 'Gateway not found' });
+    res.json({ success: true, data: { ...gateway, _id: gateway._id.toString() } });
+  } catch (err) {
+    console.error('Get payment gateway error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/payment-gateways', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, provider, mode, currency, fee, apiKey, apiSecret, isActive, icon } = req.body;
+    if (!name || !String(name).trim()) return res.status(400).json({ success: false, error: 'Name is required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      name: String(name).trim(),
+      provider: provider || 'stripe',
+      mode: mode === 'live' ? 'live' : 'test',
+      currency: currency || 'USD',
+      fee: parseFloat(fee) || 0,
+      apiKey: apiKey || '',
+      apiSecret: apiSecret || '',
+      isActive: isActive !== false,
+      icon: icon || '💳',
+      isDeleted: false,
+      createdAt: new Date()
+    };
+    const result = await db.collection('paymentGateways').insertOne(doc);
+    res.status(201).json({ success: true, data: { _id: result.insertedId.toString(), ...doc } });
+  } catch (err) {
+    console.error('Create payment gateway error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/payment-gateways/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const { name, provider, mode, currency, fee, apiKey, apiSecret, isActive, icon } = req.body;
+    const updateData = { updatedAt: new Date() };
+    if (name !== undefined) updateData.name = String(name).trim();
+    if (provider !== undefined) updateData.provider = provider;
+    if (mode !== undefined) updateData.mode = mode === 'live' ? 'live' : 'test';
+    if (currency !== undefined) updateData.currency = currency;
+    if (fee !== undefined) updateData.fee = parseFloat(fee) || 0;
+    if (apiKey !== undefined) updateData.apiKey = apiKey;
+    if (apiSecret !== undefined) updateData.apiSecret = apiSecret;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (icon !== undefined) updateData.icon = icon;
+    const result = await db.collection('paymentGateways').updateOne({ _id: new ObjectId(id) }, { $set: updateData });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Gateway not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update payment gateway error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch('/api/payment-gateways/:id/toggle', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const gateway = await db.collection('paymentGateways').findOne({ _id: new ObjectId(id) });
+    if (!gateway) return res.status(404).json({ success: false, error: 'Gateway not found' });
+    const newStatus = !gateway.isActive;
+    await db.collection('paymentGateways').updateOne({ _id: new ObjectId(id) }, { $set: { isActive: newStatus } });
+    res.json({ success: true, data: { isActive: newStatus } });
+  } catch (err) {
+    console.error('Toggle payment gateway error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/payment-gateways/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('paymentGateways').updateOne({ _id: new ObjectId(id) }, { $set: { isDeleted: true, deletedAt: new Date() } });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Gateway not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete payment gateway error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Honest: no real payment provider SDK (Stripe/PayPal/Razorpay) is integrated in this
+// environment, so we cannot fabricate a successful connection test.
+app.post('/api/payment-gateways/:id/test', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const gateway = await db.collection('paymentGateways').findOne({ _id: new ObjectId(id) });
+    if (!gateway) return res.status(404).json({ success: false, error: 'Gateway not found' });
+    res.status(503).json({ success: false, error: `No real ${gateway.provider} SDK is connected yet. Add real API credentials and enable provider integration to test this gateway.` });
+  } catch (err) {
+    console.error('Test payment gateway error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'HOTEL001',

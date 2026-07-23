@@ -1965,24 +1965,8 @@
 
             <!-- SECTION: PAYMENT GATEWAYS -->
             <section id="paymentGateways" class="section-content hidden fade-in">
-                <div class="flex justify-between items-center mb-6">
-                    <div><h3 class="font-bold text-xl">Payment Gateways</h3><p class="text-sm text-gray-500">Configure payment processors per hotel</p></div>
-                    <button onclick="openGatewayModal()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-plus mr-2"></i>Add Gateway</button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><div class="flex justify-between items-start mb-4"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center"><i class="fab fa-stripe text-xl text-purple-600"></i></div><div><h4 class="font-bold">Stripe</h4><p class="text-xs text-gray-500">Cards, Apple Pay, Google Pay</p></div></div><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">Active</span></div><div class="space-y-2 text-sm"><div class="flex justify-between"><span class="text-gray-500">Transactions (30d)</span><span class="font-bold">4,250</span></div><div class="flex justify-between"><span class="text-gray-500">Volume</span><span class="font-bold">$128,400</span></div><div class="flex justify-between"><span class="text-gray-500">Success Rate</span><span class="font-bold text-green-600">98.2%</span></div></div></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><div class="flex justify-between items-start mb-4"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center"><i class="fab fa-paypal text-xl text-blue-600"></i></div><div><h4 class="font-bold">PayPal</h4><p class="text-xs text-gray-500">PayPal balance, Cards</p></div></div><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">Active</span></div><div class="space-y-2 text-sm"><div class="flex justify-between"><span class="text-gray-500">Transactions (30d)</span><span class="font-bold">1,890</span></div><div class="flex justify-between"><span class="text-gray-500">Volume</span><span class="font-bold">$45,200</span></div><div class="flex justify-between"><span class="text-gray-500">Success Rate</span><span class="font-bold text-green-600">97.8%</span></div></div></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><div class="flex justify-between items-start mb-4"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center"><i class="fas fa-rupee-sign text-xl text-orange-600"></i></div><div><h4 class="font-bold">Razorpay</h4><p class="text-xs text-gray-500">India - UPI, Cards, Wallets</p></div></div><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">Active</span></div><div class="space-y-2 text-sm"><div class="flex justify-between"><span class="text-gray-500">Transactions (30d)</span><span class="font-bold">3,450</span></div><div class="flex justify-between"><span class="text-gray-500">Volume</span><span class="font-bold">$67,800</span></div><div class="flex justify-between"><span class="text-gray-500">Success Rate</span><span class="font-bold text-green-600">96.5%</span></div></div></div>
-                </div>
-                <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold mb-4">Transaction Logs</h3>
-                    <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-3 text-left text-sm font-semibold">Gateway</th><th class="p-3 text-left text-sm font-semibold">Hotel</th><th class="p-3 text-left text-sm font-semibold">Amount</th><th class="p-3 text-left text-sm font-semibold">Status</th><th class="p-3 text-left text-sm font-semibold">Time</th></tr></thead>
-                    <tbody>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-3 text-sm">Stripe</td><td class="p-3 text-sm">Grand Plaza Dubai</td><td class="p-3 text-sm font-bold">$450.00</td><td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Success</span></td><td class="p-3 text-sm text-gray-500">2 min ago</td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-3 text-sm">Razorpay</td><td class="p-3 text-sm">Royal Orchid</td><td class="p-3 text-sm font-bold">$280.00</td><td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Success</span></td><td class="p-3 text-sm text-gray-500">5 min ago</td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-3 text-sm">PayPal</td><td class="p-3 text-sm">Seaside Resort</td><td class="p-3 text-sm font-bold">$120.00</td><td class="p-3"><span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">Failed</span></td><td class="p-3 text-sm text-gray-500">8 min ago</td></tr>
-                    </tbody>
-                </table>
+                <div id="paymentGatewaysContainer">
+                    <p class="text-sm text-gray-500 text-center py-8">Loading...</p>
                 </div>
             </section>
 
@@ -2263,6 +2247,26 @@
                 <div><label class="block text-sm font-medium mb-1">Category</label><input type="text" id="posItemCategory" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Restaurant / Bar / Spa"></div>
                 <div><label class="block text-sm font-medium mb-1">Emoji</label><input type="text" id="posItemEmoji" maxlength="4" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="☕"></div>
                 <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('posModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payment Gateway Modal -->
+    <div id="gatewayModal" class="modal-overlay" onclick="if(event.target===this)closeModal('gatewayModal')">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg" id="gatewayModalTitle">Add Gateway</h3><button onclick="closeModal('gatewayModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+            <form id="gatewayForm" class="space-y-4" onsubmit="saveGateway(event)">
+                <input type="hidden" id="gatewayId">
+                <div><label class="block text-sm font-medium mb-1">Gateway Name</label><input type="text" id="gatewayName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Stripe" required></div>
+                <div><label class="block text-sm font-medium mb-1">Provider</label><select id="gatewayProvider" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="stripe">Stripe</option><option value="paypal">PayPal</option><option value="razorpay">Razorpay</option><option value="custom">Custom</option></select></div>
+                <div><label class="block text-sm font-medium mb-1">Mode</label><select id="gatewayMode" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="test">Test</option><option value="live">Live</option></select></div>
+                <div><label class="block text-sm font-medium mb-1">Currency</label><input type="text" id="gatewayCurrency" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="USD"></div>
+                <div><label class="block text-sm font-medium mb-1">Fee (%)</label><input type="number" id="gatewayFee" min="0" step="0.01" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="2.9"></div>
+                <div><label class="block text-sm font-medium mb-1">API Key</label><input type="password" id="gatewayApiKey" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Enter API key"></div>
+                <div><label class="block text-sm font-medium mb-1">API Secret</label><input type="password" id="gatewayApiSecret" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Enter API secret"></div>
+                <div><label class="block text-sm font-medium mb-1">Icon (emoji)</label><input type="text" id="gatewayIcon" maxlength="4" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="💳"></div>
+                <div class="flex items-center gap-2"><input type="checkbox" id="gatewayIsActive" class="w-4 h-4"><label for="gatewayIsActive" class="text-sm font-medium">Active</label></div>
+                <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('gatewayModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
             </form>
         </div>
     </div>
@@ -2819,7 +2823,7 @@
             if (sectionId === 'staffMgmt') loadStaffFromServer();
             if (sectionId === 'posSystem') loadPOSSystem();
             if (sectionId === 'guestCRM') loadGuestCRM();
-            if (sectionId === 'paymentGateways') loadPaymentGatewaysFromServer();
+            if (sectionId === 'paymentGateways') loadPaymentGateways();
             if (sectionId === 'loyaltyProgram') loadLoyaltyProgramFromServer();
             if (sectionId === 'reviewsRatings') loadReviewsRatingsFromServer();
             if (sectionId === 'ratePlans') loadRatePlansFromServer();
