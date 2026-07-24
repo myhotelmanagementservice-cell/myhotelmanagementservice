@@ -3229,6 +3229,112 @@ app.delete('/api/notifications/:id', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ KANBAN BOARD — internal task tracker (MongoDB backed)
+app.get('/api/kanban', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const tasks = await db.collection('kanbanTasks').find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).toArray();
+    const formatted = tasks.map(t => ({
+      _id: t._id.toString(),
+      title: t.title,
+      description: t.description,
+      priority: t.priority,
+      status: t.status,
+      assignee: t.assignee,
+      createdAt: t.createdAt
+    }));
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get kanban tasks error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/kanban/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const task = await db.collection('kanbanTasks').findOne({ _id: new ObjectId(req.params.id) });
+    if (!task) return res.status(404).json({ success: false, error: 'Task not found' });
+    res.json({ success: true, data: { ...task, _id: task._id.toString() } });
+  } catch (err) {
+    console.error('Get kanban task error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/kanban', superAdminMiddleware, async (req, res) => {
+  try {
+    const { title, description, priority, status, assignee } = req.body;
+    if (!title || !String(title).trim()) return res.status(400).json({ success: false, error: 'Title is required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const validColumns = ['To Do', 'In Progress', 'Review', 'Done'];
+    const doc = {
+      title: String(title).trim(),
+      description: description || '',
+      priority: ['low', 'medium', 'high'].includes(priority) ? priority : 'low',
+      status: validColumns.includes(status) ? status : 'To Do',
+      assignee: assignee || '',
+      isDeleted: false,
+      createdAt: new Date()
+    };
+    const result = await db.collection('kanbanTasks').insertOne(doc);
+    res.status(201).json({ success: true, data: { _id: result.insertedId.toString(), ...doc } });
+  } catch (err) {
+    console.error('Create kanban task error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/kanban/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const { title, description, priority, status, assignee } = req.body;
+    const validColumns = ['To Do', 'In Progress', 'Review', 'Done'];
+    const updateData = { updatedAt: new Date() };
+    if (title !== undefined) updateData.title = String(title).trim();
+    if (description !== undefined) updateData.description = description;
+    if (priority !== undefined) updateData.priority = ['low', 'medium', 'high'].includes(priority) ? priority : 'low';
+    if (status !== undefined) updateData.status = validColumns.includes(status) ? status : 'To Do';
+    if (assignee !== undefined) updateData.assignee = assignee;
+    const result = await db.collection('kanbanTasks').updateOne({ _id: new ObjectId(id) }, { $set: updateData });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Task not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update kanban task error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch('/api/kanban/:id/status', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const validColumns = ['To Do', 'In Progress', 'Review', 'Done'];
+    if (!validColumns.includes(status)) return res.status(400).json({ success: false, error: 'Invalid status' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('kanbanTasks').updateOne({ _id: new ObjectId(id) }, { $set: { status } });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Task not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update kanban task status error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/kanban/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('kanbanTasks').updateOne({ _id: new ObjectId(id) }, { $set: { isDeleted: true, deletedAt: new Date() } });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Task not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete kanban task error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'HOTEL001',

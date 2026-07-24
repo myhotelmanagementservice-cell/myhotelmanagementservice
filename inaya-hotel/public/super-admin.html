@@ -1685,7 +1685,11 @@
             </section>
 
             <!-- SECTION: KANBAN BOARD -->
-            
+            <section id="kanbanBoard" class="section-content hidden fade-in">
+                <div id="kanbanContainer">
+                    <p class="text-sm text-gray-500 text-center py-8">Loading...</p>
+                </div>
+            </section>
 
             <!-- SECTION: CALENDAR VIEW -->
             <section id="calendarView" class="section-content hidden fade-in">
@@ -2209,6 +2213,22 @@
                 <div><label class="block text-sm font-medium mb-1">Icon (emoji)</label><input type="text" id="gatewayIcon" maxlength="4" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="💳"></div>
                 <div class="flex items-center gap-2"><input type="checkbox" id="gatewayIsActive" class="w-4 h-4"><label for="gatewayIsActive" class="text-sm font-medium">Active</label></div>
                 <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('gatewayModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kanban Task Modal -->
+    <div id="kanbanModal" class="modal-overlay" onclick="if(event.target===this)closeModal('kanbanModal')">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg" id="kanbanModalTitle">Add Task</h3><button onclick="closeModal('kanbanModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+            <form id="kanbanForm" class="space-y-4" onsubmit="saveKanbanTask(event)">
+                <input type="hidden" id="kanbanTaskId">
+                <div><label class="block text-sm font-medium mb-1">Title</label><input type="text" id="kanbanTitle" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Task title" required></div>
+                <div><label class="block text-sm font-medium mb-1">Description</label><textarea id="kanbanDescription" rows="3" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Task details"></textarea></div>
+                <div><label class="block text-sm font-medium mb-1">Priority</label><select id="kanbanPriority" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+                <div><label class="block text-sm font-medium mb-1">Status</label><select id="kanbanStatus" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="To Do">To Do</option><option value="In Progress">In Progress</option><option value="Review">Review</option><option value="Done">Done</option></select></div>
+                <div><label class="block text-sm font-medium mb-1">Assignee</label><input type="text" id="kanbanAssignee" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Assignee name"></div>
+                <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('kanbanModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
             </form>
         </div>
     </div>
