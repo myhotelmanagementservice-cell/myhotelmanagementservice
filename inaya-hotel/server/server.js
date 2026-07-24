@@ -6060,32 +6060,30 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
-// ======================== SERVER START (FINAL & CLEAN) ========================
+// ======================== SERVER START (RENDER SAFE) ========================
 
 const PORT = process.env.PORT || 3000;
 
-// Pehle Database connect karein
-connectDB().catch(err => {
-  console.error('❌ Failed to connect to MongoDB:', err);
-  process.exit(1);
-});
-
-// Sirf YE EK HI listen hona chahiye puri file mein!
+// 1. Pehle Server ko Port par listen karwayein (Render health check ke liye zaroori)
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🚀 Server running on port ${PORT}`);
+  console.log(`\n🚀 Server running and listening on port ${PORT}`);
   console.log(`🌐 URL: http://localhost:${PORT}`);
-  console.log(`👑 Admin: http://localhost:${PORT}/admin`);
-  console.log(`🔍 Health: http://localhost:${PORT}/api/health`);
-  console.log(`📡 Socket.io: Enabled (with heartbeat)`);
-  console.log(`🏨 Multi-tenant: Enabled`);
   console.log(`✅ Guest Hub Module Loaded Successfully!`);
-  console.log(`🔐 Auth: JWT + bcrypt + idle timeout`);
-  console.log(`💳 Subscriptions: lifetime/monthly/trial supported`);
-  console.log(`📊 Advanced: Rate limiting, compression, idempotency`);
-  console.log(`\n✅ v5.0 FIXES APPLIED & READY`);
+  console.log(`📡 Socket.io: Enabled`);
+
+  // 2. Background mein Database connect karein
+  connectDB()
+    .then(() => {
+      console.log('✅ MongoDB Connected Successfully in background');
+    })
+    .catch(err => {
+      console.error('❌ MongoDB connection failed:', err.message);
+      console.log('⚠️ Server is still running, but database features will not work.');
+      // process.exit(1) hata diya hai taaki server crash na ho aur Render 502 na de
+    });
 }).on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`\n❌ FATAL: Port ${PORT} is already in use. Please check for duplicate server.listen() calls in server.js`);
+    console.error(`\n❌ FATAL: Port ${PORT} is already in use.`);
     process.exit(1);
   }
   console.error('❌ Server startup error:', err);
@@ -6093,27 +6091,31 @@ server.listen(PORT, '0.0.0.0', () => {
 });
 
 // ======================== GRACEFUL SHUTDOWN ========================
-
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down gracefully...');
-  await disconnectDB(); // aapki db.js ka function use karein
+  try {
+    const { disconnectDB } = require('./config/db');
+    await disconnectDB();
+  } catch (e) {}
   await new Promise(resolve => server.close(resolve));
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down gracefully...');
-  await disconnectDB();
+  try {
+    const { disconnectDB } = require('./config/db');
+    await disconnectDB();
+  } catch (e) {}
   await new Promise(resolve => server.close(resolve));
   process.exit(0);
 });
 
 process.on('uncaughtException', (err) => {
   console.error('💥 Uncaught Exception:', err.message);
-  process.exit(1);
+  // process.exit(1); // Render ke liye sometimes better to just log
 });
 
 process.on('unhandledRejection', (reason) => {
   console.error('💥 Unhandled Rejection:', reason);
-  process.exit(1);
 });
