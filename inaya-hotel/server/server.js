@@ -3161,6 +3161,74 @@ app.put('/api/white-label', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ NOTIFICATIONS CENTER — admin notifications (MongoDB backed)
+app.get('/api/notifications', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const notifs = await db.collection('adminNotifications').find({}).sort({ createdAt: -1 }).limit(100).toArray();
+    const formatted = notifs.map(n => ({
+      _id: n._id.toString(),
+      title: n.title,
+      message: n.message,
+      type: n.type || 'info',
+      isRead: !!n.isRead,
+      createdAt: n.createdAt
+    }));
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get notifications error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch('/api/notifications/:id/read', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('adminNotifications').updateOne({ _id: new ObjectId(id) }, { $set: { isRead: true } });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Notification not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Mark notification read error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch('/api/notifications/read-all', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    await db.collection('adminNotifications').updateMany({ isRead: { $ne: true } }, { $set: { isRead: true } });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Mark all notifications read error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/notifications/clear', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    await db.collection('adminNotifications').deleteMany({});
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Clear notifications error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/notifications/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('adminNotifications').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Notification not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete notification error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'HOTEL001',
