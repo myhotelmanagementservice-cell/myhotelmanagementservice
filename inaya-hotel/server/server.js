@@ -6076,14 +6076,7 @@ app.use((err, req, res, next) => {
       console.error('❌ MongoDB connection failed:', err.message);
       console.log('⚠️ Server is still running, but database features will not work.');
       // process.exit(1) hata diya hai taaki server crash na ho aur Render 502 na de
-    });
-  if (err.code === 'EADDRINUSE') {
-    console.error(`\n❌ FATAL: Port ${PORT} is already in use.`);
-    process.exit(1);
-  }
-  console.error('❌ Server startup error:', err);
-  process.exit(1);
-
+   });
 // ======================== GRACEFUL SHUTDOWN ========================
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down gracefully...');
@@ -6091,7 +6084,7 @@ process.on('SIGINT', async () => {
     const { disconnectDB } = require('./config/db');
     await disconnectDB();
   } catch (e) {}
-  await new Promise(resolve => server.close(resolve));
+  await new Promise(resolve => app.close ? app.close(resolve) : resolve());
   process.exit(0);
 });
 
@@ -6101,7 +6094,7 @@ process.on('SIGTERM', async () => {
     const { disconnectDB } = require('./config/db');
     await disconnectDB();
   } catch (e) {}
-  await new Promise(resolve => server.close(resolve));
+  await new Promise(resolve => app.close ? app.close(resolve) : resolve());
   process.exit(0);
 });
 
