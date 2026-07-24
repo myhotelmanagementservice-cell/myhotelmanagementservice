@@ -1824,20 +1824,11 @@
 
             <!-- SECTION: WHITE LABEL -->
             <section id="whiteLabel" class="section-content hidden fade-in">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-palette text-2xl text-blue-600"></i></div><h3 class="font-bold text-lg">Brand Colors</h3><p class="text-sm text-gray-500 mt-2">Customize primary & accent</p><button onclick="openWhiteLabelModal()" class="mt-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition text-sm">Edit</button></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-image text-2xl text-purple-600"></i></div><h3 class="font-bold text-lg">Logo & Favicon</h3><p class="text-sm text-gray-500 mt-2">Upload custom branding</p><button onclick="openWhiteLabelModal()" class="mt-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition text-sm">Upload</button></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-font text-2xl text-green-600"></i></div><h3 class="font-bold text-lg">Typography</h3><p class="text-sm text-gray-500 mt-2">Custom fonts & styles</p><button onclick="openWhiteLabelModal()" class="mt-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition text-sm">Configure</button></div>
+                <div class="flex justify-between items-center mb-6">
+                    <div><h3 class="font-bold text-xl">White Label</h3><p class="text-sm text-gray-500">Branding, logo & custom domain configuration</p></div>
                 </div>
-                <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold mb-4">Active White-Label Configurations</h3>
-                    <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-4 text-left text-sm font-semibold">Hotel</th><th class="p-4 text-left text-sm font-semibold">Brand Color</th><th class="p-4 text-left text-sm font-semibold">Custom Domain</th><th class="p-4 text-left text-sm font-semibold">Logo</th><th class="p-4 text-left text-sm font-semibold">Status</th></tr></thead>
-                    <tbody>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">Grand Plaza Dubai</td><td class="p-4"><span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">#1E40AF</span></td><td class="p-4 text-sm">grandplaza.com</td><td class="p-4 text-sm text-green-600"><i class="fas fa-check-circle"></i></td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">Royal Orchid</td><td class="p-4"><span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">#7C3AED</span></td><td class="p-4 text-sm">royalorchid.in</td><td class="p-4 text-sm text-green-600"><i class="fas fa-check-circle"></i></td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Active</span></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">Seaside Resort</td><td class="p-4"><span class="px-2 py-1 bg-teal-100 text-teal-700 rounded text-xs">#0D9488</span></td><td class="p-4 text-sm">seasideresort.net</td><td class="p-4 text-sm text-yellow-600"><i class="fas fa-clock"></i></td><td class="p-4"><span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">Pending</span></td></tr>
-                    </tbody>
-                </table>
+                <div id="whiteLabelContainer">
+                    <p class="text-sm text-gray-500 text-center py-8">Loading...</p>
                 </div>
             </section>
 
@@ -2267,6 +2258,24 @@
                 <div><label class="block text-sm font-medium mb-1">Icon (emoji)</label><input type="text" id="gatewayIcon" maxlength="4" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="💳"></div>
                 <div class="flex items-center gap-2"><input type="checkbox" id="gatewayIsActive" class="w-4 h-4"><label for="gatewayIsActive" class="text-sm font-medium">Active</label></div>
                 <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('gatewayModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- White Label Modal -->
+    <div id="whiteLabelModal" class="modal-overlay" onclick="if(event.target===this)closeModal('whiteLabelModal')">
+        <div class="modal-box">
+            <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg" id="whiteLabelModalTitle">Edit White Label Config</h3><button onclick="closeModal('whiteLabelModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+            <form id="whiteLabelForm" class="space-y-4" onsubmit="saveWhiteLabel(event)">
+                <div><label class="block text-sm font-medium mb-1">Brand Name</label><input type="text" id="whiteLabelBrandName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="My Hotel Brand"></div>
+                <div><label class="block text-sm font-medium mb-1">Logo URL</label><input type="text" id="whiteLabelLogo" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="https://example.com/logo.png"></div>
+                <div><label class="block text-sm font-medium mb-1">Favicon URL</label><input type="text" id="whiteLabelFavicon" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="https://example.com/favicon.ico"></div>
+                <div><label class="block text-sm font-medium mb-1">Primary Color</label><input type="color" id="whiteLabelPrimaryColor" class="w-full p-1 rounded-lg h-10 bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"></div>
+                <div><label class="block text-sm font-medium mb-1">Secondary Color</label><input type="color" id="whiteLabelSecondaryColor" class="w-full p-1 rounded-lg h-10 bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"></div>
+                <div><label class="block text-sm font-medium mb-1">Custom Domain</label><input type="text" id="whiteLabelCustomDomain" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="hotels.example.com"></div>
+                <div><label class="block text-sm font-medium mb-1">Footer Text</label><input type="text" id="whiteLabelFooterText" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="© 2026 My Hotel Brand"></div>
+                <div class="flex items-center gap-2"><input type="checkbox" id="whiteLabelIsActive" class="w-4 h-4"><label for="whiteLabelIsActive" class="text-sm font-medium">Active</label></div>
+                <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('whiteLabelModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
             </form>
         </div>
     </div>
@@ -2814,7 +2823,7 @@
             if (sectionId === 'kanbanBoard') loadKanbanBoard();
             if (sectionId === 'calendarView') loadCalendarView();
             if (sectionId === 'dataImportExport') loadImportExport();
-            if (sectionId === 'whiteLabel') loadWhiteLabelFromServer();
+            if (sectionId === 'whiteLabel') loadWhiteLabel();
             if (sectionId === 'multiTenant') loadMultiTenantFromServer();
             if (sectionId === 'pwaSettings') loadPWASettings();
             if (sectionId === 'smsGateway') loadSMSGateway();
