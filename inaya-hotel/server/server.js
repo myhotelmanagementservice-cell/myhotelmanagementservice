@@ -1648,7 +1648,7 @@ app.post('/api/super/reset-hotel-password', superAdminMiddleware, async (req, re
     if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     const result = await db.collection('users').updateOne(
-      { hotelId, role: 'hotel_admin' },
+      { hotelId, role: { $in: ['hotel_admin', 'admin'] } },
       { $set: { password: hashedPassword, updatedAt: new Date() } }
     );
     if (result.matchedCount === 0) {
@@ -3118,6 +3118,45 @@ app.post('/api/payment-gateways/:id/test', superAdminMiddleware, async (req, res
     res.status(503).json({ success: false, error: `No real ${gateway.provider} SDK is connected yet. Add real API credentials and enable provider integration to test this gateway.` });
   } catch (err) {
     console.error('Test payment gateway error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ✅ WHITE LABEL — branding configuration (MongoDB backed)
+app.get('/api/white-label', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: {} });
+    const config = await db.collection('whiteLabelConfig').findOne({ _id: 'singleton' });
+    res.json({ success: true, data: config || {} });
+  } catch (err) {
+    console.error('Get white-label config error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/white-label', superAdminMiddleware, async (req, res) => {
+  try {
+    const { brandName, logo, favicon, primaryColor, secondaryColor, customDomain, footerText, isActive } = req.body;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const updateData = {
+      brandName: brandName || 'Default Brand',
+      logo: logo || '',
+      favicon: favicon || '',
+      primaryColor: primaryColor || '#6c63ff',
+      secondaryColor: secondaryColor || '#a78bfa',
+      customDomain: customDomain || '',
+      footerText: footerText || 'Default footer',
+      isActive: isActive !== false,
+      updatedAt: new Date()
+    };
+    await db.collection('whiteLabelConfig').updateOne(
+      { _id: 'singleton' },
+      { $set: updateData },
+      { upsert: true }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Save white-label config error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
