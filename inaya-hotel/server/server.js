@@ -71,6 +71,47 @@ app.use(cors({
 // Cashfree webhook signature verification requires raw body
 app.use('/api/subscription/webhook', express.raw({ type: 'application/json' }));
 
+// ================= GUEST HUB MODULE ROUTES =================
+
+// Static files serve karna (HTML, CSS, JS, Images)
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// 1. Guest Hub Routes
+const guestHubRoutes = require('./api/guest-hub');
+app.use('/api/guest-hub', guestHubRoutes);
+
+// 2. Payment Routes
+const paymentRoutes = require('./api/payment');
+app.use('/api/payment', paymentRoutes);
+
+// 3. AI Chat Routes
+const aiChatRoutes = require('./api/ai-chat');
+app.use('/api/ai-chat', aiChatRoutes);
+
+// 4. Support Tickets Routes
+const ticketRoutes = require('./api/tickets');
+app.use('/api/tickets', ticketRoutes);
+
+// ================= DEFAULT ROUTE =================
+app.get('/', (req, res) => {
+    res.send('🚀 Hotel Management Guest Hub API is running successfully!');
+});
+
+// ================= 404 ERROR HANDLER =================
+app.use((req, res) => {
+    res.status(404).json({ success: false, message: 'API Endpoint not found' });
+});
+
+// ================= SERVER START =================
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`✅ Server is running on http://localhost:${PORT}`);
+    console.log(`✅ Guest Hub Module Loaded Successfully!`);
+    console.log(`✅ Socket.io initialized for real-time sync`);
+});
+
 // Normal JSON parser for other routes
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -184,7 +225,6 @@ passport.deserializeUser((user, done) => done(null, user));
 app.use(passport.initialize());
 app.use(passport.session());
 
-const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb+srv://hotel:hotelinaya@cluster0.hauipx7.mongodb.net/inaya_hotel?retryWrites=true&w=majority&appName=Cluster0';
 const DB_NAME = process.env.DB_NAME || 'inaya_hotel';
 const JWT_SECRET = process.env.JWT_SECRET || 'jwt-secret-key-change-in-production';
@@ -3688,7 +3728,7 @@ app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async
     const { email, password, hotelId } = req.body;
     console.log(`🔐 [${Date.now()}] Admin login attempt: ${email} for hotel: ${hotelId}`);
 
-
+ 
     if (!dbConnected) {
       return res.status(503).json({ success: false, error: 'Database connecting...' });
     }
@@ -3775,7 +3815,7 @@ res.json({
   hotelId: userHotelId,  // STRICT: Return user's actual hotelId
   idleTimeoutMs: IDLE_TIMEOUT_MS
 });
-
+    
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -6020,64 +6060,55 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
-// ======================== SERVER START ========================
+// ======================== SERVER START (RENDER SAFE) ========================
 
-server.listen(PORT, '0.0.0.0', async () => {
-  console.log(`\n🚀 Server running on port ${PORT}`);
+  console.log(`\n🚀 Server running and listening on port ${PORT}`);
   console.log(`🌐 URL: http://localhost:${PORT}`);
-  console.log(`👑 Admin: http://localhost:${PORT}/admin`);
-  console.log(`🔍 Health: http://localhost:${PORT}/api/health`);
-  console.log(`📡 Socket.io: Enabled (with heartbeat)`);
-  console.log(`🏨 Multi-tenant: Enabled`);
-  console.log(`🔐 Auth: JWT + bcrypt + idle timeout (${Math.floor(IDLE_TIMEOUT_MS/60000)} min)`);
-  console.log(`🌍 Multi-country: Enabled (currency, language, timezone)`);
-  console.log(`💳 Subscriptions: lifetime/monthly/trial supported`);
-  console.log(`📊 Advanced: Rate limiting, compression, idempotency, page state`);
-  console.log(`🔄 Auto token refresh: Enabled (threshold: ${Math.floor(TOKEN_REFRESH_THRESHOLD_MS/60000)} min)`);
-  console.log(`📍 Page stability: /api/user/page-state + /api/guest/page-state`);
-  console.log(`🔔 Idle session logout: /api/auth/config, /api/auth/ping`);
-  console.log(`📜 Policies API: /api/policies`);
-  console.log(`📢 Announcements API: /api/announcements`);
-  console.log(`⚙️ Config API: /api/config`);
-  console.log(`🏢 Departments API: /api/departments`);
-  console.log(`\n✅ v5.0 FIXES:`);
-  console.log(`   FIX 1: Login speed - subscription cache + fast bcrypt path`);
-  console.log(`   FIX 2: Data persistence - ObjectId→String, upsert on all configs`);
-  console.log(`   FIX 3: Add/Update speed - findOneAndUpdate (single DB round trip)`);
-  console.log(`   FIX 4: Real-time sync - hotel/admin/guest Socket.io rooms`);
-  console.log(`   FIX 5: Page stability - MongoDB-backed page state for admin+guest`);
-  console.log(`   FIX 6: Multi-device sync - room_{hotelId}_{roomNo} channels`);
-  console.log(`   FIX 7: MongoDB pool: 100 max / 20 min connections`);
-  console.log(`   FIX 8: Guest↔Admin cross-sync (new_guest_request, admin_reply)`);
-  console.log(`   FIX 9: Heartbeat ping to keep sessions alive across devices`);
-  console.log(`   FIX 10: Wire compression (zstd/zlib) for faster DB transfers`);
-  console.log(`\n💡 NEW .env variables:`);
-  console.log(`   IDLE_TIMEOUT_MS=1800000        (default: 30 min)`);
-  console.log(`   TOKEN_EXPIRY=7d                 (default: 7 days)`);
-  console.log(`   TOKEN_REFRESH_THRESHOLD_MS=3600000 (default: 1hr)`);
-  console.log(`   SESSION_MAX_AGE=604800000       (default: 7 days)\n`);
-  await connectDB();
+  console.log(`✅ Guest Hub Module Loaded Successfully!`);
+  console.log(`📡 Socket.io: Enabled`);
+
+  // 2. Background mein Database connect karein
+  connectDB()
+    .then(() => {
+      console.log('✅ MongoDB Connected Successfully in background');
+    })
+    .catch(err => {
+      console.error('❌ MongoDB connection failed:', err.message);
+      console.log('⚠️ Server is still running, but database features will not work.');
+      // process.exit(1) hata diya hai taaki server crash na ho aur Render 502 na de
+    });
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ FATAL: Port ${PORT} is already in use.`);
+    process.exit(1);
+  }
+  console.error('❌ Server startup error:', err);
+  process.exit(1);
 });
 
 // ======================== GRACEFUL SHUTDOWN ========================
-
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down gracefully...');
-  if (client) await client.close();
+  try {
+    const { disconnectDB } = require('./config/db');
+    await disconnectDB();
+  } catch (e) {}
   await new Promise(resolve => server.close(resolve));
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down gracefully...');
-  if (client) await client.close();
+  try {
+    const { disconnectDB } = require('./config/db');
+    await disconnectDB();
+  } catch (e) {}
   await new Promise(resolve => server.close(resolve));
   process.exit(0);
 });
 
 process.on('uncaughtException', (err) => {
   console.error('💥 Uncaught Exception:', err.message);
-  if (err.message.includes('EADDRINUSE')) process.exit(1);
+  // process.exit(1); // Render ke liye sometimes better to just log
 });
 
 process.on('unhandledRejection', (reason) => {
