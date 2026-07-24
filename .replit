@@ -13,6 +13,10 @@ run = ["npm", "start"]
 localPort = 3000
 externalPort = 3000
 
+[[ports]]
+localPort = 3001
+externalPort = 80
+
 [agent]
 expertMode = true
 
@@ -43,4 +47,4 @@ outputType = "console"
 [userenv]
 
 [userenv.shared]
-GOOGLE_CLIENT_ID = "1083658266994-ctut3jj1egqkudgkai2ltsved1kio02k.apps.googleusercontent.com"
+
