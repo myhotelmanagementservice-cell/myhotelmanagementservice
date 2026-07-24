@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Hub - 24/7 Services & Payments</title>
+    <link rel="stylesheet" href="css/guest-hub.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="guest-hub-container">
+        <!-- Header -->
+        <div class="hub-header">
+            <button class="back-btn" onclick="goBack()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h1><i class="fas fa-concierge-bell"></i> Guest Hub</h1>
+            <div class="header-actions">
+                <button class="lang-toggle" onclick="toggleLanguage()">
+                    <span id="currentLang">EN</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Tabs -->
+        <div class="hub-tabs">
+            <button class="tab-btn active" data-tab="payments" onclick="switchTab('payments')">
+                <i class="fas fa-credit-card"></i>
+                <span>Payments</span>
+            </button>
+            <button class="tab-btn" data-tab="ai-assistant" onclick="switchTab('ai-assistant')">
+                <i class="fas fa-robot"></i>
+                <span>AI Assistant</span>
+            </button>
+            <button class="tab-btn" data-tab="support" onclick="switchTab('support')">
+                <i class="fas fa-headset"></i>
+                <span>24/7 Support</span>
+            </button>
+            <button class="tab-btn" data-tab="services" onclick="switchTab('services')">
+                <i class="fas fa-concierge-bell"></i>
+                <span>Services</span>
+            </button>
+        </div>
+
+        <!-- Payments Tab -->
+        <div class="tab-content active" id="payments-tab">
+            <div class="bill-summary">
+                <h2><i class="fas fa-file-invoice-dollar"></i> Current Bill</h2>
+                <div class="bill-amount">
+                    <span class="currency">₹</span>
+                    <span class="amount" id="totalBill">0.00</span>
+                </div>
+                <div class="bill-breakdown" id="billBreakdown">
+                    <!-- Dynamic bill items -->
+                </div>
+                <button class="btn-primary" onclick="showPaymentMethods()">
+                    <i class="fas fa-paypal"></i> Pay Now
+                </button>
+            </div>
+
+            <!-- Payment Methods Modal -->
+            <div class="modal" id="paymentModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Select Payment Method</h3>
+                        <button class="close-btn" onclick="closeModal('paymentModal')">&times;</button>
+                    </div>
+                    <div class="payment-methods">
+                        <!-- UPI Section -->
+                        <div class="payment-section">
+                            <h4><i class="fas fa-mobile-alt"></i> UPI (India)</h4>
+                            <div class="upi-options">
+                                <button class="payment-option" onclick="payWithUPI('qr')">
+                                    <i class="fas fa-qrcode"></i>
+                                    <span>Scan QR Code</span>
+                                </button>
+                                <button class="payment-option" onclick="payWithUPI('id')">
+                                    <i class="fas fa-at"></i>
+                                    <span>UPI ID</span>
+                                </button>
+                                <button class="payment-option" onclick="payWithUPI('apps')">
+                                    <i class="fas fa-app-store"></i>
+                                    <span>UPI Apps</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- International Payments -->
+                        <div class="payment-section">
+                            <h4><i class="fas fa-globe"></i> International</h4>
+                            <div class="intl-options">
+                                <button class="payment-option" onclick="payWithCard()">
+                                    <i class="fas fa-credit-card"></i>
+                                    <span>Credit/Debit Card</span>
+                                </button>
+                                <button class="payment-option" onclick="payWithWallet('paypal')">
+                                    <i class="fab fa-paypal"></i>
+                                    <span>PayPal</span>
+                                </button>
+                                <button class="payment-option" onclick="payWithWallet('gpay')">
+                                    <i class="fab fa-google-pay"></i>
+                                    <span>Google Pay</span>
+                                </button>
+                                <button class="payment-option" onclick="payWithWallet('applepay')">
+                                    <i class="fab fa-apple-pay"></i>
+                                    <span>Apple Pay</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- UPI Payment Modal -->
+            <div class="modal" id="upiModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>UPI Payment</h3>
+                        <button class="close-btn" onclick="closeModal('upiModal')">&times;</button>
+                    </div>
+                    <div class="upi-payment-content">
+                        <div id="qrCodeSection">
+                            <img id="upiQRCode" src="" alt="UPI QR Code">
+                            <p class="upi-id" id="hotelUPI">hotel@upi</p>
+                            <button class="btn-primary" onclick="downloadQR()">
+                                <i class="fas fa-download"></i> Download QR
+                            </button>
+                        </div>
+                        <div id="upiIdSection" style="display:none;">
+                            <label>Enter UPI ID:</label>
+                            <input type="text" id="guestUPI" placeholder="yourname@upi">
+                            <button class="btn-primary" onclick="sendPaymentRequest()">
+                                Send Payment Request
+                            </button>
+                        </div>
+                        <div id="upiAppsSection" style="display:none;">
+                            <button class="app-btn" onclick="openUPIApp('gpay')">Google Pay</button>
+                            <button class="app-btn" onclick="openUPIApp('phonepe')">PhonePe</button>
+                            <button class="app-btn" onclick="openUPIApp('paytm')">Paytm</button>
+                            <button class="app-btn" onclick="openUPIApp('bhim')">BHIM</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment History -->
+            <div class="payment-history">
+                <h3><i class="fas fa-history"></i> Payment History</h3>
+                <div class="history-list" id="paymentHistory">
+                    <!-- Dynamic history items -->
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Assistant Tab -->
+        <div class="tab-content" id="ai-assistant-tab">
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot-message">
+                        <div class="message-content">
+                            Hello! I'm your AI assistant. How can I help you today?
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <button class="voice-btn" onclick="startVoiceInput()">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <input type="text" id="chatInput" placeholder="Type your question..." 
+                           onkeypress="handleChatKeypress(event)">
+                    <button class="send-btn" onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="quick-actions">
+                    <button class="quick-action" onclick="quickQuery('bill')">
+                        <i class="fas fa-file-invoice"></i> My Bill
+                    </button>
+                    <button class="quick-action" onclick="quickQuery('checkout')">
+                        <i class="fas fa-sign-out-alt"></i> Checkout
+                    </button>
+                    <button class="quick-action" onclick="quickQuery('services')">
+                        <i class="fas fa-concierge-bell"></i> Services
+                    </button>
+                    <button class="quick-action" onclick="quickQuery('wifi')">
+                        <i class="fas fa-wifi"></i> WiFi Password
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 24/7 Support Tab -->
+        <div class="tab-content" id="support-tab">
+            <div class="support-options">
+                <button class="support-card" onclick="startLiveChat()">
+                    <i class="fas fa-comments"></i>
+                    <h3>Live Chat</h3>
+                    <p>Chat with our support team</p>
+                    <span class="status online">Online Now</span>
+                </button>
+
+                <button class="support-card" onclick="makeSupportCall()">
+                    <i class="fas fa-phone"></i>
+                    <h3>Call Now</h3>
+                    <p>24/7 helpline</p>
+                    <span class="phone-number">+91-XXXXXXXXXX</span>
+                </button>
+
+                <button class="support-card" onclick="raiseTicket()">
+                    <i class="fas fa-ticket-alt"></i>
+                    <h3>Raise Ticket</h3>
+                    <p>For non-urgent issues</p>
+                </button>
+
+                <button class="support-card" onclick="openWhatsApp()">
+                    <i class="fab fa-whatsapp"></i>
+                    <h3>WhatsApp</h3>
+                    <p>Message us on WhatsApp</p>
+                </button>
+            </div>
+
+            <!-- Active Tickets -->
+            <div class="active-tickets">
+                <h3><i class="fas fa-clipboard-list"></i> My Tickets</h3>
+                <div class="tickets-list" id="ticketsList">
+                    <!-- Dynamic tickets -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Services Tab -->
+        <div class="tab-content" id="services-tab">
+            <div class="services-grid">
+                <button class="service-card" onclick="requestService('room-service')">
+                    <i class="fas fa-utensils"></i>
+                    <span>Room Service</span>
+                </button>
+                <button class="service-card" onclick="requestService('housekeeping')">
+                    <i class="fas fa-broom"></i>
+                    <span>Housekeeping</span>
+                </button>
+                <button class="service-card" onclick="requestService('maintenance')">
+                    <i class="fas fa-tools"></i>
+                    <span>Maintenance</span>
+                </button>
+                <button class="service-card" onclick="requestService('concierge')">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Concierge</span>
+                </button>
+                <button class="service-card" onclick="requestService('laundry')">
+                    <i class="fas fa-tshirt"></i>
+                    <span>Laundry</span>
+                </button>
+                <button class="service-card" onclick="requestService('spa')">
+                    <i class="fas fa-spa"></i>
+                    <span>Spa Booking</span>
+                </button>
+            </div>
+
+            <!-- Service Request Form -->
+            <div class="modal" id="serviceModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Request Service</h3>
+                        <button class="close-btn" onclick="closeModal('serviceModal')">&times;</button>
+                    </div>
+                    <form id="serviceForm" onsubmit="submitServiceRequest(event)">
+                        <input type="hidden" id="serviceType">
+                        <div class="form-group">
+                            <label>Service Type</label>
+                            <input type="text" id="serviceName" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="serviceDescription" rows="4" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Priority</label>
+                            <select id="servicePriority">
+                                <option value="normal">Normal</option>
+                                <option value="urgent">Urgent</option>
+                                <option value="emergency">Emergency</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-paper-plane"></i> Submit Request
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="js/guest-hub.js"></script>
+</body>
+</html>

@@ -71,6 +71,47 @@ app.use(cors({
 // Cashfree webhook signature verification requires raw body
 app.use('/api/subscription/webhook', express.raw({ type: 'application/json' }));
 
+// ================= GUEST HUB MODULE ROUTES =================
+
+// Static files serve karna (HTML, CSS, JS, Images)
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// 1. Guest Hub Routes
+const guestHubRoutes = require('./api/guest-hub');
+app.use('/api/guest-hub', guestHubRoutes);
+
+// 2. Payment Routes
+const paymentRoutes = require('./api/payment');
+app.use('/api/payment', paymentRoutes);
+
+// 3. AI Chat Routes
+const aiChatRoutes = require('./api/ai-chat');
+app.use('/api/ai-chat', aiChatRoutes);
+
+// 4. Support Tickets Routes
+const ticketRoutes = require('./api/tickets');
+app.use('/api/tickets', ticketRoutes);
+
+// ================= DEFAULT ROUTE =================
+app.get('/', (req, res) => {
+    res.send('🚀 Hotel Management Guest Hub API is running successfully!');
+});
+
+// ================= 404 ERROR HANDLER =================
+app.use((req, res) => {
+    res.status(404).json({ success: false, message: 'API Endpoint not found' });
+});
+
+// ================= SERVER START =================
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`✅ Server is running on http://localhost:${PORT}`);
+    console.log(`✅ Guest Hub Module Loaded Successfully!`);
+    console.log(`✅ Socket.io initialized for real-time sync`);
+});
+
 // Normal JSON parser for other routes
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -184,7 +225,6 @@ passport.deserializeUser((user, done) => done(null, user));
 app.use(passport.initialize());
 app.use(passport.session());
 
-const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb+srv://hotel:hotelinaya@cluster0.hauipx7.mongodb.net/inaya_hotel?retryWrites=true&w=majority&appName=Cluster0';
 const DB_NAME = process.env.DB_NAME || 'inaya_hotel';
 const JWT_SECRET = process.env.JWT_SECRET || 'jwt-secret-key-change-in-production';
@@ -3404,6 +3444,143 @@ app.delete('/api/calendar/events/:id', superAdminMiddleware, async (req, res) =>
     res.json({ success: true });
   } catch (err) {
     console.error('Delete calendar event error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ✅ IMPORT / EXPORT — bulk data import (CSV/Excel/JSON) and export (MongoDB backed)
+const multer = require('multer');
+const XLSX = require('xlsx');
+const importExportUpload = multer({ storage: multer.memoryStorage() });
+
+const IMPORT_EXPORT_COLLECTION_MAP = {
+  hotels: 'tenants',
+  rooms: 'rooms',
+  guests: 'guests',
+  bookings: 'bookings',
+  staff: 'staff'
+};
+
+function stripSensitiveFields(obj) {
+  const clean = { ...obj };
+  Object.keys(clean).forEach(key => {
+    if (/pass|secret|token/i.test(key)) delete clean[key];
+  });
+  return clean;
+}
+
+app.get('/api/import-export/history', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const history = await db.collection('importExportHistory').find({}).sort({ createdAt: -1 }).limit(50).toArray();
+    res.json({ success: true, data: history.map(h => ({ type: h.type, table: h.table, status: h.status, records: h.records, createdAt: h.createdAt })) });
+  } catch (err) {
+    console.error('Get import/export history error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/import-export/import', superAdminMiddleware, importExportUpload.array('files'), async (req, res) => {
+  try {
+    const { type } = req.body;
+    const collectionName = IMPORT_EXPORT_COLLECTION_MAP[type];
+    if (!collectionName) return res.status(400).json({ success: false, error: 'Invalid import type' });
+    if (!req.files || req.files.length === 0) return res.status(400).json({ success: false, error: 'No file uploaded' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+
+    let allRows = [];
+    for (const file of req.files) {
+      const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+      allRows = allRows.concat(rows);
+    }
+
+    let validRows = [];
+    let skipped = 0;
+
+    if (type === 'hotels') {
+      validRows = allRows.filter(r => r.hotelId && r.hotelName);
+      skipped = allRows.length - validRows.length;
+      validRows = validRows.map(r => ({ ...r, active: true, createdAt: new Date() }));
+    } else {
+      validRows = allRows.filter(r => r.hotelId);
+      skipped = allRows.length - validRows.length;
+      validRows = validRows.map(r => ({ ...r, createdAt: new Date() }));
+    }
+
+    let insertedCount = 0;
+    if (validRows.length > 0) {
+      const result = await db.collection(collectionName).insertMany(validRows, { ordered: false });
+      insertedCount = result.insertedCount;
+    }
+
+    await db.collection('importExportHistory').insertOne({
+      type: 'import',
+      table: type,
+      status: insertedCount > 0 ? 'success' : 'failed',
+      records: insertedCount,
+      skipped,
+      createdAt: new Date()
+    });
+
+    if (insertedCount === 0) {
+      return res.status(400).json({
+        success: false,
+        error: skipped > 0
+          ? `No rows imported. ${skipped} row(s) were missing a required hotelId column.`
+          : 'No valid rows found in the uploaded file.'
+      });
+    }
+
+    res.json({ success: true, records: insertedCount, skipped });
+  } catch (err) {
+    console.error('Import data error:', err);
+    try {
+      await db.collection('importExportHistory').insertOne({ type: 'import', table: req.body?.type || 'unknown', status: 'failed', records: 0, createdAt: new Date() });
+    } catch (_) {}
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/import-export/export', superAdminMiddleware, async (req, res) => {
+  try {
+    const { table, format } = req.query;
+    const collectionName = IMPORT_EXPORT_COLLECTION_MAP[table];
+    if (!collectionName) return res.status(400).json({ success: false, error: 'Invalid export table' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+
+    const docs = await db.collection(collectionName).find({}).toArray();
+    const rows = docs.map(d => stripSensitiveFields({ ...d, _id: d._id.toString() }));
+
+    let buffer, contentType, ext;
+    if (format === 'json') {
+      buffer = Buffer.from(JSON.stringify(rows, null, 2));
+      contentType = 'application/json';
+      ext = 'json';
+    } else if (format === 'excel') {
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, table);
+      buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      ext = 'xlsx';
+    } else {
+      const ws = XLSX.utils.json_to_sheet(rows);
+      buffer = Buffer.from(XLSX.utils.sheet_to_csv(ws));
+      contentType = 'text/csv';
+      ext = 'csv';
+    }
+
+    await db.collection('importExportHistory').insertOne({
+      type: 'export', table, status: 'success', records: rows.length, createdAt: new Date()
+    });
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${table}_export.${ext}"`);
+    res.send(buffer);
+  } catch (err) {
+    console.error('Export data error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

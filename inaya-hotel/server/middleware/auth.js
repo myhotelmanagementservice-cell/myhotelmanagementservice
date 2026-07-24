@@ -20,7 +20,11 @@ const PUBLIC_PATHS = [
   '/api/guest/login',
   '/api/super/tenants/register',
   '/socket.io',
-  '/health'
+  '/health',
+  '/api/guest-hub',       // Guest Hub Public Routes (Agar needed ho)
+  '/api/payment',         // Payment Webhooks (Agar needed ho)
+  '/api/ai-chat',
+  '/api/tickets'
 ];
 
 // ============================================================

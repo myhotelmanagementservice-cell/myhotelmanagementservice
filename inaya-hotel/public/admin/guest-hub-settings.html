@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Hub Settings - Admin Panel</title>
+    <link rel="stylesheet" href="../css/admin-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-cog"></i> Admin Panel</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="guest-hub-settings.html" class="active"><i class="fas fa-concierge-bell"></i> Guest Hub</a>
+                <a href="payment-settings.html"><i class="fas fa-credit-card"></i> Payments</a>
+                <a href="ai-config.html"><i class="fas fa-robot"></i> AI Settings</a>
+                <a href="tickets.html"><i class="fas fa-ticket-alt"></i> Support Tickets</a>
+                <a href="services.html"><i class="fas fa-concierge-bell"></i> Services</a>
+                <a href="analytics.html"><i class="fas fa-chart-line"></i> Analytics</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <div class="admin-header">
+                <h1>Guest Hub Settings</h1>
+                <div class="header-actions">
+                    <button class="btn-save" onclick="saveAllSettings()">
+                        <i class="fas fa-save"></i> Save All Changes
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="admin-tabs">
+                <button class="tab-btn active" data-tab="payment" onclick="switchAdminTab('payment')">
+                    <i class="fas fa-credit-card"></i> Payment Settings
+                </button>
+                <button class="tab-btn" data-tab="ai" onclick="switchAdminTab('ai')">
+                    <i class="fas fa-robot"></i> AI Configuration
+                </button>
+                <button class="tab-btn" data-tab="support" onclick="switchAdminTab('support')">
+                    <i class="fas fa-headset"></i> Support Settings
+                </button>
+                <button class="tab-btn" data-tab="services" onclick="switchAdminTab('services')">
+                    <i class="fas fa-concierge-bell"></i> Services
+                </button>
+                <button class="tab-btn" data-tab="analytics" onclick="switchAdminTab('analytics')">
+                    <i class="fas fa-chart-bar"></i> Analytics
+                </button>
+            </div>
+
+            <!-- Payment Settings Tab -->
+            <div class="tab-content active" id="payment-tab">
+                <div class="settings-section">
+                    <h3><i class="fas fa-mobile-alt"></i> UPI Payment (India)</h3>
+                    <div class="form-group">
+                        <label>UPI ID / VPA</label>
+                        <input type="text" id="upiId" placeholder="hotel@upi">
+                        <small>Example: yourhotel@ybl or yourhotel@oksbi</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Upload QR Code</label>
+                        <input type="file" id="qrCodeUpload" accept="image/*" onchange="handleQRUpload(event)">
+                        <div id="qrCodePreview" class="qr-preview"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Enabled UPI Apps</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="gpay" checked> Google Pay</label>
+                            <label><input type="checkbox" value="phonepe" checked> PhonePe</label>
+                            <label><input type="checkbox" value="paytm" checked> Paytm</label>
+                            <label><input type="checkbox" value="bhim" checked> BHIM</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-globe"></i> International Payments</h3>
+                    <div class="form-group">
+                        <label>Payment Gateway</label>
+                        <select id="paymentGateway">
+                            <option value="razorpay">Razorpay</option>
+                            <option value="stripe">Stripe</option>
+                            <option value="paypal">PayPal</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" id="paymentApiKey" placeholder="Enter API Key">
+                    </div>
+                    <div class="form-group">
+                        <label>Secret Key</label>
+                        <input type="password" id="paymentSecretKey" placeholder="Enter Secret Key">
+                    </div>
+                    <div class="form-group">
+                        <label>Enabled Payment Methods</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="card" checked> Credit/Debit Cards</label>
+                            <label><input type="checkbox" value="paypal" checked> PayPal</label>
+                            <label><input type="checkbox" value="gpay"> Google Pay</label>
+                            <label><input type="checkbox" value="applepay"> Apple Pay</label>
+                            <label><input type="checkbox" value="wallet"> Digital Wallets</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Supported Currencies</label>
+                        <input type="text" id="currencies" placeholder="INR, USD, EUR, GBP" value="INR, USD, EUR, GBP">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-file-invoice"></i> Billing Settings</h3>
+                    <div class="form-group">
+                        <label>Auto-generate Bill</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="autoGenerateBill" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>Bill Generation Time</label>
+                        <select id="billGenerationTime">
+                            <option value="checkout">At Checkout</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tax Percentage (%)</label>
+                        <input type="number" id="taxPercentage" placeholder="18" value="18">
+                    </div>
+                    <div class="form-group">
+                        <label>Service Charge (%)</label>
+                        <input type="number" id="serviceCharge" placeholder="10" value="10">
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Configuration Tab -->
+            <div class="tab-content" id="ai-tab">
+                <div class="settings-section">
+                    <h3><i class="fas fa-toggle-on"></i> AI Assistant Settings</h3>
+                    <div class="form-group">
+                        <label>Enable AI Chatbot</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="aiEnabled" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>AI Provider</label>
+                        <select id="aiProvider">
+                            <option value="openai">OpenAI (GPT)</option>
+                            <option value="google">Google Dialogflow</option>
+                            <option value="custom">Custom Rules Engine</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>API Key (if using OpenAI/Dialogflow)</label>
+                        <input type="password" id="aiApiKey" placeholder="Enter API Key">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-language"></i> Language Support</h3>
+                    <div class="form-group">
+                        <label>Supported Languages</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="en" checked> English</label>
+                            <label><input type="checkbox" value="ar" checked> Arabic</label>
+                            <label><input type="checkbox" value="hi"> Hindi</label>
+                            <label><input type="checkbox" value="fr"> French</label>
+                            <label><input type="checkbox" value="es"> Spanish</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Default Language</label>
+                        <select id="defaultLanguage">
+                            <option value="en">English</option>
+                            <option value="ar">Arabic</option>
+                            <option value="hi">Hindi</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-brain"></i> Custom Responses</h3>
+                    <p>Add keyword-based responses for common queries</p>
+                    <div id="customResponsesContainer">
+                        <!-- Dynamic custom responses -->
+                    </div>
+                    <button class="btn-secondary" onclick="addCustomResponse()">
+                        <i class="fas fa-plus"></i> Add Custom Response
+                    </button>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-question-circle"></i> FAQ Management</h3>
+                    <div id="faqContainer">
+                        <!-- Dynamic FAQs -->
+                    </div>
+                    <button class="btn-secondary" onclick="addFAQ()">
+                        <i class="fas fa-plus"></i> Add FAQ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Support Settings Tab -->
+            <div class="tab-content" id="support-tab">
+                <div class="settings-section">
+                    <h3><i class="fas fa-phone"></i> Contact Information</h3>
+                    <div class="form-group">
+                        <label>Support Phone Number</label>
+                        <input type="tel" id="supportPhone" placeholder="+91-XXXXXXXXXX">
+                    </div>
+                    <div class="form-group">
+                        <label>Support Email</label>
+                        <input type="email" id="supportEmail" placeholder="support@hotel.com">
+                    </div>
+                    <div class="form-group">
+                        <label>WhatsApp Number</label>
+                        <input type="tel" id="whatsappNumber" placeholder="+91-XXXXXXXXXX">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-clock"></i> Support Hours</h3>
+                    <div class="form-group">
+                        <label>Support Type</label>
+                        <select id="supportType">
+                            <option value="24/7">24/7 Available</option>
+                            <option value="scheduled">Scheduled Hours</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="scheduledHours" style="display:none;">
+                        <label>Opening Time</label>
+                        <input type="time" id="supportOpenTime" value="09:00">
+                        <label>Closing Time</label>
+                        <input type="time" id="supportCloseTime" value="18:00">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-bell"></i> Notification Settings</h3>
+                    <div class="form-group">
+                        <label>Notify Staff On New Ticket</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="notifyOnTicket" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>Notification Method</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="email" checked> Email</label>
+                            <label><input type="checkbox" value="sms"> SMS</label>
+                            <label><input type="checkbox" value="push" checked> Push Notification</label>
+                            <label><input type="checkbox" value="whatsapp"> WhatsApp</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-users"></i> Staff Assignment</h3>
+                    <div class="form-group">
+                        <label>Auto-assign Tickets</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="autoAssignTickets">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>Default Assigned Staff</label>
+                        <select id="defaultStaff">
+                            <option value="">Select Staff Member</option>
+                            <!-- Dynamic staff list -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Services Tab -->
+            <div class="tab-content" id="services-tab">
+                <div class="settings-section">
+                    <h3><i class="fas fa-list"></i> Available Services</h3>
+                    <div id="servicesContainer">
+                        <div class="service-item">
+                            <label><input type="checkbox" value="room-service" checked> Room Service</label>
+                            <input type="text" placeholder="Description">
+                        </div>
+                        <div class="service-item">
+                            <label><input type="checkbox" value="housekeeping" checked> Housekeeping</label>
+                            <input type="text" placeholder="Description">
+                        </div>
+                        <div class="service-item">
+                            <label><input type="checkbox" value="maintenance" checked> Maintenance</label>
+                            <input type="text" placeholder="Description">
+                        </div>
+                        <div class="service-item">
+                            <label><input type="checkbox" value="concierge" checked> Concierge</label>
+                            <input type="text" placeholder="Description">
+                        </div>
+                        <div class="service-item">
+                            <label><input type="checkbox" value="laundry" checked> Laundry</label>
+                            <input type="text" placeholder="Description">
+                        </div>
+                        <div class="service-item">
+                            <label><input type="checkbox" value="spa" checked> Spa Booking</label>
+                            <input type="text" placeholder="Description">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-cog"></i> Service Settings</h3>
+                    <div class="form-group">
+                        <label>Auto-accept Service Requests</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="autoAcceptServices">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>Default Priority</label>
+                        <select id="defaultPriority">
+                            <option value="normal">Normal</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div class="tab-content" id="analytics-tab">
+                <div class="analytics-overview">
+                    <div class="stat-card">
+                        <h4>Total Payments</h4>
+                        <div class="stat-value" id="totalPayments">₹0</div>
+                        <div class="stat-change positive">+12%</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Active Tickets</h4>
+                        <div class="stat-value" id="activeTickets">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>AI Conversations</h4>
+                        <div class="stat-value" id="aiConversations">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Service Requests</h4>
+                        <div class="stat-value" id="serviceRequests">0</div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-chart-line"></i> Payment Analytics</h3>
+                    <canvas id="paymentChart"></canvas>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-ticket-alt"></i> Ticket Analytics</h3>
+                    <canvas id="ticketChart"></canvas>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-download"></i> Export Data</h3>
+                    <button class="btn-secondary" onclick="exportData('payments')">
+                        <i class="fas fa-download"></i> Export Payments
+                    </button>
+                    <button class="btn-secondary" onclick="exportData('tickets')">
+                        <i class="fas fa-download"></i> Export Tickets
+                    </button>
+                    <button class="btn-secondary" onclick="exportData('all')">
+                        <i class="fas fa-download"></i> Export All Data
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/admin/guest-hub-admin.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>
