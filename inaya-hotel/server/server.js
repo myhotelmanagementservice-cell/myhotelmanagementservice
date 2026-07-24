@@ -3335,6 +3335,79 @@ app.delete('/api/kanban/:id', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ CALENDAR — internal event tracker (MongoDB backed)
+app.get('/api/calendar/events', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const events = await db.collection('calendarEvents').find({ isDeleted: { $ne: true } }).sort({ date: 1 }).toArray();
+    const formatted = events.map(e => ({
+      _id: e._id.toString(),
+      title: e.title,
+      date: e.date,
+      type: e.type,
+      description: e.description
+    }));
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get calendar events error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/calendar/events', superAdminMiddleware, async (req, res) => {
+  try {
+    const { title, date, type, description } = req.body;
+    if (!title || !String(title).trim()) return res.status(400).json({ success: false, error: 'Title is required' });
+    if (!date) return res.status(400).json({ success: false, error: 'Date is required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      title: String(title).trim(),
+      date,
+      type: ['booking', 'task', 'other'].includes(type) ? type : 'other',
+      description: description || '',
+      isDeleted: false,
+      createdAt: new Date()
+    };
+    const result = await db.collection('calendarEvents').insertOne(doc);
+    res.status(201).json({ success: true, data: { _id: result.insertedId.toString(), ...doc } });
+  } catch (err) {
+    console.error('Create calendar event error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/calendar/events/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const { title, date, type, description } = req.body;
+    const updateData = { updatedAt: new Date() };
+    if (title !== undefined) updateData.title = String(title).trim();
+    if (date !== undefined) updateData.date = date;
+    if (type !== undefined) updateData.type = ['booking', 'task', 'other'].includes(type) ? type : 'other';
+    if (description !== undefined) updateData.description = description;
+    const result = await db.collection('calendarEvents').updateOne({ _id: new ObjectId(id) }, { $set: updateData });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Event not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update calendar event error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/calendar/events/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('calendarEvents').updateOne({ _id: new ObjectId(id) }, { $set: { isDeleted: true, deletedAt: new Date() } });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Event not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete calendar event error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ GLOBAL CONFIG — default hotel, plan prices, currencies (MongoDB backed)
 const DEFAULT_GLOBAL_CONFIG = {
   defaultHotelId: 'HOTEL001',
