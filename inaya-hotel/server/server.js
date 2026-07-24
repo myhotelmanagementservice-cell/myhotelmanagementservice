@@ -6060,66 +6060,60 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
-// ======================== SERVER START ========================
+// ======================== SERVER START (FINAL & CLEAN) ========================
 
-server.listen(PORT, '0.0.0.0', async () => {
+const PORT = process.env.PORT || 3000;
+
+// Pehle Database connect karein
+connectDB().catch(err => {
+  console.error('❌ Failed to connect to MongoDB:', err);
+  process.exit(1);
+});
+
+// Sirf YE EK HI listen hona chahiye puri file mein!
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 Server running on port ${PORT}`);
   console.log(`🌐 URL: http://localhost:${PORT}`);
   console.log(`👑 Admin: http://localhost:${PORT}/admin`);
   console.log(`🔍 Health: http://localhost:${PORT}/api/health`);
   console.log(`📡 Socket.io: Enabled (with heartbeat)`);
   console.log(`🏨 Multi-tenant: Enabled`);
-  console.log(`🔐 Auth: JWT + bcrypt + idle timeout (${Math.floor(IDLE_TIMEOUT_MS/60000)} min)`);
-  console.log(`🌍 Multi-country: Enabled (currency, language, timezone)`);
+  console.log(`✅ Guest Hub Module Loaded Successfully!`);
+  console.log(`🔐 Auth: JWT + bcrypt + idle timeout`);
   console.log(`💳 Subscriptions: lifetime/monthly/trial supported`);
-  console.log(`📊 Advanced: Rate limiting, compression, idempotency, page state`);
-  console.log(`🔄 Auto token refresh: Enabled (threshold: ${Math.floor(TOKEN_REFRESH_THRESHOLD_MS/60000)} min)`);
-  console.log(`📍 Page stability: /api/user/page-state + /api/guest/page-state`);
-  console.log(`🔔 Idle session logout: /api/auth/config, /api/auth/ping`);
-  console.log(`📜 Policies API: /api/policies`);
-  console.log(`📢 Announcements API: /api/announcements`);
-  console.log(`⚙️ Config API: /api/config`);
-  console.log(`🏢 Departments API: /api/departments`);
-  console.log(`\n✅ v5.0 FIXES:`);
-  console.log(`   FIX 1: Login speed - subscription cache + fast bcrypt path`);
-  console.log(`   FIX 2: Data persistence - ObjectId→String, upsert on all configs`);
-  console.log(`   FIX 3: Add/Update speed - findOneAndUpdate (single DB round trip)`);
-  console.log(`   FIX 4: Real-time sync - hotel/admin/guest Socket.io rooms`);
-  console.log(`   FIX 5: Page stability - MongoDB-backed page state for admin+guest`);
-  console.log(`   FIX 6: Multi-device sync - room_{hotelId}_{roomNo} channels`);
-  console.log(`   FIX 7: MongoDB pool: 100 max / 20 min connections`);
-  console.log(`   FIX 8: Guest↔Admin cross-sync (new_guest_request, admin_reply)`);
-  console.log(`   FIX 9: Heartbeat ping to keep sessions alive across devices`);
-  console.log(`   FIX 10: Wire compression (zstd/zlib) for faster DB transfers`);
-  console.log(`\n💡 NEW .env variables:`);
-  console.log(`   IDLE_TIMEOUT_MS=1800000        (default: 30 min)`);
-  console.log(`   TOKEN_EXPIRY=7d                 (default: 7 days)`);
-  console.log(`   TOKEN_REFRESH_THRESHOLD_MS=3600000 (default: 1hr)`);
-  console.log(`   SESSION_MAX_AGE=604800000       (default: 7 days)\n`);
-  await connectDB();
+  console.log(`📊 Advanced: Rate limiting, compression, idempotency`);
+  console.log(`\n✅ v5.0 FIXES APPLIED & READY`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ FATAL: Port ${PORT} is already in use. Please check for duplicate server.listen() calls in server.js`);
+    process.exit(1);
+  }
+  console.error('❌ Server startup error:', err);
+  process.exit(1);
 });
 
 // ======================== GRACEFUL SHUTDOWN ========================
 
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down gracefully...');
-  if (client) await client.close();
+  await disconnectDB(); // aapki db.js ka function use karein
   await new Promise(resolve => server.close(resolve));
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down gracefully...');
-  if (client) await client.close();
+  await disconnectDB();
   await new Promise(resolve => server.close(resolve));
   process.exit(0);
 });
 
 process.on('uncaughtException', (err) => {
   console.error('💥 Uncaught Exception:', err.message);
-  if (err.message.includes('EADDRINUSE')) process.exit(1);
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
   console.error('💥 Unhandled Rejection:', reason);
+  process.exit(1);
 });
