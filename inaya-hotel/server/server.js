@@ -514,6 +514,11 @@ const rateUsRoutes = require('./routes/rateUs');
 const laundryRoutes = require('./routes/laundry');
 const digitalKeyRoutes = require('./routes/digitalKey');
 const upgradeRoutes = require('./routes/upgrade');
+// Guest Hub Module Routes
+const guestHubRoutes = require('./api/guest-hub');
+const paymentRoutes = require('./api/payment');
+const aiChatRoutes = require('./api/ai-chat');
+const ticketsRoutes = require('./api/tickets');
 app.set('io', io);
 app.use('/api/departments', departmentRoutes);
 // Subscription routes
@@ -667,6 +672,10 @@ app.use('/api/weather', weatherRoutes);
 app.use('/api/rate-us', rateUsRoutes);
 app.use('/api/digital-key', digitalKeyRoutes);
 app.use('/api/upgrade', upgradeRoutes);
+app.use('/api/guest-hub', guestHubRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/ai-chat', aiChatRoutes);
+app.use('/api/tickets', ticketsRoutes);
 
 // ✅ FIX 1: Optimized checkSubscription with caching - no DB hit on cached hotels
 const checkSubscription = async (req, res, next) => {
