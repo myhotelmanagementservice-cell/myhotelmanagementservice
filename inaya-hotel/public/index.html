@@ -400,6 +400,7 @@ tabDepartments: '🏢 Departments',
 tabHousekeeping: '🧹 Housekeeping',
 tabOffers: '🎁 Offers',
 tabLostFound: '💼 Lost & Found',
+tabGuestHub: '🏨 Guest Hub',  
 tabTransport: '🚗 Transport',
 tabChat: '💬 Live Chat',
 tabRoomCtrl: '🌡️ Room Ctrl',
@@ -1104,6 +1105,7 @@ tabDepartments: '🏢 विभाग',
 tabHousekeeping: '🧹 हाउसकीपिंग',
 tabOffers: '🎁 ऑफर्स',
 tabLostFound: '💼 खोया-पाया',
+tabGuestHub: '🏨 गेस्ट हब',  
 tabTransport: '🚗 ट्रांसपोर्ट',
 tabChat: '💬 लाइव चैट',
 tabRoomCtrl: '🌡️ रूम कंट्रोल',
@@ -1808,6 +1810,7 @@ tabDepartments: '🏢 الأقسام',
 tabHousekeeping: '🧹 التدبير المنزلي',
 tabOffers: '🎁 العروض',
 tabLostFound: '💼 المفقودات',
+tabGuestHub: '🏨 مركز الضيوف',  
 tabTransport: '🚗 النقل',
 tabChat: '💬 المحادثة',
 tabRoomCtrl: '🌡️ تحكم الغرفة',
@@ -2801,7 +2804,8 @@ const GUEST_TABS = [
 { id: 'laundryTab', icon: '👕', label: 'tabLaundryG' },
 { id: 'digitalKeyTab', icon: '🔑', label: 'tabDigitalKey' },
 { id: 'upgradeTab', icon: '⬆️', label: 'tabUpgrade' },
-{ id: 'lostfoundTab', icon: '🧳', label: 'tabLostFound' }
+{ id: 'lostfoundTab', icon: '🧳', label: 'tabLostFound' },
+{ id: 'guestHubTab', icon: '🏨', label: 'tabGuestHub' }
 ];
 const TYPE_MAP = {
 'Standard': 'standard',
@@ -6163,6 +6167,10 @@ detailsEl.innerHTML = `
 `;
 }
 function showGuestTab(id) {
+if (id === 'guestHubTab') {
+    window.location.href = `guest-hub.html?hotel=${encodeURIComponent(HID)}&room=${encodeURIComponent(currentUser.room)}&name=${encodeURIComponent(currentUser.name)}`;
+    return;
+}
 GUEST_TABS.forEach(tb => {
 const p = document.getElementById(`gp-${tb.id}`);
 const b = document.getElementById(`gn-${tb.id}`);
