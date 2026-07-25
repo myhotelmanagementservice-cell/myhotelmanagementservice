@@ -426,6 +426,7 @@ tabNotifications: '🔔 Notifications',
 tabFloorMap: '🗺️ Floor Map',
 tabLaundry: '👕 Laundry',
 tabConcierge: '🎩 Concierge',
+tabGuestHubSettings: '🏨 Guest Hub Settings',  
 myRequests: 'Requests',
 pending: 'Pending',
 completed: 'Completed',
@@ -1131,6 +1132,7 @@ tabNotifications: '🔔 सूचनाएं',
 tabFloorMap: '🗺️ फ्लोर मैप',
 tabLaundry: '👕 लॉन्ड्री',
 tabConcierge: '🎩 कंसीयर्ज',
+tabGuestHubSettings: '🏨 गेस्ट हब सेटिंग्स',  
 myRequests: 'अनुरोध',
 pending: 'लंबित',
 completed: 'पूर्ण',
@@ -1836,6 +1838,7 @@ tabNotifications: '🔔 الإشعارات',
 tabFloorMap: '🗺️ خريطة الطابق',
 tabLaundry: '👕 الغسيل',
 tabConcierge: '🎩 الكونسيرج',
+tabGuestHubSettings: '🏨 إعدادات مركز الضيوف',  
 myRequests: 'الطلبات',
 pending: 'معلقة',
 completed: 'مكتمل',
@@ -2779,7 +2782,8 @@ const ADMIN_TABS = [
 { id: 'notifications', label: 'tabNotifications' },
 { id: 'floormap', label: 'tabFloorMap' },
 { id: 'laundry', label: 'tabLaundry' },
-{ id: 'concierge', label: 'tabConcierge' }
+{ id: 'concierge', label: 'tabConcierge' },
+{ id: 'guesthubsettings', label: 'tabGuestHubSettings' }
 ];
 const GUEST_TABS = [
 { id: 'reqTab', icon: '📝', label: 'reqTab' },
@@ -6907,6 +6911,8 @@ return `<div class="card"><div style="display:flex;justify-content:space-between
   </div>
   <div id="adminCityGuideGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
 </div></div>`;
+case 'guesthubsettings':
+return `<div class="card"><h3 style="font-size:16px;font-weight:700;color:var(--p1);margin-bottom:16px">🏨 Guest Hub Settings</h3><p style="color:var(--fg-secondary,#666);margin-bottom:16px">Manage AI Assistant responses, payment configuration, and support settings for the guest-facing Guest Hub.</p><button class="btn-primary" onclick="window.open('admin/guest-hub-settings.html?hotel=' + encodeURIComponent(HID), '_blank')">Open Guest Hub Settings</button></div>`;
 default:
 return '';
 }
