@@ -1656,6 +1656,9 @@ app.post('/api/super/reset-hotel-password', superAdminMiddleware, async (req, re
     }
     if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
     const hashedPassword = await bcrypt.hash(newPassword, 10);
+    console.log('🔍 DEBUG reset-password: searching hotelId =', JSON.stringify(hotelId));
+    const allUsersForHotel = await db.collection('users').find({ hotelId }).toArray();
+    console.log('🔍 DEBUG reset-password: users found with this hotelId =', allUsersForHotel.map(u => ({ email: u.email, role: u.role, hotelId: u.hotelId })));
     const result = await db.collection('users').updateOne(
       { hotelId, role: { $in: ['hotel_admin', 'admin'] } },
       { $set: { password: hashedPassword, updatedAt: new Date() } }
