@@ -8605,7 +8605,7 @@ const el = document.getElementById('offersGrid');
 if (!el) return;
 try {
   const r = await fetch(`/api/offers?hotelId=${HID}`);
-  if (r.ok) offers = await r.json();
+  if (r.ok) { const resp = await r.json(); offers = (resp && Array.isArray(resp.data)) ? resp.data : []; }
 } catch(_) {}
 el.innerHTML = offers.length ? offers.map(o => `
 <div class="req-card" style="border-left:4px solid ${o.isActive?'var(--p1)':'var(--border)'};margin-bottom:8px">
@@ -8664,9 +8664,9 @@ isActive: true
 };
 try {
   const res = await apiPost('/api/offers', obj);
-  if (res && (res._id || res.insertedId)) {
-    obj._id = String(res._id || res.insertedId);
-    offers.push(obj);
+  if (res && res.success && res.data && res.data._id) {
+      obj._id = String(res.data._id);
+      offers.push(obj);
   }
 } catch(_){}
 renderOffers();
