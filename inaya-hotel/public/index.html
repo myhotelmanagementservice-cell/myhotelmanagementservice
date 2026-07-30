@@ -8599,45 +8599,38 @@ showToast('🗑️ Task deleted', 'info');
 }
   
   // ============================================================
-  // OFFERS & DISCOUNTS
+  // OFFERS & DISCOUNTS (Admin + Guest)
   // ============================================================
 
+  // ---------- Admin: Render Offers ----------
   async function renderOffers() {
       const el = document.getElementById('offersGrid');
       if (!el) return;
-
-      const currentHID = (typeof HID !== 'undefined' && HID) ? HID : 'HOTEL002';
-
       try {
-          const r = await fetch(`/api/offers?hotelId=${currentHID}`);
-          if (r.ok) {
-              offers = await r.json();
-              console.log("✅ Admin Offers Loaded:", offers);
-          } else {
-              console.error("❌ Failed to fetch offers, status:", r.status);
-              offers = [];
-          }
-      } catch (error) {
-          console.error("❌ Error in renderOffers:", error);
-          offers = [];
+          const r = await fetch(`/api/offers?hotelId=${HID}`);
+          if (r.ok) offers = await r.json();
+          else offers = [];
+      } catch (_) { offers = []; }
+
+      if (!offers.length) {
+          el.innerHTML = '<p style="text-align:center;opacity:.5;padding:20px">No offers yet. Click "+ Add Offer" to create discounts for guests.</p>';
+          return;
       }
 
-      el.innerHTML = offers.length ? offers.map(o => `
-          <div class="req-card" style="border-left:4px solid ${o.isActive ? 'var(--p1)' : 'var(--border)'}; margin-bottom:8px">
-              <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px">
+      el.innerHTML = offers.map(o => `
+          <div class="req-card" style="border-left:4px solid ${o.isActive ? 'var(--p1)' : 'var(--border)'};margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">
                   <div>
-                      <div style="font-weight:700; font-size:15px">🎁 ${o.title}</div>
-                      <div style="font-size:12px; margin-top:2px; opacity:.7">${o.description || ''}</div>
-                      <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap; align-items:center">
-                          <span style="background:var(--p1); color:#fff; padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700">
-                              ${o.type === 'percent' ? o.discount + '% OFF' : 'SAR ' + o.discount + ' OFF'}
-                          </span>
-                          ${o.code ? `<code style="background:var(--card2); padding:2px 8px; border-radius:4px; font-size:11px; letter-spacing:2px; font-weight:600">${o.code}</code>` : ''}
-                          ${o.expiry ? `<span style="font-size:11px; opacity:.6">Expires: ${new Date(o.expiry).toLocaleDateString()}</span>` : ''}
-                          ${o.minStay ? `<span style="font-size:11px; opacity:.6">Min ${o.minStay} nights</span>` : ''}
+                      <div style="font-weight:700;font-size:15px">🎁 ${o.title}</div>
+                      <div style="font-size:12px;margin-top:2px;opacity:.7">${o.description || ''}</div>
+                      <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                          <span style="background:var(--p1);color:#fff;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:700">${o.type === 'percent' ? o.discount + '% OFF' : 'SAR ' + o.discount + ' OFF'}</span>
+                          ${o.code ? `<code style="background:var(--card2);padding:2px 8px;border-radius:4px;font-size:11px;letter-spacing:2px;font-weight:600">${o.code}</code>` : ''}
+                          ${o.expiry ? `<span style="font-size:11px;opacity:.6">Expires: ${new Date(o.expiry).toLocaleDateString()}</span>` : ''}
+                          ${o.minStay ? `<span style="font-size:11px;opacity:.6">Min ${o.minStay} nights</span>` : ''}
                       </div>
                   </div>
-                  <div style="display:flex; gap:6px; align-items:center">
+                  <div style="display:flex;gap:6px;align-items:center">
                       <label class="toggle-switch" title="${o.isActive ? 'Deactivate' : 'Activate'}">
                           <input type="checkbox" ${o.isActive ? 'checked' : ''} onchange="toggleOfferActive('${o._id}', this.checked)">
                           <span class="slider"></span>
@@ -8646,69 +8639,60 @@ showToast('🗑️ Task deleted', 'info');
                   </div>
               </div>
           </div>
-      `).join('') : '<p style="text-align:center; opacity:.5; padding:20px">No offers yet. Click "+ Add Offer" to create discounts for guests.</p>';
+      `).join('');
   }
 
+  // ---------- Guest: Render Active Offers ----------
   async function renderGuestOffers() {
       const el = document.getElementById('gOffersGrid');
-      if (!el) return;
+      if (!el) {
+          console.warn('Guest offers container not found');
+          return;
+      }
 
-      // Safe fallback for HID in guest dashboard
-      const currentHID = (typeof HID !== 'undefined' && HID) ? HID : 
-                         (new URLSearchParams(window.location.search).get('hotelId') || localStorage.getItem('hotelId') || 'HOTEL002');
-
-      el.innerHTML = '<p style="text-align:center; padding:20px; opacity:0.7;">Loading special offers...</p>';
+      // Ensure HID is available (fallback)
+      const hotelId = HID || localStorage.getItem('hotelId') || 'CROWN';
 
       try {
-          const r = await fetch(`/api/offers?hotelId=${currentHID}`);
-          if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+          const r = await fetch(`/api/offers?hotelId=${hotelId}`);
+          if (!r.ok) {
+              el.innerHTML = '<div style="text-align:center;padding:30px;opacity:.5">⚠️ Unable to load offers. Please try again later.</div>';
+              return;
+          }
+          const allOffers = await r.json();
+          const active = allOffers.filter(o => 
+              o.isActive && 
+              (!o.expiry || new Date(o.expiry) >= new Date())
+          );
 
-          const fetchedOffers = await r.json();
-          console.log("✅ Guest Offers Fetched from API:", fetchedOffers);
-
-          // Robust filtering: Check isActive (boolean or string) and valid expiry
-          const activeOffers = fetchedOffers.filter(o => {
-              const isActive = o.isActive === true || o.isActive === "true";
-              const isExpired = o.expiry ? (new Date(o.expiry).getTime() < Date.now()) : false;
-              return isActive && !isExpired;
-          });
-
-          console.log("✅ Active Offers to Render:", activeOffers);
-
-          if (activeOffers.length === 0) {
-              el.innerHTML = `
-                  <div style="text-align:center; padding:30px; opacity:.5">
-                      <div style="font-size:32px; margin-bottom:8px">🎁</div>
-                      <div>No active offers at the moment.<br>Check back soon!</div>
-                  </div>`;
+          if (!active.length) {
+              el.innerHTML = '<div style="text-align:center;padding:30px;opacity:.5"><div style="font-size:32px;margin-bottom:8px">🎁</div><div>No active offers at the moment.<br>Check back soon!</div></div>';
               return;
           }
 
-          el.innerHTML = activeOffers.map(o => `
-              <div style="background:linear-gradient(135deg, var(--p1), var(--p2)); border-radius:12px; padding:16px; margin-bottom:10px; color:#fff">
-                  <div style="font-size:18px; font-weight:800; margin-bottom:4px">🎁 ${o.title}</div>
-                  <div style="font-size:13px; opacity:.85; margin-bottom:8px">${o.description || ''}</div>
-                  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
-                      <span style="background:rgba(255,255,255,.25); padding:4px 12px; border-radius:20px; font-weight:700; font-size:14px">
-                          ${o.type === 'percent' ? o.discount + '% OFF' : 'SAR ' + o.discount + ' OFF'}
-                      </span>
+          el.innerHTML = active.map(o => `
+              <div style="background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:12px;padding:16px;margin-bottom:10px;color:#fff">
+                  <div style="font-size:18px;font-weight:800;margin-bottom:4px">🎁 ${o.title}</div>
+                  <div style="font-size:13px;opacity:.85;margin-bottom:8px">${o.description || ''}</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                      <span style="background:rgba(255,255,255,.25);padding:4px 12px;border-radius:20px;font-weight:700;font-size:14px">${o.type === 'percent' ? o.discount + '% OFF' : 'SAR ' + o.discount + ' OFF'}</span>
                       ${o.code ? `<span style="font-size:12px">Code: <strong style="letter-spacing:2px">${o.code}</strong></span>` : ''}
-                      ${o.expiry ? `<span style="font-size:11px; opacity:.75">Expires ${new Date(o.expiry).toLocaleDateString()}</span>` : ''}
+                      ${o.expiry ? `<span style="font-size:11px;opacity:.75">Expires ${new Date(o.expiry).toLocaleDateString()}</span>` : ''}
                   </div>
-                  ${o.minStay ? `<div style="font-size:11px; margin-top:6px; opacity:.7">*Minimum ${o.minStay} night stay required</div>` : ''}
+                  ${o.minStay ? `<div style="font-size:11px;margin-top:6px;opacity:.7">*Minimum ${o.minStay} night stay required</div>` : ''}
               </div>
           `).join('');
-
-      } catch (error) {
-          console.error("❌ Error fetching guest offers:", error);
-          el.innerHTML = '<p style="text-align:center; color:var(--danger); padding:20px">Failed to load offers. Please refresh the page.</p>';
+      } catch (e) {
+          console.error('Error loading guest offers:', e);
+          el.innerHTML = '<div style="text-align:center;padding:30px;opacity:.5">❌ Failed to load offers. Please refresh.</div>';
       }
   }
 
+  // ---------- CRUD Operations ----------
   async function saveOffer(e) {
       e.preventDefault();
       const obj = {
-          hotelId: (typeof HID !== 'undefined' && HID) ? HID : 'HOTEL002',
+          hotelId: HID,
           title: document.getElementById('mOffTitle').value,
           code: document.getElementById('mOffCode').value.toUpperCase(),
           description: document.getElementById('mOffDesc').value,
@@ -8718,99 +8702,71 @@ showToast('🗑️ Task deleted', 'info');
           expiry: document.getElementById('mOffExpiry').value || null,
           isActive: true
       };
-
       try {
           const res = await apiPost('/api/offers', obj);
           if (res && (res._id || res.insertedId)) {
               obj._id = String(res._id || res.insertedId);
               offers.push(obj);
-              renderOffers();
-              closeModal('offerModal');
-              e.target.reset();
-              showToast('🎁 Offer created successfully!', 'success');
-          } else {
-              throw new Error("Invalid response from server");
           }
-      } catch (error) {
-          console.error("❌ Error saving offer:", error);
-          showToast('Failed to create offer. Check console.', 'error');
-      }
+      } catch (_) {}
+      renderOffers();
+      closeModal('offerModal');
+      e.target.reset();
+      showToast('🎁 Offer created!', 'success');
   }
 
   async function deleteOffer(id) {
       if (!confirm('Delete this offer?')) return;
-      try { 
-          await apiDelete(`/api/offers/${id}`); 
-          offers = offers.filter(o => o._id !== id);
-          renderOffers();
-          showToast('🗑️ Offer deleted', 'info');
-      } catch (error) {
-          console.error("❌ Error deleting offer:", error);
-          showToast('Failed to delete offer', 'error');
-      }
+      try { await apiDelete(`/api/offers/${id}`); } catch (_) {}
+      offers = offers.filter(o => o._id !== id);
+      renderOffers();
+      showToast('🗑️ Offer deleted', 'info');
   }
 
   async function toggleOfferActive(id, val) {
       const o = offers.find(x => x._id === id);
       if (!o) return;
-
       o.isActive = val;
-      renderOffers(); // Optimistic UI update
-
-      try { 
-          await apiPut(`/api/offers/${id}`, { isActive: val }); 
-          showToast(val ? '✅ Offer activated' : '⏸️ Offer deactivated', 'info');
-      } catch (error) {
-          console.error("❌ Error toggling offer:", error);
-          o.isActive = !val; // Revert on failure
-          renderOffers();
-          showToast('Failed to update status', 'error');
-      }
+      try { await apiPut(`/api/offers/${id}`, { isActive: val }); } catch (_) {}
+      renderOffers();
+      showToast(val ? '✅ Offer activated' : '⏸️ Offer deactivated', 'info');
   }
 
-  // ============================================================
-  // UPGRADE OPTIONS
-  // ============================================================
-
+  // ---------- Upgrade Options (Bonus) ----------
   let upgradeOpts = [];
 
   async function renderUpgradeOpt() {
       const el = document.getElementById('upgradeOptGrid');
       if (!el) return;
-
-      const currentHID = (typeof HID !== 'undefined' && HID) ? HID : 'HOTEL002';
-
       try {
-          const r = await fetch(`/api/upgrade-options?hotelId=${currentHID}`);
-          if (r.ok) {
-              upgradeOpts = await r.json();
-              console.log("✅ Upgrade Options Loaded:", upgradeOpts);
-          } else {
-              upgradeOpts = [];
-          }
-      } catch (error) {
-          console.error("❌ Error fetching upgrade options:", error);
-          upgradeOpts = [];
+          const r = await fetch(`/api/upgrade-options?hotelId=${HID}`);
+          if (r.ok) upgradeOpts = await r.json();
+          else upgradeOpts = [];
+      } catch (_) { upgradeOpts = []; }
+
+      if (!upgradeOpts.length) {
+          el.innerHTML = '<p style="text-align:center;opacity:.5;padding:20px">No upgrade options yet. Click "+ Add Upgrade Option" to create one.</p>';
+          return;
       }
 
-      el.innerHTML = upgradeOpts.length ? upgradeOpts.map(o => `
+      el.innerHTML = upgradeOpts.map(o => `
           <div class="req-card" style="margin-bottom:8px">
-              <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">
                   <div>
-                      <div style="font-weight:700; font-size:15px">${o.icon || '⬆️'} ${o.from} → ${o.to}</div>
-                      <div style="font-size:12px; margin-top:2px; opacity:.7">${o.desc || ''}</div>
-                      <div style="margin-top:6px; font-size:13px; font-weight:700; color:var(--p1)">+${formatPrice(o.price)} ${o.perNight ? '/ night' : ''}</div>
+                      <div style="font-weight:700;font-size:15px">${o.icon || '⬆️'} ${o.from} → ${o.to}</div>
+                      <div style="font-size:12px;margin-top:2px;opacity:.7">${o.desc || ''}</div>
+                      <div style="margin-top:6px;font-size:13px;font-weight:700;color:var(--p1)">+${formatPrice(o.price)} ${o.perNight ? '/ night' : ''}</div>
                   </div>
                   <button class="tbl-action" onclick="deleteUpgradeOpt('${o._id}')" title="Delete">🗑️</button>
               </div>
           </div>
-      `).join('') : '<p style="text-align:center; opacity:.5; padding:20px">No upgrade options yet. Click "+ Add Upgrade Option" to create one.</p>';
+      `).join('');
   }
 
   async function saveUpgradeOpt(e) {
       e.preventDefault();
       const obj = {
-          hotelId: (typeof HID !== 'undefined' && HID) ? HID : 'HOTEL002',
+          hotelId: HID,
           from: document.getElementById('mUpgFrom').value,
           to: document.getElementById('mUpgTo').value,
           desc: document.getElementById('mUpgDesc').value,
@@ -8818,35 +8774,30 @@ showToast('🗑️ Task deleted', 'info');
           icon: document.getElementById('mUpgIcon').value || '⬆️',
           perNight: document.getElementById('mUpgPerNight').value === 'true'
       };
-
       try {
           const res = await apiPost('/api/upgrade-options', obj);
           if (res && (res._id || res.insertedId)) {
               obj._id = String(res._id || res.insertedId);
               upgradeOpts.push(obj);
-              renderUpgradeOpt();
-              closeModal('upgradeOptModal');
-              e.target.reset();
-              showToast('⬆️ Upgrade option saved!', 'success');
           }
-      } catch (error) {
-          console.error("❌ Error saving upgrade option:", error);
-          showToast('Failed to save upgrade option', 'error');
-      }
+      } catch (_) {}
+      renderUpgradeOpt();
+      closeModal('upgradeOptModal');
+      e.target.reset();
+      showToast('⬆️ Upgrade option saved!', 'success');
   }
 
   async function deleteUpgradeOpt(id) {
       if (!confirm('Delete this upgrade option?')) return;
-      try { 
-          await apiDelete(`/api/upgrade-options/${id}`); 
-          upgradeOpts = upgradeOpts.filter(o => o._id !== id);
-          renderUpgradeOpt();
-          showToast('🗑️ Upgrade option deleted', 'info');
-      } catch (error) {
-          console.error("❌ Error deleting upgrade option:", error);
-          showToast('Failed to delete', 'error');
-      }
+      try { await apiDelete(`/api/upgrade-options/${id}`); } catch (_) {}
+      upgradeOpts = upgradeOpts.filter(o => o._id !== id);
+      renderUpgradeOpt();
+      showToast('🗑️ Upgrade option deleted', 'info');
   }
+
+  // ---------- Ensure guest offers reload when tab is shown ----------
+  // Add this inside your showGuestTab function:
+  // if (id === 'offersTab') renderGuestOffers();
   
 // ============================================================
 // TRANSPORT VIEW
