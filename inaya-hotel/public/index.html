@@ -8597,7 +8597,6 @@ housekeeping = housekeeping.filter(h => h._id !== id);
 renderHousekeeping();
 showToast('🗑️ Task deleted', 'info');
 }
-  
 // ============================================================
 // OFFERS & DISCOUNTS
 // ============================================================
@@ -8629,19 +8628,15 @@ ${o.minStay?`<span style="font-size:11px;opacity:.6">Min ${o.minStay} nights</sp
 </div>
 `).join('') : '<p style="text-align:center;opacity:.5;padding:20px">No offers yet. Click "+ Add Offer" to create discounts for guests.</p>';
 }
-
-// ----- FIXED: Guest Offers with safe hotelId fallback -----
 async function renderGuestOffers() {
 const el = document.getElementById('gOffersGrid');
 if (!el) return;
-// 🔧 FIX: Ensure hotelId is defined
-const hotelId = (typeof HID !== 'undefined' && HID) || localStorage.getItem('hotelId') || 'CROWN';
 try {
-  const r = await fetch(`/api/offers?hotelId=${hotelId}`);
-  if (!r.ok) { el.innerHTML = '<div style="text-align:center;padding:30px;opacity:.5">⚠️ Unable to load offers.</div>'; return; }
-  const allOffers = await r.json();
-  const active = allOffers.filter(o => o.isActive && (!o.expiry || new Date(o.expiry) >= new Date()));
-  el.innerHTML = active.length ? active.map(o => `
+  const r = await fetch(`/api/offers?hotelId=${HID}`);
+  if (r.ok) offers = await r.json();
+} catch(_) {}
+const active = offers.filter(o => o.isActive && (!o.expiry || new Date(o.expiry) >= new Date()));
+el.innerHTML = active.length ? active.map(o => `
 <div style="background:linear-gradient(135deg,var(--p1),var(--p2));border-radius:12px;padding:16px;margin-bottom:10px;color:#fff">
 <div style="font-size:18px;font-weight:800;margin-bottom:4px">🎁 ${o.title}</div>
 <div style="font-size:13px;opacity:.85;margin-bottom:8px">${o.description || ''}</div>
@@ -8653,12 +8648,7 @@ ${o.expiry?`<span style="font-size:11px;opacity:.75">Expires ${new Date(o.expiry
 ${o.minStay?`<div style="font-size:11px;margin-top:6px;opacity:.7">*Minimum ${o.minStay} night stay required</div>`:''}
 </div>
 `).join('') : '<div style="text-align:center;padding:30px;opacity:.5"><div style="font-size:32px;margin-bottom:8px">🎁</div><div>No active offers at the moment.<br>Check back soon!</div></div>';
-} catch(e) {
-  el.innerHTML = '<div style="text-align:center;padding:30px;opacity:.5">❌ Failed to load offers. Please refresh.</div>';
-  console.error('Guest offers error:', e);
 }
-}
-
 async function saveOffer(e) {
 e.preventDefault();
 const obj = {
@@ -8750,7 +8740,131 @@ upgradeOpts = upgradeOpts.filter(o => o._id !== id);
 renderUpgradeOpt();
 showToast('🗑️ Upgrade option deleted', 'info');
 }  
-  
+// ============================================================
+// LOST & FOUND
+// ============================================================
+let _lfFilter = 'all';
+async function renderLostFound(filter) {
+if (filter) _lfFilter = filter;
+const tbody = document.getElementById('lfTbody');
+if (!tbody) return;
+try {
+  const r = await fetch(`/api/lostfound?hotelId=${HID}`);
+  if (r.ok) lostfound = await r.json();
+} catch(_) {}
+const data = _lfFilter === 'all' ? lostfound : lostfound.filter(x => x.status === _lfFilter);
+tbody.innerHTML = data.map(lf => {
+const sc = { unclaimed: '#f59e0b', claimed: '#3b82f6', returned: '#10b981' };
+return `<tr data-id="${lf._id}">
+<td><strong>${lf.item || '—'}</strong></td>
+<td style="font-size:11px">${lf.description || '—'}</td>
+<td>${lf.location || '—'}</td>
+<td style="font-size:11px">${lf.foundDate ? new Date(lf.foundDate).toLocaleDateString() : '—'}</td>
+<td>${lf.guestName || '—'}${lf.room ? ` (${t('chatRm')} ${lf.room})` : ''}</td>
+<td><select style="font-size:11px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--card);color:${sc[lf.status]||'var(--fg)'}" onchange="updateLFStatus('${lf._id}',this.value)">
+<option value="unclaimed" ${lf.status==='unclaimed'?'selected':''}>${t('lostUnclaimed')}</option>
+<option value="claimed" ${lf.status==='claimed'?'selected':''}>${t('lostClaimed')}</option>
+<option value="returned" ${lf.status==='returned'?'selected':''}>${t('lostReturned')}</option>
+</select></td>
+<td><button class="tbl-action" onclick="deleteLF('${lf._id}')">🗑️</button></td>
+</tr>`;
+}).join('') || `<tr><td colspan="7" style="text-align:center;padding:16px;opacity:.5">${t('noLostFound')}</td></tr>`;
+}
+async function saveLFItem(e) {
+e.preventDefault();
+const obj = {
+hotelId: HID,
+item: document.getElementById('mLFItem').value,
+description: document.getElementById('mLFDesc').value,
+location: document.getElementById('mLFLocation').value,
+foundDate: document.getElementById('mLFDate').value || new Date().toISOString().split('T')[0],
+guestName: document.getElementById('mLFGuest').value,
+room: document.getElementById('mLFRoom').value,
+status: 'unclaimed'
+};
+try {
+  const res = await apiPost('/api/lostfound', obj);
+  if (res && (res._id || res.insertedId)) {
+    obj._id = String(res._id || res.insertedId);
+    lostfound.push(obj);
+  }
+} catch(_){}
+renderLostFound();
+closeModal('lfModal');
+e.target.reset();
+showToast('💼 Item logged in Lost & Found!', 'success');
+}
+async function submitGuestLostFound(e) {
+e.preventDefault();
+const obj = {
+hotelId: HID,
+item: document.getElementById('glfItem').value,
+description: document.getElementById('glfDesc').value,
+location: '',
+foundDate: new Date().toISOString().split('T')[0],
+guestName: currentUser?.name || '',
+room: String(currentUser?.room || ''),
+status: 'unclaimed'
+};
+try {
+  const res = await apiPost('/api/lostfound', obj);
+  if (res && (res._id || res.insertedId)) {
+    obj._id = String(res._id || res.insertedId);
+    lostfound.push(obj);
+  }
+} catch(_){}
+renderGuestLostFound();
+showToast('💼 Item reported! We will follow up.', 'success');
+e.target.reset();
+}
+async function renderGuestLostFound() {
+const el = document.getElementById('gLostFoundList');
+if (!el) return;
+try {
+  const r = await fetch(`/api/lostfound?hotelId=${HID}`);
+  if (r.ok) lostfound = await r.json();
+} catch(_) {}
+const myItems = lostfound.filter(x => x.guestName && x.guestName.toLowerCase() === (currentUser?.name||'').toLowerCase());
+const hotelFoundItems = lostfound.filter(x => !x.guestName || x.guestName.toLowerCase() !== (currentUser?.name||'').toLowerCase());
+const statusColors = { unclaimed: '#f59e0b', claimed: '#3b82f6', returned: '#10b981' };
+const statusLabel = s => ({ unclaimed: 'Unclaimed', claimed: 'Claimed', returned: 'Returned' }[s] || s);
+const cardHtml = (lf, showByLine) => `
+<div class="req-card" style="border-left:3px solid ${statusColors[lf.status]||'var(--border)'}">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<strong style="font-size:13px">${lf.item || '—'}</strong>
+<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${statusColors[lf.status]||'#999'};color:#fff;font-weight:600">${statusLabel(lf.status)}</span>
+</div>
+${lf.description ? `<p style="font-size:12px;opacity:.7;margin-top:4px">${lf.description}</p>` : ''}
+${lf.location ? `<p style="font-size:11px;opacity:.5;margin-top:2px">📍 ${lf.location}</p>` : ''}
+${lf.foundDate ? `<p style="font-size:11px;opacity:.5">📅 ${new Date(lf.foundDate).toLocaleDateString()}</p>` : ''}
+${showByLine && lf.guestName ? `<p style="font-size:11px;opacity:.5;margin-top:2px">👤 Reported by: ${lf.guestName}${lf.room?' | Room '+lf.room:''}</p>` : ''}
+</div>`;
+el.innerHTML = `
+<div style="margin-bottom:14px">
+  <h4 style="font-size:12px;font-weight:700;color:var(--p1);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">📋 My Reports</h4>
+  ${myItems.length ? myItems.map(lf => cardHtml(lf, false)).join('') : '<p style="font-size:12px;opacity:.45;text-align:center;padding:10px">No items reported by you yet.</p>'}
+</div>
+${hotelFoundItems.length ? `
+<div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+  <h4 style="font-size:12px;font-weight:700;color:var(--p2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">🔍 Hotel Found Items</h4>
+  ${hotelFoundItems.map(lf => cardHtml(lf, true)).join('')}
+</div>` : ''}`;
+}    
+async function updateLFStatus(id, status) {
+const lf = lostfound.find(x => x._id === id);
+if (!lf) return;
+lf.status = status;
+try { await apiPut(`/api/lostfound/${id}`, { status }); } catch(_){}
+renderLostFound();
+showToast('✅ Status updated', 'success');
+}
+async function deleteLF(id) {
+if (!confirm('Delete this item?')) return;
+try { await apiDelete(`/api/lostfound/${id}`); } catch(_){}
+lostfound = lostfound.filter(x => x._id !== id);
+renderLostFound();
+showToast('🗑️ Item deleted', 'info');
+}
 // ============================================================
 // TRANSPORT VIEW
 // ============================================================
