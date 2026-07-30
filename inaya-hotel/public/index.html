@@ -4239,6 +4239,16 @@ socket.on('laundry_upd', (payload) => {
 });
 
 // Offers real-time (Admin → Guest + Admin re-render)
+socket.on('offer_new', (payload) => {
+  try {
+    if (!payload || payload.hotelId !== HID) return;
+    const idx = offers.findIndex(x => String(x._id) === String(payload._id));
+    if (idx > -1) offers[idx] = { ...offers[idx], ...payload };
+    else offers.push(payload);
+    if (typeof renderOffers === 'function') renderOffers();
+    if (typeof renderGuestOffers === 'function') renderGuestOffers();
+  } catch(e) {}
+});  
 socket.on('offers_upd', (payload) => {
   try {
     const d = (payload && payload.data) ? payload.data : payload;
