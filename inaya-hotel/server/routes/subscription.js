@@ -109,19 +109,25 @@ router.get('/current', authMiddleware, async (req, res) => {
     try {
         const db = getDB(req);
         const hotelId = req.hotelId;
-
-        // FIX: Validate hotelId before DB query
         if (!hotelId) return error(res, 'Hotel ID not found in session', 401);
-
         const subscription = await db.collection('subscriptions').findOne(
             { hotelId },
             { sort: { createdAt: -1 } }
         );
-
         if (!subscription) return success(res, null, 'No active subscription');
-
         if (subscription.expiryDate && new Date(subscription.expiryDate) < new Date()) {
             subscription.status = 'expired';
+        }
+        // ✅ FIX: Agar super admin ne tenant ki expiry manually extend ki hai
+        // (jo subscriptions collection se alag/naya hai), toh wahi use karo
+        const tenant = await db.collection('tenants').findOne({ hotelId });
+        if (tenant && tenant.subscriptionExpiry) {
+            const tenantExpiry = new Date(tenant.subscriptionExpiry);
+            const subExpiry = subscription.expiryDate ? new Date(subscription.expiryDate) : null;
+            if (!subExpiry || tenantExpiry > subExpiry) {
+                subscription.expiryDate = tenant.subscriptionExpiry;
+                subscription.status = tenantExpiry >= new Date() ? 'active' : 'expired';
+            }
         }
         if (subscription._id) subscription._id = subscription._id.toString();
         return success(res, subscription);
