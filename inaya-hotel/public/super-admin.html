@@ -2951,7 +2951,7 @@
             document.getElementById('customDaysWrap').classList.toggle('hidden', document.getElementById('extendDuration').value !== 'custom');
         });
 
-        function confirmExtend() {
+        async function confirmExtend() {
             const hotelId = document.getElementById('extendHotelId').value;
             const durVal = document.getElementById('extendDuration').value;
             const days = durVal === 'custom' ? parseInt(document.getElementById('extendCustomDays').value) : parseInt(durVal);
@@ -2960,10 +2960,27 @@
             const currentExpiry = hotel?.subscriptionExpiry ? new Date(hotel.subscriptionExpiry) : new Date();
             const newExpiry = new Date(Math.max(currentExpiry.getTime(), Date.now()) + days * 86400000);
             if (hotel) {
-                hotel.subscriptionExpiry = newExpiry.toISOString();
-                renderHotelsTable();
-                showToast(`Extended by ${days} days`, 'success');
-                addAuditLog('Subscription Extended', hotel.hotelName, 'hotel');
+                try {
+                    const res = await fetch(`${API_BASE}/super/tenants/${hotelId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({ subscriptionExpiry: newExpiry.toISOString() })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        hotel.subscriptionExpiry = newExpiry.toISOString();
+                        renderHotelsTable();
+                        showToast(`Extended by ${days} days`, 'success');
+                        addAuditLog('Subscription Extended', hotel.hotelName, 'hotel');
+                    } else {
+                        showToast('Failed to save: ' + (data.error || 'Unknown error'), 'error');
+                    }
+                } catch (err) {
+                    showToast('Network error while extending', 'error');
+                }
             }
             closeModal('extendModal');
         }
