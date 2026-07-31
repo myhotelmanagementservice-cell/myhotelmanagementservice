@@ -8643,7 +8643,7 @@ const el = document.getElementById('gOffersGrid');
 if (!el) return;
 try {
   const r = await fetch(`/api/offers?hotelId=${HID}`);
-  if (r.ok) offers = await r.json();
+  if (r.ok) { const resp = await r.json(); offers = (resp && Array.isArray(resp.data)) ? resp.data : []; }
 } catch(_) {}
 const active = offers.filter(o => o.isActive && (!o.expiry || new Date(o.expiry) >= new Date()));
 el.innerHTML = active.length ? active.map(o => `
