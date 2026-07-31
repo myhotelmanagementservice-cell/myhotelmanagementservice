@@ -419,8 +419,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('currentPlanAlert').innerHTML = `
                         <div class="alert alert-success">
                             <strong>Current Plan:</strong> ${sub.planName} 
-                            ${sub.expiryDate && sub.expiryDate !== 'N/A' ? `| Expires: ${new Date(sub.expiryDate).toLocaleDateString()}` : '| Lifetime'}
-                            ${sub.expiryDate && new Date(sub.expiryDate) < new Date() ? ' ⚠️ <span style="color:red;font-weight:bold;">EXPIRED</span>' : ''}
+                            ${sub.expiryDate ? `| Expires: ${new Date(sub.expiryDate).toLocaleDateString()}` : '| Lifetime'}
                             | Status: <strong style="color:${statusColor}">${sub.status.toUpperCase()}</strong>
                         </div>
                     `;
