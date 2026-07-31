@@ -3037,11 +3037,32 @@
             }
         }    
         
-        function toggleHotelSuspend(hotelId, isActive) {
+        async function toggleHotelSuspend(hotelId, isActive) {
             const action = isActive ? 'suspend' : 'activate';
             if (!confirm(`Are you sure you want to ${action} this hotel?`)) return;
             const hotel = hotels.find(h => (h.hotelId === hotelId || h._id === hotelId));
-            if (hotel) { hotel.active = !isActive; renderHotelsTable(); showToast(`Hotel ${action}d`, isActive ? 'warning' : 'success'); addAuditLog(`Hotel ${action}d`, hotel.hotelName, 'hotel'); }
+            if (!hotel) return;
+            try {
+                const res = await fetch(`${API_BASE}/super/tenants/${hotelId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ active: !isActive })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    hotel.active = !isActive;
+                    renderHotelsTable();
+                    showToast(`Hotel ${action}d`, isActive ? 'warning' : 'success');
+                    addAuditLog(`Hotel ${action}d`, hotel.hotelName, 'hotel');
+                } else {
+                    showToast('Failed to update: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                showToast('Network error while updating hotel status', 'error');
+            }
         }
 
         function openChangePlanModal(hotelId, hotelName) {
