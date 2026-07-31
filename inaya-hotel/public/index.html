@@ -4239,16 +4239,6 @@ socket.on('laundry_upd', (payload) => {
 });
 
 // Offers real-time (Admin → Guest + Admin re-render)
-socket.on('offer_new', (payload) => {
-  try {
-    if (!payload || payload.hotelId !== HID) return;
-    const idx = offers.findIndex(x => String(x._id) === String(payload._id));
-    if (idx > -1) offers[idx] = { ...offers[idx], ...payload };
-    else offers.push(payload);
-    if (typeof renderOffers === 'function') renderOffers();
-    if (typeof renderGuestOffers === 'function') renderGuestOffers();
-  } catch(e) {}
-});  
 socket.on('offers_upd', (payload) => {
   try {
     const d = (payload && payload.data) ? payload.data : payload;
@@ -8615,7 +8605,7 @@ const el = document.getElementById('offersGrid');
 if (!el) return;
 try {
   const r = await fetch(`/api/offers?hotelId=${HID}`);
-  if (r.ok) { const resp = await r.json(); offers = (resp && Array.isArray(resp.data)) ? resp.data : []; }
+  if (r.ok) offers = await r.json();
 } catch(_) {}
 el.innerHTML = offers.length ? offers.map(o => `
 <div class="req-card" style="border-left:4px solid ${o.isActive?'var(--p1)':'var(--border)'};margin-bottom:8px">
@@ -8643,7 +8633,7 @@ const el = document.getElementById('gOffersGrid');
 if (!el) return;
 try {
   const r = await fetch(`/api/offers?hotelId=${HID}`);
-  if (r.ok) { const resp = await r.json(); offers = (resp && Array.isArray(resp.data)) ? resp.data : []; }
+  if (r.ok) offers = await r.json();
 } catch(_) {}
 const active = offers.filter(o => o.isActive && (!o.expiry || new Date(o.expiry) >= new Date()));
 el.innerHTML = active.length ? active.map(o => `
@@ -8674,9 +8664,9 @@ isActive: true
 };
 try {
   const res = await apiPost('/api/offers', obj);
-  if (res && res.success && res.data && res.data._id) {
-      obj._id = String(res.data._id);
-      offers.push(obj);
+  if (res && (res._id || res.insertedId)) {
+    obj._id = String(res._id || res.insertedId);
+    offers.push(obj);
   }
 } catch(_){}
 renderOffers();
