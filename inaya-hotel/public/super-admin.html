@@ -2912,14 +2912,27 @@
             openModal('deleteHotelModal');
         }
 
-        function confirmDeleteHotel() {
+        async function confirmDeleteHotel() {
             const hotelId = document.getElementById('deleteHotelId').value;
-            hotels = hotels.filter(h => (h.hotelId !== hotelId && h._id !== hotelId));
-            renderHotelsTable();
-            loadStats();
-            closeModal('deleteHotelModal');
-            showToast('Hotel deleted!', 'success');
-            addAuditLog('Hotel Deleted', hotelId, 'hotel');
+            try {
+                const res = await fetch(`${API_BASE}/super/tenants/${hotelId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    hotels = hotels.filter(h => (h.hotelId !== hotelId && h._id !== hotelId));
+                    renderHotelsTable();
+                    loadStats();
+                    closeModal('deleteHotelModal');
+                    showToast('Hotel deleted!', 'success');
+                    addAuditLog('Hotel Deleted', hotelId, 'hotel');
+                } else {
+                    showToast('Failed to delete: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (err) {
+                showToast('Network error while deleting', 'error');
+            }
         }
 
         function openAdminModal(hotelId) {
