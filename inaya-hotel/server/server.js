@@ -75,6 +75,12 @@ app.use('/api/subscription/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// ======================== WEBHOOK TEST ENDPOINT ========================
+app.post('/api/subscription/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+    console.log('✅ Webhook received:', req.body);
+    res.status(200).json({ received: true });
+});
+
 // Public — subscribe.html fetches plans from globalConfig (super admin controls prices)
 app.get('/api/subscription/plans', async (req, res) => {
   try {
