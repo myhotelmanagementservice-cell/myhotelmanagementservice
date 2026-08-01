@@ -3,6 +3,8 @@ let currentLang = 'en';
 let currentTab = 'payments';
 let hotelId = 'HOTEL002';
 let guestId = null;
+let hubSocket = null;
+let hubChatMessages = [];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
@@ -277,8 +279,72 @@ function startVoiceInput() {
 
 // Support Functions
 function startLiveChat() {
-    showToast('Connecting to live chat...', 'success');
-    // Implement WebSocket or third-party chat
+    document.getElementById('liveChatModal').classList.add('active');
+    if (!hubSocket) {
+        hubSocket = io();
+        hubSocket.on('connect', () => {
+            hubSocket.emit('join_hotel', hotelId);
+            hubSocket.emit('join_guest', { hotelId, roomNumber: '', guestName: guestId || 'Guest' });
+        });
+        hubSocket.on('chat_upd', (payload) => {
+            const d = payload.data || payload;
+            if (!d || d.hotelId !== hotelId) return;
+            const exists = hubChatMessages.some(m => m._id && String(m._id) === String(d._id));
+            if (!exists) hubChatMessages.push(d);
+            renderGuestHubChat();
+        });
+    }
+    loadGuestHubChat();
+}
+
+async function loadGuestHubChat() {
+    try {
+        const response = await fetch(`/api/chat?hotelId=${hotelId}`);
+        const data = await response.json();
+        if (Array.isArray(data)) hubChatMessages = data;
+        renderGuestHubChat();
+    } catch (error) {
+        console.error('Error loading chat:', error);
+    }
+}
+
+function renderGuestHubChat() {
+    const el = document.getElementById('guestHubChatMessages');
+    if (!el) return;
+    if (!hubChatMessages.length) {
+        el.innerHTML = '<p style="text-align:center;opacity:.5;font-size:13px;margin:auto">Start a conversation with reception…</p>';
+        return;
+    }
+    el.innerHTML = hubChatMessages.map(m => {
+        const isGuest = m.from !== 'admin';
+        return `<div style="display:flex;flex-direction:column;align-items:${isGuest ? 'flex-end' : 'flex-start'}">
+            <div style="background:${isGuest ? '#2563eb' : '#f1f1f1'};color:${isGuest ? '#fff' : '#111'};padding:8px 12px;border-radius:${isGuest ? '12px 12px 0 12px' : '12px 12px 12px 0'};max-width:75%;font-size:13px">${m.text}</div>
+            <div style="font-size:10px;opacity:.6;margin-top:2px">${isGuest ? 'You' : 'Reception'} · ${m.time ? new Date(m.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : ''}</div>
+        </div>`;
+    }).join('');
+    el.scrollTop = el.scrollHeight;
+}
+
+async function sendGuestHubChat() {
+    const inp = document.getElementById('guestHubChatInput');
+    const text = inp?.value?.trim();
+    if (!text) return;
+    const msg = { hotelId, from: 'guest', room: '', guestName: guestId || 'Guest', text, time: new Date().toISOString() };
+    inp.value = '';
+    try {
+        const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(msg)
+        });
+        const data = await res.json();
+        if (data && (data._id || data.insertedId)) msg._id = String(data._id || data.insertedId);
+        hubChatMessages.push(msg);
+    } catch (_) {
+        hubChatMessages.push(msg);
+    }
+    renderGuestHubChat();
+    if (hubSocket) hubSocket.emit('guest_chat', { hotelId, msg });
 }
 
 function makeSupportCall() {

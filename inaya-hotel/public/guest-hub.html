@@ -6,6 +6,7 @@
     <title>Guest Hub - 24/7 Services & Payments</title>
     <link rel="stylesheet" href="css/guest-hub.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
     <div class="guest-hub-container">
@@ -198,6 +199,20 @@
                     <p>Chat with our support team</p>
                     <span class="status online">Online Now</span>
                 </button>
+                <!-- Live Chat Modal -->
+                <div class="modal" id="liveChatModal">
+                    <div class="modal-content" style="max-width:400px;height:70vh;display:flex;flex-direction:column">
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #eee">
+                            <h3 style="margin:0"><i class="fas fa-comments"></i> Live Chat</h3>
+                            <button onclick="closeModal('liveChatModal')" style="background:none;border:none;font-size:20px;cursor:pointer">&times;</button>
+                        </div>
+                        <div id="guestHubChatMessages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px"></div>
+                        <div style="display:flex;gap:8px;padding:12px;border-top:1px solid #eee">
+                            <input type="text" id="guestHubChatInput" placeholder="Type a message..." style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px" onkeydown="if(event.key==='Enter'){sendGuestHubChat();}">
+                            <button onclick="sendGuestHubChat()" style="padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer">Send</button>
+                        </div>
+                    </div>
+                </div>
 
                 <button class="support-card" onclick="makeSupportCall()">
                     <i class="fas fa-phone"></i>
