@@ -4,7 +4,7 @@ const { getDB } = require('../config/db');
 const { authMiddleware } = require('../middleware/auth');
 
 // Get Current Bill
-router.get('/bill', authMiddleware, async (req, res) => {
+router.get('/bill', async (req, res) => {
     try {
         const db = getDB();
         const { hotelId, guestId } = req.query;
