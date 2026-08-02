@@ -3495,6 +3495,19 @@ app.delete('/api/calendar/events/:id', superAdminMiddleware, async (req, res) =>
 const multer = require('multer');
 const XLSX = require('xlsx');
 const importExportUpload = multer({ storage: multer.memoryStorage() });
+// ✅ Guest Hub QR Code Upload (Admin)
+const qrCodeUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
+app.post('/api/admin/upload/qr-code', authMiddleware, qrCodeUpload.single('qrCode'), async (req, res) => {
+    try {
+        if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+        if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
+        const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        res.json({ success: true, url: base64Image });
+    } catch (error) {
+        console.error('QR code upload error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 const IMPORT_EXPORT_COLLECTION_MAP = {
   hotels: 'tenants',
