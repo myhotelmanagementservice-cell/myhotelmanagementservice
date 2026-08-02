@@ -673,6 +673,25 @@ app.use('/api/rate-us', rateUsRoutes);
 app.use('/api/digital-key', digitalKeyRoutes);
 app.use('/api/upgrade', upgradeRoutes);
 app.use('/api/guest-hub', guestHubRoutes);
+// ✅ Guest Hub Settings — Save/Update (Admin)
+app.post('/api/admin/guest-hub/settings/update', authMiddleware, async (req, res) => {
+    try {
+        if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+        const { hotelId, settings } = req.body;
+        if (!hotelId || !settings) {
+            return res.status(400).json({ success: false, error: 'hotelId and settings are required' });
+        }
+        await db.collection('hotel_settings').updateOne(
+            { hotel_id: hotelId },
+            { $set: { ...settings, hotel_id: hotelId, updatedAt: new Date() } },
+            { upsert: true }
+        );
+        res.json({ success: true, message: 'Settings saved successfully' });
+    } catch (error) {
+        console.error('Guest Hub settings save error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 app.use('/api/payment', paymentRoutes);
 app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/tickets', ticketsRoutes);

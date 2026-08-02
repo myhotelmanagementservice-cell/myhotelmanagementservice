@@ -14,8 +14,10 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initializeGuestHub() {
     // Get guest ID from URL or session
     const urlParams = new URLSearchParams(window.location.search);
-    guestId = urlParams.get('guestId') || sessionStorage.getItem('guestId');
-    hotelId = urlParams.get('hotelId') || 'HOTEL002';
+    hotelId = urlParams.get('hotelId') || urlParams.get('hotel') || 'HOTEL002';
+    const room = urlParams.get('room') || '';
+    const name = urlParams.get('name') || '';
+    guestId = urlParams.get('guestId') || (room ? `room_${room}` : null) || sessionStorage.getItem('guestId');
 
     if (!guestId) {
         showToast('Guest ID not found', 'error');
@@ -550,3 +552,4 @@ window.onclick = function(event) {
         event.target.classList.remove('active');
     }
 }
+document.getElementById('serviceForm').addEventListener('submit', submitServiceRequest);
