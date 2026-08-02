@@ -271,7 +271,11 @@ async function uploadQRCode() {
 // Load Analytics
 async function loadAnalytics() {
     try {
-        const response = await fetch(`/api/admin/analytics/guest-hub?hotelId=${hotelId}`);
+        const response = await fetch(`/api/admin/analytics/guest-hub?hotelId=${hotelId}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token')}`
+            }
+        });
         const data = await response.json();
 
         if (data.success) {
