@@ -175,7 +175,10 @@ async function saveAllSettings() {
 
         const response = await fetch('/api/admin/guest-hub/settings/update', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token')}`
+            },
             body: JSON.stringify({
                 hotelId,
                 settings
