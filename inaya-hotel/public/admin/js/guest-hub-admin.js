@@ -261,6 +261,9 @@ async function uploadQRCode() {
 
     const response = await fetch('/api/admin/upload/qr-code', {
         method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token')}`
+        },
         body: formData
     });
 
