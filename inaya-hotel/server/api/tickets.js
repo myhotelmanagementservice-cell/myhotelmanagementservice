@@ -4,7 +4,7 @@ const { getDB } = require('../config/db');
 const { authMiddleware } = require('../middleware/auth');
 
 // Create Support Ticket
-router.post('/create', authMiddleware, async (req, res) => {
+router.post('/create', async (req, res) => {
     try {
         const db = getDB();
         const { hotelId, guestId, description, priority = 'normal', category = 'general' } = req.body;
