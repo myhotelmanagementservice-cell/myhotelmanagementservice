@@ -838,6 +838,39 @@ app.get('/api/admin/guest-hub/settings', authMiddleware, async (req, res) => {
     }
 });
 
+// ✅ Guest Hub Analytics (Admin)
+app.get('/api/admin/analytics/guest-hub', authMiddleware, async (req, res) => {
+    try {
+        if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+        const { hotelId } = req.query;
+        if (!hotelId) {
+            return res.status(400).json({ success: false, error: 'hotelId is required' });
+        }
+        const payments = await db.collection('payments').find({ hotel_id: hotelId }).toArray();
+        const totalPayments = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const tickets = await db.collection('support_tickets').find({ hotel_id: hotelId }).toArray();
+        const activeTickets = tickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
+        const openTickets = tickets.filter(t => t.status === 'open').length;
+        const inProgressTickets = tickets.filter(t => t.status === 'in_progress').length;
+        const resolvedTickets = tickets.filter(t => t.status === 'resolved').length;
+        res.json({
+            success: true,
+            totalPayments,
+            activeTickets,
+            aiConversations: 0,
+            serviceRequests: 0,
+            paymentDates: payments.map(p => p.created_at),
+            paymentAmounts: payments.map(p => p.amount || 0),
+            openTickets,
+            inProgressTickets,
+            resolvedTickets
+        });
+    } catch (error) {
+        console.error('Guest Hub analytics error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 const superAdminMiddleware = async (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
