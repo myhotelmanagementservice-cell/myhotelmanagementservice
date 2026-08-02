@@ -1,5 +1,19 @@
 // Global Variables
-let hotelId = 'HOTEL002';
+function getHotelIdFromToken() {
+    const token = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
+    if (!token) return 'HOTEL002';
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload).hotelId || 'HOTEL002';
+    } catch (e) {
+        return 'HOTEL002';
+    }
+}
+let hotelId = getHotelIdFromToken();
 let currentSettings = {};
 
 // Initialize Admin Panel
