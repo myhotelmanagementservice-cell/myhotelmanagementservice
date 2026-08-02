@@ -44,7 +44,15 @@ router.get('/list', async (req, res) => {
             .limit(50)
             .toArray();
 
-        res.json({ success: true, tickets });
+        const mappedTickets = tickets.map(t => ({
+            id: t.ticket_id,
+            description: t.description,
+            status: t.status,
+            priority: t.priority,
+            category: t.category,
+            createdAt: t.created_at
+        }));
+        res.json({ success: true, tickets: mappedTickets });
     } catch (error) {
         console.error('Error fetching tickets:', error);
         res.status(500).json({ success: false, message: 'Server error' });
