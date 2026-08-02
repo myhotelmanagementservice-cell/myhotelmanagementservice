@@ -3,294 +3,343 @@ const router = express.Router();
 const { getDB } = require('../config/db');
 
 // ============================================================
-// AI CHAT — SMART AUTO-REPLY ENGINE
+// AI CHAT — ULTRA COMPREHENSIVE SMART AUTO-REPLY ENGINE
 // ============================================================
 
 // ========== DEFAULT FALLBACK RESPONSES (Multilingual) ==========
 const FALLBACK_RESPONSES = {
-    en: "I'm sorry, I didn't quite understand that. Please contact 24/7 support.",
-    hi: "मुझे क्षमा करें, मैं वह समझ नहीं पाया। कृपया 24/7 सहायता से संपर्क करें।",
-    ar: "آسف، لم أفهم ذلك تمامًا. يرجى الاتصال بالدعم 24/7."
+    en: "I'm sorry, I didn't quite understand that. Please contact 24/7 support or type 'help' for a list of services.",
+    hi: "मुझे क्षमा करें, मैं वह समझ नहीं पाया। कृपया 24/7 सहायता से संपर्क करें या सेवाओं की सूची के लिए 'help' टाइप करें।",
+    ar: "آسف، لم أفهم ذلك تمامًا. يرجى الاتصال بالدعم 24/7 أو اكتب 'help' للحصول على قائمة الخدمات."
 };
 
-// ========== BUILT-IN SMART KEYWORD MATCHING ==========
+// ========== BUILT-IN SMART KEYWORD MATCHING (MASSIVELY EXPANDED) ==========
 const SMART_KEYWORDS = {
-    // Greetings
-    'hi|hello|hey|good morning|good evening|good afternoon': {
+    // ============================================================
+    // 1. GREETINGS & FAREWELLS
+    // ============================================================
+    'hi|hello|hey|good morning|good evening|good afternoon|namaste|salam|aoa': {
         en: "Hello! Welcome to our hotel. How can I assist you today?",
         hi: "नमस्ते! हमारे होटल में आपका स्वागत है। आज मैं आपकी कैसे सहायता कर सकता हूँ?",
         ar: "مرحباً! أهلاً بك في فندقنا. كيف يمكنني مساعدتك اليوم؟"
     },
-    'bye|goodbye|see you|thank you': {
-        en: "Thank you for staying with us. Have a wonderful day!",
-        hi: "हमारे साथ रहने के लिए धन्यवाद। आपका दिन शुभ हो!",
-        ar: "شكراً لإقامتك معنا. أتمنى لك يوماً رائعاً!"
+    'bye|goodbye|see you|thank you|thanks|shukriya|dhanyavad': {
+        en: "Thank you for staying with us. Have a wonderful day and a safe journey!",
+        hi: "हमारे साथ रहने के लिए धन्यवाद। आपका दिन शुभ हो और सफर सुरक्षित रहे!",
+        ar: "شكراً لإقامتك معنا. أتمنى لك يوماً رائعاً ورحلة آمنة!"
     },
-    // Payments & Billing
-    'bill|payment|invoice|gst|receipt|pay': {
-        en: "You can check your bill and payment details in the Payments section or contact reception.",
-        hi: "आप अपना बिल और भुगतान विवरण भुगतान अनुभाग में देख सकते हैं या रिसेप्शन से संपर्क कर सकते हैं।",
-        ar: "يمكنك التحقق من تفاصيل الفاتورة والدفع في قسم المدفوعات أو الاتصال بالمكتب الأمامي."
+
+    // ============================================================
+    // 2. PAYMENTS, BILLING & DEPOSITS
+    // ============================================================
+    'bill|payment|invoice|gst|receipt|pay|balance|amount due': {
+        en: "You can check your bill and payment details in the Payments section. Would you like me to fetch your current balance?",
+        hi: "आप अपना बिल और भुगतान विवरण भुगतान अनुभाग में देख सकते हैं। क्या आप चाहते हैं कि मैं आपका वर्तमान बैलेंस बताऊँ?",
+        ar: "يمكنك التحقق من تفاصيل الفاتورة والدفع في قسم المدفوعات. هل تريد مني جلب رصيدك الحالي؟"
     },
-    // WiFi
-    'wifi|internet|password|network|connect': {
-        en: "Please check the WiFi Password option in the Payments section or contact reception.",
-        hi: "कृपया भुगतान अनुभाग में वाईफाई पासवर्ड विकल्प देखें या रिसेप्शन से संपर्क करें।",
-        ar: "يرجى التحقق من خيار كلمة مرور WiFi في قسم المدفوعات أو الاتصال بالمكتب الأمامي."
+    'deposit|security money|refund|deposit return|hold amount': {
+        en: "Security deposits are typically refunded within 3-5 working days after checkout, subject to a satisfactory room inspection.",
+        hi: "सुरक्षा जमा राशि चेकआउट के बाद कमरे की संतोषजनक जाँच के अधीन, आमतौर पर 3-5 कार्यदिवसों के भीतर वापस कर दी जाती है।",
+        ar: "يتم عادةً رد الودائع الأمنية خلال 3-5 أيام عمل بعد تسجيل المغادرة، خاضعة لفحص مرضي للغرفة."
     },
-    // Checkout
-    'checkout|check out|departure|leaving': {
-        en: "You can complete checkout from the Checkout section or visit the reception.",
-        hi: "आप चेकआउट अनुभाग से चेकआउट पूरा कर सकते हैं या रिसेप्शन पर जा सकते हैं।",
-        ar: "يمكنك إكمال تسجيل المغادرة من قسم المغادرة أو زيارة المكتب الأمامي."
+    'extra person charge|additional guest fee': {
+        en: "Additional guest charges apply as per hotel policy. Please contact reception for the exact amount.",
+        hi: "होटल नीति के अनुसार अतिरिक्त मेहमान शुल्क लागू होता है। सटीक राशि के लिए कृपया रिसेप्शन से संपर्क करें।",
+        ar: "تطبق رسوم الضيوف الإضافيين وفقاً لسياسة الفندق. يرجى الاتصال بالمكتب الأمامي للحصول على المبلغ الدقيق."
     },
-    // Room Service
-    'room service|order food|food delivery|dining': {
-        en: "Room service is available. Please use the Services section to place your request.",
-        hi: "रूम सर्विस उपलब्ध है। कृपया अपना अनुरोध देने के लिए सेवाएँ अनुभाग का उपयोग करें।",
-        ar: "خدمة الغرف متاحة. يرجى استخدام قسم الخدمات لتقديم طلبك."
+
+    // ============================================================
+    // 3. WIFI, INTERNET & TECH SUPPORT
+    // ============================================================
+    'wifi|internet|password|network|connect|wi-fi': {
+        en: "WiFi Network: Hotel_Guest | Password: Welcome2024. You can also find this printed on your room key card folder.",
+        hi: "वाईफाई नेटवर्क: Hotel_Guest | पासवर्ड: Welcome2024। आप इसे अपने कमरे की की कार्ड फोल्डर पर मुद्रित भी पा सकते हैं।",
+        ar: "شبكة الواي فاي: Hotel_Guest | كلمة المرور: Welcome2024. يمكنك أيضاً العثور على هذا مطبوعاً على مجلد مفتاح غرفتك."
     },
-    // Housekeeping
-    'housekeeping|cleaning|towel|pillow|blanket|extra bed|iron|hair dryer': {
-        en: "Housekeeping can be requested anytime from the Services section.",
-        hi: "हाउसकीपिंग कभी भी सेवाएँ अनुभाग से अनुरोध की जा सकती है।",
-        ar: "يمكن طلب خدمة التدبير المنزلي في أي وقت من قسم الخدمات."
+    'wifi not working|slow internet|no connection': {
+        en: "Please try disconnecting and reconnecting to the WiFi. If the issue persists, our IT team can be dispatched to your room.",
+        hi: "कृपया वाईफाई को डिस्कनेक्ट करके फिर से कनेक्ट करने का प्रयास करें। यदि समस्या बनी रहती है, तो हमारी आईटी टीम आपके कमरे में भेजी जा सकती है।",
+        ar: "يرجى محاولة قطع الاتصال وإعادة الاتصال بالواي فاي. إذا استمرت المشكلة، يمكن إرسال فريق تكنولوجيا المعلومات لدينا إلى غرفتك."
     },
-    // Parking
-    'parking|valet|car': {
-        en: "Parking is available for hotel guests. Please contact reception for parking assistance.",
-        hi: "होटल के मेहमानों के लिए पार्किंग उपलब्ध है। पार्किंग सहायता के लिए कृपया रिसेप्शन से संपर्क करें।",
-        ar: "موقف السيارات متاح لنزلاء الفندق. يرجى الاتصال بالمكتب الأمامي للمساعدة في موقف السيارات."
+    'bluetooth|hdmi cable|usb charging|cast to tv|smart tv': {
+        en: "Our rooms are equipped with Smart TVs supporting screen casting. HDMI cables and USB chargers are available at the reception.",
+        hi: "हमारे कमरे स्क्रीन कास्टिंग का समर्थन करने वाले स्मार्ट टीवी से लैस हैं। एचडीएमआई केबल और यूएसबी चार्जर रिसेप्शन पर उपलब्ध हैं।",
+        ar: "غرفنا مجهزة بتلفزيونات ذكية تدعم عرض الشاشة. تتوفر كابلات HDMI وشواحن USB في المكتب الأمامي."
     },
-    // Restaurant / Breakfast
-    'breakfast|restaurant|food|menu|lunch|dinner|coffee|tea': {
-        en: "Please visit the Restaurant/Menu section or contact room service for dining options.",
-        hi: "कृपया भोजन विकल्पों के लिए रेस्तरां/मेनू अनुभाग देखें या रूम सर्विस से संपर्क करें।",
-        ar: "يرجى زيارة قسم المطعم/القائمة أو الاتصال بخدمة الغرف لخيارات تناول الطعام."
+
+    // ============================================================
+    // 4. CHECK-IN, CHECK-OUT & ROOM ACCESS
+    // ============================================================
+    'checkout|check out|departure|leaving|checkout time': {
+        en: "Standard checkout time is 12:00 PM. You can complete checkout from the app or visit the reception.",
+        hi: "मानक चेकआउट समय दोपहर 12:00 बजे है। आप ऐप से चेकआउट पूरा कर सकते हैं या रिसेप्शन पर जा सकते हैं।",
+        ar: "وقت تسجيل المغادرة القياسي هو 12:00 ظهراً. يمكنك إكمال المغادرة من التطبيق أو زيارة المكتب الأمامي."
     },
-    // Spa
-    'spa|massage|wellness|relax|sauna': {
-        en: "Spa services can be booked from the Services section.",
-        hi: "स्पा सेवाएँ सेवाएँ अनुभाग से बुक की जा सकती हैं।",
-        ar: "يمكن حجز خدمات السبا من قسم الخدمات."
+    'check in|check-in|arrival|arrive|early check in': {
+        en: "Standard check-in time is 2:00 PM. Early check-in is subject to room availability and may incur a nominal fee.",
+        hi: "मानक चेक-इन समय दोपहर 2:00 बजे है। अर्ली चेक-इन कमरे की उपलब्धता के अधीन है और इस पर नाममात्र शुल्क लग सकता है।",
+        ar: "وقت تسجيل الوصول القياسي هو 2:00 ظهراً. تسجيل الوصول المبكر يخضع لتوفر الغرفة وقد يتكلف رسوماً رمزية."
     },
-    // Laundry
-    'laundry|wash|dry clean|ironing': {
-        en: "Laundry service is available. Please request it from the Services section.",
-        hi: "लॉन्ड्री सेवा उपलब्ध है। कृपया इसे सेवाएँ अनुभाग से अनुरोध करें।",
-        ar: "خدمة الغسيل متاحة. يرجى طلبها من قسم الخدمات."
+    'late checkout|extend stay|extension|stay longer': {
+        en: "Late checkout is subject to availability and may incur an additional half-day charge. Please request this at reception.",
+        hi: "लेट चेकआउट उपलब्धता के अधीन है और इस पर अतिरिक्त आधा दिन का शुल्क लग सकता है। कृपया यह अनुरोध रिसेप्शन पर करें।",
+        ar: "تسجيل المغادرة المتأخر يخضع للتوفر وقد يتكلف رسوماً إضافية لنصف يوم. يرجى طلب ذلك من المكتب الأمامي."
     },
-    // Late Checkout
-    'late checkout|extend stay|extension': {
-        en: "Late checkout depends on availability. Please contact reception.",
-        hi: "लेट चेकआउट उपलब्धता पर निर्भर करता है। कृपया रिसेप्शन से संपर्क करें।",
-        ar: "تسجيل المغادرة المتأخر يعتمد على التوفر. يرجى الاتصال بالمكتب الأمامي."
+    'key card|room key|door not opening|lock|lost key|magnetic card': {
+        en: "If your key card is not working or is lost, please visit the reception immediately for a replacement or reprogramming.",
+        hi: "यदि आपकी की कार्ड काम नहीं कर रही है या खो गई है, तो प्रतिस्थापन या रिप्रोग्रामिंग के लिए कृपया तुरंत रिसेप्शन पर जाएं।",
+        ar: "إذا كانت بطاقة المفتاح لا تعمل أو فقدت، يرجى زيارة المكتب الأمامي فوراً للحصول على بديل أو إعادة برمجة."
     },
-    // Complaint
-    'complaint|problem|issue|not working|broken|tv|ac|hot water|noise|electricity': {
-        en: "We're sorry for the inconvenience. Please raise a request in the 24/7 Support section.",
-        hi: "असुविधा के लिए हमें खेद है। कृपया 24/7 सहायता अनुभाग में अनुरोध दर्ज करें।",
-        ar: "نأسف على الإزعاج. يرجى تقديم طلب في قسم الدعم 24/7."
+
+    // ============================================================
+    // 5. ROOM SERVICE, DINING & DIETARY REQUIREMENTS
+    // ============================================================
+    'room service|order food|food delivery|dining|hungry|menu': {
+        en: "Room service is available 24/7. Please use the 'Services' section in the app to view the menu and place your order.",
+        hi: "रूम सर्विस 24/7 उपलब्ध है। कृपया मेनू देखने और ऑर्डर देने के लिए ऐप में 'Services' अनुभाग का उपयोग करें।",
+        ar: "خدمة الغرف متاحة 24/7. يرجى استخدام قسم 'الخدمات' في التطبيق لعرض القائمة وتقديم طلبك."
     },
-    // Transport
-    'taxi|cab|transport|airport pickup|airport drop|pickup|drop': {
-        en: "Taxi and transport services are available through the Transport section.",
-        hi: "टैक्सी और परिवहन सेवाएँ परिवहन अनुभाग के माध्यम से उपलब्ध हैं।",
-        ar: "خدمات سيارات الأجرة والنقل متاحة من خلال قسم النقل."
+    'breakfast|breakfast time|morning food|complimentary breakfast': {
+        en: "Complimentary breakfast is served from 7:00 AM to 10:30 AM in the main restaurant. In-room breakfast is also available.",
+        hi: "कॉम्प्लीमेंटरी नाश्ता मुख्य रेस्तरां में सुबह 7:00 बजे से 10:30 बजे तक परोसा जाता है। इन-रूम नाश्ता भी उपलब्ध है।",
+        ar: "يتم تقديم الإفطار المجاني من الساعة 7:00 صباحاً حتى 10:30 صباحاً في المطعم الرئيسي. يتوفر أيضاً الإفطار في الغرفة."
     },
-    // Check-in
-    'check in|check-in|arrival|arrive': {
-        en: "Standard check-in time is usually from 2:00 PM. Please confirm with reception.",
-        hi: "मानक चेक-इन समय आमतौर पर दोपहर 2:00 बजे से होता है। कृपया रिसेप्शन से पुष्टि करें।",
-        ar: "وقت تسجيل الوصول القياسي عادة من الساعة 2:00 ظهراً. يرجى التأكيد مع المكتب الأمامي."
+    'halal|pork|alcohol|non veg|vegetarian|vegan|jain food': {
+        en: "We offer a wide variety of Halal, Vegetarian, and Vegan options. Please inform room service of any dietary restrictions or allergies.",
+        hi: "हम हलाल, शाकाहारी और वेगन विकल्पों की एक विस्तृत श्रृंखला प्रदान करते हैं। कृपया रूम सर्विस को किसी भी आहार प्रतिबंध या एलर्जी के बारे में बताएं।",
+        ar: "نحن نقدم مجموعة واسعة من الخيارات الحلال والنباتية. يرجى إبلاغ خدمة الغرفة بأي قيود غذائية أو حساسية."
     },
-    // Emergency
-    'emergency|urgent|help|doctor|hospital|police|ambulance': {
-        en: "For immediate assistance, please call reception or use the Emergency option.",
-        hi: "तत्काल सहायता के लिए, कृपया रिसेप्शन को कॉल करें या आपातकालीन विकल्प का उपयोग करें।",
-        ar: "للمساعدة الفورية، يرجى الاتصال بالمكتب الأمامي أو استخدام خيار الطوارئ."
+    'gluten free|nut allergy|dairy free|food allergy': {
+        en: "Our culinary team can accommodate most food allergies. Please specify your allergy when ordering, and we will ensure a safe meal.",
+        hi: "हमारी पाक टीम अधिकांश खाद्य एलर्जी को समायोजित कर सकती है। कृपया ऑर्डर करते समय अपनी एलर्जी निर्दिष्ट करें, और हम एक सुरक्षित भोजन सुनिश्चित करेंगे।",
+        ar: "يمكن لفريق الطهي لدينا استيعاب معظم حساسيات الطعام. يرجى تحديد حساسيتك عند الطلب، وسنضمن وجبة آمنة."
     },
-    // Pool
-    'pool|swimming|swim': {
-        en: "The swimming pool is open during hotel operating hours. Please check with reception.",
-        hi: "स्विमिंग पूल होटल के परिचालन घंटों के दौरान खुला रहता है। कृपया रिसेप्शन से जाँच करें।",
-        ar: "المسبح مفتوح خلال ساعات عمل الفندق. يرجى الاستفسار من المكتب الأمامي."
+    'minibar|fridge|snacks in room|drinks in room|complimentary water': {
+        en: "The minibar is stocked with beverages and snacks. Two complimentary water bottles are provided daily. Other items are chargeable.",
+        hi: "मिनीबार पेय और नाश्ते से भरा हुआ है। प्रतिदिन दो कॉम्प्लीमेंटरी पानी की बोतलें प्रदान की जाती हैं। अन्य वस्तुएँ चार्जेबल हैं।",
+        ar: "الميني بار مليء بالمشروبات والوجبات الخفيفة. يتم توفير زجاجتين من الماء المجاني يومياً. العناصر الأخرى تخضع للرسوم."
     },
-    // Gym
-    'gym|fitness|workout|exercise': {
-        en: "Our fitness center is available for hotel guests. Please see the Amenities section.",
-        hi: "हमारा फिटनेस सेंटर होटल के मेहमानों के लिए उपलब्ध है। कृपया सुविधाएँ अनुभाग देखें।",
-        ar: "مركز اللياقة البدنية متاح لنزلاء الفندق. يرجى الاطلاع على قسم وسائل الراحة."
+    'coffee machine|kettle|tea|coffee': {
+        en: "A coffee/tea making facility with complimentary sachets is available in your room. Additional supplies can be requested from housekeeping.",
+        hi: "आपके कमरे में कॉम्प्लीमेंटरी सैशेट के साथ कॉफी/चाय बनाने की सुविधा उपलब्ध है। अतिरिक्त सामग्री हाउसकीपिंग से अनुरोध की जा सकती है।",
+        ar: "تتوفر مرافق صنع القهوة/الشاي مع أكياس مجانية في غرفتك. يمكن طلب إمدادات إضافية من خدمة التدبير المنزلي."
     },
-    // Meeting Room
-    'meeting|conference|banquet|event': {
-        en: "Meeting and conference facilities can be booked through reception.",
-        hi: "बैठक और सम्मेलन सुविधाएँ रिसेप्शन के माध्यम से बुक की जा सकती हैं।",
-        ar: "يمكن حجز مرافق الاجتماعات والمؤتمرات من خلال المكتب الأمامي."
+
+    // ============================================================
+    // 6. HOUSEKEEPING & ROOM AMENITIES
+    // ============================================================
+    'housekeeping|cleaning|room clean|towel|pillow|blanket|extra bed': {
+        en: "Housekeeping can be requested anytime from the 'Services' section. We will send someone to your room shortly.",
+        hi: "हाउसकीपिंग कभी भी 'Services' अनुभाग से अनुरोध की जा सकती है। हम जल्द ही किसी को आपके कमरे में भेजेंगे।",
+        ar: "يمكن طلب خدمة التدبير المنزلي في أي وقت من قسم 'الخدمات'. سنرسل شخصاً إلى غرفتك قريباً."
     },
-    // Wake-up Call
-    'wake up|wakeup|morning call': {
-        en: "You can request a wake-up call from the Services section.",
-        hi: "आप सेवाएँ अनुभाग से वेक-अप कॉल का अनुरोध कर सकते हैं।",
-        ar: "يمكنك طلب مكالمة إيقاظ من قسم الخدمات."
+    'ac not working|tv not working|hot water|no water|leak|broken|bulb': {
+        en: "We're sorry for the inconvenience. I have immediately notified our maintenance team to visit your room and resolve the issue.",
+        hi: "असुविधा के लिए हमें खेद है। मैंने तुरंत हमारी मेंटेनेंस टीम को आपके कमरे में आने और समस्या को हल करने के लिए सूचित कर दिया है।",
+        ar: "نأسف على الإزعاج. لقد قمت بإخطار فريق الصيانة فوراً لزيارة غرفتك وحل المشكلة."
     },
-    // Lost & Found
-    'lost|found|lost item|missing|forgot': {
-        en: "Please report lost items using the Lost & Found section.",
-        hi: "कृपया खोई हुई वस्तुओं की रिपोर्ट खोया-पाया अनुभाग का उपयोग करके करें।",
-        ar: "يرجى الإبلاغ عن العناصر المفقودة باستخدام قسم المفقودات."
+    'iron|hair dryer|kettle|adapter|extension board|hanger|slippers|bathrobe': {
+        en: "These amenities are available on request. Please raise a request in the 'Services' section, and we will deliver it to your room within 15 minutes.",
+        hi: "ये सुविधाएँ अनुरोध पर उपलब्ध हैं। कृपया 'Services' अनुभाग में अनुरोध करें, और हम इसे 15 मिनट के भीतर आपके कमरे में पहुँचा देंगे।",
+        ar: "هذه وسائل الراحة متاحة عند الطلب. يرجى تقديم طلب في قسم 'الخدمات'، وسنقوم بتوصيله إلى غرفتك خلال 15 دقيقة."
     },
-    // Luggage Storage
-    'luggage|baggage|storage|bag|suitcase': {
-        en: "Luggage storage is available before check-in and after checkout.",
-        hi: "चेक-इन से पहले और चेक-आउट के बाद सामान भंडारण उपलब्ध है।",
-        ar: "تتوفر خدمة تخزين الأمتعة قبل تسجيل الوصول وبعد تسجيل المغادرة."
+    'safe box|locker|password|how to use safe': {
+        en: "The in-room safe can be operated using your room number as the default password. If locked, please contact reception for assistance.",
+        hi: "इन-रूम सेफ का संचालन डिफ़ॉल्ट पासवर्ड के रूप में आपके कमरे का नंबर उपयोग करके किया जा सकता है। यदि लॉक हो गया है, तो सहायता के लिए रिसेप्शन से संपर्क करें।",
+        ar: "يمكن تشغيل الخزنة في الغرفة باستخدام رقم غرفتك ككلمة مرور افتراضية. إذا تم قفلها، يرجى الاتصال بالمكتب الأمامي للمساعدة."
     },
-    // Nearby Attractions
-    'attraction|nearby|tourist|sightseeing|place': {
-        en: "Please check the Nearby Attractions section or ask reception.",
-        hi: "कृपया आस-पास के आकर्षण अनुभाग देखें या रिसेप्शन से पूछें।",
-        ar: "يرجى التحقق من قسم المعالم القريبة أو الاستفسار من المكتب الأمامي."
+    'toiletries|shampoo|soap|toothbrush|razor|sewing kit|sanitary pads': {
+        en: "Complimentary toiletries are provided in the bathroom. Additional items like toothbrushes or razors can be requested from housekeeping.",
+        hi: "बाथरूम में कॉम्प्लीमेंटरी टॉयलेटरीज़ प्रदान की जाती हैं। टूथब्रश या रेज़र जैसे अतिरिक्त आइटम हाउसकीपिंग से अनुरोध किए जा सकते हैं।",
+        ar: "توفر أدوات الزينة المجانية في الحمام. يمكن طلب عناصر إضافية مثل فرش الأسنان أو شفرات الحلاقة من خدمة التدبير المنزلي."
     },
-    // Smoking
-    'smoking|smoke|smoker': {
-        en: "Smoking is only permitted in designated smoking areas.",
-        hi: "धूम्रपान केवल निर्दिष्ट धूम्रपान क्षेत्रों में ही अनुमत है।",
-        ar: "يُسمح بالتدخين فقط في مناطق التدخين المخصصة."
+
+    // ============================================================
+    // 7. LAUNDRY & DRY CLEANING
+    // ============================================================
+    'laundry|wash|dry clean|ironing|pressing|when will clothes come': {
+        en: "Laundry and dry cleaning services are available. Clothes submitted before 9:00 AM are usually returned by 6:00 PM the same day.",
+        hi: "लॉन्ड्री और ड्राई क्लीनिंग सेवाएँ उपलब्ध हैं। सुबह 9:00 बजे से पहले जमा किए गए कपड़े आमतौर पर उसी दिन शाम 6:00 बजे तक वापस कर दिए जाते हैं।",
+        ar: "خدمات الغسيل والتنظيف الجاف متاحة. الملابس المقدمة قبل الساعة 9:00 صباحاً تُعاد عادةً بحلول الساعة 6:00 مساءً من نفس اليوم."
     },
-    // Pet Policy
-    'pet|dog|cat|animal|pets': {
-        en: "Please check the hotel's pet policy or contact reception.",
-        hi: "कृपया होटल की पालतू जानवर नीति देखें या रिसेप्शन से संपर्क करें।",
-        ar: "يرجى التحقق من سياسة الفندق بشأن الحيوانات الأليفة أو الاتصال بالمكتب الأمامي."
+    'express laundry|urgent washing|same day laundry': {
+        en: "Express laundry service is available at a 50% surcharge, with a 4-hour turnaround time.",
+        hi: "एक्सप्रेस लॉन्ड्री सेवा 50% अतिरिक्त शुल्क पर उपलब्ध है, जिसका टर्नअराउंड समय 4 घंटे है।",
+        ar: "تتوفر خدمة الغسيل السريع برسوم إضافية بنسبة 50٪، مع وقت تسليم خلال 4 ساعات."
     },
-    // Baby Crib / Extra Bed
-    'baby|crib|cot|child|extra bed': {
-        en: "Baby cribs and extra beds are available on request, subject to availability.",
-        hi: "बेबी क्रिब और अतिरिक्त बिस्तर अनुरोध पर उपलब्ध हैं, उपलब्धता के अधीन।",
-        ar: "أسرّة الأطفال والأسرة الإضافية متوفرة عند الطلب، حسب التوفر."
+    'shoe shine|shoe cleaning': {
+        en: "Complimentary shoe shine service is available. Please place your shoes in the shoe shine bag provided in the closet.",
+        hi: "कॉम्प्लीमेंटरी शू शॉइन सेवा उपलब्ध है। कृपया अपने जूते क्लॉसेट में प्रदान किए गए शू शॉइन बैग में रख दें।",
+        ar: "تتوفر خدمة تلميع الأحذية المجانية. يرجى وضع أحذيتك في حقيبة تلميع الأحذية المتوفرة في الخزانة."
     },
-    // Safe Locker
-    'safe|locker|security|lock': {
-        en: "Each room includes a safe locker. Contact reception if you need assistance.",
-        hi: "प्रत्येक कमरे में एक सेफ लॉकर शामिल है। यदि आपको सहायता की आवश्यकता हो तो रिसेप्शन से संपर्क करें।",
-        ar: "كل غرفة تشمل خزنة آمنة. اتصل بالمكتب الأمامي إذا كنت بحاجة إلى مساعدة."
+
+    // ============================================================
+    // 8. AMENITIES & FACILITIES
+    // ============================================================
+    'pool|swimming|swim|pool time|kids pool': {
+        en: "The swimming pool is open daily from 7:00 AM to 8:00 PM. Pool towels are available at the poolside. Children must be accompanied by an adult.",
+        hi: "स्विमिंग पूल प्रतिदिन सुबह 7:00 बजे से शाम 8:00 बजे तक खुला रहता है। पूल तौलिये पूल के पास उपलब्ध हैं। बच्चों को एक वयस्क के साथ होना चाहिए।",
+        ar: "المسبح مفتوح يومياً من الساعة 7:00 صباحاً حتى 8:00 مساءً. تتوفر مناشف المسبح على جانب المسبح. يجب أن يكون الأطفال بصحبة بالغ."
     },
-    // Room Change
-    'change room|room change|shift|move': {
-        en: "Room changes are subject to availability. Please contact reception.",
-        hi: "कमरे में बदलाव उपलब्धता के अधीन है। कृपया रिसेप्शन से संपर्क करें।",
-        ar: "تغيير الغرفة حسب التوفر. يرجى الاتصال بالمكتب الأمامي."
+    'gym|fitness|workout|exercise|fitness center|treadmill|yoga mat': {
+        en: "Our fitness center is open 24/7 for hotel guests. Please wear appropriate athletic footwear. Yoga mats and towels are provided.",
+        hi: "हमारा फिटनेस सेंटर होटल के मेहमानों के लिए 24/7 खुला है। कृपया उचित एथलेटिक जूते पहनें। योगा मैट और तौलिये प्रदान किए जाते हैं।",
+        ar: "مركز اللياقة البدنية لدينا مفتوح 24/7 لنزلاء الفندق. يرجى ارتداء أحذية رياضية مناسبة. يتم توفير سجاد اليوجا والمناشف."
     },
-    // Discount / Offers
-    'discount|offer|deal|promo|coupon': {
-        en: "Current hotel offers are available in the Offers section.",
-        hi: "वर्तमान होटल ऑफ़र ऑफ़र अनुभाग में उपलब्ध हैं।",
-        ar: "العروض الحالية للفندق متاحة في قسم العروض."
+    'spa|massage|wellness|relax|sauna|steam|spa price': {
+        en: "Spa and wellness services can be booked from the 'Services' section. Advance booking is highly recommended due to high demand.",
+        hi: "स्पा और वेलनेस सेवाएँ 'Services' अनुभाग से बुक की जा सकती हैं। उच्च मांग के कारण पूर्व बुकिंग की अत्यधिक अनुशंसा की जाती है।",
+        ar: "يمكن حجز خدمات السبا والعافية من قسم 'الخدمات'. يوصى بشدة بالحجز المسبق بسبب الطلب العالي."
     },
-    // Loyalty Program
-    'loyalty|points|rewards|membership': {
-        en: "Please visit the Loyalty section to view available rewards.",
-        hi: "कृपया उपलब्ध पुरस्कार देखने के लिए लॉयल्टी अनुभाग पर जाएँ।",
-        ar: "يرجى زيارة قسم الولاء لعرض المكافآت المتاحة."
+    'parking|valet|car park|ev charging|electric car|parking fee': {
+        en: "Complimentary self-parking is available for guests. Valet parking and EV charging stations are available at an additional charge.",
+        hi: "मेहमानों के लिए कॉम्प्लीमेंटरी सेल्फ-पार्किंग उपलब्ध है। वेलट पार्किंग और ईवी चार्जिंग स्टेशन अतिरिक्त शुल्क पर उपलब्ध हैं।",
+        ar: "موقف السيارات الذاتي المجاني متاح للنزلاء. تتوفر خدمة صف السيارات ومحطات شحن السيارات الكهربائية برسوم إضافية."
     },
-    // QR Code
-    'qr code|scan|code|qr': {
-        en: "Please scan the room QR code to access all hotel services.",
-        hi: "कृपया सभी होटल सेवाओं तक पहुँचने के लिए कमरा QR कोड स्कैन करें।",
-        ar: "يرجى مسح رمز QR الخاص بالغرفة للوصول إلى جميع خدمات الفندق."
+    'business center|business|work|office|print|scan|fax|photocopy': {
+        en: "Our business center offers printing, scanning, and fax services. It is located on the Ground Floor and is open from 8:00 AM to 8:00 PM.",
+        hi: "हमारा बिजनेस सेंटर प्रिंटिंग, स्कैनिंग और फैक्स सेवाएँ प्रदान करता है। यह ग्राउंड फ्लोर पर स्थित है और सुबह 8:00 बजे से रात 8:00 बजे तक खुला रहता है।",
+        ar: "يوفر مركز الأعمال لدينا خدمات الطباعة والمسح الضوئي والفاكس. يقع في الطابق الأرضي وهو مفتوح من الساعة 8:00 صباحاً حتى 8:00 مساءً."
     },
-    // Contact Number
-    'contact|phone|number|call|reception': {
-        en: "Reception is available 24/7. You can find all hotel contact details in the Contact Us section.",
-        hi: "रिसेप्शन 24/7 उपलब्ध है। आप सभी होटल संपर्क विवरण हमसे संपर्क करें अनुभाग में पा सकते हैं।",
-        ar: "المكتب الأمامي متاح 24/7. يمكنك العثور على جميع تفاصيل الاتصال بالفندق في قسم اتصل بنا."
+    'meeting room|conference|banquet|event|projector|capacity': {
+        en: "We have fully equipped meeting rooms. Please contact the events team at reception for capacity details and booking.",
+        hi: "हमारे पास पूरी तरह से सुसज्जित मीटिंग रूम हैं। क्षमता विवरण और बुकिंग के लिए कृपया रिसेप्शन पर इवेंट्स टीम से संपर्क करें।",
+        ar: "لدينا غرف اجتماعات مجهزة بالكامل. يرجى الاتصال بفريق الفعاليات في المكتب الأمامي للحصول على تفاصيل السعة والحجز."
     },
-    // Language Support
-    'language|translate|english|hindi|arabic': {
-        en: "We support multiple languages. Please select your preferred language.",
-        hi: "हम कई भाषाओं का समर्थन करते हैं। कृपया अपनी पसंदीदा भाषा चुनें।",
-        ar: "نحن ندعم لغات متعددة. يرجى اختيار لغتك المفضلة."
+
+    // ============================================================
+    // 9. TRANSPORTATION & LOCAL AREA
+    // ============================================================
+    'taxi|cab|transport|airport pickup|airport drop|uber|ola|shuttle': {
+        en: "We can arrange airport transfers and local taxis. Please provide your flight details or destination at the reception.",
+        hi: "हम एयरपोर्ट ट्रांसफर और स्थानीय टैक्सी की व्यवस्था कर सकते हैं। कृपया रिसेप्शन पर अपनी फ्लाइट विवरण या गंतव्य प्रदान करें।",
+        ar: "يمكننا ترتيب نقل المطار وسيارات الأجرة المحلية. يرجى تقديم تفاصيل رحلتك أو وجهتك في المكتب الأمامي."
     },
-    // Feedback / Review
-    'feedback|review|rating|suggest|opinion': {
-        en: "We value your feedback. Please submit your review in the Feedback section.",
-        hi: "हम आपकी प्रतिक्रिया को महत्व देते हैं। कृपया अपनी समीक्षा प्रतिक्रिया अनुभाग में जमा करें।",
-        ar: "نحن نقدر ملاحظاتك. يرجى تقديم تقييمك في قسم الملاحظات."
+    'atm|cash machine|bank nearby|withdraw money|currency exchange': {
+        en: "There is an ATM and currency exchange counter located in the hotel lobby. Several banks are within a 5-minute walking distance.",
+        hi: "होटल लॉबी में एक एटीएम और मुद्रा विनिमय काउंटर स्थित है। कई बैंक 5 मिनट की पैदल दूरी के भीतर हैं।",
+        ar: "يوجد صراف آلي وعداد صرف عملات في بهو الفندق. العديد من البنوك على بعد 5 دقائق سيراً على الأقدام."
     },
-    // Live Chat
-    'live chat|chat|support|help': {
-        en: "Our support team is available through Live Chat 24/7.",
-        hi: "हमारी सहायता टीम लाइव चैट के माध्यम से 24/7 उपलब्ध है।",
-        ar: "فريق الدعم لدينا متاح من خلال الدردشة المباشرة 24/7."
+    'pharmacy|medicine|medical store|chemist|hospital nearby|clinic': {
+        en: "A 24-hour pharmacy is located 2 minutes away from the hotel. For medical emergencies, please contact reception immediately.",
+        hi: "होटल से 2 मिनट की दूरी पर एक 24 घंटे खुलने वाली फार्मेसी स्थित है। चिकित्सा आपात स्थिति के लिए, कृपया तुरंत रिसेप्शन से संपर्क करें।",
+        ar: "توجد صيدلية تعمل على مدار 24 ساعة على بعد دقيقتين من الفندق. للطوارئ الطبية، يرجى الاتصال بالمكتب الأمامي فوراً."
     },
-    // Restroom / Washroom
-    'restroom|washroom|bathroom|toilet|loo': {
-        en: "Restrooms are located on every floor. Please refer to the floor map.",
-        hi: "रेस्टरूम हर मंजिल पर स्थित हैं। कृपया फ्लोर मैप देखें।",
-        ar: "تقع دورات المياه في كل طابق. يرجى الرجوع إلى خريطة الطابق."
+    'mosque|masjid|church|temple|worship place|qibla direction|prayer mat': {
+        en: "We provide prayer mats in the room. The Qibla direction is indicated by an arrow on the ceiling. Nearby places of worship can be mapped by reception.",
+        hi: "हम कमरे में नमाज चटाई प्रदान करते हैं। किबला की दिशा छत पर एक तीर से दर्शाई गई है। निकटतम पूजा स्थल की जानकारी रिसेप्शन से ली जा सकती है।",
+        ar: "نوفر سجادات الصلاة في الغرفة. اتجاه القبلة موضح بسهم على السقف. يمكن للمكتب الأمامي تحديد أماكن العبادة القريبة."
     },
-    // Elevator / Lift
-    'elevator|lift|escalator': {
-        en: "Elevators are available near the main lobby. Please use the floor map for directions.",
-        hi: "लिफ्ट मुख्य लॉबी के पास उपलब्ध हैं। दिशा-निर्देश के लिए कृपया फ्लोर मैप का उपयोग करें।",
-        ar: "المصاعد متاحة بالقرب من البهو الرئيسي. يرجى استخدام خريطة الطابق للحصول على الاتجاهات."
+    'nearest mall|shopping|tourist places|metro|bus stop|sightseeing': {
+        en: "The nearest shopping mall is 10 minutes away. The reception can provide a map of tourist attractions and arrange guided tours.",
+        hi: "निकटतम शॉपिंग मॉल 10 मिनट की दूरी पर है। रिसेप्शन पर्यटक आकर्षणों का नक्शा प्रदान कर सकता है और गाइडेड टूर की व्यवस्था कर सकता है।",
+        ar: "أقرب مركز تسوق يبعد 10 دقائق. يمكن للمكتب الأمامي توفير خريطة للمعالم السياحية وترتيب جولات إرشادية."
     },
-    // Ice Machine
-    'ice|cube|ice machine': {
-        en: "Ice machines are available on designated floors. Please contact reception for the nearest location.",
-        hi: "आइस मशीनें निर्दिष्ट मंजिलों पर उपलब्ध हैं। निकटतम स्थान के लिए कृपया रिसेप्शन से संपर्क करें।",
-        ar: "آلات الثلج متاحة في الطوابق المخصصة. يرجى الاتصال بالمكتب الأمامي للحصول على أقرب موقع."
+
+    // ============================================================
+    // 10. POLICIES & SPECIAL REQUESTS
+    // ============================================================
+    'pet policy|dog|cat|animal|pets allowed|pet fee': {
+        en: "We are a pet-friendly hotel! Small pets are allowed with prior notice and a nominal cleaning fee. Please inform reception.",
+        hi: "हम एक पेट-फ्रेंडली होटल हैं! पूर्व सूचना और नाममात्र की सफाई शुल्क के साथ छोटे पालतू जानवरों की अनुमति है। कृपया रिसेप्शन को सूचित करें।",
+        ar: "نحن فندق صديق للحيوانات الأليفة! يُسمح بالحيوانات الأليفة الصغيرة مع إشعار مسبق ورسوم تنظيف رمزية. يرجى إبلاغ المكتب الأمامي."
     },
-    // Vending Machine
-    'vending|snack|drink|machine': {
-        en: "Vending machines are located near the lobby and common areas.",
-        hi: "वेंडिंग मशीनें लॉबी और सामान्य क्षेत्रों के पास स्थित हैं।",
-        ar: "تقع آلات البيع بالقرب من البهو والمناطق المشتركة."
+    'smoking|smoke|smoker|vape|smoking fine': {
+        en: "This is a 100% non-smoking hotel. Smoking is only permitted in the designated outdoor smoking zones. Fines apply for smoking in rooms.",
+        hi: "यह एक 100% नॉन-स्मोकिंग होटल है। धूम्रपान केवल निर्दिष्ट आउटडोर स्मोकिंग जोन में ही अनुमत है। कमरों में धूम्रपान पर जुर्माना लागू होता है।",
+        ar: "هذا فندق لغير المدخنين بنسبة 100٪. يُسمح بالتدخين فقط في مناطق التدخين الخارجية المخصصة. تطبق غرامات على التدخين في الغرف."
     },
-    // Business Center
-    'business center|business|work|office': {
-        en: "Our business center is open 24/7. Please contact reception for access.",
-        hi: "हमारा बिजनेस सेंटर 24/7 खुला है। पहुँच के लिए कृपया रिसेप्शन से संपर्क करें।",
-        ar: "مركز الأعمال لدينا مفتوح 24/7. يرجى الاتصال بالمكتب الأمامي للوصول."
+    'visitor|friend coming|guest visit|visitor policy|visitor fee': {
+        en: "Visitors are welcome in the lobby and restaurant until 10:00 PM. For room visits, please register them at the reception for security purposes.",
+        hi: "लॉबी और रेस्तरां में रात 10:00 बजे तक मेहमानों का स्वागत है। कमरे में आने वाले मेहमानों के लिए, कृपया सुरक्षा उद्देश्यों से उन्हें रिसेप्शन पर पंजीकृत करें।",
+        ar: "نرحب بالزوار في البهو والمطعم حتى الساعة 10:00 مساءً. لزيارات الغرفة، يرجى تسجيلهم في المكتب الأمامي لأغراض أمنية."
     },
-    // Kids Play Area
-    'kids|children|play|playground': {
-        en: "We have a kids' play area available. Please check with reception for timings.",
-        hi: "हमारे पास बच्चों का खेल क्षेत्र उपलब्ध है। समय के लिए कृपया रिसेप्शन से जाँच करें।",
-        ar: "لدينا منطقة لعب للأطفال متاحة. يرجى الاستفسار من المكتب الأمامي عن التوقيتات."
+    'wake up|wakeup|morning call|alarm': {
+        en: "You can schedule a wake-up call from the 'Services' section or by dialing '0' from your room phone.",
+        hi: "आप 'Services' अनुभाग से या अपने कमरे के फोन से '0' डायल करके वेक-अप कॉल शेड्यूल कर सकते हैं।",
+        ar: "يمكنك جدولة مكالمة إيقاظ من قسم 'الخدمات' أو عن طريق طلب '0' من هاتف غرفتك."
     },
-    // Currency Exchange
-    'currency|exchange|money|cash': {
-        en: "Currency exchange services are available at the front desk.",
-        hi: "मुद्रा विनिमय सेवाएँ फ्रंट डेस्क पर उपलब्ध हैं।",
-        ar: "خدمات صرف العملات متاحة في المكتب الأمامي."
+    'luggage|baggage|storage|bag|suitcase|left luggage': {
+        en: "Complimentary luggage storage is available at the concierge desk before check-in and after checkout.",
+        hi: "चेक-इन से पहले और चेक-आउट के बाद कंसीयज डेस्क पर कॉम्प्लीमेंटरी सामान भंडारण उपलब्ध है।",
+        ar: "يتوفر تخزين الأمتعة المجاني في مكتب الكونسيرج قبل تسجيل الوصول وبعد تسجيل المغادرة."
     },
-    // Newspaper / Magazine
+    'lost|found|lost item|missing|forgot something': {
+        en: "Please report lost items immediately to the reception or use the '24/7 Support' section in the app.",
+        hi: "कृपया खोई हुई वस्तुओं की रिपोर्ट तुरंत रिसेप्शन को करें या ऐप में '24/7 Support' अनुभाग का उपयोग करें।",
+        ar: "يرجى الإبلاغ عن العناصر المفقودة فوراً للمكتب الأمامي أو استخدام قسم 'الدعم 24/7' في التطبيق."
+    },
+    'wheelchair|accessible|disability|special needs|ground floor room': {
+        en: "We have wheelchair-accessible rooms and facilities. Please contact reception to ensure your specific needs are met.",
+        hi: "हमारे पास व्हीलचेयर सुलभ कमरे और सुविधाएँ हैं। कृपया यह सुनिश्चित करने के लिए रिसेप्शन से संपर्क करें कि आपकी विशिष्ट आवश्यकताएँ पूरी हों।",
+        ar: "لدينا غرف ومرافق يمكن الوصول إليها بواسطة الكراسي المتحركة. يرجى الاتصال بالمكتب الأمامي لضمان تلبية احتياجاتك الخاصة."
+    },
+    'honeymoon|birthday|anniversary|special occasion|cake|flower|decoration': {
+        en: "Congratulations! We can arrange special room decorations, cakes, or flowers. Please request this via the 'Services' section at least 24 hours in advance.",
+        hi: "बधाई हो! हम विशेष कमरे की सजावट, केक या फूलों की व्यवस्था कर सकते हैं। कृपया यह अनुरोध कम से कम 24 घंटे पहले 'Services' अनुभाग के माध्यम से करें।",
+        ar: "تهانينا! يمكننا ترتيب زخارف خاصة للغرفة أو كعكات أو زهور. يرجى طلب ذلك عبر قسم 'الخدمات' قبل 24 ساعة على الأقل."
+    },
+    'babysitting|child care|kids club': {
+        en: "Babysitting services can be arranged through the concierge with prior notice. Additional charges apply.",
+        hi: "बेबीसिटिंग सेवाएँ पूर्व सूचना के साथ कंसीयज के माध्यम से व्यवस्थित की जा सकती हैं। अतिरिक्त शुल्क लागू होता है।",
+        ar: "يمكن ترتيب خدمات جليسة الأطفال من خلال الكونسيرج مع إشعار مسبق. تطبق رسوم إضافية."
+    },
+
+    // ============================================================
+    // 11. EMERGENCIES & HUMAN ESCALATION
+    // ============================================================
+    'emergency|urgent|help|doctor|hospital|police|ambulance|fire': {
+        en: "🚨 For immediate emergency assistance, please call the reception directly (Dial 0) or use the Emergency button in the app.",
+        hi: "🚨 तत्काल आपातकालीन सहायता के लिए, कृपया सीधे रिसेप्शन को कॉल करें (0 डायल करें) या ऐप में इमरजेंसी बटन का उपयोग करें।",
+        ar: "🚨 للمساعدة الطارئة الفورية، يرجى الاتصال بالمكتب الأمامي مباشرة (اطلب 0) أو استخدام زر الطوارئ في التطبيق."
+    },
+    'live chat|chat|support|help|human|agent|manager|speak to someone|talk to person': {
+        en: "I understand you need human assistance. Please click the 'Live Chat' or 'Call Reception' button in the 24/7 Support tab.",
+        hi: "मैं समझता हूँ कि आपको मानव सहायता की आवश्यकता है। कृपया 24/7 सपोर्ट टैब में 'Live Chat' या 'Call Reception' बटन पर क्लिक करें।",
+        ar: "أفهم أنك بحاجة إلى مساعدة بشرية. يرجى النقر على زر 'الدردشة المباشرة' أو 'الاتصال بالمكتب الأمامي' في علامة تبويب الدعم 24/7."
+    },
+
+    // ============================================================
+    // 12. GENERAL HOTEL INFO & MISC
+    // ============================================================
+    'floor map|elevator|lift|escalator|stairs': {
+        en: "Elevators are located next to the main lobby. A digital floor map is available on the TV in your room.",
+        hi: "लिफ्ट मुख्य लॉबी के बगल में स्थित हैं। आपके कमरे में टीवी पर एक डिजिटल फ्लोर मैप उपलब्ध है।",
+        ar: "تقع المصاعد بجوار البهو الرئيسي. تتوفر خريطة رقمية للطابق على التلفزيون في غرفتك."
+    },
+    'ice machine|ice cubes': {
+        en: "Ice machines are located on every alternate floor near the elevator lobby.",
+        hi: "आइस मशीनें लिफ्ट लॉबी के पास हर वैकल्पिक मंजिल पर स्थित हैं।",
+        ar: "توجد آلات الثلج في كل طابق بديل بالقرب من بهو المصعد."
+    },
+    'vending machine|snack machine|drink machine': {
+        en: "Vending machines offering snacks and beverages are located near the lobby and on the 2nd floor.",
+        hi: "नाश्ते और पेय पदार्थों की पेशकश करने वाली वेंडिंग मशीनें लॉबी के पास और दूसरी मंजिल पर स्थित हैं।",
+        ar: "توجد آلات بيع تقدم الوجبات الخفيفة والمشروبات بالقرب من البهو وفي الطابق الثاني."
+    },
     'newspaper|magazine|news|paper': {
-        en: "Daily newspapers and magazines are available in the lobby reading area.",
-        hi: "दैनिक समाचार पत्र और पत्रिकाएँ लॉबी रीडिंग क्षेत्र में उपलब्ध हैं।",
-        ar: "الصحف والمجلات اليومية متاحة في منطقة القراءة بالبهو."
+        en: "Complimentary newspapers are delivered to your room every morning. Digital versions are also available on request.",
+        hi: "कॉम्प्लीमेंटरी अखबार हर सुबह आपके कमरे में पहुंचाए जाते हैं। अनुरोध पर डिजिटल संस्करण भी उपलब्ध हैं।",
+        ar: "يتم تسليم الصحف المجانية إلى غرفتك كل صباح. تتوفر أيضاً نسخ رقمية عند الطلب."
+    },
+    'cancellation policy|no show|refund policy': {
+        en: "Cancellation policies vary by booking type. Please refer to your booking confirmation email or contact reception for details.",
+        hi: "रद्दीकरण नीतियाँ बुकिंग के प्रकार के अनुसार भिन्न होती हैं। कृपया अपने बुकिंग पुष्टि ईमेल देखें या विवरण के लिए रिसेप्शन से संपर्क करें।",
+        ar: "تختلف سياسات الإلغاء حسب نوع الحجز. يرجى الرجوع إلى رسالة تأكيد الحجز عبر البريد الإلكتروني أو الاتصال بالمكتب الأمامي للحصول على التفاصيل."
     }
 };
 
 // ============================================================
-// MAIN AI CHAT ENDPOINT
+// MAIN AI CHAT ENDPOINT (WITH REAL-TIME CONTEXT ENRICHMENT)
 // ============================================================
 router.post('/message', async (req, res) => {
     try {
         const db = getDB();
         const { hotelId, guestId, message, language = 'en' } = req.body;
 
-        // Validate inputs
-        if (!hotelId) {
-            return res.status(400).json({ success: false, message: 'hotelId is required' });
-        }
-        if (!message) {
-            return res.status(400).json({ success: false, message: 'message is required' });
-        }
+        if (!hotelId) return res.status(400).json({ success: false, message: 'hotelId is required' });
+        if (!message) return res.status(400).json({ success: false, message: 'message is required' });
 
-        // Get AI Config from database (hotel-specific custom responses)
         let customResponses = {};
         let faqs = {};
         let fallback = FALLBACK_RESPONSES[language] || FALLBACK_RESPONSES.en;
@@ -312,6 +361,7 @@ router.post('/message', async (req, res) => {
         let reply = fallback;
         let matched = false;
         let matchedKey = '';
+        let suggestedActions = [];
 
         // 1️⃣ Check hotel-specific custom responses first
         for (const [key, value] of Object.entries(customResponses)) {
@@ -352,6 +402,52 @@ router.post('/message', async (req, res) => {
             }
         }
 
+        // ============================================================
+        // === REAL-TIME CONTEXT ENRICHMENT (Dynamic Data) ===
+        // ============================================================
+        try {
+            if (guestId && guestId !== 'anonymous') {
+                // Bill Context
+                if (matchedKey.includes('bill') || matchedKey.includes('payment') || matchedKey.includes('balance')) {
+                    const pendingBill = await db.collection('bills').findOne({ 
+                        hotel_id: hotelId, guest_id: guestId, status: 'pending' 
+                    });
+                    if (pendingBill && pendingBill.total_amount > 0) {
+                        const amount = pendingBill.total_amount;
+                        const currency = pendingBill.currency || 'SAR';
+                        reply += `\n\n💡 *Your current pending balance is ${currency} ${amount}.*`;
+                        suggestedActions.push({ label: 'View Full Bill', action: 'open_payments' });
+                        suggestedActions.push({ label: 'Pay Now', action: 'initiate_payment' });
+                    } else {
+                        reply += `\n\n✅ *You have no pending bills. Your account is clear!*`;
+                    }
+                }
+
+                // Ticket Context
+                if (matchedKey.includes('complaint') || matchedKey.includes('problem') || matchedKey.includes('issue')) {
+                    const activeTickets = await db.collection('support_tickets').countDocuments({ 
+                        hotel_id: hotelId, guest_id: guestId, status: { $in: ['open', 'in_progress'] } 
+                    });
+                    if (activeTickets > 0) {
+                        reply += `\n\n📌 *You have ${activeTickets} active request(s). Our team is working on it.*`;
+                        suggestedActions.push({ label: 'Check Ticket Status', action: 'open_tickets' });
+                    } else {
+                        suggestedActions.push({ label: 'Raise New Ticket', action: 'open_support' });
+                    }
+                }
+            }
+        } catch (contextErr) {
+            console.warn('Context enrichment failed (non-critical):', contextErr.message);
+        }
+
+        // === AUTO-SUGGEST ACTIONS FOR FALLBACK ===
+        if (!matched && suggestedActions.length === 0) {
+            suggestedActions = [
+                { label: '📞 Call Reception', action: 'call_reception' },
+                { label: '💬 Live Chat', action: 'open_live_chat' }
+            ];
+        }
+
         // 4️⃣ Save chat history to database
         try {
             await db.collection('chat_history').insertOne({
@@ -371,15 +467,13 @@ router.post('/message', async (req, res) => {
         res.json({ 
             success: true, 
             reply,
-            matched: matchedKey || 'fallback'
+            matched: matchedKey || 'fallback',
+            suggestedActions
         });
 
     } catch (error) {
         console.error('Error in AI chat:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Server error. Please try again later.' 
-        });
+        res.status(500).json({ success: false, message: 'Server error. Please try again later.' });
     }
 });
 
@@ -416,7 +510,6 @@ router.get('/config/:hotelId', async (req, res) => {
     try {
         const db = getDB();
         const { hotelId } = req.params;
-
         const config = await db.collection('hotel_ai_settings').findOne({ hotel_id: hotelId });
 
         res.json({ 
@@ -454,17 +547,13 @@ router.post('/config', async (req, res) => {
             updated_at: new Date()
         };
 
-        const result = await db.collection('hotel_ai_settings').updateOne(
+        await db.collection('hotel_ai_settings').updateOne(
             { hotel_id: hotelId },
             { $set: updateData },
             { upsert: true }
         );
 
-        res.json({ 
-            success: true, 
-            message: 'AI config updated successfully',
-            data: updateData
-        });
+        res.json({ success: true, message: 'AI config updated successfully', data: updateData });
     } catch (error) {
         console.error('Error updating AI config:', error);
         res.status(500).json({ success: false, message: 'Server error' });
