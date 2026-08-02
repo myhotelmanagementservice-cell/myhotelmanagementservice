@@ -822,6 +822,22 @@ app.post('/api/admin/guest-hub/settings/update', authMiddleware, async (req, res
     }
 });
 
+// ✅ Guest Hub Settings — Get (Admin)
+app.get('/api/admin/guest-hub/settings', authMiddleware, async (req, res) => {
+    try {
+        if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+        const { hotelId } = req.query;
+        if (!hotelId) {
+            return res.status(400).json({ success: false, error: 'hotelId is required' });
+        }
+        const settings = await db.collection('hotel_settings').findOne({ hotel_id: hotelId });
+        res.json({ success: true, settings: settings || {} });
+    } catch (error) {
+        console.error('Guest Hub settings fetch error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 const superAdminMiddleware = async (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
