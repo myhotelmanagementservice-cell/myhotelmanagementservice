@@ -346,7 +346,7 @@ async function createIndexes() {
 
         await db.collection('subscriptions').createIndex(
             { hotelId: 1 },
-            { unique: true, background: true, name: 'hotelId_unique' }
+            { background: true, name: 'hotelId_idx' }
         );
         await db.collection('subscriptions').createIndex(
             { hotelId: 1, status: 1 },
