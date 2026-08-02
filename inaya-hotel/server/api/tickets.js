@@ -33,7 +33,7 @@ router.post('/create', async (req, res) => {
 });
 
 // Get Guest Tickets
-router.get('/list', authMiddleware, async (req, res) => {
+router.get('/list', async (req, res) => {
     try {
         const db = getDB();
         const { hotelId, guestId } = req.query;
