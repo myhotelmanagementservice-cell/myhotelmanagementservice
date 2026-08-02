@@ -14,6 +14,7 @@ require("dotenv").config({ path: __dirname + "/.env" });
 // ✅ FIX 10: All existing features preserved (19 admin pages, 9 guest pages)
 
 const express = require('express');
+const { connectDB: connectSharedDB } = require('./config/db');
 const session = require('express-session');
 const path = require('path');
 const { MongoClient, ObjectId } = require('mongodb');
@@ -277,6 +278,7 @@ async function connectDB() {
     db = client.db(DB_NAME);
     app.set('db', db);  // ✅ ADD THIS LINE
     await db.command({ ping: 1 });
+    await connectSharedDB(MONGODB_URI, DB_NAME);
     dbConnected = true;
     console.log('✅ MongoDB Connected Successfully!');
 
