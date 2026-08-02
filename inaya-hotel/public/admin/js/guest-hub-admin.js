@@ -39,7 +39,11 @@ function switchAdminTab(tabName) {
 // Load All Settings
 async function loadAllSettings() {
     try {
-        const response = await fetch(`/api/admin/guest-hub/settings?hotelId=${hotelId}`);
+        const response = await fetch(`/api/admin/guest-hub/settings?hotelId=${hotelId}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token')}`
+            }
+        });
         const data = await response.json();
 
         if (data.success) {
