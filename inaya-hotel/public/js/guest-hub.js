@@ -124,22 +124,12 @@ async function payWithUPI(method) {
 
 function openUPIApp(appName) {
     const upiId = document.getElementById('hotelUPI').textContent;
-    const amount = document.getElementById('totalBill').textContent;
+    const amountText = document.getElementById('totalBill').textContent;
+    const amount = parseFloat(amountText) || 0;
 
-    let appUrl = '';
-    switch(appName) {
-        case 'gpay':
-            appUrl = `tez://upi/pay?pa=${upiId}&pn=Hotel&am=${amount}`;
-            break;
-        case 'phonepe':
-            appUrl = `phonepe://pay?pa=${upiId}&pn=Hotel&am=${amount}`;
-            break;
-        case 'paytm':
-            appUrl = `paytmmp://pay?pa=${upiId}&pn=Hotel&am=${amount}`;
-            break;
-        case 'bhim':
-            appUrl = `bhim://upi/pay?pa=${upiId}&pn=Hotel&am=${amount}`;
-            break;
+    let appUrl = `upi://pay?pa=${upiId}&pn=Hotel&cu=INR`;
+    if (amount > 0) {
+        appUrl += `&am=${amount}`;
     }
 
     window.location.href = appUrl;
