@@ -186,7 +186,7 @@ async function initiateCashfreePayment() {
             showToast(data.message || 'Failed to start payment', 'error');
             return;
         }
-        const cashfreeInstance = Cashfree({ mode: 'sandbox' });
+        const cashfreeInstance = Cashfree({ mode: 'production' });
         cashfreeInstance.checkout({
             paymentSessionId: data.paymentSessionId,
             redirectTarget: '_self'
