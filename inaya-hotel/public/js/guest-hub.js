@@ -142,9 +142,17 @@ function sendPaymentRequest() {
         return;
     }
 
-    // Send payment request logic
-    showToast('Payment request sent!', 'success');
+    const upiId = document.getElementById('hotelUPI').textContent;
+    const amountText = document.getElementById('totalBill').textContent;
+    const amount = parseFloat(amountText) || 0;
+
+    let appUrl = `upi://pay?pa=${upiId}&pn=Hotel&cu=INR`;
+    if (amount > 0) {
+        appUrl += `&am=${amount}`;
+    }
+
     closeModal('upiModal');
+    window.location.href = appUrl;
 }
 
 // International Payments
