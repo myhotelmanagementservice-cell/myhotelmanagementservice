@@ -156,14 +156,45 @@ function sendPaymentRequest() {
 }
 
 // International Payments
-function payWithCard() {
-    showToast('Card payment gateway opening...', 'success');
-    // Integrate Stripe/Razorpay here
+async function payWithCard() {
+    await initiateCashfreePayment();
 }
 
-function payWithWallet(wallet) {
-    showToast(`${wallet} payment opening...`, 'success');
-    // Integrate wallet payment here
+async function payWithWallet(wallet) {
+    await initiateCashfreePayment();
+}
+
+async function initiateCashfreePayment() {
+    closeModal('paymentModal');
+    const amount = parseFloat(document.getElementById('totalBill').textContent) || 0;
+    if (amount <= 0) {
+        showToast('No pending bill amount to pay', 'error');
+        return;
+    }
+    try {
+        const response = await fetch('/api/payment/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                hotelId,
+                guestId,
+                amount
+            })
+        });
+        const data = await response.json();
+        if (!data.success || !data.paymentSessionId) {
+            showToast(data.message || 'Failed to start payment', 'error');
+            return;
+        }
+        const cashfreeInstance = Cashfree({ mode: 'sandbox' });
+        cashfreeInstance.checkout({
+            paymentSessionId: data.paymentSessionId,
+            redirectTarget: '_self'
+        });
+    } catch (error) {
+        console.error('Payment error:', error);
+        showToast('Failed to initiate payment', 'error');
+    }
 }
 
 // Payment History
