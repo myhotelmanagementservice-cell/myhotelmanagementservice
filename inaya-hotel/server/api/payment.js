@@ -37,6 +37,25 @@ router.get('/upi-details', async (req, res) => {
     }
 });
 
+// Get PayPal Email (Per-Hotel)
+router.get('/paypal-details', async (req, res) => {
+    try {
+        const db = getDB();
+        const { hotelId } = req.query;
+        const settings = await db.collection('hotel_settings').findOne({ hotel_id: hotelId });
+        if (!settings || !settings.paypalEmail) {
+            return res.json({ success: false, message: 'PayPal not configured' });
+        }
+        res.json({
+            success: true,
+            paypalEmail: settings.paypalEmail
+        });
+    } catch (error) {
+        console.error('Error fetching PayPal details:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 // Record Payment
 router.post('/record', async (req, res) => {
     try {

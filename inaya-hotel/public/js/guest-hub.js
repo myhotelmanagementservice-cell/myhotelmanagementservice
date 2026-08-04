@@ -161,7 +161,33 @@ async function payWithCard() {
 }
 
 async function payWithWallet(wallet) {
-    await initiateCashfreePayment();
+    if (wallet === 'paypal') {
+        await initiatePayPalPayment();
+    } else {
+        await initiateCashfreePayment();
+    }
+}
+
+async function initiatePayPalPayment() {
+    closeModal('paymentModal');
+    const amount = parseFloat(document.getElementById('totalBill').textContent) || 0;
+    if (amount <= 0) {
+        showToast('No pending bill amount to pay', 'error');
+        return;
+    }
+    try {
+        const response = await fetch(`/api/payment/paypal-details?hotelId=${hotelId}`);
+        const data = await response.json();
+        if (!data.success || !data.paypalEmail) {
+            showToast('PayPal not configured for this hotel', 'error');
+            return;
+        }
+        const paypalUrl = `https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=${encodeURIComponent(data.paypalEmail)}&item_name=${encodeURIComponent('Hotel Bill Payment')}&amount=${amount}&currency_code=USD`;
+        window.location.href = paypalUrl;
+    } catch (error) {
+        console.error('PayPal payment error:', error);
+        showToast('Failed to initiate PayPal payment', 'error');
+    }
 }
 
 async function initiateCashfreePayment() {

@@ -60,6 +60,7 @@ async function loadAllSettings() {
 function populateSettingsForm(settings) {
     // Payment Settings
     document.getElementById('upiId').value = settings.upiId || '';
+    document.getElementById('paypalEmail').value = settings.paypalEmail || '';
     if (settings.qrCodeUrl) {
         document.getElementById('qrCodePreview').innerHTML = 
             `<img src="${settings.qrCodeUrl}" alt="QR Code" style="max-width: 200px;">`;
@@ -171,6 +172,7 @@ async function saveAllSettings() {
         const settings = {
             // Payment Settings
             upiId: document.getElementById('upiId').value,
+            paypalEmail: document.getElementById('paypalEmail').value,
             qrCodeUrl: await uploadQRCode(),
             paymentGateway: document.getElementById('paymentGateway').value,
             currencies: document.getElementById('currencies').value,
