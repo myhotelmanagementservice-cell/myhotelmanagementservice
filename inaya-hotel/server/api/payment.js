@@ -235,4 +235,133 @@ router.get('/verify-order/:orderId', async (req, res) => {
     }
 });
 
+// ============================================================
+// UNIVERSAL CARD PAYMENT — Routes to Cashfree or Razorpay per-hotel
+// ============================================================
+router.post('/create-card-order', async (req, res) => {
+    try {
+        const db = getDB();
+        const { hotelId, guestId, amount } = req.body;
+        if (!hotelId || !guestId) {
+            return res.status(400).json({ success: false, message: 'hotelId and guestId are required' });
+        }
+        const orderAmount = parseFloat(amount);
+        if (!orderAmount || isNaN(orderAmount) || orderAmount <= 0) {
+            return res.status(400).json({ success: false, message: 'Invalid payment amount' });
+        }
+
+        const settings = await db.collection('hotel_settings').findOne({ hotel_id: hotelId });
+        const gateway = settings?.paymentGateway || 'cashfree';
+
+        if (gateway === 'razorpay') {
+            const keyId = settings?.paymentApiKey;
+            const keySecret = settings?.paymentSecretKey;
+            if (!keyId || !keySecret) {
+                return res.status(500).json({ success: false, message: 'Razorpay is not configured for this hotel. Please contact support.' });
+            }
+
+            const orderId = `bill_${hotelId}_${guestId}_${Date.now()}`;
+            const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+
+            const rzpResponse = await fetch('https://api.razorpay.com/v1/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authHeader
+                },
+                body: JSON.stringify({
+                    amount: Math.round(orderAmount * 100),
+                    currency: 'INR',
+                    receipt: orderId
+                })
+            });
+            const rzpData = await rzpResponse.json();
+            if (!rzpResponse.ok || !rzpData.id) {
+                console.error('Razorpay order creation failed:', JSON.stringify(rzpData));
+                return res.status(500).json({ success: false, message: rzpData.error?.description || 'Failed to create Razorpay order' });
+            }
+
+            await db.collection('payments').insertOne({
+                hotel_id: hotelId,
+                guest_id: guestId,
+                amount: orderAmount,
+                payment_method: 'razorpay',
+                transaction_id: rzpData.id,
+                status: 'pending',
+                currency: 'INR',
+                created_at: new Date()
+            });
+
+            return res.json({
+                success: true,
+                gateway: 'razorpay',
+                razorpayOrderId: rzpData.id,
+                razorpayKeyId: keyId,
+                amount: rzpData.amount
+            });
+        }
+
+        // Default: Cashfree (platform-level keys)
+        const cfAppId = process.env.CASHFREE_APP_ID;
+        const cfSecretKey = process.env.CASHFREE_SECRET_KEY;
+        const cfEnv = process.env.CASHFREE_ENVIRONMENT || 'sandbox';
+        const cfBaseUrl = cfEnv === 'production' ? 'https://api.cashfree.com/pg' : 'https://sandbox.cashfree.com/pg';
+
+        if (!cfAppId || !cfSecretKey) {
+            return res.status(500).json({ success: false, message: 'Payment gateway not configured. Please contact support.' });
+        }
+
+        const orderId = `bill_${hotelId}_${guestId}_${Date.now()}`;
+        const insertResult = await db.collection('payments').insertOne({
+            hotel_id: hotelId,
+            guest_id: guestId,
+            amount: orderAmount,
+            payment_method: 'cashfree',
+            transaction_id: orderId,
+            status: 'pending',
+            currency: 'INR',
+            created_at: new Date()
+        });
+
+        const cfResponse = await fetch(`${cfBaseUrl}/orders`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-version': '2023-08-01',
+                'x-client-id': cfAppId,
+                'x-client-secret': cfSecretKey
+            },
+            body: JSON.stringify({
+                order_id: orderId,
+                order_amount: orderAmount,
+                order_currency: 'INR',
+                customer_details: {
+                    customer_id: String(guestId),
+                    customer_email: 'guest@hotel.com',
+                    customer_phone: '9999999999'
+                },
+                order_meta: {
+                    return_url: `${process.env.FRONTEND_URL || 'https://myhotelmanagementservice.com'}/guest-hub.html?hotelId=${hotelId}&guestId=${guestId}&paymentOrderId=${orderId}`
+                }
+            })
+        });
+        const cfData = await cfResponse.json();
+        if (!cfResponse.ok || !cfData.payment_session_id) {
+            console.error('Cashfree order creation failed:', JSON.stringify(cfData));
+            await db.collection('payments').deleteOne({ _id: insertResult.insertedId });
+            return res.status(500).json({ success: false, message: cfData.message || 'Failed to create payment order' });
+        }
+
+        res.json({
+            success: true,
+            gateway: 'cashfree',
+            orderId,
+            paymentSessionId: cfData.payment_session_id
+        });
+    } catch (error) {
+        console.error('Error creating card order:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 module.exports = router;
