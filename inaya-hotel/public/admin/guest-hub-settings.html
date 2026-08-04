@@ -75,9 +75,6 @@
                 <button class="tab-btn" data-tab="support" onclick="switchAdminTab('support')">
                     <i class="fas fa-headset"></i> Support Settings
                 </button>
-                <button class="tab-btn" data-tab="services" onclick="switchAdminTab('services')">
-                    <i class="fas fa-concierge-bell"></i> Services
-                </button>
                 <button class="tab-btn" data-tab="analytics" onclick="switchAdminTab('analytics')">
                     <i class="fas fa-chart-bar"></i> Analytics
                 </button>
@@ -314,57 +311,6 @@
                         <select id="defaultStaff">
                             <option value="">Select Staff Member</option>
                             <!-- Dynamic staff list -->
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Services Tab -->
-            <div class="tab-content" id="services-tab">
-                <div class="settings-section">
-                    <h3><i class="fas fa-list"></i> Available Services</h3>
-                    <div id="servicesContainer">
-                        <div class="service-item">
-                            <label><input type="checkbox" value="room-service" checked> Room Service</label>
-                            <input type="text" placeholder="Description">
-                        </div>
-                        <div class="service-item">
-                            <label><input type="checkbox" value="housekeeping" checked> Housekeeping</label>
-                            <input type="text" placeholder="Description">
-                        </div>
-                        <div class="service-item">
-                            <label><input type="checkbox" value="maintenance" checked> Maintenance</label>
-                            <input type="text" placeholder="Description">
-                        </div>
-                        <div class="service-item">
-                            <label><input type="checkbox" value="concierge" checked> Concierge</label>
-                            <input type="text" placeholder="Description">
-                        </div>
-                        <div class="service-item">
-                            <label><input type="checkbox" value="laundry" checked> Laundry</label>
-                            <input type="text" placeholder="Description">
-                        </div>
-                        <div class="service-item">
-                            <label><input type="checkbox" value="spa" checked> Spa Booking</label>
-                            <input type="text" placeholder="Description">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <h3><i class="fas fa-cog"></i> Service Settings</h3>
-                    <div class="form-group">
-                        <label>Auto-accept Service Requests</label>
-                        <label class="toggle">
-                            <input type="checkbox" id="autoAcceptServices">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label>Default Priority</label>
-                        <select id="defaultPriority">
-                            <option value="normal">Normal</option>
-                            <option value="urgent">Urgent</option>
                         </select>
                     </div>
                 </div>
