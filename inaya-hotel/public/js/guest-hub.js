@@ -157,7 +157,52 @@ function sendPaymentRequest() {
 
 // International Payments
 async function payWithCard() {
-    await initiateCashfreePayment();
+    closeModal('paymentModal');
+    const amount = parseFloat(document.getElementById('totalBill').textContent) || 0;
+    if (amount <= 0) {
+        showToast('No pending bill amount to pay', 'error');
+        return;
+    }
+    try {
+        const response = await fetch('/api/payment/create-card-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hotelId, guestId, amount })
+        });
+        const data = await response.json();
+        if (!data.success) {
+            showToast(data.message || 'Failed to start payment', 'error');
+            return;
+        }
+        if (data.gateway === 'razorpay') {
+            const options = {
+                key: data.razorpayKeyId,
+                amount: data.amount,
+                currency: 'INR',
+                order_id: data.razorpayOrderId,
+                name: 'Hotel Bill Payment',
+                handler: function () {
+                    showToast('Payment successful!', 'success');
+                },
+                modal: {
+                    ondismiss: function () {
+                        showToast('Payment cancelled', 'info');
+                    }
+                }
+            };
+            const rzp = new Razorpay(options);
+            rzp.open();
+        } else {
+            const cashfreeInstance = Cashfree({ mode: 'production' });
+            cashfreeInstance.checkout({
+                paymentSessionId: data.paymentSessionId,
+                redirectTarget: '_self'
+            });
+        }
+    } catch (error) {
+        console.error('Card payment error:', error);
+        showToast('Failed to initiate payment', 'error');
+    }
 }
 
 async function payWithWallet(wallet) {
