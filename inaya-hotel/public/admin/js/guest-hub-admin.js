@@ -66,6 +66,8 @@ function populateSettingsForm(settings) {
             `<img src="${settings.qrCodeUrl}" alt="QR Code" style="max-width: 200px;">`;
     }
     document.getElementById('paymentGateway').value = settings.paymentGateway || 'razorpay';
+    document.getElementById('paymentApiKey').value = settings.paymentApiKey || '';
+    document.getElementById('paymentSecretKey').value = settings.paymentSecretKey || '';
     document.getElementById('currencies').value = settings.currencies || 'INR, USD, EUR, GBP';
     document.getElementById('taxPercentage').value = settings.taxPercentage || 18;
     document.getElementById('serviceCharge').value = settings.serviceCharge || 10;
@@ -175,6 +177,8 @@ async function saveAllSettings() {
             paypalEmail: document.getElementById('paypalEmail').value,
             qrCodeUrl: await uploadQRCode(),
             paymentGateway: document.getElementById('paymentGateway').value,
+            paymentApiKey: document.getElementById('paymentApiKey').value,
+            paymentSecretKey: document.getElementById('paymentSecretKey').value,            
             currencies: document.getElementById('currencies').value,
             taxPercentage: parseFloat(document.getElementById('taxPercentage').value),
             serviceCharge: parseFloat(document.getElementById('serviceCharge').value),
