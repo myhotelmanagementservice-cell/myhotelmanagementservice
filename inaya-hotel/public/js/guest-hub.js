@@ -192,6 +192,8 @@ async function payWithCard() {
             };
             const rzp = new Razorpay(options);
             rzp.open();
+        } else if (data.gateway === 'stripe') {
+            window.location.href = data.checkoutUrl;
         } else {
             const cashfreeInstance = Cashfree({ mode: 'production' });
             cashfreeInstance.checkout({
