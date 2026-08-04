@@ -301,6 +301,51 @@ router.post('/create-card-order', async (req, res) => {
             });
         }
 
+        if (gateway === 'stripe') {
+            const secretKey = settings?.paymentSecretKey;
+            if (!secretKey) {
+                return res.status(500).json({ success: false, message: 'Stripe is not configured for this hotel. Please contact support.' });
+            }
+            const orderId = `bill_${hotelId}_${guestId}_${Date.now()}`;
+            const params = new URLSearchParams();
+            params.append('mode', 'payment');
+            params.append('success_url', `${process.env.FRONTEND_URL || 'https://myhotelmanagementservice.com'}/guest-hub.html?hotelId=${hotelId}&guestId=${guestId}&paymentOrderId=${orderId}`);
+            params.append('cancel_url', `${process.env.FRONTEND_URL || 'https://myhotelmanagementservice.com'}/guest-hub.html?hotelId=${hotelId}&guestId=${guestId}`);
+            params.append('line_items[0][price_data][currency]', 'usd');
+            params.append('line_items[0][price_data][product_data][name]', 'Hotel Bill Payment');
+            params.append('line_items[0][price_data][unit_amount]', Math.round(orderAmount * 100));
+            params.append('line_items[0][quantity]', '1');
+
+            const stripeResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': `Bearer ${secretKey}`
+                },
+                body: params
+            });
+            const stripeData = await stripeResponse.json();
+            if (!stripeResponse.ok || !stripeData.url) {
+                console.error('Stripe session creation failed:', JSON.stringify(stripeData));
+                return res.status(500).json({ success: false, message: stripeData.error?.message || 'Failed to create Stripe session' });
+            }
+            await db.collection('payments').insertOne({
+                hotel_id: hotelId,
+                guest_id: guestId,
+                amount: orderAmount,
+                payment_method: 'stripe',
+                transaction_id: stripeData.id,
+                status: 'pending',
+                currency: 'USD',
+                created_at: new Date()
+            });
+            return res.json({
+                success: true,
+                gateway: 'stripe',
+                checkoutUrl: stripeData.url
+            });
+        }
+
         // Default: Cashfree (platform-level keys)
         const cfAppId = process.env.CASHFREE_APP_ID;
         const cfSecretKey = process.env.CASHFREE_SECRET_KEY;
