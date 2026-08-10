@@ -6,11 +6,12 @@ const jwt = require('jsonwebtoken');
 const { getDB, isConnected } = require('../config/db');
 const { generateToken } = require('../middleware/auth');
 const { success, error } = require('../utils/apiResponse');
+const { jwtSecret } = require('../config/security');
 
 // ============================================================
 // CONSTANTS
 // ============================================================
-const JWT_SECRET = process.env.JWT_SECRET || 'jwt-secret-key-change-in-production';
+const JWT_SECRET = jwtSecret;
 const JWT_EXPIRES_IN = '7d';
 
 // ============================================================

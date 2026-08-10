@@ -4,11 +4,12 @@
 // Compatible with index.html (19 admin pages + 9 guest pages)
 
 const jwt = require('jsonwebtoken');
+const { jwtSecret } = require('../config/security');
 
 // ============================================================
 // CONFIGURATION
 // ============================================================
-const JWT_SECRET = process.env.JWT_SECRET || 'jwt-secret-key-change-in-production';
+const JWT_SECRET = jwtSecret;
 const TOKEN_EXPIRY = process.env.TOKEN_EXPIRY || '7d';
 const TOKEN_REFRESH_THRESHOLD = parseInt(process.env.TOKEN_REFRESH_THRESHOLD) || 24 * 60 * 60 * 1000; // 24 hours
 

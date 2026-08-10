@@ -348,13 +348,13 @@ async function seedDatabase() {
     console.log('\n📋 DEFAULT CREDENTIALS:\n');
     console.log('  👑 Super Admin:');
     console.log(`     Email:    ${SUPER_ADMIN.email}`);
-    console.log(`     Password: ${SUPER_ADMIN.password}`);
+     console.log('     Password: configured securely for the seeded admin account');
     console.log(`     Hotel ID: ${SUPER_ADMIN.hotelId}`);
     console.log(`     URL:      http://localhost:3000/super-admin.html\n`);
 
     console.log('  🏨 Hotel Admin:');
     console.log(`     Email:    ${DEFAULT_HOTEL.adminEmail}`);
-    console.log(`     Password: ${DEFAULT_HOTEL.adminPassword}`);
+     console.log('     Password: configured securely for the seeded hotel admin account');
     console.log(`     Hotel ID: ${DEFAULT_HOTEL.hotelId}`);
     console.log(`     URL:      http://localhost:3000/?hotel=${DEFAULT_HOTEL.hotelId}\n`);
 

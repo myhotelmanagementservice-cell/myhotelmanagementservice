@@ -3,6 +3,7 @@ const router = express.Router();
 const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { jwtSecret } = require('../config/security');
 
 // ======================== DATABASE CONNECTION ========================
 const getDb = (req) => {
@@ -17,7 +18,7 @@ const superAdminMiddleware = async (req, res, next) => {
     if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'jwt-secret-key-change-in-production');
+        const decoded = jwt.verify(token, jwtSecret);
         if (decoded.role !== 'super_admin') {
             return res.status(403).json({ success: false, error: 'Super admin access required' });
         }
@@ -38,7 +39,6 @@ router.post('/tenants/register', async (req, res) => {
     console.log('========================================');
     console.log('📦 Request body keys:', Object.keys(req.body));
     console.log('📧 adminEmail received:', req.body.adminEmail || '❌ MISSING');
-    console.log('🔑 adminPassword received:', req.body.adminPassword ? '✅ RECEIVED' : '❌ MISSING');
     console.log('🏨 hotelId:', req.body.hotelId);
 
     const db = getDb(req);

@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getDB, isConnected } = require('../config/db');
 const { ObjectId } = require('mongodb');
+const { jwtSecret } = require('../config/security');
 
 // ============================================================
 // CONSTANTS
@@ -54,7 +55,7 @@ const DEFAULT_PERMISSIONS = {
 /**
  * JWT configuration
  */
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = jwtSecret;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 // ============================================================

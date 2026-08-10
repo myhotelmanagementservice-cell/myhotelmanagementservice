@@ -70,7 +70,7 @@ async function seedAdmin() {
         console.log('\n✅✅✅ SUPER ADMIN CREATED ✅✅✅');
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log('📧 Email:    ', SUPER_ADMIN.email);
-        console.log('🔑 Password: ', SUPER_ADMIN.password);
+        console.log('🔑 Super admin password configured securely');
         console.log('🏨 Hotel ID: ', SUPER_ADMIN.hotelId);
         console.log('👤 Role:     ', SUPER_ADMIN.role);
         console.log('🆔 User ID:  ', result.insertedId.toString());

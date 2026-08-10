@@ -25,6 +25,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const { isProduction, sessionSecret, jwtSecret, corsOrigin } = require('./config/security');
 
 let compression, helmet, rateLimit;
 try { compression = require('compression'); } catch(e) { compression = null; }
@@ -33,11 +34,12 @@ try { rateLimit = require('express-rate-limit'); } catch(e) { rateLimit = null; 
 
 const app = express();
 const server = http.createServer(app);
+app.set('trust proxy', 1);
 
 // ✅ FIX 4+6: Enhanced Socket.io config for multi-device real-time sync
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || '*',
+    origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true
   },
@@ -62,7 +64,7 @@ if (helmet) {
 }
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: corsOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-hotel-id', 'x-client-id', 'x-idempotency-key', 'x-request-id']
@@ -129,12 +131,12 @@ app.use(express.static(publicPath, {
 }));
 
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'inaya-hotel-secret-key-change-in-production',
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   rolling: true,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProduction,
     httpOnly: true,
     sameSite: 'lax',
     maxAge: parseInt(process.env.SESSION_MAX_AGE) || 7 * 24 * 60 * 60 * 1000
@@ -186,9 +188,10 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 const PORT = process.env.PORT || 3000;
-const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb+srv://hotel:hotelinaya@cluster0.hauipx7.mongodb.net/inaya_hotel?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI ||
+  (isProduction ? null : 'mongodb+srv://hotel:hotelinaya@cluster0.hauipx7.mongodb.net/inaya_hotel?retryWrites=true&w=majority&appName=Cluster0');
 const DB_NAME = process.env.DB_NAME || 'inaya_hotel';
-const JWT_SECRET = process.env.JWT_SECRET || 'jwt-secret-key-change-in-production';
+const JWT_SECRET = jwtSecret;
 
 const IDLE_TIMEOUT_MS = parseInt(process.env.IDLE_TIMEOUT_MS) || 30 * 60 * 1000;
 const TOKEN_EXPIRY = process.env.TOKEN_EXPIRY || '7d';
@@ -437,7 +440,7 @@ if (rateLimit) {
     message: { success: false, error: 'Too many login attempts. Please try again after 15 minutes.' },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => req.ip + '_' + (req.body?.email || '')
+    keyGenerator: (req) => req.ip + '_' + String(req.body?.email || req.body?.name || '').toLowerCase().trim().slice(0, 160)
   });
 
   apiLimiter = rateLimit({
@@ -450,6 +453,9 @@ if (rateLimit) {
   });
 
   app.use('/api/', apiLimiter);
+  // Apply brute-force protection to every login endpoint, including routes
+  // mounted from routes/auth.js before the legacy inline handlers.
+  app.use(['/api/admin/login', '/api/guest/login', '/api/super/login'], loginLimiter);
   console.log('✅ Rate limiting enabled');
 }
 

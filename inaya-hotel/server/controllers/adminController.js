@@ -6,11 +6,12 @@ const { getDB, isConnected } = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { ObjectId } = require('mongodb');
+const { jwtSecret } = require('../config/security');
 
 // ============================================================
 // CONSTANTS
 // ============================================================
-const JWT_SECRET = process.env.JWT_SECRET || 'jwt-secret-key-change-in-production';
+const JWT_SECRET = jwtSecret;
 const JWT_EXPIRES_IN = '7d';
 
 const DEFAULT_ADMIN_PERMISSIONS = [

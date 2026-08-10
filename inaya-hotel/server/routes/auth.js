@@ -3,13 +3,14 @@ const router = express.Router();
 const { ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { jwtSecret } = require('../config/security');
 
 // Helper: Get DB instance from app
 const getDB = (req) => req.app.get('db');
 
 // Helper: Generate JWT token
 const generateToken = (payload) => {
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, jwtSecret, { expiresIn: '7d' });
 };
 
 // ============================================
@@ -292,7 +293,7 @@ router.get('/me', async (req, res) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, jwtSecret);
 
     const db = getDB(req);
     if (!db) {
@@ -475,7 +476,7 @@ router.post('/refresh', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Token required' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, jwtSecret);
 
     const db = getDB(req);
     if (db && decoded.userId) {
