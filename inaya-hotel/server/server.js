@@ -20,6 +20,7 @@ const path = require('path');
 const { MongoClient, ObjectId } = require('mongodb');
 const http = require('http');
 const { Server } = require('socket.io');
+const os = require('os');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -77,6 +78,31 @@ app.use('/api/subscription/webhook', express.raw({ type: 'application/json' }));
 // Normal JSON parser for other routes
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ✅ SYSTEM HEALTH: in-memory API tracking (response time + error rate)
+const apiHealthStats = { responseTimes: [], totalRequests: 0, totalErrors: 0, errorsByCategory: {} };
+function categorizeErrorUrl(url) {
+  if (url.includes('/auth') || url.includes('/login')) return 'Auth';
+  if (url.includes('/payment')) return 'Payment';
+  if (url.includes('/booking')) return 'Bookings';
+  if (url.includes('/guest')) return 'Guest';
+  return 'Other';
+}
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    const ms = Number(process.hrtime.bigint() - start) / 1e6;
+    apiHealthStats.totalRequests++;
+    apiHealthStats.responseTimes.push(ms);
+    if (apiHealthStats.responseTimes.length > 200) apiHealthStats.responseTimes.shift();
+    if (res.statusCode >= 400) {
+      apiHealthStats.totalErrors++;
+      const cat = categorizeErrorUrl(req.originalUrl || '');
+      apiHealthStats.errorsByCategory[cat] = (apiHealthStats.errorsByCategory[cat] || 0) + 1;
+    }
+  });
+  next();
+});
 
 // // ======================== WEBHOOK TEST ENDPOINT ========================
 // app.post('/api/subscription/webhook', express.raw({ type: 'application/json' }), (req, res) => {
@@ -3726,6 +3752,77 @@ app.put('/api/super/global-config', superAdminMiddleware, async (req, res) => {
     res.json({ success: true, config: update });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/system-health', superAdminMiddleware, async (req, res) => {
+  try {
+    const memUsage = process.memoryUsage();
+    const avgResponse = apiHealthStats.responseTimes.length
+      ? Math.round(apiHealthStats.responseTimes.reduce((a, b) => a + b, 0) / apiHealthStats.responseTimes.length)
+      : 0;
+    const errorRatePct = apiHealthStats.totalRequests
+      ? ((apiHealthStats.totalErrors / apiHealthStats.totalRequests) * 100).toFixed(2)
+      : '0.00';
+    const uptimeSeconds = Math.floor(process.uptime());
+    const uptimeLabel = `${Math.floor(uptimeSeconds / 3600)}h ${Math.floor((uptimeSeconds % 3600) / 60)}m`;
+    const memPercent = Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100);
+    const loadAvg = os.loadavg()[0] || 0;
+
+    res.json({
+      success: true,
+      data: {
+        uptime: uptimeLabel,
+        avgResponse: avgResponse + 'ms',
+        errorRate: errorRatePct + '%',
+        connections: io.engine.clientsCount,
+        serverLoad: Math.min(100, Math.round(loadAvg * 100)) + '%',
+        memoryUsage: memPercent + '%',
+        apiResponse: apiHealthStats.responseTimes.slice(-6).map(v => Math.round(v)),
+        labels: apiHealthStats.responseTimes.slice(-6).map((_, i, arr) => `T-${arr.length - i}`),
+        errorDistribution: Object.values(apiHealthStats.errorsByCategory),
+        errorLabels: Object.keys(apiHealthStats.errorsByCategory),
+        services: {
+          database: dbConnected ? 'Operational' : 'Down'
+        }
+      }
+    });
+  } catch (err) {
+    console.error('System health error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/super/tickets', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [], stats: { critical: 0, high: 0, open: 0, resolved: 0 } });
+    const tickets = await db.collection('support_tickets').find({}).sort({ created_at: -1 }).limit(200).toArray();
+    const hotelIds = [...new Set(tickets.map(t => t.hotel_id).filter(Boolean))];
+    const hotels = await db.collection('tenants').find({ hotelId: { $in: hotelIds } }).toArray();
+    const hotelNameMap = {};
+    hotels.forEach(h => { hotelNameMap[h.hotelId] = h.hotelName || h.hotelId; });
+
+    const formatted = tickets.map(t => ({
+      id: t.ticket_id || t._id.toString(),
+      subject: t.description || 'No description',
+      hotel: hotelNameMap[t.hotel_id] || t.hotel_id || 'Unknown',
+      priority: t.priority || 'medium',
+      status: t.status || 'open',
+      created: t.created_at ? new Date(t.created_at).toLocaleString() : ''
+    }));
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const stats = {
+      critical: formatted.filter(t => t.priority === 'critical').length,
+      high: formatted.filter(t => t.priority === 'high').length,
+      open: formatted.filter(t => t.status === 'open').length,
+      resolved: tickets.filter(t => t.status === 'resolved' && t.updated_at && new Date(t.updated_at) >= today).length
+    };
+
+    res.json({ success: true, data: formatted, stats });
+  } catch (err) {
+    console.error('Get super tickets error:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
