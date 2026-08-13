@@ -9805,23 +9805,50 @@ async function requestConciergeTour(place, price) {
 // ============================================================
 // WEATHER WIDGET
 // ============================================================
-function loadWeather() {
-  const icons = ['☀️','⛅','🌤️','🌥️','🌦️'];
-  const descs = ['Sunny & Clear','Partly Cloudy','Mostly Sunny','Overcast','Light Rain'];
-  const idx = Math.floor(Math.random()*icons.length);
-  const temp = 25 + Math.floor(Math.random()*10);
-  const humidity = 50 + Math.floor(Math.random()*30);
-  const wind = 8 + Math.floor(Math.random()*15);
+function weatherIconFor(code) {
+  const map = { '01':'☀️','02':'🌤️','03':'⛅','04':'🌥️','09':'🌦️','10':'🌧️','11':'⛈️','13':'❄️','50':'🌫️' };
+  return map[String(code||'').slice(0,2)] || '🌤️';
+}
+async function loadWeather() {
   const x=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  x('weatherIcon',icons[idx]); x('weatherTemp',temp+'°C'); x('weatherDesc',descs[idx]);
-  x('weatherCity','Hotel Location'); x('weatherHumidity',humidity+'%');
-  x('weatherWind',wind+' km/h'); x('weatherVis','10 km');
-  const forecast = document.getElementById('weatherForecast');
-  if(forecast) {
-    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const today = new Date().getDay();
-    forecast.innerHTML = Array.from({length:5},(_,i)=>{ const d=days[(today+i)%7]; const t=temp-2+Math.floor(Math.random()*8); const ic=icons[Math.floor(Math.random()*icons.length)]; return `<div style="background:var(--card2);border-radius:8px;padding:8px 12px;text-align:center;font-size:11px"><div style="opacity:.6">${d}</div><div style="font-size:18px">${ic}</div><div style="font-weight:600">${t}°</div></div>`;}).join('');
+  x('weatherCity','Detecting location...'); x('weatherDesc','Loading...');
+  if (!navigator.geolocation) {
+    x('weatherCity','Location unavailable'); x('weatherDesc','Enable location to see weather');
+    return;
   }
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    try {
+      const { latitude, longitude } = pos.coords;
+      const r = await fetch(`/api/weather/current/coordinates/${latitude}/${longitude}`);
+      const json = await r.json();
+      if (!json.success) throw new Error(json.error || 'Weather fetch failed');
+      const d = json.data;
+      x('weatherIcon', weatherIconFor(d.weather?.[0]?.icon));
+      x('weatherTemp', Math.round(d.main.temp)+'°C');
+      x('weatherDesc', d.weather?.[0]?.description || '');
+      x('weatherCity', d.name || 'Your Location');
+      x('weatherHumidity', d.main.humidity+'%');
+      x('weatherWind', Math.round(d.wind.speed*3.6)+' km/h');
+      x('weatherVis', d.visibility ? Math.round(d.visibility/1000)+' km' : '—');
+      const forecastEl = document.getElementById('weatherForecast');
+      if (forecastEl) {
+        try {
+          const fr = await fetch(`/api/weather/forecast/${encodeURIComponent(d.name)}`);
+          const fj = await fr.json();
+          if (fj.success) {
+            forecastEl.innerHTML = fj.data.map(f => {
+              const day = new Date(f.date).toLocaleDateString('en-US',{weekday:'short'});
+              return `<div style="background:var(--card2);border-radius:8px;padding:8px 12px;text-align:center;font-size:11px"><div style="opacity:.6">${day}</div><div style="font-size:18px">${weatherIconFor(f.icon)}</div><div style="font-weight:600">${Math.round(f.temperature)}°</div></div>`;
+            }).join('');
+          }
+        } catch(_) {}
+      }
+    } catch (err) {
+      x('weatherCity','Weather unavailable'); x('weatherDesc','Please try again later');
+    }
+  }, () => {
+    x('weatherCity','Location permission denied'); x('weatherDesc','Allow location access to see weather');
+  }, { timeout: 8000 });
 }
 
 // ============================================================
