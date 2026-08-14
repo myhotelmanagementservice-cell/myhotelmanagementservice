@@ -3826,6 +3826,144 @@ app.get('/api/super/tickets', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ WEBHOOKS
+app.get('/api/webhooks', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const list = await db.collection('webhooks').find({}).sort({ createdAt: -1 }).toArray();
+    const formatted = list.map(w => ({ ...w, _id: w._id.toString() }));
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get webhooks error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/webhooks', superAdminMiddleware, async (req, res) => {
+  try {
+    const { event, url, secret, isActive } = req.body;
+    if (!event || !url) return res.status(400).json({ success: false, error: 'event and url are required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      event: String(event).trim(),
+      url: String(url).trim(),
+      secret: secret || '',
+      isActive: isActive !== false,
+      deliveredCount: 0,
+      failedCount: 0,
+      createdAt: new Date()
+    };
+    const result = await db.collection('webhooks').insertOne(doc);
+    doc._id = result.insertedId.toString();
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create webhook error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/webhooks/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { event, url, secret, isActive } = req.body;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const update = { event, url, secret: secret || '', isActive: isActive !== false, updatedAt: new Date() };
+    const result = await db.collection('webhooks').updateOne({ _id: new ObjectId(id) }, { $set: update });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Webhook not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update webhook error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/webhooks/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('webhooks').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Webhook not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete webhook error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/webhooks/logs', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const logs = await db.collection('webhookLogs').find({}).sort({ createdAt: -1 }).limit(100).toArray();
+    const formatted = logs.map(l => ({ ...l, _id: l._id.toString() }));
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    console.error('Get webhook logs error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/webhooks/logs/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const log = await db.collection('webhookLogs').findOne({ _id: new ObjectId(id) });
+    if (!log) return res.status(404).json({ success: false, error: 'Log not found' });
+    log._id = log._id.toString();
+    res.json({ success: true, data: log });
+  } catch (err) {
+    console.error('Get webhook log detail error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/webhooks/:id/test', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const webhook = await db.collection('webhooks').findOne({ _id: new ObjectId(id) });
+    if (!webhook) return res.status(404).json({ success: false, error: 'Webhook not found' });
+
+    const testPayload = { event: webhook.event, test: true, timestamp: new Date().toISOString() };
+    let status = 'failed', responseCode = null;
+    try {
+      const resp = await fetch(webhook.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testPayload)
+      });
+      responseCode = resp.status;
+      status = resp.ok ? 'success' : 'failed';
+    } catch (fetchErr) {
+      status = 'failed';
+      responseCode = fetchErr.message;
+    }
+
+    await db.collection('webhookLogs').insertOne({
+      webhookId: id,
+      event: webhook.event,
+      url: webhook.url,
+      status,
+      attempts: 1,
+      payload: testPayload,
+      response: responseCode,
+      createdAt: new Date()
+    });
+    await db.collection('webhooks').updateOne(
+      { _id: new ObjectId(id) },
+      { $inc: status === 'success' ? { deliveredCount: 1 } : { failedCount: 1 } }
+    );
+
+    if (status === 'success') {
+      res.json({ success: true });
+    } else {
+      res.json({ success: false, error: 'Webhook endpoint did not respond successfully (' + responseCode + ')' });
+    }
+  } catch (err) {
+    console.error('Test webhook error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;
