@@ -3361,6 +3361,7 @@ showAdminTab('overview');
 showPage('guestDash');
 document.getElementById('gInfo').textContent = `👤 ${currentUser.name} | #${currentUser.room}`;
 updateGuestStats();
+startWakeupChecker();
 renderGuestFood();
 renderGuestInv();
 renderGuestHistory();
@@ -3500,6 +3501,7 @@ async function guestLogin(e) {
 
             currentUser = { type: 'guest', name, room, points: 0, token: data.token };
             saveSession();
+            startWakeupChecker();
             await checkHealth();
             await loadAllData();
             showPage('guestDash');
@@ -9648,6 +9650,68 @@ async function cancelMyWakeup(id) {
   renderMyWakeupCalls();
 }
 
+// ============================================================
+// WAKE-UP CALL RINGER
+// ============================================================
+let _wakeupRingInterval = null;
+let _wakeupRungIds = new Set();
+function startWakeupChecker() {
+  if (_wakeupRingInterval) return;
+  checkWakeupRing();
+  _wakeupRingInterval = setInterval(checkWakeupRing, 20000);
+}
+async function checkWakeupRing() {
+  if (!currentUser || currentUser.type !== 'guest') return;
+  try {
+    const r = await fetch(`/api/wakeupcalls?hotelId=${HID}`);
+    const all = await r.json();
+    const now = new Date();
+    const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    const mine = all.filter(w => (w.room===String(currentUser.room)||w.guestName===currentUser.name) && w.status==='pending' && w.time===nowStr);
+    mine.forEach(w => {
+      if (_wakeupRungIds.has(w._id)) return;
+      _wakeupRungIds.add(w._id);
+      ringWakeupAlarm(w);
+    });
+  } catch(_) {}
+}
+function ringWakeupAlarm(w) {
+  let audioCtx;
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(_) {}
+  function beep() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+  }
+  beep();
+  const beepInterval = setInterval(beep, 800);
+  try {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('⏰ Wake-up Call', { body: `It's ${w.time}! Time to wake up.` });
+    }
+  } catch(_) {}
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;color:#fff';
+  overlay.innerHTML = `
+    <div style="font-size:64px;margin-bottom:12px">⏰</div>
+    <div style="font-size:32px;font-weight:700;margin-bottom:8px">Wake-up Call!</div>
+    <div style="font-size:20px;opacity:.8;margin-bottom:24px">It's ${w.time}</div>
+    <button id="wakeupStopBtn" style="background:#667eea;color:#fff;border:none;padding:14px 40px;border-radius:10px;font-size:18px;font-weight:600;cursor:pointer">Stop</button>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('wakeupStopBtn').onclick = async () => {
+    clearInterval(beepInterval);
+    if (audioCtx) audioCtx.close();
+    overlay.remove();
+    try { await apiPut(`/api/wakeupcalls/${w._id}`, { status: 'done' }); } catch(_) {}
+    renderMyWakeupCalls();
+  };
+}
+  
 // ============================================================
 // ANALYTICS
 // ============================================================
