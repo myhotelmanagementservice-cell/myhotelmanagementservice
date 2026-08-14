@@ -10,7 +10,7 @@ router.get('/:roomId', async (req, res) => {
   try {
     const db = getDB();
     const room = await db.collection('rooms').findOne({
-      roomNumber: req.params.roomId,
+      number: parseInt(req.params.roomId, 10),
       hotelId: req.hotelId
     });
     if (!room) {
@@ -42,7 +42,7 @@ router.put('/:roomId/temperature', async (req, res) => {
 
     const db = getDB();
     const result = await db.collection('rooms').findOneAndUpdate(
-      { roomNumber: req.params.roomId, hotelId: req.hotelId },
+      { number: parseInt(req.params.roomId, 10), hotelId: req.hotelId },
       { $set: { temperature } },
       { returnDocument: 'after' }
     );
@@ -74,7 +74,7 @@ router.put('/:roomId/lights', async (req, res) => {
 
     const db = getDB();
     const result = await db.collection('rooms').findOneAndUpdate(
-      { roomNumber: req.params.roomId, hotelId: req.hotelId },
+      { number: parseInt(req.params.roomId, 10), hotelId: req.hotelId },
       { $set: { lights } },
       { returnDocument: 'after' }
     );
@@ -106,7 +106,7 @@ router.put('/:roomId/ac', async (req, res) => {
 
     const db = getDB();
     const result = await db.collection('rooms').findOneAndUpdate(
-      { roomNumber: req.params.roomId, hotelId: req.hotelId },
+      { number: parseInt(req.params.roomId, 10), hotelId: req.hotelId },
       { $set: { ac } },
       { returnDocument: 'after' }
     );
