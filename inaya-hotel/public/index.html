@@ -5827,7 +5827,7 @@ ${renderOptionsWithEmoji(DROPDOWN_TRANSLATIONS.maintenancePriority)}
 </div>
 </div>
 <div class="weather-card" style="margin-bottom:8px" id="guestWeatherCard">
-<div class="weather-icon" id="weatherIcon">🌤️</div>
+<div class="weather-icon" id="gWeatherIcon">🌤️</div>
 <div class="weather-temp" id="gWeatherTemp">28°C</div>
 <div class="weather-desc" data-i18n="weather" id="gWeatherDesc">Weather in ${userTimezone.split('/')[1] || 'Your City'}</div>
 <div style="font-size:10px;opacity:.7;margin-top:4px" id="guestWeatherUpdateTime">Updated just now</div>
@@ -8478,41 +8478,49 @@ showToast('✅ QR codes generated!', 'success');
 // ============================================================
 // WEATHER FUNCTIONS
 // ============================================================
-const weatherConditions = [
-{ icon: '🌤️', desc: 'Sunny', descHi: 'धूप', descAr: 'مشمس', tempMin: 25, tempMax: 38 },
-{ icon: '☀️', desc: 'Clear Sky', descHi: 'साफ आसमान', descAr: 'سماء صافية', tempMin: 28, tempMax: 42 },
-{ icon: '⛅', desc: 'Partly Cloudy', descHi: 'आंशिक बादल', descAr: 'غائم جزئياً', tempMin: 22, tempMax: 32 },
-{ icon: '🌥️', desc: 'Mostly Cloudy', descHi: 'अधिक बादल', descAr: 'غائم في الغالب', tempMin: 20, tempMax: 28 },
-{ icon: '🌧️', desc: 'Light Rain', descHi: 'हल्की बारिश', descAr: 'مطر خفيف', tempMin: 18, tempMax: 25 },
-{ icon: '⛈️', desc: 'Thunderstorm', descHi: 'आंधी-तूफान', descAr: 'عاصفة رعدية', tempMin: 16, tempMax: 22 },
-{ icon: '🌫️', desc: 'Foggy', descHi: 'कोहरा', descAr: 'ضبابي', tempMin: 12, tempMax: 20 },
-{ icon: '🌙', desc: 'Clear Night', descHi: 'साफ रात', descAr: 'ليلة صافية', tempMin: 15, tempMax: 24 },
-{ icon: '🌦️', desc: 'Sun Showers', descHi: 'धूप-बारिश', descAr: 'أمطار شمسية', tempMin: 20, tempMax: 30 },
-{ icon: '💨', desc: 'Windy', descHi: 'हवा', descAr: 'عاصف', tempMin: 18, tempMax: 28 }
-];
-function updateWeather() {
-const condition = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
-const temp = condition.tempMin + Math.floor(Math.random() * (condition.tempMax - condition.tempMin));
-const humidity = 30 + Math.floor(Math.random() * 50);
-const wind = 5 + Math.floor(Math.random() * 25);
-const localizedDesc = lang === 'hi' ? condition.descHi : lang === 'ar' ? condition.descAr : condition.desc;
-const timeStr = new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'ar-SA', { hour: '2-digit', minute: '2-digit', timeZone: userTimezone });
-const guestTemp = document.getElementById('gWeatherTemp');
-const guestDesc = document.getElementById('gWeatherDesc');
-const guestIcon = document.getElementById('weatherIcon');
-const guestTime = document.getElementById('guestWeatherUpdateTime');
-if (guestTemp) guestTemp.textContent = `${temp}°C`;
-if (guestDesc) guestDesc.textContent = localizedDesc;
-if (guestIcon) guestIcon.textContent = condition.icon;
-if (guestTime) guestTime.textContent = `🕐 Updated: ${timeStr} | 💧 ${humidity}% | 💨 ${wind} km/h`;
-const guestCard = document.getElementById('guestWeatherCard');
-if (guestCard) {
-guestCard.classList.remove('weather-update-flash');
-void guestCard.offsetWidth;
-guestCard.classList.add('weather-update-flash');
+let cachedGeoCoords = null;
+function getGeoCoords() {
+  return new Promise((resolve) => {
+    if (cachedGeoCoords) return resolve(cachedGeoCoords);
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { cachedGeoCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude }; resolve(cachedGeoCoords); },
+      () => resolve(null),
+      { timeout: 8000 }
+    );
+  });
 }
+async function updateWeather() {
+  const guestTemp = document.getElementById('gWeatherTemp');
+  const guestDesc = document.getElementById('gWeatherDesc');
+  const guestIcon = document.getElementById('gWeatherIcon');
+  const guestTime = document.getElementById('guestWeatherUpdateTime');
+  const coords = await getGeoCoords();
+  if (!coords) {
+    if (guestDesc) guestDesc.textContent = lang === 'hi' ? 'लोकेशन अनुमति आवश्यक' : lang === 'ar' ? 'يلزم إذن الموقع' : 'Location permission needed';
+    return;
+  }
+  try {
+    const r = await fetch(`/api/weather/current/coordinates/${coords.lat}/${coords.lon}`);
+    const json = await r.json();
+    if (!json.success) throw new Error(json.error || 'fetch failed');
+    const d = json.data;
+    const timeStr = new Date().toLocaleTimeString(lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'ar-SA', { hour: '2-digit', minute: '2-digit', timeZone: userTimezone });
+    if (guestTemp) guestTemp.textContent = `${Math.round(d.main.temp)}°C`;
+    if (guestDesc) guestDesc.textContent = d.weather?.[0]?.description || '';
+    if (guestIcon) guestIcon.textContent = weatherIconFor(d.weather?.[0]?.icon);
+    if (guestTime) guestTime.textContent = `🕐 Updated: ${timeStr} | 💧 ${d.main.humidity}% | 💨 ${Math.round(d.wind.speed*3.6)} km/h`;
+    const guestCard = document.getElementById('guestWeatherCard');
+    if (guestCard) {
+      guestCard.classList.remove('weather-update-flash');
+      void guestCard.offsetWidth;
+      guestCard.classList.add('weather-update-flash');
+    }
+  } catch (err) {
+    if (guestDesc) guestDesc.textContent = lang === 'hi' ? 'मौसम अनुपलब्ध' : lang === 'ar' ? 'الطقس غير متوفر' : 'Weather unavailable';
+  }
 }
-setInterval(updateWeather, 30000);
+setInterval(updateWeather, 1200000);
 // ============================================================
 // ADD LOG
 // ============================================================
