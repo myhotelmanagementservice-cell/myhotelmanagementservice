@@ -8986,9 +8986,20 @@ showToast('💬 Message sent to reception', 'success');
 // ROOM CONTROLS (GUEST)
 // ============================================================
 let _rcData = { temp: 22, ac: true, lights: true, dnd: false, roomService: true, lightScene: 'bright' };
-function loadRoomCtrl() {
+async function loadRoomCtrl() {
 const saved = localStorage.getItem(`h_${HID}_rc_${currentUser?.room}`);
 if (saved) try { Object.assign(_rcData, JSON.parse(saved)); } catch(_){}
+if (currentUser?.room) {
+try {
+const r = await fetch(`/api/room-control/${currentUser.room}`, { headers: { 'x-hotel-id': HID } });
+const json = await r.json();
+if (json.success) {
+_rcData.temp = json.data.temperature;
+_rcData.ac = json.data.ac !== 'off';
+_rcData.lights = json.data.lights !== 'off';
+}
+} catch(_) {}
+}
 const tempEl = document.getElementById('rcTemp');
 const acEl = document.getElementById('rcAcToggle');
 const lightsEl = document.getElementById('rcLightsToggle');
@@ -9001,11 +9012,20 @@ if (dndEl) dndEl.checked = _rcData.dnd;
 if (rsEl) rsEl.checked = _rcData.roomService;
 updateRCStatus();
 }
-function adjustTemp(delta) {
+async function adjustTemp(delta) {
 _rcData.temp = Math.min(30, Math.max(16, (_rcData.temp || 22) + delta));
 const el = document.getElementById('rcTemp');
 if (el) el.textContent = _rcData.temp + '°C';
 saveRoomCtrl();
+if (currentUser?.room) {
+try {
+await fetch(`/api/room-control/${currentUser.room}/temperature`, {
+method: 'PUT',
+headers: { 'Content-Type': 'application/json', 'x-hotel-id': HID },
+body: JSON.stringify({ temperature: _rcData.temp })
+});
+} catch(_) {}
+}
 showToast(`🌡️ Temperature set to ${_rcData.temp}°C`, 'info');
 }
 function setLightScene(scene) {
@@ -9031,11 +9051,29 @@ function saveRoomCtrl() {
 const acEl = document.getElementById('rcAcToggle');
 const lightsEl = document.getElementById('rcLightsToggle');
 const rsEl = document.getElementById('rcRsToggle');
+const acChanged = acEl && acEl.checked !== _rcData.ac;
+const lightsChanged = lightsEl && lightsEl.checked !== _rcData.lights;
 if (acEl) _rcData.ac = acEl.checked;
 if (lightsEl) _rcData.lights = lightsEl.checked;
 if (rsEl) _rcData.roomService = rsEl.checked;
 localStorage.setItem(`h_${HID}_rc_${currentUser?.room}`, JSON.stringify(_rcData));
 updateRCStatus();
+if (currentUser?.room) {
+if (acChanged) {
+fetch(`/api/room-control/${currentUser.room}/ac`, {
+method: 'PUT',
+headers: { 'Content-Type': 'application/json', 'x-hotel-id': HID },
+body: JSON.stringify({ ac: _rcData.ac ? 'auto' : 'off' })
+}).catch(()=>{});
+}
+if (lightsChanged) {
+fetch(`/api/room-control/${currentUser.room}/lights`, {
+method: 'PUT',
+headers: { 'Content-Type': 'application/json', 'x-hotel-id': HID },
+body: JSON.stringify({ lights: _rcData.lights ? 'on' : 'off' })
+}).catch(()=>{});
+}
+}
 }
 function updateRCStatus() {
 const el = document.getElementById('rcStatus');
