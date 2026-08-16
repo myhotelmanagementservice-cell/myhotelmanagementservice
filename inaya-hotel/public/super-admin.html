@@ -4511,12 +4511,7 @@ async function toggleLandingPage() {
                 showToast('Network error loading tickets', 'error');
             }
         }
-            { id: 'TKT-001', subject: 'Payment gateway timeout', hotel: 'Grand Plaza', priority: 'critical', status: 'open', created: '2026-07-02 10:30' },
-            { id: 'TKT-002', subject: 'Room booking sync issue', hotel: 'Seaside Resort', priority: 'high', status: 'in-progress', created: '2026-07-02 09:15' },
-            { id: 'TKT-003', subject: 'Report export failing', hotel: 'Royal Orchid', priority: 'medium', status: 'open', created: '2026-07-01 16:45' },
-            { id: 'TKT-004', subject: 'Guest check-in mobile app crash', hotel: 'Marina Bay', priority: 'high', status: 'resolved', created: '2026-07-01 14:20' },
-            { id: 'TKT-005', subject: 'Currency rate not updating', hotel: 'Alpine Lodge', priority: 'low', status: 'closed', created: '2026-06-30 11:00' }
-        ];
+
         function renderTicketsTable(filtered = null) {
             const tbody = document.getElementById('ticketsTable');
             if (!tbody) return;
