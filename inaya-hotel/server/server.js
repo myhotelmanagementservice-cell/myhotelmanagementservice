@@ -3964,6 +3964,100 @@ app.post('/api/webhooks/:id/test', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ FIREWALL / WAF
+app.get('/api/firewall', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, rules: [], logs: [] });
+    const rules = await db.collection('firewallRules').find({}).sort({ createdAt: -1 }).toArray();
+    const logs = await db.collection('wafLogs').find({}).sort({ timestamp: -1 }).limit(50).toArray();
+    res.json({
+      success: true,
+      rules: rules.map(r => ({ ...r, _id: r._id.toString() })),
+      logs: logs.map(l => ({ ...l, _id: l._id.toString() }))
+    });
+  } catch (err) {
+    console.error('Get firewall error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/firewall', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, source, action, isActive } = req.body;
+    if (!name || !action) return res.status(400).json({ success: false, error: 'name and action are required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      name: String(name).trim(),
+      source: source || 'Any',
+      action,
+      isActive: isActive !== false,
+      createdAt: new Date()
+    };
+    const result = await db.collection('firewallRules').insertOne(doc);
+    doc._id = result.insertedId.toString();
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create firewall rule error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/firewall/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const rule = await db.collection('firewallRules').findOne({ _id: new ObjectId(id) });
+    if (!rule) return res.status(404).json({ success: false, error: 'Rule not found' });
+    rule._id = rule._id.toString();
+    res.json({ success: true, data: rule });
+  } catch (err) {
+    console.error('Get firewall rule error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/firewall/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, source, action, isActive } = req.body;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const update = { name, source: source || 'Any', action, isActive: isActive !== false, updatedAt: new Date() };
+    const result = await db.collection('firewallRules').updateOne({ _id: new ObjectId(id) }, { $set: update });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Rule not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update firewall rule error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch('/api/firewall/:id/toggle', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const rule = await db.collection('firewallRules').findOne({ _id: new ObjectId(id) });
+    if (!rule) return res.status(404).json({ success: false, error: 'Rule not found' });
+    await db.collection('firewallRules').updateOne({ _id: new ObjectId(id) }, { $set: { isActive: rule.isActive === false } });
+    res.json({ success: true, isActive: rule.isActive === false });
+  } catch (err) {
+    console.error('Toggle firewall rule error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/firewall/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('firewallRules').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Rule not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete firewall rule error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;
