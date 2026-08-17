@@ -150,6 +150,12 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use((req, res, next) => {
+  if (req.path.startsWith('/source-backup/')) {
+    return res.status(404).send('Not found');
+  }
+  next();
+});
 app.use(express.static(publicPath, {
   maxAge: '0',
   etag: false,
