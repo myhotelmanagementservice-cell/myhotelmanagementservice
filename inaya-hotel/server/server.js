@@ -4126,6 +4126,91 @@ app.delete('/api/integrations/:id', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ COMPLIANCE
+app.get('/api/compliance', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: null });
+    const items = await db.collection('complianceRecords').find({}).sort({ createdAt: -1 }).toArray();
+    const config = await db.collection('complianceConfig').findOne({ _id: 'main' }) || {};
+    res.json({
+      success: true,
+      data: {
+        summary: config.summary || {},
+        lastAuditDate: config.lastAuditDate || null,
+        items: items.map(i => ({ ...i, _id: i._id.toString() }))
+      }
+    });
+  } catch (err) {
+    console.error('Get compliance error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/compliance', superAdminMiddleware, async (req, res) => {
+  try {
+    const { standard, requirement, status, notes } = req.body;
+    if (!standard || !requirement) return res.status(400).json({ success: false, error: 'standard and requirement are required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      standard: String(standard).trim(),
+      requirement: String(requirement).trim(),
+      status: status || 'pending',
+      notes: notes || '',
+      verifiedOn: status === 'compliant' ? new Date() : null,
+      createdAt: new Date()
+    };
+    const result = await db.collection('complianceRecords').insertOne(doc);
+    doc._id = result.insertedId.toString();
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create compliance error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/compliance/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const item = await db.collection('complianceRecords').findOne({ _id: new ObjectId(id) });
+    if (!item) return res.status(404).json({ success: false, error: 'Record not found' });
+    item._id = item._id.toString();
+    res.json({ success: true, data: item });
+  } catch (err) {
+    console.error('Get compliance record error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/compliance/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { standard, requirement, status, notes } = req.body;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const update = { standard, requirement, status, notes: notes || '', updatedAt: new Date() };
+    if (status === 'compliant') update.verifiedOn = new Date();
+    const result = await db.collection('complianceRecords').updateOne({ _id: new ObjectId(id) }, { $set: update });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Record not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update compliance error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/compliance/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('complianceRecords').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Record not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete compliance error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;
