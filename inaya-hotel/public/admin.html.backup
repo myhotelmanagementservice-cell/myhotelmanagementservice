@@ -1,0 +1,2240 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1a2e">
+<title>Crown Plaza — Hotel OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+/* ===================== RESET & BASE ===================== */
+*{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{
+  font-family:'DM Sans','Noto Sans Devanagari','Noto Naskh Arabic',system-ui,sans-serif;
+  background:var(--bg);color:var(--fg);
+  min-height:100dvh;width:100%;overflow-x:hidden;
+  padding-bottom:110px;transition:background .25s,color .25s;
+}
+:root{
+  --p1:#6c63ff;--p2:#a78bfa;--p3:#7c3aed;
+  --bg:#f4f3ff;--fg:#1e1b4b;--card:#fff;--card2:#f8f7ff;
+  --border:#e0deff;--shadow:0 2px 16px rgba(108,99,255,.10);
+  --header:linear-gradient(135deg,#6c63ff,#a78bfa);
+  --toolbar-bg:rgba(108,99,255,.97);
+  --input-bg:#fff;--input-border:#c4bfff;
+  --badge-open:#fef3c7;--badge-open-c:#92400e;
+  --badge-done:#d1fae5;--badge-done-c:#065f46;
+  --badge-pend:#dbeafe;--badge-pend-c:#1e40af;
+  --badge-blk:#fee2e2;--badge-blk-c:#991b1b;--r:14px;
+}
+body.dark{
+  --bg:#0f0e17;--fg:#fffffe;--card:#1a1a2e;--card2:#16213e;
+  --border:#2a2a4a;--shadow:0 2px 20px rgba(0,0,0,.4);
+  --input-bg:#1a1a2e;--input-border:#3a3a6a;
+  --badge-open:#7c5100;--badge-open-c:#fef3c7;
+  --badge-done:#065f46;--badge-done-c:#d1fae5;
+  --badge-pend:#1e3a6a;--badge-pend-c:#dbeafe;
+  --badge-blk:#7f1d1d;--badge-blk-c:#fee2e2;
+}
+body.theme-sunset{--p1:#f59e0b;--p2:#ef4444;--p3:#b45309;--header:linear-gradient(135deg,#f59e0b,#ef4444);--toolbar-bg:rgba(245,158,11,.97)}
+body.theme-forest{--p1:#10b981;--p2:#34d399;--p3:#059669;--header:linear-gradient(135deg,#10b981,#059669);--toolbar-bg:rgba(16,185,129,.97)}
+body.theme-ocean{--p1:#06b6d4;--p2:#3b82f6;--p3:#0e7490;--header:linear-gradient(135deg,#06b6d4,#3b82f6);--toolbar-bg:rgba(6,182,212,.97)}
+body.theme-royal{--p1:#ec4899;--p2:#8b5cf6;--p3:#be185d;--header:linear-gradient(135deg,#ec4899,#8b5cf6);--toolbar-bg:rgba(236,72,153,.97)}
+body.high-contrast{filter:contrast(1.3) saturate(1.2)}
+
+/* ===================== ✅ FIX 2: LOADING SCREEN ===================== */
+#loadingScreen{
+  position:fixed;inset:0;z-index:9999999;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:20px;
+  transition:opacity 0.4s ease;
+}
+#loadingScreen.hidden-loading{opacity:0;pointer-events:none}
+.loading-spinner{
+  width:50px;height:50px;
+  border:4px solid var(--border);
+  border-top-color:var(--p1);
+  border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+.loading-text{
+  font-size:16px;font-weight:600;color:var(--p1);
+  font-family:'DM Sans',sans-serif;
+}
+.loading-subtext{
+  font-size:12px;color:var(--fg);opacity:0.6;
+  font-family:'DM Sans',sans-serif;
+}
+
+/* ===================== FIXED TOOLBAR ===================== */
+#toolbar{
+  position:fixed!important;bottom:0!important;left:0!important;right:0!important;
+  width:100vw!important;background:var(--toolbar-bg)!important;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid rgba(255,255,255,.15);padding:8px 6px;
+  display:flex!important;flex-wrap:wrap;justify-content:center;align-items:center;
+  gap:4px;z-index:99999!important;box-shadow:0 -4px 24px rgba(0,0,0,.18)!important;
+  transform:translateZ(0)!important;will-change:auto!important;contain:layout style;
+}
+@supports(padding-bottom:env(safe-area-inset-bottom)){
+  #toolbar{padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+  body{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+}
+.tb-btn{
+  padding:5px 8px;border-radius:8px;border:none;
+  background:rgba(255,255,255,.2);color:#fff;font-size:10px;font-weight:600;
+  cursor:pointer;white-space:nowrap;min-width:30px;transition:background .15s,transform .1s;
+  font-family:inherit;
+}
+.tb-btn:hover{background:rgba(255,255,255,.35);transform:translateY(-1px)}
+.tb-btn.active{background:rgba(255,255,255,.45);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.tb-slider{width:50px;height:4px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.35);border-radius:2px;cursor:pointer}
+.tb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:#fff;border-radius:50%}
+
+/* Theme Dropdown */
+#themeDD{
+  position:fixed;bottom:86px;right:12px;background:var(--card);
+  border:1px solid var(--border);padding:10px;border-radius:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,.2);z-index:100000;display:none;min-width:160px;
+}
+#themeDD.show{display:block}
+.th-dot{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;display:inline-block;margin:2px;transition:transform .15s,border-color .15s}
+.th-dot:hover,.th-dot.active{transform:scale(1.1);border-color:var(--p1)}
+
+/* ✅ ONLINE/OFFLINE BADGE */
+#netBadge{
+  position:fixed;top:10px;right:10px;z-index:50000;
+  padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;
+  pointer-events:none;display:none;transition:all .2s;
+}
+#netBadge.online{display:block;background:#10b981;color:#fff;box-shadow:0 2px 8px rgba(16,185,129,.3)}
+#netBadge.offline{display:block;background:#ef4444;color:#fff;box-shadow:0 2px 8px rgba(239,68,68,.3)}
+#netBadge.reconnecting{display:block;background:#f59e0b;color:#fff;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* Socket Status Indicator */
+#sockStatus{
+  position:fixed;bottom:96px;left:8px;z-index:10000;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:3px 8px;font-size:10px;font-weight:600;
+  display:flex;align-items:center;gap:4px;box-shadow:var(--shadow);
+}
+.sock-dot{width:7px;height:7px;border-radius:50%;background:#9ca3af}
+.sock-dot.connected{background:#10b981;animation:pulse 2s infinite}
+.sock-dot.connecting{background:#f59e0b;animation:blink .8s infinite}
+.sock-dot.error{background:#ef4444}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ===================== CARDS & LAYOUT ===================== */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-sm{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;box-shadow:var(--shadow)}
+.btn-primary{background:var(--header);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:600;cursor:pointer;font-size:12px;font-family:inherit;transition:opacity .15s,transform .1s}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--p1);border:1.5px solid var(--p1);border-radius:8px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-ghost:hover{background:var(--p1);color:#fff}
+.inp{width:100%;padding:9px 12px;border:1.5px solid var(--input-border);border-radius:8px;background:var(--input-bg);color:var(--fg);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+.inp:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(108,99,255,.12)}
+select.inp{cursor:pointer}
+.lbl{font-size:11px;font-weight:600;color:var(--p1);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.5px}
+.badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:3px}
+.badge-open{background:var(--badge-open);color:var(--badge-open-c)}
+.badge-completed{background:var(--badge-done);color:var(--badge-done-c)}
+.badge-pending{background:var(--badge-pend);color:var(--badge-pend-c)}
+.badge-blocked{background:var(--badge-blk);color:var(--badge-blk-c)}
+.badge-active{background:var(--badge-done);color:var(--badge-done-c)}
+.badge-in_progress{background:var(--badge-pend);color:var(--badge-pend-c)}
+.req-card{background:var(--card);border-radius:10px;padding:12px;margin-bottom:8px;border-left:4px solid var(--p1);box-shadow:var(--shadow)}
+.req-card.emergency{border-left-color:#ef4444;background:rgba(239,68,68,.05)}
+
+/* ===================== HEADER ===================== */
+.header{background:var(--header);color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:1000;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.header h1{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.clock-badge{background:rgba(255,255,255,.2);padding:3px 8px;border-radius:20px;font-size:10px;font-family:'DM Mono',monospace;white-space:nowrap}
+.logout-btn{background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;transition:background .15s}
+.logout-btn:hover{background:rgba(255,255,255,.35)}
+
+/* ===================== TABS ===================== */
+.tabs-bar{background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;position:sticky;top:52px;z-index:900;scrollbar-width:none}
+.tabs-bar::-webkit-scrollbar{display:none}
+.tabs-bar-inner{display:inline-flex;padding:0 8px;gap:0;min-width:100%}
+.tab-btn{padding:10px 12px;font-size:11px;font-weight:500;color:var(--fg);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .15s;opacity:.65}
+.tab-btn.active{color:var(--p1);border-bottom-color:var(--p1);opacity:1;font-weight:700}
+.tab-btn:hover{opacity:1}
+.tab-pane{display:none}.tab-pane.active{display:block;animation:fadeUp .2s ease}
+
+/* ===================== LOGIN PAGE ===================== */
+#loginPage{min-height:100dvh;width:100%;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--header);padding:10px}
+.login-card{width:100%;max-width:400px;background:var(--card);border-radius:20px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+.login-logo{font-size:40px;text-align:center;margin-bottom:4px;animation:float 3s ease-in-out infinite}
+.login-h{font-size:20px;font-weight:700;color:var(--fg);text-align:center;margin-bottom:4px}
+.login-sub{font-size:12px;color:var(--p2);text-align:center;margin-bottom:16px}
+.login-tabs{display:flex;gap:8px;margin-bottom:16px}
+.login-tab{flex:1;padding:8px;border-radius:10px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--card2);color:var(--fg);border:1.5px solid var(--border);transition:all .15s}
+.login-tab.active{background:var(--p1);color:#fff;border-color:var(--p1)}
+.conn-status{display:flex;align-items:center;gap:6px;font-size:10px;padding:4px 10px;border-radius:20px;background:var(--card2);margin-bottom:12px}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:#9ca3af}
+.conn-dot.connected{background:#10b981;animation:pulse 2s infinite}
+.conn-dot.connecting{background:#f59e0b;animation:blink .8s infinite}
+.conn-dot.error{background:#ef4444}
+
+/* ===================== GUEST DASHBOARD ===================== */
+.guest-nav{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px}
+.gnav-btn{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;transition:all .15s;font-size:10px;font-weight:600;color:var(--fg);font-family:inherit}
+.gnav-btn:hover,.gnav-btn.active{background:var(--p1);color:#fff;border-color:var(--p1)}
+.gnav-icon{font-size:18px;display:block;margin-bottom:2px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;box-shadow:var(--shadow)}
+.stat-val{font-size:20px;font-weight:700;color:var(--p1)}
+.stat-lbl{font-size:10px;color:var(--fg);opacity:.6;margin-top:2px}
+
+/* ===================== TABLE ===================== */
+.tbl-wrap{overflow-x:auto;border-radius:8px}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{background:var(--card2);padding:8px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--p1);border-bottom:1px solid var(--border)}
+.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--card2)}
+.tbl-action{background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:4px;transition:background .1s}
+.tbl-action:hover{background:var(--border)}
+[dir="rtl"] .tbl th,[dir="rtl"] .tbl td{text-align:right}
+
+/* ===================== FOOD/INVENTORY GRID ===================== */
+.food-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.food-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;transition:all .15s;text-align:center}
+.food-card:hover{border-color:var(--p1);transform:translateY(-2px);box-shadow:0 4px 16px rgba(108,99,255,.15)}
+.food-emoji{font-size:24px;margin-bottom:4px}
+.food-name{font-size:12px;font-weight:600;color:var(--fg)}
+.food-price{font-size:13px;font-weight:700;color:var(--p1)}
+.food-cat{font-size:10px;opacity:.6}
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.inv-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px;text-align:center;cursor:pointer;transition:all .15s}
+.inv-card:hover{border-color:var(--p1)}
+
+/* ===================== MODAL ===================== */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:20000;align-items:center;justify-content:center;padding:12px}
+.modal-overlay.open{display:flex;animation:fadeIn .2s}
+.modal-box{background:var(--card);border-radius:16px;padding:20px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)}
+.modal-h{font-size:16px;font-weight:700;margin-bottom:14px;color:var(--fg)}
+.form-row{margin-bottom:10px}
+.form-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ===================== TOAST ===================== */
+#toasts{position:fixed;top:14px;right:14px;z-index:40000;max-width:calc(100% - 28px);pointer-events:none}
+.toast{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--p1);padding:10px 16px;border-radius:10px;margin-bottom:6px;font-size:12px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.15);animation:slideIn .25s ease;color:var(--fg)}
+.toast.success{border-left-color:#10b981}
+.toast.error{border-left-color:#ef4444}
+.toast.warning{border-left-color:#f59e0b}
+.toast.socket{border-left-color:#8b5cf6}
+
+/* ===================== ROLE GRID ===================== */
+.role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:480px){.role-grid{grid-template-columns:repeat(4,1fr)}}
+.role-card{background:var(--card2);border:1.5px solid var(--border);border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:all .15s;font-family:inherit}
+.role-card:hover{border-color:var(--p1);background:var(--p1);color:#fff;transform:translateY(-2px)}
+.role-icon{font-size:28px;margin-bottom:6px}
+.role-name{font-size:12px;font-weight:600}
+
+/* ===================== STAR RATING ===================== */
+.stars span{font-size:22px;cursor:pointer;transition:color .1s}
+
+/* ===================== ANIMATIONS ===================== */
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideIn{from{transform:translateX(120px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===================== MISC ===================== */
+.hidden{display:none!important}
+.divider{border:none;border-top:1px solid var(--border);margin:12px 0}
+.low-stock{color:#ef4444;font-weight:700}
+.page-wrap{max-width:1200px;margin:0 auto;padding:12px}
+.sync-spin{animation:spin 1s linear infinite;display:inline-block}
+.conn-bar{background:var(--p1);height:2px;position:fixed;top:0;left:0;z-index:99998;transition:width .3s}
+
+/* Mobile tweaks */
+@media(max-width:480px){
+  .login-card{padding:18px}
+  .guest-nav{grid-template-columns:repeat(3,1fr)}
+  .form-2{grid-template-columns:1fr}
+  .page-wrap{padding:8px}
+  .tb-btn{padding:4px 6px;font-size:9px;min-width:26px}
+  #toolbar{gap:3px;padding:6px 4px}
+  body{padding-bottom:100px}
+}
+[dir="rtl"] .req-card{border-left:none;border-right:4px solid var(--p1)}
+[dir="rtl"] .req-card.emergency{border-right-color:#ef4444}
+[lang="ar"]{font-family:'Noto Naskh Arabic','DM Sans',sans-serif}
+[lang="hi"]{font-family:'Noto Sans Devanagari','DM Sans',sans-serif}
+</style>
+</head>
+<body>
+
+<!-- ✅ FIX 2: LOADING SCREEN - Prevents login flash on refresh -->
+<div id="loadingScreen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Loading Crown Plaza...</div>
+  <div class="loading-subtext">Verifying your session...</div>
+</div>
+
+<!-- ✅ ONLINE/OFFLINE BADGE + SOCKET STATUS -->
+<div id="netBadge">🟢 Online</div>
+<div id="sockStatus"><span class="sock-dot connecting" id="sockDot"></span><span id="sockTxt">Connecting…</span></div>
+<div id="toasts"></div>
+<div class="conn-bar" id="connBar" style="width:0"></div>
+
+<!-- ========== TOOLBAR ========== -->
+<div id="toolbar">
+  <button class="tb-btn active" onclick="setLang('en')" id="lb-en">🇬🇧 EN</button>
+  <button class="tb-btn" onclick="setLang('hi')" id="lb-hi">🇮🇳 हि</button>
+  <button class="tb-btn" onclick="setLang('ar')" id="lb-ar">🇸🇦 ع</button>
+  <button class="tb-btn" onclick="toggleOnlineMode()" id="onlineBtn" title="Toggle Online/Offline">🟢 Online</button>
+  <button class="tb-btn" onclick="toggleContrast()" title="Contrast">🔆</button>
+  <button class="tb-btn" onclick="adjustFont(-1)" title="A-">A-</button>
+  <button class="tb-btn" onclick="adjustFont(0)" title="Reset">A</button>
+  <button class="tb-btn" onclick="adjustFont(1)" title="A+">A+</button>
+  <button class="tb-btn" onclick="toggleDark()" id="darkBtn">🌙</button>
+  <button class="tb-btn" onclick="toggleThemeDD()" title="Theme">🎨</button>
+  <span style="display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.15);padding:3px 7px;border-radius:8px">
+    <span style="font-size:9px">☀</span>
+    <input type="range" class="tb-slider" id="brightSlider" min=".5" max="1.5" step=".05" value="1" oninput="setBrightness(this.value)">
+  </span>
+  <button class="tb-btn" onclick="reqNotif()">🔔</button>
+  <button class="tb-btn" onclick="haptic()">📳</button>
+  <button class="tb-btn" onclick="speak()">🔊</button>
+</div>
+
+<!-- THEME DROPDOWN -->
+<div id="themeDD">
+  <div style="font-size:10px;font-weight:700;margin-bottom:6px;color:var(--fg)" data-i18n="selectTheme">Theme</div>
+  <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center">
+    <div class="th-dot active" style="background:linear-gradient(135deg,#6c63ff,#a78bfa)" onclick="setTheme('default')" title="Default"></div>
+    <div class="th-dot" style="background:linear-gradient(135deg,#f59e0b,#ef4444)" onclick="setTheme('sunset')" title="Sunset"></div>
+    <div class="th-dot" style="background:linear-gradient(135deg,#10b981,#059669)" onclick="setTheme('forest')" title="Forest"></div>
+    <div class="th-dot" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)" onclick="setTheme('ocean')" title="Ocean"></div>
+    <div class="th-dot" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)" onclick="setTheme('royal')" title="Royal"></div>
+  </div>
+</div>
+
+<!-- ========== LOGIN PAGE ========== -->
+<div id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">👑</div>
+    <div class="login-h" id="loginHotelName">Crown Plaza Hotel</div>
+    <div class="login-sub" data-i18n="welcomeSubtitle">Complete Management System</div>
+    <div class="conn-status" style="justify-content:center">
+      <div class="conn-dot connecting" id="loginConnDot"></div>
+      <span id="loginConnTxt" data-i18n="connecting">Connecting to server…</span>
+    </div>
+    <div class="login-tabs">
+      <button class="login-tab active" id="guestTabBtn" onclick="switchLogin('guest')" data-i18n="guestTab">🏨 Guest</button>
+      <button class="login-tab" id="adminTabBtn" onclick="switchLogin('admin')" data-i18n="adminTab">👑 Admin</button>
+    </div>
+    <form id="guestLoginForm" onsubmit="guestLogin(event)">
+      <div class="form-row"><label class="lbl" data-i18n="yourName">Your Name</label><input class="inp" id="guestNameIn" data-i18n-ph="enterName" placeholder="Enter your name" required></div>
+      <div class="form-row"><label class="lbl" data-i18n="roomNumber">Room Number</label><input class="inp" id="guestRoomIn" type="number" placeholder="e.g. 101" required></div>
+      <button class="btn-primary" style="width:100%;padding:11px" type="submit" data-i18n="loginGuest">🔐 Login as Guest</button>
+    </form>
+    <form id="adminLoginForm" class="hidden" onsubmit="adminLogin(event)">
+      <div class="form-row"><label class="lbl" data-i18n="emailAddress">Email</label><input class="inp" id="adminEmailIn" type="email" placeholder="admin@crownplaza.com" required></div>
+      <div class="form-row"><label class="lbl" data-i18n="password">Password</label><input class="inp" id="adminPassIn" type="password" placeholder="••••••••" required></div>
+      <button class="btn-primary" style="width:100%;padding:11px" type="submit" data-i18n="loginAdmin">🔐 Login as Admin</button>
+    </form>
+    <div style="text-align:center;margin-top:10px;font-size:10px;opacity:.5" id="tenantLabel"></div>
+  </div>
+</div>
+
+<!-- ========== ROLE SELECT PAGE ========== -->
+<div id="rolePage" class="hidden" style="min-height:100dvh;background:var(--header);display:none;align-items:center;justify-content:center;padding:12px">
+  <div class="card" style="width:100%;max-width:520px">
+    <button onclick="backToLogin()" style="font-size:11px;color:var(--p1);background:none;border:none;cursor:pointer;margin-bottom:10px" data-i18n="back">← Back</button>
+    <h2 style="font-size:18px;font-weight:700;text-align:center;margin-bottom:14px;color:var(--fg)" data-i18n="selectRole">👑 Select Your Role</h2>
+    <div class="role-grid" id="roleGrid"></div>
+  </div>
+</div>
+
+<!-- ========== ADMIN DASHBOARD ========== -->
+<div id="adminDash" class="hidden">
+  <div class="header">
+    <h1>👑 <span id="aHotelName">Crown Plaza</span> — <span id="aRole">Admin</span></h1>
+    <div class="header-right">
+      <span class="clock-badge" id="aClock"></span>
+      <button class="logout-btn" onclick="logout()" data-i18n="logout">Logout</button>
+    </div>
+  </div>
+  <div class="tabs-bar">
+    <div class="tabs-bar-inner" id="adminTabsBar"></div>
+  </div>
+  <div class="page-wrap" id="adminTabsContent"></div>
+</div>
+
+<!-- ========== GUEST DASHBOARD ========== -->
+<div id="guestDash" class="hidden">
+  <div class="header">
+    <h1>🏨 <span id="gHotelName">Crown Plaza</span></h1>
+    <div class="header-right">
+      <span class="clock-badge" id="gClock"></span>
+      <span id="gInfo" class="clock-badge"></span>
+      <span id="gPts" class="clock-badge">⭐ 0 pts</span>
+      <button class="logout-btn" onclick="logout()" data-i18n="logout">Logout</button>
+    </div>
+  </div>
+  <div class="page-wrap">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-val" id="gTotReq">0</div><div class="stat-lbl" data-i18n="myRequests">Requests</div></div>
+      <div class="stat-card"><div class="stat-val" id="gPendReq" style="color:#f59e0b">0</div><div class="stat-lbl" data-i18n="pending">Pending</div></div>
+      <div class="stat-card"><div class="stat-val" id="gDoneReq" style="color:#10b981">0</div><div class="stat-lbl" data-i18n="completed">Done</div></div>
+    </div>
+    <div class="guest-nav" id="guestNav"></div>
+    <div id="guestPanes"></div>
+  </div>
+</div>
+
+<!-- ========== MODALS ========== -->
+<div id="modals"></div>
+
+<script>
+// ================================================================
+// ✅ FIX 1: CONFIGURATION - Dynamic URLs
+// ================================================================
+const API = window.API_BASE || (window.location.origin + '/api');
+const SOCKET_URL = window.SOCKET_URL || window.location.origin;
+
+// ================================================================
+// MULTI-TENANT: Extract hotel ID
+// ================================================================
+const urlParams = new URLSearchParams(location.search);
+let HID = urlParams.get('hotel') || localStorage.getItem('hotel_hid') || 'default';
+if (urlParams.get('hotel')) localStorage.setItem('hotel_hid', HID);
+document.getElementById('tenantLabel').textContent = `Hotel ID: ${HID}`;
+
+// ================================================================
+// ✅ FIX 1: Centralized Auth Headers Function
+// ================================================================
+function getAuthHeaders() {
+  const token = localStorage.getItem(`h_${HID}_token`);
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-hotel-id': HID
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+// ================================================================
+// TRANSLATIONS
+// ================================================================
+const T = {
+en:{
+  hotelName:'Crown Plaza Hotel',welcomeSubtitle:'Complete Management System',connecting:'Connecting to server…',
+  guestTab:'🏨 Guest',adminTab:'👑 Admin',yourName:'Your Name',enterName:'Enter your name',
+  roomNumber:'Room Number',loginGuest:'🔐 Login as Guest',emailAddress:'Email',password:'Password',
+  loginAdmin:'🔐 Login as Admin',back:'← Back',selectRole:'👑 Select Your Role',logout:'Logout',
+  roleSuperAdmin:'Super Admin',roleFrontDesk:'Front Desk',roleHousekeeping:'Housekeeping',
+  roleMaintenance:'Maintenance',roleRestaurant:'Restaurant',roleLaundry:'Laundry',
+  roleSecurity:'Security',roleIT:'IT Support',
+  tabOverview:'📊 Overview',tabRooms:'🏨 Rooms',tabGuests:'👥 Guests',tabFood:'🍽️ Food',
+  tabInventory:'📦 Inventory',tabRequests:'📋 Requests',tabSettings:'⚙️ Settings',
+  tabBlacklist:'🚫 Blacklist',tabReports:'📈 Reports',tabReviews:'⭐ Reviews',
+  tabQR:'📷 QR Codes',tabMaintenance:'🔧 Maint.',tabLoyalty:'🏆 Loyalty',
+  tabStaff:'👔 Staff',tabLogs:'📝 Logs',
+  myRequests:'Requests',pending:'Pending',completed:'Done',
+  addRoom:'+ Add Room',addGuest:'+ Add Guest',addDish:'+ Add Dish',addItem:'+ Add Item',
+  addTask:'+ Add Task',blockGuest:'+ Block Guest',
+  save:'Save',cancel:'Cancel',confirm:'Confirm',delete:'Delete',
+  selectTheme:'Theme',selectDepartment:'Select Department',selectService:'Select Service',
+  normal:'🟢 Normal',urgent:'⚠️ Urgent',emergency_:'🚨 Emergency',
+  describeIssue:'Describe your issue…',submitRequest:'Submit Request',
+  yourCart:'Your Cart',placeOrder:'🛒 Place Order',
+  requestMore:'Request More',bookNow:'📅 Book Now',
+  wifi:'📶 WiFi',localTime:'🌍 Local Time',checkoutTime:'🕐 Checkout',
+  copy:'Copy',myPoints:'⭐ My Points',rateNow:'Rate Now',
+  loyaltyBenefits:'100 pts = $10 off | 500 pts = Free Night',
+  wakeUp:'⏰ Wake-up',dnd:'🔕 DND',localGuide:'🗺️ Guide',emergency:'📞 Emergency',
+  rateStay:'⭐ Rate Your Stay',overall:'Overall',service:'Service',cleanliness:'Cleanliness',
+  shareExp:'Share your experience…',submitReview:'Submit Review',
+  hotelNameLbl:'Hotel Name',currencyLbl:'Currency Symbol',wifiLbl:'WiFi Password',
+  airportPrice:'Airport Transfer Price',localPrice:'Local Cab $/hr',
+  reportType:'Report Type',generate:'🔄 Generate',exportBtn:'📥 Export',
+  roomNum:'Room #',roomType:'Type',price:'Price',status:'Status',guest:'Guest',actions:'Actions',
+  typeStd:'Standard',typeDlx:'Deluxe',typeSte:'Suite',typePres:'Presidential',
+  vacant:'Vacant',occupied:'Occupied',cleaning:'Cleaning',maintenance:'Maintenance',
+  deptHK:'🧹 Housekeeping',deptMaint:'🔧 Maintenance',deptRest:'🍽️ Restaurant',
+  deptLaundry:'🧺 Laundry',deptIT:'💻 IT Support',deptSec:'🛡️ Security',deptTransport:'🚗 Transport',
+  reqTab:'Request',foodTab:'Food',invTab:'Inventory',cabTab:'Cab',histTab:'History',infoTab:'Info',
+  foodMenu:'🍕 Food Menu',invItems:'📦 Items',transport:'🚗 Transport',myHistory:'📋 My History',hotelInfo:'ℹ️ Hotel Info',
+  exportXLS:'📥 Export XLS',clearLogs:'🗑️ Clear',filterAll:'All',filterOpen:'Open',filterDone:'Done',filterEmerg:'🚨 Emergency',
+  item:'Item',category:'Category',stock:'Stock',unit:'Unit',minAlert:'Min Alert',assigned:'Assigned',scheduled:'Scheduled',
+  task:'Task',area:'Room/Area',priority:'Priority',
+  nameLbl:'Name',room:'Room',points:'Points',reason:'Reason',date:'Date',
+  low:'🟢 Low',medium:'🟡 Medium',high:'🔴 High',
+  airportTx:'✈️ Airport Transfer',localCab:'🚕 Local Cab',
+  unblock:'✅ Unblock',block:'🚫 Block',
+  generating:'Generating QR…',genAll:'🔄 Generate All',download:'⬇️ Download',
+  online:'🟢 Online',offline:'📴 Offline',reconnecting:'🔄 Reconnecting…'
+},
+hi:{
+  hotelName:'क्राउन प्लाज़ा होटल',welcomeSubtitle:'संपूर्ण प्रबंधन प्रणाली',connecting:'सर्वर से जुड़ रहे हैं…',
+  guestTab:'🏨 अतिथि',adminTab:'👑 व्यवस्थापक',yourName:'आपका नाम',enterName:'अपना नाम लिखें',
+  roomNumber:'कमरा नंबर',loginGuest:'🔐 अतिथि लॉगिन',emailAddress:'ईमेल',password:'पासवर्ड',
+  loginAdmin:'🔐 व्यवस्थापक लॉगिन',back:'← वापस',selectRole:'👑 अपनी भूमिका चुनें',logout:'लॉगआउट',
+  roleSuperAdmin:'सुपर एडमिन',roleFrontDesk:'फ्रंट डेस्क',roleHousekeeping:'हाउसकीपिंग',
+  roleMaintenance:'रखरखाव',roleRestaurant:'रेस्टोरेंट',roleLaundry:'लॉन्ड्री',
+  roleSecurity:'सुरक्षा',roleIT:'आईटी सहायता',
+  tabOverview:'📊 अवलोकन',tabRooms:'🏨 कमरे',tabGuests:'👥 अतिथि',tabFood:'🍽️ भोजन',
+  tabInventory:'📦 स्टॉक',tabRequests:'📋 अनुरोध',tabSettings:'⚙️ सेटिंग',
+  tabBlacklist:'🚫 ब्लैकलिस्ट',tabReports:'📈 रिपोर्ट',tabReviews:'⭐ समीक्षाएं',
+  tabQR:'📷 QR कोड',tabMaintenance:'🔧 रखरखाव',tabLoyalty:'🏆 लॉयल्टी',
+  tabStaff:'👔 स्टाफ',tabLogs:'📝 लॉग',
+  myRequests:'अनुरोध',pending:'लंबित',completed:'पूर्ण',
+  addRoom:'+ कमरा जोड़ें',addGuest:'+ अतिथि जोड़ें',addDish:'+ व्यंजन जोड़ें',addItem:'+ आइटम जोड़ें',
+  addTask:'+ कार्य जोड़ें',blockGuest:'+ ब्लॉक करें',
+  save:'सहेजें',cancel:'रद्द',confirm:'पुष्टि करें',delete:'हटाएं',
+  selectTheme:'थीम',selectDepartment:'विभाग चुनें',selectService:'सेवा चुनें',
+  normal:'🟢 सामान्य',urgent:'⚠️ तत्काल',emergency_:'🚨 आपातकाल',
+  describeIssue:'समस्या बताएं…',submitRequest:'अनुरोध भेजें',
+  yourCart:'आपका कार्ट',placeOrder:'🛒 ऑर्डर करें',
+  requestMore:'और चाहिए',bookNow:'📅 बुक करें',
+  wifi:'📶 वाईफाई',localTime:'🌍 स्थानीय समय',checkoutTime:'🕐 चेकआउट',
+  copy:'कॉपी',myPoints:'⭐ मेरे अंक',rateNow:'रेट करें',
+  loyaltyBenefits:'100 अंक = ₹10 छूट | 500 अंक = मुफ्त रात',
+  wakeUp:'⏰ वेकअप',dnd:'🔕 डीएनडी',localGuide:'🗺️ गाइड',emergency:'📞 आपातकाल',
+  rateStay:'⭐ प्रवास रेट करें',overall:'समग्र',service:'सेवा',cleanliness:'स्वच्छता',
+  shareExp:'अनुभव साझा करें…',submitReview:'समीक्षा दें',
+  hotelNameLbl:'होटल का नाम',currencyLbl:'मुद्रा प्रतीक',wifiLbl:'वाईफाई पासवर्ड',
+  airportPrice:'एयरपोर्ट कीमत',localPrice:'लोकल कैब ₹/घंटा',
+  reportType:'रिपोर्ट प्रकार',generate:'🔄 बनाएं',exportBtn:'📥 निर्यात',
+  roomNum:'कमरा #',roomType:'प्रकार',price:'कीमत',status:'स्थिति',guest:'अतिथि',actions:'कार्य',
+  typeStd:'स्टैंडर्ड',typeDlx:'डिलक्स',typeSte:'सूट',typePres:'प्रेसिडेंशियल',
+  vacant:'रिक्त',occupied:'भरा',cleaning:'सफाई',maintenance:'रखरखाव',
+  deptHK:'🧹 हाउसकीपिंग',deptMaint:'🔧 रखरखाव',deptRest:'🍽️ रेस्टोरेंट',
+  deptLaundry:'🧺 लॉन्ड्री',deptIT:'💻 आईटी',deptSec:'🛡️ सुरक्षा',deptTransport:'🚗 परिवहन',
+  reqTab:'अनुरोध',foodTab:'भोजन',invTab:'स्टॉक',cabTab:'कैब',histTab:'इतिहास',infoTab:'जानकारी',
+  foodMenu:'🍕 भोजन मेनू',invItems:'📦 सामान',transport:'🚗 परिवहन',myHistory:'📋 इतिहास',hotelInfo:'ℹ️ होटल जानकारी',
+  exportXLS:'📥 एक्सपोर्ट',clearLogs:'🗑️ साफ करें',filterAll:'सभी',filterOpen:'खुले',filterDone:'पूर्ण',filterEmerg:'🚨 आपातकाल',
+  item:'आइटम',category:'श्रेणी',stock:'स्टॉक',unit:'इकाई',minAlert:'न्यूनतम',assigned:'नियुक्त',scheduled:'निर्धारित',
+  task:'कार्य',area:'कमरा/क्षेत्र',priority:'प्राथमिकता',
+  nameLbl:'नाम',room:'कमरा',points:'अंक',reason:'कारण',date:'तारीख',
+  low:'🟢 कम',medium:'🟡 मध्यम',high:'🔴 अधिक',
+  airportTx:'✈️ एयरपोर्ट',localCab:'🚕 लोकल कैब',
+  unblock:'✅ अनब्लॉक',block:'🚫 ब्लॉक',
+  generating:'QR बना रहे हैं…',genAll:'🔄 सभी बनाएं',download:'⬇️ डाउनलोड',
+  online:'🟢 ऑनलाइन',offline:'📴 ऑफलाइन',reconnecting:'🔄 पुनः जुड़ रहा…'
+},
+ar:{
+  hotelName:'فندق كراون بلازا',welcomeSubtitle:'نظام الإدارة الكامل',connecting:'جارٍ الاتصال…',
+  guestTab:'🏨 ضيف',adminTab:'👑 مسؤول',yourName:'اسمك',enterName:'أدخل اسمك',
+  roomNumber:'رقم الغرفة',loginGuest:'🔐 دخول كضيف',emailAddress:'البريد الإلكتروني',password:'كلمة المرور',
+  loginAdmin:'🔐 دخول كمسؤول',back:'← رجوع',selectRole:'👑 اختر دورك',logout:'خروج',
+  roleSuperAdmin:'المسؤول الرئيسي',roleFrontDesk:'الاستقبال',roleHousekeeping:'التدبير',
+  roleMaintenance:'الصيانة',roleRestaurant:'المطعم',roleLaundry:'الغسيل',
+  roleSecurity:'الأمن',roleIT:'تقنية المعلومات',
+  tabOverview:'📊 نظرة عامة',tabRooms:'🏨 الغرف',tabGuests:'👥 الضيوف',tabFood:'🍽️ الطعام',
+  tabInventory:'📦 المخزون',tabRequests:'📋 الطلبات',tabSettings:'⚙️ الإعدادات',
+  tabBlacklist:'🚫 القائمة السوداء',tabReports:'📈 التقارير',tabReviews:'⭐ التقييمات',
+  tabQR:'📷 رموز QR',tabMaintenance:'🔧 الصيانة',tabLoyalty:'🏆 الولاء',
+  tabStaff:'👔 الموظفون',tabLogs:'📝 السجلات',
+  myRequests:'الطلبات',pending:'معلقة',completed:'مكتمل',
+  addRoom:'+ إضافة غرفة',addGuest:'+ إضافة ضيف',addDish:'+ إضافة طبق',addItem:'+ إضافة عنصر',
+  addTask:'+ إضافة مهمة',blockGuest:'+ حظر',
+  save:'حفظ',cancel:'إلغاء',confirm:'تأكيد',delete:'حذف',
+  selectTheme:'السمة',selectDepartment:'اختر القسم',selectService:'اختر الخدمة',
+  normal:'🟢 عادي',urgent:'⚠️ عاجل',emergency_:'🚨 طارئ',
+  describeIssue:'صف مشكلتك…',submitRequest:'إرسال الطلب',
+  yourCart:'سلتك',placeOrder:'🛒 تقديم الطلب',
+  requestMore:'طلب المزيد',bookNow:'📅 احجز الآن',
+  wifi:'📶 WiFi',localTime:'🌍 الوقت المحلي',checkoutTime:'🕐 المغادرة',
+  copy:'نسخ',myPoints:'⭐ نقاطي',rateNow:'قيّم الآن',
+  loyaltyBenefits:'100 نقطة = خصم $10 | 500 نقطة = ليلة مجانية',
+  wakeUp:'⏰ إيقاظ',dnd:'🔕 لا إزعاج',localGuide:'🗺️ دليل',emergency:'📞 طوارئ',
+  rateStay:'⭐ قيّم إقامتك',overall:'عام',service:'الخدمة',cleanliness:'النظافة',
+  shareExp:'شارك تجربتك…',submitReview:'إرسال التقييم',
+  hotelNameLbl:'اسم الفندق',currencyLbl:'رمز العملة',wifiLbl:'كلمة مرور WiFi',
+  airportPrice:'سعر المطار',localPrice:'تاكسي $/ساعة',
+  reportType:'نوع التقرير',generate:'🔄 توليد',exportBtn:'📥 تصدير',
+  roomNum:'غرفة #',roomType:'النوع',price:'السعر',status:'الحالة',guest:'الضيف',actions:'الإجراءات',
+  typeStd:'قياسي',typeDlx:'ديلوكس',typeSte:'جناح',typePres:'رئاسي',
+  vacant:'شاغر',occupied:'مشغول',cleaning:'تنظيف',maintenance:'صيانة',
+  deptHK:'🧹 التدبير',deptMaint:'🔧 الصيانة',deptRest:'🍽️ المطعم',
+  deptLaundry:'🧺 الغسيل',deptIT:'💻 تقنية المعلومات',deptSec:'🛡️ الأمن',deptTransport:'🚗 النقل',
+  reqTab:'طلب',foodTab:'طعام',invTab:'المخزون',cabTab:'سيارة',histTab:'السجل',infoTab:'معلومات',
+  foodMenu:'🍕 قائمة الطعام',invItems:'📦 عناصر',transport:'🚗 النقل',myHistory:'📋 سجلاتي',hotelInfo:'ℹ️ معلومات الفندق',
+  exportXLS:'📥 تصدير',clearLogs:'🗑️ مسح',filterAll:'الكل',filterOpen:'مفتوحة',filterDone:'مكتملة',filterEmerg:'🚨 طارئ',
+  item:'العنصر',category:'الفئة',stock:'المخزون',unit:'الوحدة',minAlert:'الحد الأدنى',assigned:'المكلف',scheduled:'المجدول',
+  task:'المهمة',area:'الغرفة/المنطقة',priority:'الأولوية',
+  nameLbl:'الاسم',room:'الغرفة',points:'النقاط',reason:'السبب',date:'التاريخ',
+  low:'🟢 منخفض',medium:'🟡 متوسط',high:'🔴 عالي',
+  airportTx:'✈️ نقل المطار',localCab:'🚕 تاكسي محلي',
+  unblock:'✅ إلغاء الحظر',block:'🚫 حظر',
+  generating:'جارٍ إنشاء QR…',genAll:'🔄 إنشاء الكل',download:'⬇️ تنزيل',
+  online:'🟢 متصل',offline:'📴 غير متصل',reconnecting:'🔄 إعادة الاتصال…'
+}};
+
+function t(k){return T[lang]?.[k] || T.en[k] || k}
+
+// ================================================================
+// STATE
+// ================================================================
+let lang='en', dark=false, fontSize=0, brightness=1, theme='default';
+let currentUser=null, HotelCfg={name:'Crown Plaza Hotel',currency:'$',wifi:'CrownPlaza@2024',airportPrice:30,localPrice:15};
+let rooms=[], guests=[], food=[], inventory=[], requests=[], blacklist=[], maintenance=[], reviews=[], loyalty=[], staff=[], logs=[];
+let cart=[], ratingData={overall:0,service:0,clean:0};
+let deptChart=null, occChart=null;
+let isOnline=true;
+
+const SERVICES = {
+  'Housekeeping':['Room Cleaning','Extra Towels','Bed Making','Mini Bar Restock','Laundry Pickup'],
+  'Maintenance':['AC Repair','Plumbing','Electrical','TV/Internet','Furniture Fix'],
+  'Restaurant':['Room Service','Table Booking','Special Diet','Complaint','Compliment'],
+  'Laundry':['Wash & Fold','Dry Cleaning','Ironing','Express Service','Pickup Request'],
+  'IT':['WiFi Issue','TV Problem','Phone Issue','Device Setup','Password Reset'],
+  'Security':['Lost Key','Suspicious Activity','Safe Deposit','Escort Request','Emergency'],
+  'Transport':['Airport Transfer','Local Cab','Car Rental','Bike Rental','Shuttle Service']
+};
+
+const ROLES = [
+  {key:'super_admin',icon:'👑',label:'roleSuperAdmin'},
+  {key:'front_desk',icon:'🛎️',label:'roleFrontDesk'},
+  {key:'housekeeping',icon:'🧹',label:'roleHousekeeping'},
+  {key:'maintenance',icon:'🔧',label:'roleMaintenance'},
+  {key:'restaurant',icon:'🍽️',label:'roleRestaurant'},
+  {key:'laundry',icon:'🧺',label:'roleLaundry'},
+  {key:'security',icon:'🛡️',label:'roleSecurity'},
+  {key:'it_support',icon:'💻',label:'roleIT'}
+];
+
+// ================================================================
+// ✅ FIX 1: SOCKET.IO — Real-time multi-device sync
+// ================================================================
+let socket=null;
+function initSocket(){
+  try{
+    socket = io(SOCKET_URL, {
+      transports:['websocket','polling'],
+      auth:{hotelId:HID},
+      reconnectionDelay:1000,
+      reconnectionDelayMax:5000
+    });
+
+    socket.on('connect',()=>{
+      setSockStatus('connected');
+      updateNetBadge('online');
+      socket.emit('join_hotel', HID);
+      showToast('🔗 Connected','socket');
+      syncBack();
+    });
+
+    socket.on('disconnect',()=>{setSockStatus('disconnected');updateNetBadge('offline')});
+    socket.on('connect_error',()=>{setSockStatus('error');updateNetBadge('offline')});
+    socket.on('reconnecting',()=>{setSockStatus('connecting');updateNetBadge('reconnecting')});
+
+    socket.on('sync_all', (data)=>{
+      if(data.rooms) rooms=data.rooms;
+      if(data.guests) guests=data.guests;
+      if(data.food) food=data.food;
+      if(data.inventory) inventory=data.inventory;
+      if(data.requests) requests=data.requests;
+      if(data.blacklist) blacklist=data.blacklist;
+      if(data.maintenance) maintenance=data.maintenance;
+      if(data.reviews) reviews=data.reviews;
+      if(data.staff) staff=data.staff;
+      if(data.logs) logs=data.logs;
+      renderAll();
+      showToast('🔄 Data synced','socket');
+    });
+
+    socket.on('cfg_upd',(cfg)=>{
+      Object.assign(HotelCfg, cfg);
+      applyCfg();
+      showToast('⚙️ Config updated','socket');
+    });
+
+    socket.on('req_new',(req)=>{
+      if(!requests.find(r=>r._id===req._id)) requests.unshift(req);
+      renderRequests(); updateAdminStats();
+      if(currentUser?.type==='admin') showToast(`📋 New request: ${req.guestName}`,'socket');
+    });
+
+    socket.on('req_upd',(req)=>{
+      const idx = requests.findIndex(r=>r._id===req._id);
+      if(idx>-1) requests[idx]=req; else requests.unshift(req);
+      renderRequests(); updateGuestStats();
+    });
+
+    socket.on('room_upd',(room)=>{
+      const idx=rooms.findIndex(r=>r._id===room._id);
+      if(idx>-1) rooms[idx]=room; else rooms.push(room);
+      renderRooms(); updateAdminStats();
+    });
+
+    socket.on('inventory_upd',(item)=>{
+      const idx=inventory.findIndex(i=>i._id===item._id);
+      if(idx>-1) inventory[idx]=item; else inventory.push(item);
+      renderInventory(); renderGuestInv();
+    });
+
+    socket.on('food_upd',(item)=>{
+      const idx=food.findIndex(f=>f._id===item._id);
+      if(idx>-1) food[idx]=item; else food.push(item);
+      renderFood(); renderGuestFood();
+    });
+
+    socket.on('review_new',(rev)=>{
+      if(!reviews.find(r=>r._id===rev._id)) reviews.unshift(rev);
+      renderReviews();
+    });
+
+    socket.on('staff_upd',(s)=>{
+      const idx=staff.findIndex(x=>x._id===s._id);
+      if(idx>-1) staff[idx]=s; else staff.push(s);
+      renderStaff();
+    });
+
+    socket.on('booking_new',(b)=>{
+      renderAll();
+    });
+
+    socket.on('booking_upd',(b)=>{
+      renderAll();
+    });
+
+  }catch(e){
+    console.warn('Socket unavailable, offline mode');
+    setSockStatus('error');
+    updateNetBadge('offline');
+  }
+}
+
+function setSockStatus(s){
+  const dot=document.getElementById('sockDot'), txt=document.getElementById('sockTxt');
+  const loginDot=document.getElementById('loginConnDot'), loginTxt=document.getElementById('loginConnTxt');
+  const map={connected:{cls:'connected',text:'Live'},disconnected:{cls:'error',text:'Offline'},connecting:{cls:'connecting',text:'…'},error:{cls:'error',text:'Offline'}};
+  const m=map[s]||map.disconnected;
+  [dot,loginDot].forEach(el=>{if(el){el.className='sock-dot '+m.cls}});
+  if(txt) txt.textContent=m.text;
+  if(loginTxt) loginTxt.textContent=m.text;
+  const sockEl=document.getElementById('sockStatus');
+  if(sockEl) sockEl.style.display=s==='connected'?'none':'flex';
+}
+
+function updateNetBadge(status){
+  const badge=document.getElementById('netBadge');
+  if(!badge) return;
+  badge.className='';
+  if(status==='online'){badge.classList.add('online');badge.textContent=t('online')}
+  else if(status==='offline'){badge.classList.add('offline');badge.textContent=t('offline')}
+  else if(status==='reconnecting'){badge.classList.add('reconnecting');badge.textContent=t('reconnecting')}
+}
+
+function toggleOnlineMode(){
+  isOnline=!isOnline;
+  const btn=document.getElementById('onlineBtn');
+  if(isOnline){
+    btn.innerHTML='🟢 Online';btn.title='Click to go offline';
+    updateNetBadge('online');
+    if(socket && !socket.connected) socket.connect();
+    showToast('🌐 Online mode enabled','success');
+  }else{
+    btn.innerHTML='📴 Offline';btn.title='Click to go online';
+    updateNetBadge('offline');
+    if(socket && socket.connected) socket.disconnect();
+    showToast('📴 Offline mode - using localStorage','warning');
+  }
+}
+
+// ================================================================
+// ✅ FIX 1: API CALLS — All include Authorization + x-hotel-id headers
+// ================================================================
+async function apiCall(method, path, body=null){
+  if(!isOnline) return null;
+  const opts={method, headers:getAuthHeaders()};
+  if(body) opts.body=JSON.stringify(body);
+  try{
+    const r=await fetch(API+path, opts);
+
+    // ✅ FIX: Handle 401 - Session expired
+    if(r.status === 401){
+      console.warn('Session expired (401)');
+      localStorage.removeItem(`h_${HID}_token`);
+      localStorage.removeItem(`h_${HID}_session`);
+      currentUser = null;
+      showPage('loginPage');
+      showToast('⚠️ Session expired. Please login again.','warning');
+      return null;
+    }
+
+    // ✅ FIX: Handle HTML response (server error page)
+    const contentType = r.headers.get('content-type');
+    if(contentType && !contentType.includes('application/json')){
+      const text = await r.text();
+      if(text.startsWith('<!DOCTYPE') || text.startsWith('<html')){
+        console.warn(`API returned HTML for ${path}`);
+        return null;
+      }
+    }
+
+    if(!r.ok) throw new Error(r.statusText);
+    const data = await r.json();
+    return data;
+  }catch(e){
+    console.warn(`API error for ${method} ${path}:`,e.message);
+    return null;
+  }
+}
+
+// ================================================================
+// ✅ FIX 1: SYNC FROM MONGODB — Primary data source on refresh
+// ================================================================
+async function syncBack(){
+  if(!isOnline) return;
+  const [r,g,f,inv,req,bl,maint,rev,st,lg] = await Promise.all([
+    apiCall('GET','/rooms'),apiCall('GET','/guests'),apiCall('GET','/food'),
+    apiCall('GET','/inventory'),apiCall('GET','/requests'),apiCall('GET','/blacklist'),
+    apiCall('GET','/maintenance'),apiCall('GET','/reviews'),apiCall('GET','/staff'),apiCall('GET','/logs')
+  ]);
+
+  // ✅ FIX: Only update if we got valid array data from MongoDB
+  if(r && Array.isArray(r) && r.length > 0) rooms=r;
+  if(g && Array.isArray(g)) guests=g;
+  if(f && Array.isArray(f) && f.length > 0) food=f;
+  if(inv && Array.isArray(inv) && inv.length > 0) inventory=inv;
+  if(req && Array.isArray(req)) requests=req;
+  if(bl && Array.isArray(bl)) blacklist=bl;
+  if(maint && Array.isArray(maint)) maintenance=maint;
+  if(rev && Array.isArray(rev)) reviews=rev;
+  if(st && Array.isArray(st) && st.length > 0) staff=st;
+  if(lg && Array.isArray(lg)) logs=lg;
+
+  const cfg=await apiCall('GET','/config');
+  if(cfg && typeof cfg === 'object') {Object.assign(HotelCfg,cfg); applyCfg();}
+
+  // ✅ FIX: Save to localStorage as cache after MongoDB sync
+  saveLS();
+  renderAll();
+
+  // If no rooms from MongoDB, load defaults
+  if(!rooms.length) loadLS();
+}
+
+// ================================================================
+// LOCAL STORAGE — Used as CACHE + FALLBACK
+// ================================================================
+function saveLS(){
+  localStorage.setItem(`h_${HID}_rooms`,JSON.stringify(rooms));
+  localStorage.setItem(`h_${HID}_guests`,JSON.stringify(guests));
+  localStorage.setItem(`h_${HID}_food`,JSON.stringify(food));
+  localStorage.setItem(`h_${HID}_inv`,JSON.stringify(inventory));
+  localStorage.setItem(`h_${HID}_req`,JSON.stringify(requests));
+  localStorage.setItem(`h_${HID}_bl`,JSON.stringify(blacklist));
+  localStorage.setItem(`h_${HID}_maint`,JSON.stringify(maintenance));
+  localStorage.setItem(`h_${HID}_rev`,JSON.stringify(reviews));
+  localStorage.setItem(`h_${HID}_staff`,JSON.stringify(staff));
+  localStorage.setItem(`h_${HID}_logs`,JSON.stringify(logs));
+  localStorage.setItem(`h_${HID}_cfg`,JSON.stringify(HotelCfg));
+}
+
+function loadLS(){
+  const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
+  rooms=get(`h_${HID}_rooms`,[{_id:'r1',number:101,type:'Standard',price:99,status:'Vacant',guestName:''},{_id:'r2',number:102,type:'Deluxe',price:129,status:'Occupied',guestName:'John Smith'},{_id:'r3',number:103,type:'Suite',price:199,status:'Vacant',guestName:''}]);
+  guests=get(`h_${HID}_guests`,[{_id:'g1',name:'John Smith',room:102,points:120,status:'active',checkin:'2024-01-15'}]);
+  food=get(`h_${HID}_food`,[{_id:'f1',name:'Burger',price:12,category:'Main Course',emoji:'🍔'},{_id:'f2',name:'Pizza',price:15,category:'Main Course',emoji:'🍕'},{_id:'f3',name:'Pasta',price:14,category:'Main Course',emoji:'🍝'}]);
+  inventory=get(`h_${HID}_inv`,[{_id:'i1',name:'Towels',category:'Amenities',stock:150,unit:'pcs',min:50},{_id:'i2',name:'Bed Sheets',category:'Linen',stock:80,unit:'sets',min:30}]);
+  requests=get(`h_${HID}_req`,[]);
+  blacklist=get(`h_${HID}_bl`,[]);
+  maintenance=get(`h_${HID}_maint`,[]);
+  reviews=get(`h_${HID}_rev`,[]);
+  staff=get(`h_${HID}_staff`,[{_id:'s1',name:'Rajesh Kumar',role:'Manager',rating:4.8,tasks:12,status:'on-duty'},{_id:'s2',name:'Priya Sharma',role:'Housekeeping',rating:4.9,tasks:8,status:'on-duty'}]);
+  logs=get(`h_${HID}_logs`,[]);
+  const cfg=get(`h_${HID}_cfg`,{});
+  if(Object.keys(cfg).length) Object.assign(HotelCfg,cfg);
+  renderAll();
+}
+
+// ================================================================
+// ✅ FIX 1: SAVE — Saves to MongoDB via API + localStorage cache
+// ================================================================
+function save(collection, data, event='data_upd'){
+  // ✅ Always save to localStorage as cache
+  saveLS();
+
+  // ✅ Send to Socket.IO for real-time sync
+  if(isOnline && socket?.connected) socket.emit(event,{hotelId:HID, collection, data});
+
+  // ✅ FIX: Save to MongoDB via API
+  if(isOnline){
+    if(Array.isArray(data)){
+      // Bulk save - PUT entire collection
+      apiCall('PUT',`/${collection}`,{data:data, hotelId:HID});
+    } else if(data && data._id) {
+      // Single item - check if it exists
+      const exists = collection === 'rooms' ? rooms.find(r=>r._id===data._id) :
+                     collection === 'guests' ? guests.find(g=>g._id===data._id) :
+                     collection === 'food' ? food.find(f=>f._id===data._id) :
+                     collection === 'inventory' ? inventory.find(i=>i._id===data._id) :
+                     collection === 'requests' ? requests.find(r=>r._id===data._id) :
+                     collection === 'blacklist' ? blacklist.find(b=>b._id===data._id) :
+                     collection === 'maintenance' ? maintenance.find(m=>m._id===data._id) :
+                     collection === 'reviews' ? reviews.find(r=>r._id===data._id) :
+                     collection === 'staff' ? staff.find(s=>s._id===data._id) :
+                     collection === 'logs' ? logs.find(l=>l._id===data._id) : null;
+
+      if(exists){
+        apiCall('PUT',`/${collection}/${data._id}`, data);
+      } else {
+        apiCall('POST',`/${collection}`, data);
+      }
+    } else {
+      apiCall('POST',`/${collection}`,{data, hotelId:HID});
+    }
+  }
+}
+
+// ================================================================
+// LANGUAGE, THEME, UI SETTINGS
+// ================================================================
+function setLang(l){
+  lang=l;
+  document.documentElement.lang=l;
+  document.documentElement.dir=l==='ar'?'rtl':'ltr';
+  if(l==='ar') document.body.style.fontFamily="'Noto Naskh Arabic','DM Sans',sans-serif";
+  else if(l==='hi') document.body.style.fontFamily="'Noto Sans Devanagari','DM Sans',sans-serif";
+  else document.body.style.fontFamily="'DM Sans','Noto Sans Devanagari','Noto Naskh Arabic',system-ui,sans-serif";
+
+  localStorage.setItem('hotel_lang',l);
+  ['lb-en','lb-hi','lb-ar'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
+  document.getElementById(`lb-${l}`)?.classList.add('active');
+  applyI18n();
+  renderAll();
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{const v=t(el.getAttribute('data-i18n-ph'));if(v)el.placeholder=v});
+  const onlineBtn=document.getElementById('onlineBtn');
+  if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
+}
+function applyI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const v=t(el.getAttribute('data-i18n'));
+    if(v) el.textContent=v;
+  });
+  ['loginHotelName','aHotelName','gHotelName'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=HotelCfg.name});
+}
+function toggleDark(){
+  dark=!dark;
+  document.body.classList.toggle('dark',dark);
+  document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
+  localStorage.setItem('hotel_dark',dark?'1':'0');
+}
+function adjustFont(d){
+  if(d===0) fontSize=0; else fontSize=Math.min(2,Math.max(-1,fontSize+d));
+  const sizes={'-1':'0.82rem','0':'0.94rem','1':'1.05rem','2':'1.18rem'};
+  document.body.style.fontSize=sizes[fontSize]||'0.94rem';
+  localStorage.setItem('hotel_font',fontSize);
+}
+function setBrightness(v){
+  brightness=parseFloat(v);
+  document.body.style.filter=`brightness(${v})`;
+  localStorage.setItem('hotel_bright',v);
+}
+function toggleContrast(){document.body.classList.toggle('high-contrast')}
+function setTheme(th){
+  theme=th;
+  document.body.className=document.body.className.replace(/theme-\S+/g,'').trim();
+  if(th!=='default') document.body.classList.add('theme-'+th);
+  document.querySelectorAll('.th-dot').forEach(d=>d.classList.remove('active'));
+  const themes=['default','sunset','forest','ocean','royal'];
+  const idx=themes.indexOf(th);
+  document.querySelectorAll('.th-dot')[idx]?.classList.add('active');
+  localStorage.setItem('hotel_theme',th);
+  if(dark) document.body.classList.add('dark');
+  document.getElementById('themeDD').classList.remove('show');
+}
+function toggleThemeDD(){document.getElementById('themeDD').classList.toggle('show')}
+function reqNotif(){if('Notification'in window)Notification.requestPermission().then(p=>p==='granted'&&showToast('🔔 Notifications enabled','success'))}
+function haptic(){if(navigator.vibrate){navigator.vibrate(80);showToast('📳 Haptic','success')}}
+function speak(){
+  if(!('speechSynthesis'in window)){showToast('Voice not supported','error');return}
+  const text={en:'Welcome to Crown Plaza Hotel. How can I help you?',hi:'क्राउन प्लाज़ा होटल में आपका स्वागत है।',ar:'مرحبا بك في فندق كراون بلازا'};
+  const u=new SpeechSynthesisUtterance(text[lang]||text.en);
+  u.lang=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
+  window.speechSynthesis.cancel();window.speechSynthesis.speak(u);
+}
+
+function loadUIPrefs(){
+  lang=localStorage.getItem('hotel_lang')||'en';
+  dark=localStorage.getItem('hotel_dark')==='1';
+  fontSize=parseInt(localStorage.getItem('hotel_font')||'0');
+  brightness=parseFloat(localStorage.getItem('hotel_bright')||'1');
+  theme=localStorage.getItem('hotel_theme')||'default';
+  document.body.classList.toggle('dark',dark);
+  document.getElementById('darkBtn').textContent=dark?'☀️':'🌙';
+  document.getElementById('brightSlider').value=brightness;
+  setBrightness(brightness);
+  adjustFont(0); fontSize=parseInt(localStorage.getItem('hotel_font')||'0');
+  setTheme(theme);
+  setLang(lang);
+}
+
+function applyCfg(){
+  ['loginHotelName','aHotelName','gHotelName'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=HotelCfg.name});
+  const wEl=document.getElementById('gWifiDisplay');if(wEl)wEl.textContent=HotelCfg.wifi;
+  const cfgNameEl=document.getElementById('cfgName');if(cfgNameEl)cfgNameEl.value=HotelCfg.name;
+  const cfgCurEl=document.getElementById('cfgCurrency');if(cfgCurEl)cfgCurEl.value=HotelCfg.currency;
+  const cfgWifiEl=document.getElementById('cfgWifi');if(cfgWifiEl)cfgWifiEl.value=HotelCfg.wifi;
+  renderFood(); renderGuestFood();
+}
+
+// ================================================================
+// CLOCK
+// ================================================================
+function tickClock(){
+  const now=new Date();
+  const s=now.toLocaleString(lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  ['aClock','gClock'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=s});
+  const gLT=document.getElementById('gLocalTime');if(gLT)gLT.textContent=now.toLocaleTimeString();
+}
+setInterval(tickClock,1000);
+
+// ================================================================
+// TOAST
+// ================================================================
+function showToast(msg,type=''){
+  const c=document.getElementById('toasts');
+  const d=document.createElement('div');
+  d.className=`toast${type?' '+type:''}`;
+  d.textContent=msg;c.appendChild(d);
+  setTimeout(()=>{d.style.opacity='0';d.style.transform='translateX(80px)';d.style.transition='.3s';setTimeout(()=>d.remove(),300)},3000);
+}
+
+// ================================================================
+// ✅ FIX 2: HIDE LOADING SCREEN
+// ================================================================
+function hideLoadingScreen(){
+  const ls = document.getElementById('loadingScreen');
+  if(ls){
+    ls.classList.add('hidden-loading');
+    setTimeout(()=>{ls.style.display='none'},400);
+  }
+}
+
+// ================================================================
+// AUTH
+// ================================================================
+function switchLogin(type){
+  document.getElementById('guestLoginForm').classList.toggle('hidden',type!=='guest');
+  document.getElementById('adminLoginForm').classList.toggle('hidden',type!=='admin');
+  document.getElementById('guestTabBtn').classList.toggle('active',type==='guest');
+  document.getElementById('adminTabBtn').classList.toggle('active',type==='admin');
+}
+
+async function guestLogin(e){
+  e.preventDefault();
+  const name=document.getElementById('guestNameIn').value.trim();
+  const room=document.getElementById('guestRoomIn').value.trim();
+  if(!name||!room){showToast('Fill all fields','error');return}
+  if(blacklist.find(b=>b.name.toLowerCase()===name.toLowerCase())){showToast('❌ Access denied','error');return}
+  currentUser={type:'guest',name,room,points:0};
+  localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
+  showPage('guestDash');
+  document.getElementById('gInfo').textContent=`👤 ${name} | #${room}`;
+  updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();
+  showGuestTab('reqTab');
+  showToast(`Welcome, ${name}! 🌟`,'success');
+  if(isOnline && socket?.connected) socket.emit('guest_join',{hotelId:HID,name,room});
+}
+
+// ✅ FIX 1: Admin Login - Save JWT token to localStorage
+async function adminLogin(e){
+  e.preventDefault();
+  const email=document.getElementById('adminEmailIn').value.trim();
+  const pass=document.getElementById('adminPassIn').value;
+
+  showToast('🔄 Logging in...','info');
+
+  // ✅ Try backend login first
+  const result=await apiCall('POST','/admin/login',{email,password:pass,hotelId:HID});
+
+  if(result?.success && result.token){
+    // ✅ FIX: Save JWT token to localStorage
+    localStorage.setItem(`h_${HID}_token`, result.token);
+    localStorage.setItem(`h_${HID}_hotelId`, result.hotelId || HID);
+
+    currentUser={type:'admin',email:result.user?.email || email,role:result.user?.role || 'super_admin',token:result.token,hotelId:result.hotelId || HID};
+    localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
+
+    buildRolePage();
+    showPage('rolePage');
+    showToast('✅ Login successful!','success');
+  } else if(email==='admin@crownplaza.com' && pass==='admin123'){
+    // ✅ Fallback: Mock credentials
+    const mockToken = 'mock_jwt_' + Date.now();
+    localStorage.setItem(`h_${HID}_token`, mockToken);
+
+    currentUser={type:'admin',email,role:'super_admin',token:mockToken};
+    localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
+
+    buildRolePage();
+    showPage('rolePage');
+    showToast('Login successful','success');
+  }else{
+    showToast('❌ Invalid credentials. Try admin@crownplaza.com / admin123','error');
+  }
+}
+
+function buildRolePage(){
+  const g=document.getElementById('roleGrid');
+  g.innerHTML=ROLES.map(r=>`<button class="role-card" onclick="loginAsRole('${r.key}')">
+    <div class="role-icon">${r.icon}</div><div class="role-name">${t(r.label)}</div>
+  </button>`).join('');
+}
+
+function loginAsRole(role){
+  currentUser.role=role;
+  localStorage.setItem(`h_${HID}_session`,JSON.stringify(currentUser));
+  const rName=ROLES.find(r=>r.key===role)?.label||'Admin';
+  document.getElementById('aRole').textContent=t(rName);
+  showPage('adminDash');
+  buildAdminTabs();
+  renderAll();updateAdminStats();
+  showAdminTab('overview');
+  showToast(`Logged in as ${t(rName)}`,'success');
+}
+
+function backToLogin(){showPage('loginPage')}
+
+// ✅ FIX 1: Logout - Clear token from localStorage
+function logout(){
+  localStorage.removeItem(`h_${HID}_session`);
+  localStorage.removeItem(`h_${HID}_token`);
+  localStorage.removeItem(`h_${HID}_hotelId`);
+  currentUser=null;cart=[];
+  showPage('loginPage');
+  showToast('Logged out','success');
+}
+
+// ✅ FIX 1 + FIX 2: Check Session - Verify with backend, no flash
+async function checkSession(){
+  const s=localStorage.getItem(`h_${HID}_session`);
+  const token=localStorage.getItem(`h_${HID}_token`);
+
+  if(!s){
+    // No session - show login
+    showPage('loginPage');
+    hideLoadingScreen();
+    return;
+  }
+
+  try{
+    currentUser=JSON.parse(s);
+
+    // ✅ FIX: If admin with token, verify with backend
+    if(currentUser.type==='admin' && token){
+      const verifyResult = await apiCall('GET','/admin/check-session');
+
+      if(verifyResult?.success && verifyResult.isAdmin){
+        // ✅ Valid session - restore admin dashboard
+        buildAdminTabs();
+        showPage('adminDash');
+        const rName=ROLES.find(r=>r.key===currentUser.role)?.label||'Admin';
+        document.getElementById('aRole').textContent=t(rName);
+
+        // ✅ Load data from MongoDB
+        await syncBack();
+
+        updateAdminStats();
+        showAdminTab('overview');
+        showToast("✅ Session restored — Welcome back!",'success');
+        hideLoadingScreen();
+      } else {
+        // ✅ Invalid token - clear and show login
+        localStorage.removeItem(`h_${HID}_token`);
+        localStorage.removeItem(`h_${HID}_session`);
+        currentUser=null;
+        showPage('loginPage');
+        hideLoadingScreen();
+      }
+    } else if(currentUser.type==='guest'){
+      // ✅ Guest session - restore directly
+      showPage('guestDash');
+      document.getElementById('gInfo').textContent=`👤 ${currentUser.name} | #${currentUser.room}`;
+
+      // ✅ Load data from MongoDB
+      await syncBack();
+
+      updateGuestStats();renderGuestFood();renderGuestInv();renderGuestHistory();
+      showGuestTab('reqTab');
+      showToast("✅ Session restored — Welcome back!",'success');
+      hideLoadingScreen();
+    } else {
+      showPage('loginPage');
+      hideLoadingScreen();
+    }
+  }catch(e){
+    console.warn('Session restore error:',e);
+    localStorage.removeItem(`h_${HID}_session`);
+    showPage('loginPage');
+    hideLoadingScreen();
+  }
+}
+
+function showPage(id){
+  ['loginPage','rolePage','adminDash','guestDash'].forEach(p=>{
+    const el=document.getElementById(p);
+    if(!el) return;
+    if(p===id){
+      el.classList.remove('hidden');
+      if(p==='loginPage' || p==='rolePage') el.style.display='flex';
+      else el.style.display='';
+    } else {
+      el.classList.add('hidden');
+      el.style.display='none';
+    }
+  });
+}
+
+// ================================================================
+// ADMIN TABS BUILDER
+// ================================================================
+const ADMIN_TABS=[
+  {id:'overview',label:'tabOverview'},
+  {id:'rooms',label:'tabRooms'},
+  {id:'guests',label:'tabGuests'},
+  {id:'food',label:'tabFood'},
+  {id:'inventory',label:'tabInventory'},
+  {id:'requests',label:'tabRequests'},
+  {id:'settings',label:'tabSettings'},
+  {id:'blacklist',label:'tabBlacklist'},
+  {id:'reports',label:'tabReports'},
+  {id:'reviews',label:'tabReviews'},
+  {id:'qrcodes',label:'tabQR'},
+  {id:'maintenance',label:'tabMaintenance'},
+  {id:'loyalty',label:'tabLoyalty'},
+  {id:'staff',label:'tabStaff'},
+  {id:'logs',label:'tabLogs'}
+];
+
+function buildAdminTabs(){
+  const bar=document.getElementById('adminTabsBar');
+  const content=document.getElementById('adminTabsContent');
+  bar.innerHTML=ADMIN_TABS.map(tb=>`<button class="tab-btn" data-tab="${tb.id}" onclick="showAdminTab('${tb.id}')">${t(tb.label)}</button>`).join('');
+  content.innerHTML=ADMIN_TABS.map(tb=>`<div class="tab-pane" id="atab-${tb.id}">${buildTabContent(tb.id)}</div>`).join('');
+}
+
+function buildTabContent(id){
+  switch(id){
+    case 'overview': return `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px">
+        <div class="stat-card"><div class="stat-val" id="stTot">0</div><div class="stat-lbl" data-i18n="roomNum">Rooms</div></div>
+        <div class="stat-card"><div class="stat-val" id="stOcc" style="color:#10b981">0</div><div class="stat-lbl" data-i18n="occupied">Occupied</div></div>
+        <div class="stat-card"><div class="stat-val" id="stOpen" style="color:#f59e0b">0</div><div class="stat-lbl" data-i18n="filterOpen">Open</div></div>
+        <div class="stat-card"><div class="stat-val" id="stProg" style="color:var(--p1)">0</div><div class="stat-lbl">In Progress</div></div>
+        <div class="stat-card"><div class="stat-val" id="stEmerg" style="color:#ef4444">0</div><div class="stat-lbl" data-i18n="emergency_">Emergency</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="card"><h4 style="margin-bottom:8px;font-size:12px;color:var(--p1)">📊 Requests by Dept</h4><canvas id="deptChart" height="140"></canvas></div>
+        <div class="card"><h4 style="margin-bottom:8px;font-size:12px;color:var(--p1)">🏨 Occupancy</h4><canvas id="occChart" height="140"></canvas></div>
+      </div>`;
+    case 'rooms': return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabRooms">🏨 Rooms</h3>
+          <button class="btn-primary" onclick="openModal('roomModal')" data-i18n="addRoom">+ Add Room</button>
+        </div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr>
+          <th data-i18n="roomNum">#</th><th data-i18n="roomType">Type</th><th data-i18n="price">Price</th><th data-i18n="status">Status</th><th data-i18n="guest">Guest</th><th data-i18n="actions">Actions</th>
+        </tr></thead><tbody id="roomsTbody"></tbody></table></div>
+      </div>`;
+    case 'guests': return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabGuests">👥 Guests</h3>
+          <button class="btn-primary" onclick="openModal('guestModal')" data-i18n="addGuest">+ Add Guest</button>
+        </div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr>
+          <th data-i18n="nameLbl">Name</th><th data-i18n="room">Room</th><th data-i18n="points">Pts</th><th data-i18n="status">Status</th><th data-i18n="actions">Actions</th>
+        </tr></thead><tbody id="guestsTbody"></tbody></table></div>
+      </div>`;
+    case 'food': return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabFood">🍽️ Food Menu</h3>
+          <button class="btn-primary" onclick="openModal('foodModal')" data-i18n="addDish">+ Add Dish</button>
+        </div>
+        <div id="foodAdminList"></div>
+      </div>`;
+    case 'inventory': return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabInventory">📦 Inventory</h3>
+          <button class="btn-primary" onclick="openModal('inventoryModal')" data-i18n="addItem">+ Add Item</button>
+        </div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr>
+          <th data-i18n="item">Item</th><th data-i18n="category">Cat</th><th data-i18n="stock">Stock</th><th data-i18n="actions">Actions</th>
+        </tr></thead><tbody id="invTbody"></tbody></table></div>
+      </div>`;
+    case 'requests': return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+          <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabRequests">📋 Requests</h3>
+          <button class="btn-primary" style="background:#10b981" onclick="exportReqs()">📥 Export</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+          <button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderRequests('all')" data-i18n="filterAll">All</button>
+          <button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderRequests('open')" data-i18n="filterOpen">Open</button>
+          <button class="btn-ghost" style="font-size:10px;padding:4px 10px" onclick="renderRequests('completed')" data-i18n="filterDone">Done</button>
+          <button class="btn-ghost" style="font-size:10px;padding:4px 10px;border-color:#ef4444;color:#ef4444" onclick="renderRequests('emergency')">🚨 Emergency</button>
+        </div>
+        <div id="reqsList"></div>
+      </div>`;
+    case 'settings': return `
+      <div class="card" style="max-width:480px">
+        <h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:14px" data-i18n="tabSettings">⚙️ Settings</h3>
+        <div class="form-row"><label class="lbl" data-i18n="hotelNameLbl">Hotel Name</label>
+          <div style="display:flex;gap:6px"><input class="inp" id="cfgName" value="${HotelCfg.name}"><button class="btn-primary" onclick="saveCfg('name')" data-i18n="save">Save</button></div></div>
+        <div class="form-row"><label class="lbl" data-i18n="currencyLbl">Currency</label>
+          <div style="display:flex;gap:6px"><input class="inp" id="cfgCurrency" value="${HotelCfg.currency}" style="width:80px"><button class="btn-primary" onclick="saveCfg('currency')" data-i18n="save">Save</button></div></div>
+        <div class="form-row"><label class="lbl" data-i18n="wifiLbl">WiFi Password</label>
+          <div style="display:flex;gap:6px"><input class="inp" id="cfgWifi" value="${HotelCfg.wifi}"><button class="btn-primary" onclick="saveCfg('wifi')" data-i18n="save">Save</button></div></div>
+        <div class="form-row"><label class="lbl" data-i18n="airportPrice">Airport Price</label>
+          <div style="display:flex;gap:6px"><input class="inp" id="cfgAirport" type="number" value="${HotelCfg.airportPrice}" style="width:100px"><button class="btn-primary" onclick="saveCfg('transport')" data-i18n="save">Save</button></div></div>
+        <div style="background:var(--card2);border-radius:8px;padding:10px;font-size:11px;color:var(--fg);opacity:.7;margin-top:10px">
+          🏢 Hotel ID: <strong>${HID}</strong> | Settings sync live to all devices via Socket.IO & MongoDB
+        </div>
+      </div>`;
+    case 'blacklist': return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 style="font-size:14px;font-weight:700;color:var(--fg)">🚫 Blacklist</h3>
+          <button class="btn-primary" style="background:#ef4444" onclick="openModal('blacklistModal')" data-i18n="blockGuest">+ Block Guest</button>
+        </div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr>
+          <th data-i18n="nameLbl">Name</th><th data-i18n="room">Room</th><th data-i18n="reason">Reason</th><th data-i18n="date">Date</th><th data-i18n="actions">Actions</th>
+        </tr></thead><tbody id="blTbody"></tbody></table></div>
+      </div>`;
+    case 'reports': return `
+      <div class="card">
+        <h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px" data-i18n="tabReports">📈 Reports</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center">
+          <select class="inp" id="rptType" style="width:auto">
+            <option value="occupancy">🏨 Occupancy</option>
+            <option value="revenue">💰 Revenue</option>
+            <option value="requests">📋 Requests</option>
+            <option value="guests">👥 Guests</option>
+          </select>
+          <input type="date" class="inp" id="rptFrom" style="width:auto">
+          <input type="date" class="inp" id="rptTo" style="width:auto">
+          <button class="btn-primary" onclick="genReport()" data-i18n="generate">Generate</button>
+          <button class="btn-primary" style="background:#10b981" onclick="exportReport()" data-i18n="exportBtn">Export</button>
+        </div>
+        <div id="rptOut" style="background:var(--card2);border-radius:8px;padding:12px;min-height:80px;font-size:12px"></div>
+      </div>`;
+    case 'reviews': return `
+      <div class="card">
+        <h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px" data-i18n="tabReviews">⭐ Reviews</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:12px">
+          <div class="stat-card"><div class="stat-val" id="avgR" style="color:#f59e0b">—</div><div class="stat-lbl">Avg Rating</div></div>
+          <div class="stat-card"><div class="stat-val" id="totR">0</div><div class="stat-lbl">Total</div></div>
+          <div class="stat-card"><div class="stat-val" id="recR" style="color:#10b981">—%</div><div class="stat-lbl">Recommend</div></div>
+        </div>
+        <div id="reviewsList"></div>
+      </div>`;
+    case 'qrcodes': return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabQR">📷 QR Codes</h3>
+          <button class="btn-primary" onclick="genAllQR()" data-i18n="genAll">Generate All</button>
+        </div>
+        <div id="qrGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px"></div>
+      </div>`;
+    case 'maintenance': return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabMaintenance">🔧 Maintenance</h3>
+          <button class="btn-primary" onclick="openModal('maintModal')" data-i18n="addTask">+ Add Task</button>
+        </div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr>
+          <th data-i18n="task">Task</th><th data-i18n="area">Area</th><th data-i18n="scheduled">Scheduled</th><th data-i18n="assigned">Assigned</th><th data-i18n="status">Status</th><th data-i18n="actions">Actions</th>
+        </tr></thead><tbody id="maintTbody"></tbody></table></div>
+      </div>`;
+    case 'loyalty': return `
+      <div class="card">
+        <h3 style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:10px" data-i18n="tabLoyalty">🏆 Loyalty Points</h3>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+          <div class="stat-card"><div class="stat-val" id="totPts">0</div><div class="stat-lbl">Issued</div></div>
+          <div class="stat-card"><div class="stat-val" id="redPts" style="color:#10b981">0</div><div class="stat-lbl">Redeemed</div></div>
+          <div class="stat-card"><div class="stat-val" id="actMem">0</div><div class="stat-lbl">Members</div></div>
+        </div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr>
+          <th data-i18n="guest">Guest</th><th data-i18n="room">Room</th><th data-i18n="points">Points</th><th data-i18n="actions">Actions</th>
+        </tr></thead><tbody id="loyaltyTbody"></tbody></table></div>
+      </div>`;
+    case 'staff': return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabStaff">👔 Staff</h3>
+          <button class="btn-primary" onclick="addStaff()" data-i18n="addGuest">+ Add Staff</button>
+        </div>
+        <div id="staffList"></div>
+      </div>`;
+    case 'logs': return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 style="font-size:14px;font-weight:700;color:var(--fg)" data-i18n="tabLogs">📝 Activity Logs</h3>
+          <div style="display:flex;gap:6px">
+            <button class="btn-primary" style="background:#10b981" onclick="exportLogs()" data-i18n="exportXLS">Export</button>
+            <button class="btn-primary" style="background:#ef4444" onclick="clearLogs()" data-i18n="clearLogs">Clear</button>
+          </div>
+        </div>
+        <div class="tbl-wrap" style="max-height:300px;overflow-y:auto"><table class="tbl"><thead><tr>
+          <th>Time</th><th>User</th><th>Action</th><th>Details</th>
+        </tr></thead><tbody id="logsTbody"></tbody></table></div>
+      </div>`;
+    default: return '';
+  }
+}
+
+function showAdminTab(id){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.id===`atab-${id}`));
+  if(id==='overview') setTimeout(initCharts,200);
+}
+
+// ================================================================
+// RENDER FUNCTIONS
+// ================================================================
+function renderAll(){
+  applyI18n();
+  renderRooms();renderGuests();renderFood();renderInventory();
+  renderRequests();renderBlacklist();renderMaintenance();renderReviews();
+  renderLoyalty();renderStaff();renderLogs();
+  updateAdminStats();updateGuestStats();
+  renderGuestFood();renderGuestInv();renderGuestHistory();
+}
+
+function renderRooms(){
+  const tbody=document.getElementById('roomsTbody');if(!tbody)return;
+  tbody.innerHTML=rooms.map(r=>`
+    <tr>
+      <td><strong>${r.number}</strong></td>
+      <td>${r.type}</td>
+      <td>${HotelCfg.currency}${r.price}</td>
+      <td><span class="badge badge-${r.status?.toLowerCase()}">${r.status}</span></td>
+      <td>${r.guestName||'—'}</td>
+      <td>
+        <button class="tbl-action" onclick="editRoom('${r._id}')" title="Edit">✏️</button>
+        <button class="tbl-action" onclick="delRoom('${r._id}')" title="Delete">🗑️</button>
+      </td>
+    </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--p2);padding:12px">No rooms</td></tr>';
+}
+
+function renderGuests(){
+  const tbody=document.getElementById('guestsTbody');if(!tbody)return;
+  tbody.innerHTML=guests.map(g=>`
+    <tr>
+      <td><strong>${g.name}</strong></td>
+      <td>${g.room}</td>
+      <td>⭐${g.points||0}</td>
+      <td><span class="badge badge-${g.status}">${g.status}</span></td>
+      <td>
+        <button class="tbl-action" onclick="toggleBlock('${g._id}')">${g.status==='blocked'?'✅':'🚫'}</button>
+        <button class="tbl-action" onclick="delGuest('${g._id}')">🗑️</button>
+      </td>
+    </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:12px">No guests</td></tr>';
+}
+
+function renderFood(){
+  const el=document.getElementById('foodAdminList');if(!el)return;
+  el.innerHTML=food.map(f=>`
+    <div class="req-card" style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <strong>${f.emoji||'🍽️'} ${f.name}</strong>
+        <div style="font-size:11px;opacity:.6">${f.category}</div>
+        <div style="font-weight:700;color:var(--p1)">${HotelCfg.currency}${f.price}</div>
+      </div>
+      <div style="display:flex;gap:4px">
+        <button class="tbl-action" onclick="delFood('${f._id}')">🗑️</button>
+      </div>
+    </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No dishes</p>';
+}
+
+function renderInventory(){
+  const tbody=document.getElementById('invTbody');if(!tbody)return;
+  tbody.innerHTML=inventory.map(i=>`
+    <tr>
+      <td><strong>${i.name}</strong></td>
+      <td>${i.category}</td>
+      <td class="${i.stock<=i.min?'low-stock':''}">${i.stock} ${i.unit}${i.stock<=i.min?' ⚠️':''}</td>
+      <td>
+        <button class="tbl-action" onclick="adjStock('${i._id}',10)">➕</button>
+        <button class="tbl-action" onclick="adjStock('${i._id}',-10)">➖</button>
+        <button class="tbl-action" onclick="delInv('${i._id}')">🗑️</button>
+      </td>
+    </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px">No items</td></tr>';
+}
+
+function renderRequests(filter='all'){
+  const el=document.getElementById('reqsList');if(!el)return;
+  let list=requests;
+  if(filter==='open') list=requests.filter(r=>r.status==='open');
+  if(filter==='completed') list=requests.filter(r=>r.status==='completed');
+  if(filter==='emergency') list=requests.filter(r=>r.priority==='emergency');
+  el.innerHTML=list.map(r=>`
+    <div class="req-card ${r.priority==='emergency'?'emergency':''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div>
+          <strong>${r.guestName}</strong> — Room ${r.roomNumber}
+          <div style="font-size:11px;opacity:.7;margin-top:2px">${r.department} • ${r.description}</div>
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <span class="badge badge-${r.status}">${r.status}</span>
+            <span style="font-size:10px;color:${r.priority==='emergency'?'#ef4444':r.priority==='urgent'?'#f59e0b':'#9ca3af'}">${r.priority||'normal'}</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <select style="font-size:10px;border:1px solid var(--border);border-radius:6px;padding:3px;background:var(--input-bg);color:var(--fg)" onchange="updReqStatus('${r._id}',this.value)">
+            <option value="open" ${r.status==='open'?'selected':''}>Open</option>
+            <option value="in_progress" ${r.status==='in_progress'?'selected':''}>In Progress</option>
+            <option value="completed" ${r.status==='completed'?'selected':''}>Done</option>
+          </select>
+          <button class="tbl-action" onclick="delReq('${r._id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No requests</p>';
+}
+
+function renderBlacklist(){
+  const tbody=document.getElementById('blTbody');if(!tbody)return;
+  tbody.innerHTML=blacklist.map((b,i)=>`
+    <tr>
+      <td style="color:#ef4444;font-weight:600">${b.name}</td>
+      <td>${b.room||'—'}</td>
+      <td style="font-size:11px">${b.reason}</td>
+      <td style="font-size:10px">${new Date(b.date||Date.now()).toLocaleDateString()}</td>
+      <td><button class="tbl-action" style="color:#10b981" onclick="unblockGuest(${i})">${t('unblock')}</button></td>
+    </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;padding:12px;opacity:.5">No blocked guests</td></tr>';
+}
+
+function renderMaintenance(){
+  const tbody=document.getElementById('maintTbody');if(!tbody)return;
+  tbody.innerHTML=maintenance.map((m,i)=>`
+    <tr>
+      <td><strong>${m.task}</strong></td>
+      <td>${m.room||'—'}</td>
+      <td style="font-size:10px">${m.scheduled?new Date(m.scheduled).toLocaleString():'—'}</td>
+      <td>${m.assigned||'—'}</td>
+      <td><span class="badge badge-${m.status||'pending'}">${m.status||'pending'}</span></td>
+      <td>
+        <button class="tbl-action" style="color:#10b981" onclick="updMaint(${i},'completed')">✅</button>
+        <button class="tbl-action" onclick="delMaint(${i})">🗑️</button>
+      </td>
+    </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:12px;opacity:.5">No tasks</td></tr>';
+}
+
+function renderReviews(){
+  const el=document.getElementById('reviewsList');if(!el)return;
+  if(reviews.length){
+    const avg=(reviews.reduce((s,r)=>s+(r.overall||0),0)/reviews.length).toFixed(1);
+    const rec=Math.round(reviews.filter(r=>r.recommend!==false).length/reviews.length*100);
+    const aEl=document.getElementById('avgR'),tEl=document.getElementById('totR'),rEl=document.getElementById('recR');
+    if(aEl)aEl.textContent=avg;if(tEl)tEl.textContent=reviews.length;if(rEl)rEl.textContent=rec+'%';
+  }
+  el.innerHTML=reviews.slice(0,10).map(r=>`
+    <div class="req-card">
+      <div style="display:flex;justify-content:space-between">
+        <div>
+          <strong>${r.guest}</strong> — Room ${r.room}
+          <div style="color:#f59e0b">${'★'.repeat(r.overall||0)}${'☆'.repeat(5-(r.overall||0))}</div>
+          <p style="font-size:11px;margin-top:3px">${r.comment||'No comment'}</p>
+          <small style="opacity:.5;font-size:10px">Service: ${r.service||'—'}★ | Clean: ${r.cleanliness||'—'}★</small>
+        </div>
+        <button class="btn-ghost" style="font-size:10px;padding:3px 8px;align-self:flex-start" onclick="replyRev('${r.guest}')">💬</button>
+      </div>
+    </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No reviews yet</p>';
+}
+
+function renderLoyalty(){
+  const tbody=document.getElementById('loyaltyTbody');if(!tbody)return;
+  const tot=guests.reduce((s,g)=>s+(g.points||0),0);
+  const actEl=document.getElementById('actMem'),totEl=document.getElementById('totPts');
+  if(actEl)actEl.textContent=guests.filter(g=>g.status==='active').length;
+  if(totEl)totEl.textContent=tot;
+  tbody.innerHTML=guests.filter(g=>(g.points||0)>0).map((g,i)=>`
+    <tr>
+      <td><strong>${g.name}</strong></td>
+      <td>${g.room}</td>
+      <td>⭐ <strong>${g.points}</strong></td>
+      <td>
+        <button class="tbl-action" style="color:#10b981" onclick="addPts('${g._id}',10)">➕10</button>
+        <button class="tbl-action" style="color:var(--p1)" onclick="redeemPts('${g._id}',50)">🎁</button>
+      </td>
+    </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px;opacity:.5">No members</td></tr>';
+}
+
+function renderStaff(){
+  const el=document.getElementById('staffList');if(!el)return;
+  el.innerHTML=staff.map((s,i)=>`
+    <div class="card-sm" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div>
+        <strong>${s.name}</strong>
+        <div style="font-size:11px;opacity:.6">${s.role}</div>
+        <div style="font-size:10px;margin-top:2px">📋 ${s.tasks||0} tasks • ⭐ ${s.rating||5}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span class="badge badge-${s.status==='on-duty'?'active':'pending'}">${s.status}</span>
+        <button class="tbl-action" onclick="rateStaff(${i})">⭐</button>
+        <button class="tbl-action" onclick="delStaff(${i})">🗑️</button>
+      </div>
+    </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No staff</p>';
+}
+
+function renderLogs(){
+  const tbody=document.getElementById('logsTbody');if(!tbody)return;
+  tbody.innerHTML=logs.slice(0,50).map(l=>`
+    <tr>
+      <td style="font-size:10px;font-family:'DM Mono',monospace;white-space:nowrap">${new Date(l.timestamp||Date.now()).toLocaleString()}</td>
+      <td style="font-weight:600">${l.user||'—'}</td>
+      <td><span class="badge badge-pending">${l.action||'—'}</span></td>
+      <td style="font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.details||'—'}</td>
+    </tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:12px;opacity:.5">No logs</td></tr>';
+}
+
+function addLog(action,details){
+  const entry={_id:'log_'+Date.now(),timestamp:new Date().toISOString(),user:currentUser?.name||currentUser?.email||'System',action,details,hotelId:HID};
+  logs.unshift(entry);
+  save('logs',entry);
+  renderLogs();
+}
+
+// ================================================================
+// ADMIN STATS
+// ================================================================
+function updateAdminStats(){
+  const el=id=>document.getElementById(id);
+  if(el('stTot'))el('stTot').textContent=rooms.length;
+  if(el('stOcc'))el('stOcc').textContent=rooms.filter(r=>r.status==='Occupied').length;
+  if(el('stOpen'))el('stOpen').textContent=requests.filter(r=>r.status==='open').length;
+  if(el('stProg'))el('stProg').textContent=requests.filter(r=>r.status==='in_progress').length;
+  if(el('stEmerg'))el('stEmerg').textContent=requests.filter(r=>r.priority==='emergency').length;
+}
+
+// ================================================================
+// CHARTS
+// ================================================================
+function initCharts(){
+  const dCtx=document.getElementById('deptChart');
+  const oCtx=document.getElementById('occChart');
+  if(deptChart){deptChart.destroy();deptChart=null}
+  if(occChart){occChart.destroy();occChart=null}
+  const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
+  if(dCtx){
+    const byDept={};
+    requests.forEach(r=>{byDept[r.department]=(byDept[r.department]||0)+1});
+    const labels=Object.keys(byDept).length?Object.keys(byDept):['HK','Maint','Rest','IT','Laundry'];
+    const vals=Object.keys(byDept).length?Object.values(byDept):[8,5,6,3,4];
+    deptChart=new Chart(dCtx,{type:'doughnut',data:{labels,datasets:[{data:vals,backgroundColor:['#6c63ff','#a78bfa','#10b981','#f59e0b','#ef4444','#06b6d4']}]},options:opts});
+  }
+  if(oCtx){
+    const occupied=rooms.filter(r=>r.status==='Occupied').length;
+    const total=rooms.length||1;
+    occChart=new Chart(oCtx,{type:'bar',data:{labels:['W1','W2','W3','W4'],datasets:[{label:'%',data:[68,75,82,Math.round(occupied/total*100)],backgroundColor:'#6c63ff',borderRadius:6}]},options:{...opts,scales:{y:{beginAtZero:true,max:100,ticks:{color:'var(--fg)'},grid:{color:'var(--border)'}},x:{ticks:{color:'var(--fg)'},grid:{display:false}}}}});
+  }
+}
+
+// ================================================================
+// GUEST TABS
+// ================================================================
+const GUEST_TABS=[
+  {id:'reqTab',icon:'📝',label:'reqTab'},
+  {id:'foodTab',icon:'🍕',label:'foodTab'},
+  {id:'invTab',icon:'📦',label:'invTab'},
+  {id:'cabTab',icon:'🚗',label:'cabTab'},
+  {id:'histTab',icon:'📋',label:'histTab'},
+  {id:'infoTab',icon:'ℹ️',label:'infoTab'}
+];
+
+function buildGuestPanes(){
+  const nav=document.getElementById('guestNav');
+  const panes=document.getElementById('guestPanes');
+  nav.innerHTML=GUEST_TABS.map(tb=>`
+    <button class="gnav-btn" id="gn-${tb.id}" onclick="showGuestTab('${tb.id}')">
+      <span class="gnav-icon">${tb.icon}</span>${t(tb.label)}
+    </button>`).join('');
+  panes.innerHTML=`
+    <div class="card hidden" id="gp-reqTab">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="reqTab">📝 New Request</h3>
+      <form onsubmit="submitGuestReq(event)">
+        <div class="form-row">
+          <label class="lbl" data-i18n="selectDepartment">Department</label>
+          <select class="inp" id="gDept" onchange="updateServices()" required>
+            <option value="" data-i18n="selectDepartment">Select Department</option>
+            <option value="Housekeeping" data-i18n="deptHK">🧹 Housekeeping</option>
+            <option value="Maintenance" data-i18n="deptMaint">🔧 Maintenance</option>
+            <option value="Restaurant" data-i18n="deptRest">🍽️ Restaurant</option>
+            <option value="Laundry" data-i18n="deptLaundry">🧺 Laundry</option>
+            <option value="IT" data-i18n="deptIT">💻 IT Support</option>
+            <option value="Security" data-i18n="deptSec">🛡️ Security</option>
+            <option value="Transport" data-i18n="deptTransport">🚗 Transport</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="lbl" data-i18n="selectService">Service</label>
+          <select class="inp" id="gService" required><option value="" data-i18n="selectService">Select Service</option></select>
+        </div>
+        <div class="form-row">
+          <label class="lbl" data-i18n="priority">Priority</label>
+          <select class="inp" id="gPriority">
+            <option value="normal" data-i18n="normal">🟢 Normal</option>
+            <option value="urgent" data-i18n="urgent">⚠️ Urgent</option>
+            <option value="emergency" data-i18n="emergency_">🚨 Emergency</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <textarea class="inp" id="gDesc" rows="2" data-i18n-ph="describeIssue" placeholder="Describe your issue…"></textarea>
+        </div>
+        <button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="submitRequest">Submit Request</button>
+      </form>
+    </div>
+    <div class="card hidden" id="gp-foodTab">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="foodMenu">🍕 Food Menu</h3>
+      <div class="food-grid" id="gFoodGrid"></div>
+      <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-weight:600;font-size:13px" data-i18n="yourCart">Cart</span>
+          <span id="cartTotal" style="font-weight:700;color:var(--p1)">${HotelCfg.currency}0</span>
+        </div>
+        <div id="cartItems" style="min-height:24px;font-size:12px;margin-bottom:8px"></div>
+        <button class="btn-primary" style="width:100%" onclick="placeOrder()" data-i18n="placeOrder">🛒 Place Order</button>
+      </div>
+    </div>
+    <div class="card hidden" id="gp-invTab">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="invItems">📦 Available Items</h3>
+      <div class="inv-grid" id="gInvGrid"></div>
+      <p style="text-align:center;font-size:11px;opacity:.5;margin-top:10px">💡 Items delivered within 10 minutes</p>
+    </div>
+    <div class="card hidden" id="gp-cabTab">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="transport">🚗 Transport</h3>
+      <form onsubmit="bookCab(event)">
+        <div class="form-row">
+          <label class="lbl">Type</label>
+          <select class="inp" id="cabType">
+            <option value="airport" data-i18n="airportTx">✈️ Airport Transfer</option>
+            <option value="local" data-i18n="localCab">🚕 Local Cab</option>
+          </select>
+        </div>
+        <div class="form-row"><label class="lbl" data-i18n="scheduled">Date & Time</label><input class="inp" id="cabTime" type="datetime-local"></div>
+        <button class="btn-primary" style="width:100%;padding:10px" type="submit" data-i18n="bookNow">📅 Book Now</button>
+      </form>
+    </div>
+    <div class="card hidden" id="gp-histTab">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--fg)" data-i18n="myHistory">📋 My History</h3>
+      <div id="gHistList"></div>
+    </div>
+    <div class="card hidden" id="gp-infoTab">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--fg)" data-i18n="hotelInfo">ℹ️ Hotel Info</h3>
+      <div class="card-sm" style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;align-items:center">
+          <span data-i18n="wifi">📶 WiFi</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <code id="gWifiDisplay" style="background:var(--card2);padding:2px 6px;border-radius:4px;font-size:11px">${HotelCfg.wifi}</code>
+            <button class="btn-ghost" style="padding:2px 6px;font-size:10px" onclick="copyWifi()" data-i18n="copy">Copy</button>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span data-i18n="localTime">🌍 Local Time</span><span id="gLocalTime" style="font-family:'DM Mono',monospace;font-size:11px"></span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>🍽️ Restaurant</span><span>7AM–10PM</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>💪 Gym</span><span>6AM–10PM</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span data-i18n="checkoutTime">🕐 Checkout</span><span>11:00 AM</span></div>
+      </div>
+      <div class="card-sm" style="background:var(--card2);margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div><div style="font-weight:700;font-size:13px" data-i18n="myPoints">⭐ My Points</div><div id="gPtsDisplay" style="font-size:24px;font-weight:700;color:#f59e0b">0</div></div>
+          <button class="btn-primary" onclick="openRatingModal()" data-i18n="rateNow">Rate Now ⭐</button>
+        </div>
+        <p style="font-size:11px;opacity:.6;margin-top:6px" data-i18n="loyaltyBenefits">100 pts = $10 off | 500 pts = Free Night</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🚑 First Aid','<p>🩸 Bleeding: Apply pressure</p><p>🔥 Burn: Cool water</p><p>💔 Cardiac: Call 102</p>')"><div style="font-size:22px">🚑</div><div style="font-size:11px;font-weight:600">First Aid</div></button>
+        <button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('🗺️ Evacuation','<p>🚪 Exit stairs at corridor ends</p><p>🅿️ Assembly: Main Parking</p><p style=color:#ef4444>⚠️ No elevators in emergency</p>')"><div style="font-size:22px">🗺️</div><div style="font-size:11px;font-weight:600">Evacuation</div></button>
+        <button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="infoModal('📞 Emergency','<p>🚓 Police: 100</p><p>🚑 Ambulance: 102</p><p>🔥 Fire: 101</p><p>🏨 Security: Ext. 0</p>')"><div style="font-size:22px">📞</div><div style="font-size:11px;font-weight:600">Emergency</div></button>
+        <button class="card-sm" style="cursor:pointer;text-align:center;border:none;background:var(--card);font-family:inherit" onclick="showConcierge()"><div style="font-size:22px">🤖</div><div style="font-size:11px;font-weight:600">Concierge</div></button>
+      </div>
+    </div>`;
+}
+
+function showGuestTab(id){
+  GUEST_TABS.forEach(tb=>{
+    const p=document.getElementById(`gp-${tb.id}`);
+    const b=document.getElementById(`gn-${tb.id}`);
+    if(p) p.classList.toggle('hidden',tb.id!==id);
+    if(b) b.classList.toggle('active',tb.id===id);
+  });
+  if(id==='foodTab') renderGuestFood();
+  if(id==='invTab') renderGuestInv();
+  if(id==='histTab') renderGuestHistory();
+}
+
+function updateServices(){
+  const dept=document.getElementById('gDept')?.value;
+  const sel=document.getElementById('gService');if(!sel)return;
+  sel.innerHTML=`<option value="">${t('selectService')}</option>`;
+  if(dept&&SERVICES[dept]) SERVICES[dept].forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o)});
+}
+
+function submitGuestReq(e){
+  e.preventDefault();
+  const dept=document.getElementById('gDept')?.value;
+  const svc=document.getElementById('gService')?.value;
+  const prio=document.getElementById('gPriority')?.value||'normal';
+  const desc=document.getElementById('gDesc')?.value||'';
+  if(!dept||!svc){showToast('Select department & service','error');return}
+  const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUser.room,department:dept,description:`${svc}: ${desc}`,priority:prio,status:'open',createdAt:new Date().toISOString(),hotelId:HID};
+  requests.unshift(req);
+  save('requests',req,'req_new');
+  renderRequests();updateGuestStats();renderGuestHistory();
+  e.target.reset();updateServices();
+  showToast('✅ Request submitted!','success');
+  addLog('New Request',`${currentUser.name} - ${dept}`);
+  if(prio==='emergency') showToast('🚨 Emergency alert sent to staff!','error');
+}
+
+function renderGuestFood(){
+  const el=document.getElementById('gFoodGrid');if(!el)return;
+  el.innerHTML=food.map(f=>`
+    <div class="food-card" onclick="addToCart('${f._id}','${f.name}',${f.price})">
+      <div class="food-emoji">${f.emoji||'🍽️'}</div>
+      <div class="food-name">${f.name}</div>
+      <div class="food-cat">${f.category}</div>
+      <div class="food-price">${HotelCfg.currency}${f.price}</div>
+    </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No items available</p>';
+}
+
+function renderGuestInv(){
+  const el=document.getElementById('gInvGrid');if(!el)return;
+  el.innerHTML=inventory.map(i=>`
+    <div class="inv-card">
+      <div style="font-size:22px">📦</div>
+      <div style="font-weight:600;font-size:12px;margin-top:2px">${i.name}</div>
+      <div style="font-size:10px;opacity:.6">${i.stock} ${i.unit}</div>
+      <button class="btn-primary" style="margin-top:6px;padding:4px 8px;font-size:10px" onclick="reqInvItem('${i.name}')" data-i18n="requestMore">Request</button>
+    </div>`).join('')||'<p style="opacity:.5;text-align:center;padding:12px">No items</p>';
+}
+
+function renderGuestHistory(){
+  const el=document.getElementById('gHistList');if(!el||!currentUser)return;
+  const myReqs=requests.filter(r=>r.guestName===currentUser.name&&r.roomNumber==currentUser.room);
+  el.innerHTML=myReqs.map(r=>`
+    <div class="req-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <strong style="font-size:12px">${r.department}</strong>
+          <div style="font-size:11px;opacity:.6;margin-top:2px">${r.description}</div>
+          <div style="font-size:10px;opacity:.4;margin-top:2px">${new Date(r.createdAt||Date.now()).toLocaleString()}</div>
+        </div>
+        <span class="badge badge-${r.status}">${r.status}</span>
+      </div>
+    </div>`).join('')||'<p style="text-align:center;opacity:.5;padding:12px">No requests yet</p>';
+}
+
+function updateGuestStats(){
+  if(!currentUser)return;
+  const myReqs=requests.filter(r=>r.guestName===currentUser.name);
+  const el=id=>document.getElementById(id);
+  if(el('gTotReq'))el('gTotReq').textContent=myReqs.length;
+  if(el('gPendReq'))el('gPendReq').textContent=myReqs.filter(r=>r.status!=='completed').length;
+  if(el('gDoneReq'))el('gDoneReq').textContent=myReqs.filter(r=>r.status==='completed').length;
+  const guestRec=guests.find(g=>g.name===currentUser.name);
+  const pts=guestRec?.points||currentUser.points||0;
+  const pEl=el('gPts'),pdEl=el('gPtsDisplay');
+  if(pEl)pEl.textContent=`⭐ ${pts} pts`;
+  if(pdEl)pdEl.textContent=pts;
+}
+
+function addToCart(id,name,price){
+  cart.push({id,name,price});
+  const cartEl=document.getElementById('cartItems');
+  const totEl=document.getElementById('cartTotal');
+  if(cartEl){
+    const tot=cart.reduce((s,i)=>s+i.price,0);
+    if(totEl)totEl.textContent=`${HotelCfg.currency}${tot}`;
+    cartEl.innerHTML=cart.map(i=>`<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${i.name}</span><span>${HotelCfg.currency}${i.price}</span></div>`).join('');
+  }
+  showToast(`${name} added to cart 🛒`,'success');
+}
+
+function placeOrder(){
+  if(!cart.length){showToast('Cart is empty','error');return}
+  const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUser.room,department:'Restaurant',description:`Food: ${cart.map(i=>i.name).join(', ')}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID};
+  requests.unshift(req);save('requests',req,'req_new');
+  cart=[];
+  const cEl=document.getElementById('cartItems'),tEl=document.getElementById('cartTotal');
+  if(cEl)cEl.innerHTML='';if(tEl)tEl.textContent=`${HotelCfg.currency}0`;
+  renderRequests();updateGuestStats();renderGuestHistory();
+  showToast('🍽️ Order placed! Arriving soon.','success');
+}
+
+function reqInvItem(name){
+  const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUser.room,department:'Housekeeping',description:`Item Request: ${name}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID};
+  requests.unshift(req);save('requests',req,'req_new');
+  renderRequests();updateGuestStats();
+  showToast(`📦 ${name} requested — 10 min delivery`,'success');
+}
+
+function bookCab(e){
+  e.preventDefault();
+  const type=document.getElementById('cabType')?.value;
+  const time=document.getElementById('cabTime')?.value;
+  const price=type==='airport'?HotelCfg.airportPrice:HotelCfg.localPrice;
+  const req={_id:'req_'+Date.now(),guestName:currentUser.name,roomNumber:currentUser.room,department:'Transport',description:`${type==='airport'?'Airport Transfer':'Local Cab'} at ${time||'ASAP'} — ${HotelCfg.currency}${price}`,priority:'normal',status:'open',createdAt:new Date().toISOString(),hotelId:HID};
+  requests.unshift(req);save('requests',req,'req_new');
+  renderRequests();updateGuestStats();
+  e.target.reset();
+  showToast('🚗 Cab booked!','success');
+}
+
+function copyWifi(){navigator.clipboard.writeText(HotelCfg.wifi).then(()=>showToast('📶 WiFi copied!','success'))}
+
+// ================================================================
+// ADMIN CRUD
+// ================================================================
+function updReqStatus(id,status){
+  const req=requests.find(r=>r._id===id);
+  if(req){req.status=status;req.updatedAt=new Date().toISOString();save('requests',req,'req_upd');renderRequests();updateGuestStats();renderGuestHistory();showToast('Status updated','success');}
+}
+function delReq(id){if(confirm('Delete?')){requests=requests.filter(r=>r._id!==id);save('requests',requests);renderRequests();updateAdminStats()}}
+function exportReqs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(requests),'Requests');XLSX.writeFile(wb,`requests-${Date.now()}.xlsx`);showToast('Exported!','success')}
+
+function delRoom(id){if(confirm('Delete?')){rooms=rooms.filter(r=>r._id!==id);save('rooms',rooms);renderRooms();updateAdminStats()}}
+function editRoom(id){const r=rooms.find(x=>x._id===id);if(!r)return;alert('Edit: '+r.number+' (connect backend for full edit)');}
+
+function toggleBlock(id){const g=guests.find(x=>x._id===id);if(g){g.status=g.status==='blocked'?'active':'blocked';save('guests',guests);renderGuests();showToast(`${g.name} ${g.status}`,'success')}}
+function delGuest(id){if(confirm('Delete?')){guests=guests.filter(g=>g._id!==id);save('guests',guests);renderGuests()}}
+
+function delFood(id){if(confirm('Delete?')){food=food.filter(f=>f._id!==id);save('food',food);renderFood();renderGuestFood()}}
+
+function adjStock(id,delta){const i=inventory.find(x=>x._id===id);if(i){i.stock=Math.max(0,i.stock+delta);save('inventory',i,'inventory_upd');renderInventory();renderGuestInv();if(i.stock<=i.min)showToast('⚠️ Low stock: '+i.name,'warning')}}
+function delInv(id){if(confirm('Delete?')){inventory=inventory.filter(i=>i._id!==id);save('inventory',inventory);renderInventory();renderGuestInv()}}
+
+function unblockGuest(idx){if(confirm('Unblock?')){const e=blacklist[idx];blacklist.splice(idx,1);save('blacklist',blacklist);renderBlacklist();showToast(e.name+' unblocked','success')}}
+
+function updMaint(i,s){maintenance[i].status=s;save('maintenance',maintenance);renderMaintenance();showToast('Updated','success')}
+function delMaint(i){if(confirm('Delete?')){maintenance.splice(i,1);save('maintenance',maintenance);renderMaintenance()}}
+
+function addPts(id,pts){const g=guests.find(x=>x._id===id);if(g){g.points=(g.points||0)+pts;save('guests',guests);renderLoyalty();showToast(`+${pts} pts`,'success')}}
+function redeemPts(id,pts){const g=guests.find(x=>x._id===id);if(g&&(g.points||0)>=pts){g.points-=pts;save('guests',guests);renderLoyalty();showToast(`${pts} pts redeemed`,'success')}else showToast('Not enough points','error')}
+
+function rateStaff(i){staff[i].rating=parseFloat(Math.min(5,staff[i].rating+0.1).toFixed(1));staff[i].tasks=(staff[i].tasks||0)+1;save('staff',staff);renderStaff();showToast('Rating updated','success')}
+function delStaff(i){if(confirm('Remove?')){staff.splice(i,1);save('staff',staff);renderStaff()}}
+function addStaff(){const n=prompt('Name:'),r=prompt('Role:');if(n&&r){staff.push({_id:'s_'+Date.now(),name:n,role:r,rating:5.0,tasks:0,status:'on-duty'});save('staff',staff);renderStaff();showToast('Staff added','success')}}
+
+function replyRev(g){const r=prompt(`Reply to ${g}:`);if(r)showToast('Reply sent','success')}
+
+function genReport(){
+  const t=document.getElementById('rptType')?.value;
+  const out=document.getElementById('rptOut');if(!out)return;
+  let html='';
+  if(t==='occupancy'){const occ=rooms.filter(r=>r.status==='Occupied').length,tot=rooms.length||1;html=`<p>🏨 Total: <b>${tot}</b></p><p>🟢 Occupied: <b>${occ}</b> (${Math.round(occ/tot*100)}%)</p><p>🔴 Vacant: <b>${tot-occ}</b></p>`}
+  else if(t==='revenue'){const fr=requests.filter(r=>r.department==='Restaurant').length*15;html=`<p>🍽️ Food Revenue: <b>${HotelCfg.currency}${fr}</b></p><p>💰 Rooms: <b>${HotelCfg.currency}${rooms.filter(r=>r.status==='Occupied').length*100}</b></p>`}
+  else if(t==='requests'){const bd={};requests.forEach(r=>{bd[r.department]=(bd[r.department]||0)+1});html=Object.entries(bd).map(([d,c])=>`<p>📋 ${d}: <b>${c}</b></p>`).join('')||'<p>No data</p>'}
+  else{html=`<p>👥 Total: <b>${guests.length}</b></p><p>✅ Active: <b>${guests.filter(g=>g.status==='active').length}</b></p><p>🚫 Blocked: <b>${guests.filter(g=>g.status==='blocked').length}</b></p>`}
+  out.innerHTML=html;
+}
+function exportReport(){const t=document.getElementById('rptType')?.value||'report';const d=t==='occupancy'?rooms:t==='guests'?guests:requests;const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d),t);XLSX.writeFile(wb,`${t}-${Date.now()}.xlsx`);showToast('Exported!','success')}
+function exportLogs(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(logs),'Logs');XLSX.writeFile(wb,`logs-${Date.now()}.xlsx`);showToast('Logs exported','success')}
+function clearLogs(){if(confirm('Clear all logs?')){logs=[];save('logs',logs);renderLogs();showToast('Logs cleared','success')}}
+
+function saveCfg(field){
+  if(field==='name') HotelCfg.name=document.getElementById('cfgName')?.value||HotelCfg.name;
+  else if(field==='currency') HotelCfg.currency=document.getElementById('cfgCurrency')?.value||HotelCfg.currency;
+  else if(field==='wifi') HotelCfg.wifi=document.getElementById('cfgWifi')?.value||HotelCfg.wifi;
+  else if(field==='transport'){HotelCfg.airportPrice=parseInt(document.getElementById('cfgAirport')?.value)||30}
+  saveLS();
+  if(isOnline){
+    apiCall('PUT','/config',HotelCfg);
+    if(socket?.connected) socket.emit('cfg_upd',{hotelId:HID,...HotelCfg});
+  }
+  applyCfg();
+  showToast('⚙️ Settings saved & synced','success');
+  addLog('Config Update',field);
+}
+
+function genAllQR(){
+  const grid=document.getElementById('qrGrid');if(!grid)return;
+  grid.innerHTML='';
+  rooms.forEach(room=>{
+    const div=document.createElement('div');
+    div.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center';
+    div.innerHTML=`<div id="qr_${room.number}"></div><div style="font-size:10px;font-weight:600;margin-top:4px">Room ${room.number}</div>`;
+    grid.appendChild(div);
+    try{new QRCode(document.getElementById(`qr_${room.number}`),{text:`${location.origin}?hotel=${HID}&room=${room.number}`,width:80,height:80,correctLevel:QRCode.CorrectLevel.H})}catch(e){}
+  });
+  showToast('QR codes generated!','success');
+}
+
+// ================================================================
+// MODALS
+// ================================================================
+function buildModals(){
+  const container=document.getElementById('modals');
+  container.innerHTML=`
+  <div class="modal-overlay" id="roomModal">
+    <div class="modal-box">
+      <div class="modal-h" data-i18n="addRoom">Add Room</div>
+      <form onsubmit="addRoom(event)">
+        <div class="form-row"><label class="lbl" data-i18n="roomNum">Room #</label><input class="inp" id="mRoomNum" type="number" required></div>
+        <div class="form-2">
+          <div class="form-row"><label class="lbl" data-i18n="roomType">Type</label>
+            <select class="inp" id="mRoomType"><option>Standard</option><option>Deluxe</option><option>Suite</option><option>Presidential</option></select></div>
+          <div class="form-row"><label class="lbl" data-i18n="price">Price</label><input class="inp" id="mRoomPrice" type="number" required></div>
+        </div>
+        <div class="form-row"><label class="lbl" data-i18n="status">Status</label>
+          <select class="inp" id="mRoomStatus"><option>Vacant</option><option>Occupied</option><option>Cleaning</option><option>Maintenance</option></select></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
+          <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('roomModal')" data-i18n="cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="modal-overlay" id="guestModal">
+    <div class="modal-box">
+      <div class="modal-h" data-i18n="addGuest">Add Guest</div>
+      <form onsubmit="addGuest(event)">
+        <div class="form-row"><label class="lbl" data-i18n="nameLbl">Name</label><input class="inp" id="mGName" required></div>
+        <div class="form-2">
+          <div class="form-row"><label class="lbl" data-i18n="room">Room</label><input class="inp" id="mGRoom" type="number" required></div>
+          <div class="form-row"><label class="lbl" data-i18n="points">Points</label><input class="inp" id="mGPts" type="number" value="0"></div>
+        </div>
+        <div class="form-row"><label class="lbl">Check-in</label><input class="inp" id="mGCheckin" type="date"></div>
+        <div class="form-row"><label class="lbl" data-i18n="status">Status</label>
+          <select class="inp" id="mGStatus"><option value="active">✅ Active</option><option value="checked_out">🚪 Checked Out</option><option value="blocked">🚫 Blocked</option></select></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
+          <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('guestModal')" data-i18n="cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="modal-overlay" id="foodModal">
+    <div class="modal-box">
+      <div class="modal-h" data-i18n="addDish">Add Dish</div>
+      <form onsubmit="addDish(event)">
+        <div class="form-row"><label class="lbl">Name</label><input class="inp" id="mFName" required></div>
+        <div class="form-2">
+          <div class="form-row"><label class="lbl" data-i18n="price">Price</label><input class="inp" id="mFPrice" type="number" required></div>
+          <div class="form-row"><label class="lbl">Emoji</label><input class="inp" id="mFEmoji" placeholder="🍔" style="text-align:center"></div>
+        </div>
+        <div class="form-row"><label class="lbl" data-i18n="category">Category</label>
+          <select class="inp" id="mFCat"><option>Main Course</option><option>Appetizer</option><option>Dessert</option><option>Beverage</option></select></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
+          <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('foodModal')" data-i18n="cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="modal-overlay" id="inventoryModal">
+    <div class="modal-box">
+      <div class="modal-h" data-i18n="addItem">Add Item</div>
+      <form onsubmit="addInvItem(event)">
+        <div class="form-row"><label class="lbl" data-i18n="item">Item Name</label><input class="inp" id="mIName" required></div>
+        <div class="form-2">
+          <div class="form-row"><label class="lbl" data-i18n="stock">Stock</label><input class="inp" id="mIQty" type="number" required></div>
+          <div class="form-row"><label class="lbl" data-i18n="unit">Unit</label><input class="inp" id="mIUnit" placeholder="pcs"></div>
+        </div>
+        <div class="form-2">
+          <div class="form-row"><label class="lbl" data-i18n="category">Category</label>
+            <select class="inp" id="mICat"><option>Amenities</option><option>Linen</option><option>Food</option><option>Maintenance</option><option>Other</option></select></div>
+          <div class="form-row"><label class="lbl" data-i18n="minAlert">Min Alert</label><input class="inp" id="mIMin" type="number" value="10"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
+          <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('inventoryModal')" data-i18n="cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="modal-overlay" id="blacklistModal">
+    <div class="modal-box">
+      <div class="modal-h">🚫 Block Guest</div>
+      <form onsubmit="addToBlacklist(event)">
+        <div class="form-row"><label class="lbl" data-i18n="nameLbl">Name</label><input class="inp" id="mBName" required></div>
+        <div class="form-row"><label class="lbl" data-i18n="room">Room</label><input class="inp" id="mBRoom"></div>
+        <div class="form-row"><label class="lbl" data-i18n="reason">Reason</label><textarea class="inp" id="mBReason" rows="2" required></textarea></div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn-primary" style="flex:1;background:#ef4444" type="submit">🚫 Block</button>
+          <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('blacklistModal')" data-i18n="cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="modal-overlay" id="maintModal">
+    <div class="modal-box">
+      <div class="modal-h" data-i18n="addTask">Add Task</div>
+      <form onsubmit="addMaint(event)">
+        <div class="form-row"><label class="lbl" data-i18n="task">Task</label><input class="inp" id="mMTask" required></div>
+        <div class="form-row"><label class="lbl" data-i18n="area">Room/Area</label><input class="inp" id="mMRoom"></div>
+        <div class="form-row"><label class="lbl" data-i18n="scheduled">Scheduled</label><input class="inp" id="mMDate" type="datetime-local" required></div>
+        <div class="form-2">
+          <div class="form-row"><label class="lbl" data-i18n="assigned">Assigned To</label><input class="inp" id="mMAssigned"></div>
+          <div class="form-row"><label class="lbl" data-i18n="priority">Priority</label>
+            <select class="inp" id="mMPrio"><option value="low">🟢 Low</option><option value="medium" selected>🟡 Medium</option><option value="high">🔴 High</option></select></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn-primary" style="flex:1" type="submit" data-i18n="save">Save</button>
+          <button class="btn-ghost" style="flex:1" type="button" onclick="closeModal('maintModal')" data-i18n="cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="modal-overlay" id="ratingModal">
+    <div class="modal-box">
+      <div class="modal-h" data-i18n="rateStay">⭐ Rate Your Stay</div>
+      <div style="margin-bottom:10px"><label class="lbl" data-i18n="overall">Overall</label><div class="stars" id="starOverall"></div></div>
+      <div style="margin-bottom:10px"><label class="lbl" data-i18n="service">Service</label><div class="stars" id="starService"></div></div>
+      <div style="margin-bottom:10px"><label class="lbl" data-i18n="cleanliness">Cleanliness</label><div class="stars" id="starClean"></div></div>
+      <div class="form-row"><textarea class="inp" id="ratingComment" rows="2" data-i18n-ph="shareExp" placeholder="Share your experience…"></textarea></div>
+      <button class="btn-primary" style="width:100%;padding:10px;margin-top:8px" onclick="submitRating()" data-i18n="submitReview">Submit Review</button>
+    </div>
+  </div>
+  <div class="modal-overlay" id="infoModal">
+    <div class="modal-box">
+      <div class="modal-h" id="infoModalTitle">Info</div>
+      <div id="infoModalBody" style="font-size:13px;line-height:1.8"></div>
+      <button class="btn-ghost" style="width:100%;margin-top:14px" onclick="closeModal('infoModal')" data-i18n="cancel">Close</button>
+    </div>
+  </div>`;
+}
+
+function openModal(id){document.getElementById(id)?.classList.add('open')}
+function closeModal(id){document.getElementById(id)?.classList.remove('open')}
+
+function addRoom(e){
+  e.preventDefault();
+  const room={_id:'r_'+Date.now(),number:document.getElementById('mRoomNum').value,type:document.getElementById('mRoomType').value,price:parseFloat(document.getElementById('mRoomPrice').value),status:document.getElementById('mRoomStatus').value,guestName:'',hotelId:HID};
+  rooms.push(room);save('rooms',room,'room_upd');closeModal('roomModal');renderRooms();updateAdminStats();showToast('Room added','success');addLog('Add Room','#'+room.number);
+}
+function addGuest(e){
+  e.preventDefault();
+  const guest={_id:'g_'+Date.now(),name:document.getElementById('mGName').value,room:document.getElementById('mGRoom').value,points:parseInt(document.getElementById('mGPts').value)||0,status:document.getElementById('mGStatus').value,checkin:document.getElementById('mGCheckin').value,hotelId:HID};
+  guests.push(guest);save('guests',guests);closeModal('guestModal');renderGuests();renderLoyalty();showToast('Guest added','success');
+}
+function addDish(e){
+  e.preventDefault();
+  const dish={_id:'f_'+Date.now(),name:document.getElementById('mFName').value,price:parseFloat(document.getElementById('mFPrice').value),category:document.getElementById('mFCat').value,emoji:document.getElementById('mFEmoji').value||'🍽️',hotelId:HID};
+  food.push(dish);save('food',dish);closeModal('foodModal');renderFood();renderGuestFood();showToast('Dish added','success');
+}
+function addInvItem(e){
+  e.preventDefault();
+  const item={_id:'i_'+Date.now(),name:document.getElementById('mIName').value,category:document.getElementById('mICat').value,stock:parseInt(document.getElementById('mIQty').value),unit:document.getElementById('mIUnit').value||'pcs',min:parseInt(document.getElementById('mIMin').value)||10,hotelId:HID};
+  inventory.push(item);save('inventory',item,'inventory_upd');closeModal('inventoryModal');renderInventory();renderGuestInv();showToast('Item added','success');
+}
+function addToBlacklist(e){
+  e.preventDefault();
+  const entry={_id:'bl_'+Date.now(),name:document.getElementById('mBName').value,room:document.getElementById('mBRoom').value,reason:document.getElementById('mBReason').value,date:new Date().toISOString(),hotelId:HID};
+  blacklist.push(entry);save('blacklist',blacklist);closeModal('blacklistModal');renderBlacklist();showToast('Guest blocked','error');addLog('Blacklist',entry.name);
+}
+function addMaint(e){
+  e.preventDefault();
+  const task={_id:'m_'+Date.now(),task:document.getElementById('mMTask').value,room:document.getElementById('mMRoom').value,scheduled:document.getElementById('mMDate').value,assigned:document.getElementById('mMAssigned').value,priority:document.getElementById('mMPrio').value,status:'pending',hotelId:HID};
+  maintenance.push(task);save('maintenance',maintenance);closeModal('maintModal');renderMaintenance();showToast('Task scheduled','success');
+}
+
+function openRatingModal(){
+  openModal('ratingModal');
+  ['Overall','Service','Clean'].forEach(type=>{
+    const el=document.getElementById('star'+type);if(!el)return;
+    el.innerHTML=[1,2,3,4,5].map(i=>`<span onclick="setStar('${type.toLowerCase()}',${i})" style="font-size:24px;cursor:pointer;transition:transform .1s">☆</span>`).join('');
+  });
+}
+function setStar(type,val){
+  const map={overall:'Overall',service:'Service',clean:'Clean'};
+  const el=document.getElementById('star'+map[type]);if(!el)return;
+  [...el.children].forEach((s,i)=>{s.textContent=i<val?'★':'☆';s.style.color=i<val?'#f59e0b':'var(--fg)'});
+  ratingData[type]=val;
+}
+function submitRating(){
+  if(!ratingData.overall){showToast('Please select a rating','error');return}
+  const rev={_id:'rev_'+Date.now(),guest:currentUser.name,room:currentUser.room,overall:ratingData.overall,service:ratingData.service||0,cleanliness:ratingData.clean||0,recommend:ratingData.overall>=3,comment:document.getElementById('ratingComment')?.value||'',date:new Date().toISOString(),hotelId:HID};
+  reviews.unshift(rev);save('reviews',rev,'review_new');closeModal('ratingModal');renderReviews();showToast('⭐ Thank you for rating!','success');ratingData={overall:0,service:0,clean:0};
+}
+
+function infoModal(title,body){
+  document.getElementById('infoModalTitle').textContent=title;
+  document.getElementById('infoModalBody').innerHTML=body;
+  openModal('infoModal');
+}
+function showConcierge(){
+  infoModal('🤖 Concierge',`
+    <details style="background:var(--card2);border-radius:8px;padding:8px;margin-bottom:6px"><summary style="cursor:pointer;font-weight:600">WiFi password?</summary><p style="margin-top:4px;font-family:'DM Mono',monospace">${HotelCfg.wifi}</p></details>
+    <details style="background:var(--card2);border-radius:8px;padding:8px;margin-bottom:6px"><summary style="cursor:pointer;font-weight:600">Checkout time?</summary><p style="margin-top:4px">11:00 AM</p></details>
+    <details style="background:var(--card2);border-radius:8px;padding:8px"><summary style="cursor:pointer;font-weight:600">How to raise a request?</summary><p style="margin-top:4px">Go to the Request tab and select your department.</p></details>`);
+}
+
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
+  if(!e.target.closest('#themeDD')&&!e.target.closest('[onclick*="toggleThemeDD"]')) document.getElementById('themeDD')?.classList.remove('show');
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));
+});
+
+// ================================================================
+// ONLINE / OFFLINE AUTO-DETECT
+// ================================================================
+window.addEventListener('online',()=>{
+  if(!isOnline) return;
+  updateNetBadge('online');
+  if(socket) socket.connect();
+  showToast('🌐 Back online','success');
+});
+window.addEventListener('offline',()=>{
+  updateNetBadge('offline');
+  showToast('📴 Offline mode','warning');
+});
+
+// ================================================================
+// ✅ FIX 1 + FIX 2: INIT — Loading screen → Session check → MongoDB sync
+// ================================================================
+async function init(){
+  // 1. Load UI preferences (instant, from localStorage)
+  loadUIPrefs();
+  buildModals();
+  buildGuestPanes();
+  buildRolePage();
+  tickClock();
+
+  // 2. ✅ Loading screen is visible at this point
+
+  // 3. Load from localStorage cache first (instant render)
+  loadLS();
+
+  // 4. Connect socket (will syncBack from MongoDB on connect)
+  initSocket();
+
+  // 5. ✅ Check session with backend verification
+  await checkSession();
+
+  // 6. Update online button text
+  const onlineBtn=document.getElementById('onlineBtn');
+  if(onlineBtn) onlineBtn.textContent=isOnline?t('online'):t('offline');
+
+  // 7. Periodic localStorage backup
+  setInterval(saveLS, 15000);
+
+  // 8. Save on page unload
+  window.addEventListener('beforeunload', saveLS);
+}
+
+init();
+</script>
+</body>
+</html>
