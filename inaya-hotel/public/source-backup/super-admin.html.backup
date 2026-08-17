@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Admin | Crown Plaza Hotel System</title>
+    <title>Super Admin | Inaya Hotel System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1093,7 +1093,7 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium mb-1">Platform Name</label>
-                                <input type="text" id="whiteLabelName" value="Crown Plaza Hotel" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600">
+                                <input type="text" id="whiteLabelName" value="Inaya Hotel" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1">Logo URL</label>
@@ -2363,8 +2363,12 @@
         <div class="modal-box">
             <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg" id="integrationModalTitle">Configure Integration</h3><button onclick="closeModal('integrationModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
             <div id="integrationConfigContent" class="space-y-4">
+                <input type="hidden" id="integrationId" value="">
+                <div><label class="block text-sm font-medium mb-1">Name</label><input type="text" id="integrationName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Stripe"></div>
+                <div><label class="block text-sm font-medium mb-1">Provider</label><input type="text" id="integrationProvider" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Payments"></div>
+                <div><label class="block text-sm font-medium mb-1">Description</label><input type="text" id="integrationDescription" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="What this integration does"></div>
                 <div><label class="block text-sm font-medium mb-1">API Key</label><input type="text" id="integrationApiKey" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Enter API key"></div>
-                <div><label class="block text-sm font-medium mb-1">Webhook URL</label><input type="text" id="integrationWebhook" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="https://..."></div>
+                <div class="flex items-center gap-2"><input type="checkbox" id="integrationIsActive" class="w-4 h-4" checked><label for="integrationIsActive" class="text-sm font-medium">Active</label></div>
                 <div class="flex gap-3 pt-2"><button onclick="saveIntegrationConfig()" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button onclick="closeModal('integrationModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
             </div>
         </div>

@@ -4064,6 +4064,68 @@ app.delete('/api/firewall/:id', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ INTEGRATIONS
+app.get('/api/integrations', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const list = await db.collection('integrations').find({}).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, data: list.map(i => ({ ...i, _id: i._id.toString() })) });
+  } catch (err) {
+    console.error('Get integrations error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/integrations', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, provider, description, apiKey, isActive } = req.body;
+    if (!name) return res.status(400).json({ success: false, error: 'name is required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      name: String(name).trim(),
+      provider: provider || 'Custom',
+      description: description || '',
+      apiKey: apiKey || '',
+      isActive: isActive !== false,
+      createdAt: new Date()
+    };
+    const result = await db.collection('integrations').insertOne(doc);
+    doc._id = result.insertedId.toString();
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create integration error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/integrations/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, provider, description, apiKey, isActive } = req.body;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const update = { name, provider: provider || 'Custom', description: description || '', apiKey: apiKey || '', isActive: isActive !== false, updatedAt: new Date() };
+    const result = await db.collection('integrations').updateOne({ _id: new ObjectId(id) }, { $set: update });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Integration not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update integration error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/integrations/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('integrations').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Integration not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete integration error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;
