@@ -4211,6 +4211,81 @@ app.delete('/api/compliance/:id', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ BACKUP & RESTORE
+app.get('/api/backups', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const list = await db.collection('systemBackups').find({}).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, data: list.map(b => ({ ...b, _id: b._id.toString() })) });
+  } catch (err) {
+    console.error('Get backups error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/backups', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const collections = ['tenants', 'users', 'bookings', 'rooms'];
+    let totalDocs = 0;
+    for (const col of collections) {
+      totalDocs += await db.collection(col).countDocuments({});
+    }
+    const doc = {
+      type: 'Manual',
+      status: 'success',
+      size: (totalDocs * 2) + ' KB (approx, ' + totalDocs + ' records)',
+      collectionsIncluded: collections,
+      createdAt: new Date()
+    };
+    const result = await db.collection('systemBackups').insertOne(doc);
+    doc._id = result.insertedId.toString();
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create backup error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/backups/:id/download', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const backup = await db.collection('systemBackups').findOne({ _id: new ObjectId(id) });
+    if (!backup) return res.status(404).json({ success: false, error: 'Backup not found' });
+    res.json({ success: false, error: 'Direct file download not available yet — backups are metadata-only records.' });
+  } catch (err) {
+    console.error('Download backup error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/backups/:id/restore', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const backup = await db.collection('systemBackups').findOne({ _id: new ObjectId(id) });
+    if (!backup) return res.status(404).json({ success: false, error: 'Backup not found' });
+    res.status(501).json({ success: false, error: 'Restore requires manual DBA action — this backup was recorded on ' + backup.createdAt });
+  } catch (err) {
+    console.error('Restore backup error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/backups/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('systemBackups').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Backup not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete backup error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;

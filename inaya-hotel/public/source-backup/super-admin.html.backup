@@ -1413,25 +1413,26 @@
             <section id="backupRestore" class="section-content hidden fade-in">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-cloud-upload-alt text-2xl text-blue-600"></i></div><h3 class="font-bold text-lg">Auto Backup</h3><p class="text-sm text-gray-500 mt-2">Daily at 2:00 AM UTC</p><span class="inline-block mt-3 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full text-xs font-bold">Enabled</span></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-check-circle text-2xl text-green-600"></i></div><h3 class="font-bold text-lg">Last Backup</h3><p class="text-sm text-gray-500 mt-2">Today at 2:00 AM</p><span class="inline-block mt-3 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full text-xs font-bold">Success</span></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-hdd text-2xl text-purple-600"></i></div><h3 class="font-bold text-lg">Storage Used</h3><p class="text-sm text-gray-500 mt-2">2.4 GB of 50 GB</p><span class="inline-block mt-3 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs font-bold">4.8%</span></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-check-circle text-2xl text-green-600"></i></div><h3 class="font-bold text-lg">Last Backup</h3><p class="text-sm text-gray-500 mt-2" id="lastBackupTime">--</p><span class="inline-block mt-3 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full text-xs font-bold">Status</span></div>
+                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-hdd text-2xl text-purple-600"></i></div><h3 class="font-bold text-lg">Total Backups</h3><p class="text-sm text-gray-500 mt-2" id="totalBackupsCount">0</p></div>
                 </div>
-                <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-                    <div class="flex justify-between items-center mb-4"><h3 class="font-bold">Backup History</h3><button onclick="createBackupNow()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-plus mr-2"></i>Create Backup Now</button></div>
-                    <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-4 text-left text-sm font-semibold">Date</th><th class="p-4 text-left text-sm font-semibold">Type</th><th class="p-4 text-left text-sm font-semibold">Size</th><th class="p-4 text-left text-sm font-semibold">Status</th><th class="p-4 text-left text-sm font-semibold">Actions</th></tr></thead>
-                    <tbody id="backupTable">
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm">2026-07-02 02:00</td><td class="p-4 text-sm"><span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs">Auto</span></td><td class="p-4 text-sm">245 MB</td><td class="p-4"><span class="text-green-600 text-sm font-bold"><i class="fas fa-check-circle mr-1"></i>Success</span></td><td class="p-4"><div class="flex gap-2"><button onclick="downloadBackup('2026-07-02')" class="text-blue-500 hover:text-blue-700"><i class="fas fa-download"></i></button><button onclick="restoreBackup('2026-07-02')" class="text-green-500 hover:text-green-700"><i class="fas fa-undo"></i></button><button onclick="deleteBackup('2026-07-02')" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button></div></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm">2026-07-01 02:00</td><td class="p-4 text-sm"><span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs">Auto</span></td><td class="p-4 text-sm">238 MB</td><td class="p-4"><span class="text-green-600 text-sm font-bold"><i class="fas fa-check-circle mr-1"></i>Success</span></td><td class="p-4"><div class="flex gap-2"><button onclick="downloadBackup('2026-07-01')" class="text-blue-500 hover:text-blue-700"><i class="fas fa-download"></i></button><button onclick="restoreBackup('2026-07-01')" class="text-green-500 hover:text-green-700"><i class="fas fa-undo"></i></button><button onclick="deleteBackup('2026-07-01')" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button></div></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm">2026-06-30 14:30</td><td class="p-4 text-sm"><span class="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded text-xs">Manual</span></td><td class="p-4 text-sm">241 MB</td><td class="p-4"><span class="text-green-600 text-sm font-bold"><i class="fas fa-check-circle mr-1"></i>Success</span></td><td class="p-4"><div class="flex gap-2"><button onclick="downloadBackup('2026-06-30')" class="text-blue-500 hover:text-blue-700"><i class="fas fa-download"></i></button><button onclick="restoreBackup('2026-06-30')" class="text-green-500 hover:text-green-700"><i class="fas fa-undo"></i></button><button onclick="deleteBackup('2026-06-30')" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button></div></td></tr>
-                    </tbody>
-                </table></div>
                 <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold mb-4">Restore from Backup</h3>
-                    <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center">
-                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
-                        <p class="text-gray-500 font-medium">Drop backup file here or click to upload</p>
-                        <p class="text-xs text-gray-400 mt-1">Supported: .zip, .sql, .json (Max 500MB)</p>
-                        <button onclick="showToast('File upload simulation', 'info')" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Select File</button>
+                    <div class="flex justify-between items-center mb-4"><h3 class="font-bold">Backup History</h3><button onclick="createBackupNow()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-plus mr-2"></i>Create Backup Now</button></div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <th class="p-4 text-left text-sm font-semibold">Date</th>
+                                    <th class="p-4 text-left text-sm font-semibold">Type</th>
+                                    <th class="p-4 text-left text-sm font-semibold">Size</th>
+                                    <th class="p-4 text-left text-sm font-semibold">Status</th>
+                                    <th class="p-4 text-left text-sm font-semibold">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="backupTableBody">
+                                <tr><td colspan="5" class="p-4 text-center text-gray-500">Loading...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -2419,6 +2420,7 @@
                 <p class="text-sm text-yellow-700 dark:text-yellow-300 font-medium"><i class="fas fa-exclamation-triangle mr-2"></i>Warning: This will overwrite all current data!</p>
             </div>
             <p class="text-sm text-gray-500 mb-4">Restoring from backup dated: <span id="restoreBackupDate" class="font-bold">--</span></p>
+            <input type="hidden" id="restoreBackupId" value="">
             <div class="flex gap-3"><button onclick="confirmRestore()" class="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"><i class="fas fa-undo mr-2"></i>Restore</button><button onclick="closeModal('backupRestoreModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
         </div>
     </div>
