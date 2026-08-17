@@ -4286,6 +4286,36 @@ app.delete('/api/backups/:id', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ BULK OPERATIONS
+app.post('/api/super/bulk-action', superAdminMiddleware, async (req, res) => {
+  try {
+    const { action, hotelIds } = req.body;
+    if (!action || !Array.isArray(hotelIds) || hotelIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'action and hotelIds are required' });
+    }
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+
+    let affected = 0;
+    if (action === 'activate') {
+      const result = await db.collection('tenants').updateMany({ hotelId: { $in: hotelIds } }, { $set: { active: true } });
+      affected = result.modifiedCount;
+    } else if (action === 'suspend') {
+      const result = await db.collection('tenants').updateMany({ hotelId: { $in: hotelIds } }, { $set: { active: false } });
+      affected = result.modifiedCount;
+    } else if (action === 'delete') {
+      const result = await db.collection('tenants').deleteMany({ hotelId: { $in: hotelIds } });
+      affected = result.deletedCount;
+    } else {
+      return res.status(501).json({ success: false, error: `"${action}" is not implemented yet — only activate, suspend, and delete are currently supported.` });
+    }
+
+    res.json({ success: true, affected });
+  } catch (err) {
+    console.error('Bulk action error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;
