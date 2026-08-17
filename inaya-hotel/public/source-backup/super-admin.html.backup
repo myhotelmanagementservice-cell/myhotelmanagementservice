@@ -175,6 +175,13 @@
                     <span class="font-bold text-sm sm:text-base whitespace-nowrap">AAP Control</span>
                     <span class="text-xs text-gray-500 hidden lg:inline">Super Admin</span>
                 </div>
+                <div class="relative flex-1 max-w-md mx-2" id="moduleSearchWrap">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                        <input type="text" id="moduleSearchInput" oninput="filterModuleSearch()" onkeydown="moduleSearchKeydown(event)" placeholder="Search modules..." class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 text-sm">
+                    </div>
+                    <div id="moduleSearchResults" class="hidden absolute left-0 right-0 mt-1 bg-white dark:bg-darkCard border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-72 overflow-y-auto z-50"></div>
+                </div>
                 <div class="flex items-center gap-1 flex-shrink-0">
                     <button class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition relative" title="Notifications" onclick="showNotifications()"><i class="fas fa-bell text-sm"></i><span class="notification-badge" id="notifBadge">0</span></button>
                     <button onclick="openAddHotelModal()" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-blue-600 transition text-sm font-medium"><i class="fas fa-plus text-xs"></i><span class="hidden md:inline" data-i18n="addHotel">Add Hotel</span></button>
@@ -2671,6 +2678,51 @@
             startActivitySimulation();
             loadGlobalConfig();
         }
+
+        function getAllNavModules() {
+            return Array.from(document.querySelectorAll('#navScroll .nav-btn')).map(btn => ({
+                id: btn.id.replace('nav-', ''),
+                label: (btn.querySelector('span')?.textContent || btn.textContent || '').trim(),
+                el: btn
+            }));
+        }
+
+        function filterModuleSearch() {
+            const query = document.getElementById('moduleSearchInput').value.trim().toLowerCase();
+            const resultsBox = document.getElementById('moduleSearchResults');
+            if (!query) { resultsBox.classList.add('hidden'); resultsBox.innerHTML = ''; return; }
+            const matches = getAllNavModules().filter(m => m.label.toLowerCase().includes(query) || m.id.toLowerCase().includes(query));
+            if (matches.length === 0) {
+                resultsBox.innerHTML = `<div class="p-3 text-sm text-gray-500 text-center">No modules found</div>`;
+            } else {
+                resultsBox.innerHTML = matches.map(m => `<button onclick="selectModuleSearchResult('${m.id}')" class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-sm">${m.label}</button>`).join('');
+            }
+            resultsBox.classList.remove('hidden');
+        }
+
+        function selectModuleSearchResult(sectionId) {
+            document.getElementById('moduleSearchInput').value = '';
+            document.getElementById('moduleSearchResults').classList.add('hidden');
+            document.getElementById('moduleSearchResults').innerHTML = '';
+            showSection(sectionId);
+        }
+
+        function moduleSearchKeydown(event) {
+            if (event.key === 'Enter') {
+                const first = document.querySelector('#moduleSearchResults button');
+                if (first) first.click();
+            } else if (event.key === 'Escape') {
+                document.getElementById('moduleSearchInput').value = '';
+                document.getElementById('moduleSearchResults').classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            const wrap = document.getElementById('moduleSearchWrap');
+            if (wrap && !wrap.contains(e.target)) {
+                document.getElementById('moduleSearchResults').classList.add('hidden');
+            }
+        });
 
         function showSection(sectionId) {
             document.querySelectorAll('.section-content').forEach(el => el.classList.add('hidden'));
