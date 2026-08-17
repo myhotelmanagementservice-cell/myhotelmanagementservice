@@ -8,7 +8,7 @@ const { getDB, isConnected } = require('../config/db');
 // DEFAULT INFO SCHEMA (for reference)
 // ============================================================
 const DEFAULT_INFO = {
-    name: 'Crown Plaza Hotel',
+    name: 'Inaya Hotel',
     currency: 'SAR',
     currencySymbol: '﷼',
     language: 'en',
@@ -22,7 +22,7 @@ const DEFAULT_INFO = {
     checkIn: '2:00 PM',
     checkOut: '12:00 PM',
     amenities: ['WiFi', 'Parking', 'Pool', 'Gym', 'Restaurant'],
-    about: 'Welcome to Crown Plaza Hotel. Experience luxury and comfort in the heart of the city.',
+    about: 'Welcome to Inaya Hotel. Experience luxury and comfort in the heart of the city.',
     _version: 1
 };
 

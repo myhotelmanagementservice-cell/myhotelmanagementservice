@@ -8,10 +8,10 @@ const { getDB, isConnected } = require('../config/db');
 // DEFAULT CONFIGURATION
 // ============================================================
 const DEFAULT_CONFIG = {
-    name: 'Crown Plaza Hotel',
+    name: 'Inaya Hotel',
     currency: 'SAR',
     currencySymbol: '﷼',
-    wifi: 'CrownPlaza@2024',
+    wifi: 'Inaya@2024',
     wifiPassword: 'Welcome123',
     airportPrice: 115,
     localPrice: 60,

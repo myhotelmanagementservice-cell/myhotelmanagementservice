@@ -10,7 +10,7 @@ const { success, error } = require('../utils/apiResponse');
 // CONSTANTS
 // ============================================================
 const DEFAULT_TENANT = {
-    hotelName: 'Crown Plaza Hotel',
+    hotelName: 'Inaya Hotel',
     currency: 'USD',
     currencySymbol: '$',
     language: 'en',

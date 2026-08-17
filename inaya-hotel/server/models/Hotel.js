@@ -58,7 +58,7 @@ async function createHotel(data) {
             currencySymbol: getCurrencySymbol(currency),
             timezone: data.timezone || 'UTC',
             language: LANGUAGES.includes(data.language) ? data.language : 'en',
-            wifiPassword: data.wifiPassword || 'CrownPlaza@2024',
+            wifiPassword: data.wifiPassword || 'Inaya@2024',
             logo: data.logo || '',
             theme: {
                 primaryColor: data.theme?.primaryColor || '#667eea',

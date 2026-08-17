@@ -14,9 +14,9 @@ router.get('/', async (req, res) => {
             // Create default config if not exists
             config = new Config({
                 hotelId,
-                name: 'Crown Plaza Hotel',
+                name: 'Inaya Hotel',
                 currency: 'SAR',
-                wifi: 'CrownPlaza@2024',
+                wifi: 'Inaya@2024',
                 airportPrice: 115,
                 localPrice: 60,
                 currencies: {
@@ -76,9 +76,9 @@ router.post('/', async (req, res) => {
             // Naya config banao
             config = new Config({
                 hotelId,
-                name: name || 'Crown Plaza Hotel',
+                name: name || 'Inaya Hotel',
                 currency: currency || 'SAR',
-                wifi: wifi || 'CrownPlaza@2024',
+                wifi: wifi || 'Inaya@2024',
                 airportPrice: airportPrice || 115,
                 localPrice: localPrice || 60,
                 currencies: currencies || {
@@ -136,9 +136,9 @@ router.put('/hotel/:hotelId', async (req, res) => {
             // Config exist nahi karta — naya banao
             config = new Config({
                 hotelId,
-                name: name || 'Crown Plaza Hotel',
+                name: name || 'Inaya Hotel',
                 currency: currency || 'SAR',
-                wifi: wifi || 'CrownPlaza@2024',
+                wifi: wifi || 'Inaya@2024',
                 airportPrice: airportPrice || 115,
                 localPrice: localPrice || 60,
                 currencies: currencies || {

@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
         
         const info = {
             hotelId,
-            name: tenant?.hotelName || config?.name || 'Crown Plaza Hotel',
+            name: tenant?.hotelName || config?.name || 'Inaya Hotel',
             currency: config?.currency || 'SAR',
             currencySymbol: tenant?.currencySymbol || '﷼',
             language: tenant?.language || 'en',
@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
             checkIn: settings?.checkIn || '2:00 PM',
             checkOut: settings?.checkOut || '12:00 PM',
             amenities: settings?.amenities || ['WiFi', 'Parking', 'Pool', 'Gym', 'Restaurant'],
-            about: tenant?.about || 'Welcome to Crown Plaza Hotel. Experience luxury and comfort in the heart of the city.'
+            about: tenant?.about || 'Welcome to Inaya Hotel. Experience luxury and comfort in the heart of the city.'
         };
         
         res.json(info);

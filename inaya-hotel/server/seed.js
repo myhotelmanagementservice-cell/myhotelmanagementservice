@@ -17,7 +17,7 @@ const SUPER_ADMIN = {
 
 const DEFAULT_HOTEL = {
   hotelId: 'HOTEL001',
-  hotelName: 'Crown Plaza Hotel',
+  hotelName: 'Inaya Hotel',
   adminEmail: 'admin@crownplaza.com',
   adminPassword: 'admin123',
   currency: 'SAR',

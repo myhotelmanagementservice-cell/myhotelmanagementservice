@@ -1358,7 +1358,7 @@ app.get('/api/tenant', async (req, res) => {
         success: true,
         data: {
           hotelId,
-          hotelName: 'Crown Plaza Hotel',
+          hotelName: 'Inaya Hotel',
           currency: 'USD',
           currencySymbol: '$',
           language: 'en',
@@ -1377,7 +1377,7 @@ app.get('/api/tenant', async (req, res) => {
         success: true,
         data: {
           hotelId,
-          hotelName: 'Crown Plaza Hotel',
+          hotelName: 'Inaya Hotel',
           currency: 'USD',
           currencySymbol: '$',
           language: 'en',
@@ -4971,7 +4971,7 @@ app.get('/api/settings', async (req, res) => {
   try {
     const hotelId = req.hotelId;
     const defaultSettings = {
-      hotelId, hotelName: 'Crown Plaza Hotel',
+      hotelId, hotelName: 'Inaya Hotel',
       currencySymbol: '$', priceFormat: 'symbol-first',
       taxRate: 0, wifiSSID: 'Hotel_Guest', wifiPassword: 'Welcome123',
       language: 'en', theme: { primaryColor: '#667eea' },
@@ -5553,9 +5553,9 @@ app.get('/api/config', async (req, res) => {
     const defaultConfig = {
       _id: `config_${hotelId}`,
       hotelId,
-      name: 'Crown Plaza Hotel',
+      name: 'Inaya Hotel',
       currency: 'SAR',
-      wifi: 'CrownPlaza@2024',
+      wifi: 'Inaya@2024',
       airportPrice: 115,
       localPrice: 60,
       _version: 1,
