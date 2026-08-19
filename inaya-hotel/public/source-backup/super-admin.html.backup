@@ -1567,17 +1567,8 @@
 
             <!-- SECTION: FILE MANAGER -->
             <section id="fileManager" class="section-content hidden fade-in">
-                <div class="flex justify-between items-center mb-6">
-                    <div class="flex gap-3"><button class="px-3 py-2 bg-primary text-white rounded-lg text-sm"><i class="fas fa-upload mr-2"></i>Upload</button><button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition"><i class="fas fa-folder-plus mr-2"></i>New Folder</button></div>
-                    <div class="flex gap-2"><input type="text" placeholder="Search files..." class="p-2 rounded-lg bg-white dark:bg-darkCard border border-gray-300 dark:border-gray-600"><button class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"><i class="fas fa-th"></i></button><button class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"><i class="fas fa-list"></i></button></div>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    <div class="bg-white dark:bg-darkCard p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center cursor-pointer hover:border-primary transition"><i class="fas fa-folder text-4xl text-yellow-400 mb-2"></i><p class="text-sm font-medium truncate">Hotel Assets</p><p class="text-xs text-gray-500">24 items</p></div>
-                    <div class="bg-white dark:bg-darkCard p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center cursor-pointer hover:border-primary transition"><i class="fas fa-folder text-4xl text-yellow-400 mb-2"></i><p class="text-sm font-medium truncate">Invoices</p><p class="text-xs text-gray-500">156 items</p></div>
-                    <div class="bg-white dark:bg-darkCard p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center cursor-pointer hover:border-primary transition"><i class="fas fa-file-pdf text-4xl text-red-400 mb-2"></i><p class="text-sm font-medium truncate">Report_Q2.pdf</p><p class="text-xs text-gray-500">2.4 MB</p></div>
-                    <div class="bg-white dark:bg-darkCard p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center cursor-pointer hover:border-primary transition"><i class="fas fa-file-excel text-4xl text-green-400 mb-2"></i><p class="text-sm font-medium truncate">Revenue.xlsx</p><p class="text-xs text-gray-500">1.8 MB</p></div>
-                    <div class="bg-white dark:bg-darkCard p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center cursor-pointer hover:border-primary transition"><i class="fas fa-file-image text-4xl text-purple-400 mb-2"></i><p class="text-sm font-medium truncate">banner.png</p><p class="text-xs text-gray-500">856 KB</p></div>
-                    <div class="bg-white dark:bg-darkCard p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center cursor-pointer hover:border-primary transition"><i class="fas fa-file-code text-4xl text-blue-400 mb-2"></i><p class="text-sm font-medium truncate">api-spec.json</p><p class="text-xs text-gray-500">45 KB</p></div>
+                <div id="fileManagerContainer">
+                    <p class="text-sm text-gray-500 text-center py-8">Loading...</p>
                 </div>
             </section>
 

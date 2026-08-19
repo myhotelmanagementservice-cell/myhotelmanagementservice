@@ -17,6 +17,7 @@ const express = require('express');
 const { connectDB: connectSharedDB } = require('./config/db');
 const session = require('express-session');
 const path = require('path');
+const fs = require('fs');
 const { MongoClient, ObjectId } = require('mongodb');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -4312,6 +4313,123 @@ app.post('/api/super/bulk-action', superAdminMiddleware, async (req, res) => {
     res.json({ success: true, affected });
   } catch (err) {
     console.error('Bulk action error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ✅ FILE MANAGER — sandboxed to server/file-storage only
+const FILE_STORAGE_ROOT = path.join(__dirname, 'file-storage');
+if (!fs.existsSync(FILE_STORAGE_ROOT)) fs.mkdirSync(FILE_STORAGE_ROOT, { recursive: true });
+
+function safeResolvePath(userPath) {
+  const normalized = path.normalize(userPath || '/').replace(/^(\.\.[/\\])+/, '');
+  const resolved = path.join(FILE_STORAGE_ROOT, normalized);
+  if (!resolved.startsWith(FILE_STORAGE_ROOT)) return null;
+  return resolved;
+}
+
+function safeFileName(name) {
+  return path.basename(String(name || '').replace(/\.\./g, ''));
+}
+
+const fileManagerUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+
+app.get('/api/files', superAdminMiddleware, async (req, res) => {
+  try {
+    const dirPath = safeResolvePath(req.query.path);
+    if (!dirPath) return res.status(400).json({ success: false, error: 'Invalid path' });
+    if (!fs.existsSync(dirPath)) return res.json({ success: true, data: [] });
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    const data = entries.map(e => {
+      const full = path.join(dirPath, e.name);
+      const stat = fs.statSync(full);
+      return { name: e.name, isDirectory: e.isDirectory(), size: stat.size, modifiedAt: stat.mtime };
+    });
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('List files error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/files/upload', superAdminMiddleware, fileManagerUpload.array('files'), async (req, res) => {
+  try {
+    const dirPath = safeResolvePath(req.body.path);
+    if (!dirPath) return res.status(400).json({ success: false, error: 'Invalid path' });
+    if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+    let uploaded = 0;
+    for (const file of (req.files || [])) {
+      const dest = path.join(dirPath, safeFileName(file.originalname));
+      fs.writeFileSync(dest, file.buffer);
+      uploaded++;
+    }
+    res.json({ success: true, uploaded });
+  } catch (err) {
+    console.error('Upload file error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/files/folder', superAdminMiddleware, async (req, res) => {
+  try {
+    const dirPath = safeResolvePath(req.body.path);
+    const folderName = safeFileName(req.body.name);
+    if (!dirPath || !folderName) return res.status(400).json({ success: false, error: 'Invalid path or name' });
+    const newDir = path.join(dirPath, folderName);
+    if (!newDir.startsWith(FILE_STORAGE_ROOT)) return res.status(400).json({ success: false, error: 'Invalid path' });
+    fs.mkdirSync(newDir, { recursive: true });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Create folder error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/files/download', superAdminMiddleware, async (req, res) => {
+  try {
+    const dirPath = safeResolvePath(req.query.path);
+    const filename = safeFileName(req.query.filename);
+    if (!dirPath || !filename) return res.status(400).json({ success: false, error: 'Invalid path or filename' });
+    const filePath = path.join(dirPath, filename);
+    if (!filePath.startsWith(FILE_STORAGE_ROOT) || !fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
+    const token = jwt.sign({ filePath, purpose: 'file-download' }, JWT_SECRET, { expiresIn: '5m' });
+    res.json({ success: true, url: `/api/files/raw?token=${token}` });
+  } catch (err) {
+    console.error('Download file error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/files/raw', async (req, res) => {
+  try {
+    const decoded = jwt.verify(req.query.token, JWT_SECRET);
+    if (decoded.purpose !== 'file-download' || !decoded.filePath.startsWith(FILE_STORAGE_ROOT)) {
+      return res.status(403).json({ success: false, error: 'Invalid token' });
+    }
+    if (!fs.existsSync(decoded.filePath)) return res.status(404).json({ success: false, error: 'File not found' });
+    res.download(decoded.filePath);
+  } catch (err) {
+    res.status(403).json({ success: false, error: 'Invalid or expired link' });
+  }
+});
+
+app.delete('/api/files', superAdminMiddleware, async (req, res) => {
+  try {
+    const dirPath = safeResolvePath(req.query.path);
+    const filename = safeFileName(req.query.filename);
+    if (!dirPath || !filename) return res.status(400).json({ success: false, error: 'Invalid path or filename' });
+    const targetPath = path.join(dirPath, filename);
+    if (!targetPath.startsWith(FILE_STORAGE_ROOT) || !fs.existsSync(targetPath)) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
+    const stat = fs.statSync(targetPath);
+    if (stat.isDirectory()) fs.rmSync(targetPath, { recursive: true, force: true });
+    else fs.unlinkSync(targetPath);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete file error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
