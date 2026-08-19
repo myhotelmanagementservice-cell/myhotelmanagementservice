@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1a1a2e">
-<title>Crown Plaza — Hotel OS</title>
+<title>Inaya — Hotel OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -285,7 +285,7 @@ select.inp{cursor:pointer}
 <!-- ✅ FIX 2: LOADING SCREEN - Prevents login flash on refresh -->
 <div id="loadingScreen">
   <div class="loading-spinner"></div>
-  <div class="loading-text">Loading Crown Plaza...</div>
+  <div class="loading-text">Loading Inaya...</div>
   <div class="loading-subtext">Verifying your session...</div>
 </div>
 
@@ -332,7 +332,7 @@ select.inp{cursor:pointer}
 <div id="loginPage">
   <div class="login-card">
     <div class="login-logo">👑</div>
-    <div class="login-h" id="loginHotelName">Crown Plaza Hotel</div>
+    <div class="login-h" id="loginHotelName">Inaya Hotel</div>
     <div class="login-sub" data-i18n="welcomeSubtitle">Complete Management System</div>
     <div class="conn-status" style="justify-content:center">
       <div class="conn-dot connecting" id="loginConnDot"></div>
@@ -368,7 +368,7 @@ select.inp{cursor:pointer}
 <!-- ========== ADMIN DASHBOARD ========== -->
 <div id="adminDash" class="hidden">
   <div class="header">
-    <h1>👑 <span id="aHotelName">Crown Plaza</span> — <span id="aRole">Admin</span></h1>
+    <h1>👑 <span id="aHotelName">Inaya</span> — <span id="aRole">Admin</span></h1>
     <div class="header-right">
       <span class="clock-badge" id="aClock"></span>
       <button class="logout-btn" onclick="logout()" data-i18n="logout">Logout</button>
@@ -383,7 +383,7 @@ select.inp{cursor:pointer}
 <!-- ========== GUEST DASHBOARD ========== -->
 <div id="guestDash" class="hidden">
   <div class="header">
-    <h1>🏨 <span id="gHotelName">Crown Plaza</span></h1>
+    <h1>🏨 <span id="gHotelName">Inaya</span></h1>
     <div class="header-right">
       <span class="clock-badge" id="gClock"></span>
       <span id="gInfo" class="clock-badge"></span>
@@ -440,7 +440,7 @@ function getAuthHeaders() {
 // ================================================================
 const T = {
 en:{
-  hotelName:'Crown Plaza Hotel',welcomeSubtitle:'Complete Management System',connecting:'Connecting to server…',
+  hotelName:'Inaya Hotel',welcomeSubtitle:'Complete Management System',connecting:'Connecting to server…',
   guestTab:'🏨 Guest',adminTab:'👑 Admin',yourName:'Your Name',enterName:'Enter your name',
   roomNumber:'Room Number',loginGuest:'🔐 Login as Guest',emailAddress:'Email',password:'Password',
   loginAdmin:'🔐 Login as Admin',back:'← Back',selectRole:'👑 Select Your Role',logout:'Logout',
@@ -590,7 +590,7 @@ function t(k){return T[lang]?.[k] || T.en[k] || k}
 // STATE
 // ================================================================
 let lang='en', dark=false, fontSize=0, brightness=1, theme='default';
-let currentUser=null, HotelCfg={name:'Crown Plaza Hotel',currency:'$',wifi:'CrownPlaza@2024',airportPrice:30,localPrice:15};
+let currentUser=null, HotelCfg={name:'Inaya Hotel',currency:'$',wifi:'Inaya@2024',airportPrice:30,localPrice:15};
 let rooms=[], guests=[], food=[], inventory=[], requests=[], blacklist=[], maintenance=[], reviews=[], loyalty=[], staff=[], logs=[];
 let cart=[], ratingData={overall:0,service:0,clean:0};
 let deptChart=null, occChart=null;
@@ -965,7 +965,7 @@ function reqNotif(){if('Notification'in window)Notification.requestPermission().
 function haptic(){if(navigator.vibrate){navigator.vibrate(80);showToast('📳 Haptic','success')}}
 function speak(){
   if(!('speechSynthesis'in window)){showToast('Voice not supported','error');return}
-  const text={en:'Welcome to Crown Plaza Hotel. How can I help you?',hi:'क्राउन प्लाज़ा होटल में आपका स्वागत है।',ar:'مرحبا بك في فندق كراون بلازا'};
+  const text={en:'Welcome to Inaya Hotel. How can I help you?',hi:'क्राउन प्लाज़ा होटल में आपका स्वागत है।',ar:'مرحبا بك في فندق كراون بلازا'};
   const u=new SpeechSynthesisUtterance(text[lang]||text.en);
   u.lang=lang==='en'?'en-US':lang==='hi'?'hi-IN':'ar-SA';
   window.speechSynthesis.cancel();window.speechSynthesis.speak(u);

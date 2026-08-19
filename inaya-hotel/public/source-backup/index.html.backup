@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1a1a2e">
-<title>Crown Plaza — Hotel OS</title>
+<title>Inaya — Hotel OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -271,7 +271,7 @@ font-size: 14px;
 <div id="loginNetBadge" class="online">🟢 Online</div>
 <div id="toasts"></div>
 <div class="login-logo">👑</div>
-<div class="login-h" id="loginHotelName">Crown Plaza Hotel</div>
+<div class="login-h" id="loginHotelName">Inaya Hotel</div>
 <div class="login-sub" data-i18n="welcomeSubtitle">Complete Management System</div>
 <div id="loginClock" class="login-clock"></div>
 <div class="login-tabs">
@@ -311,7 +311,7 @@ font-size: 14px;
 </div>
 <div id="adminDash" class="hidden">
 <div class="header">
-<h1>👑 <span id="aHotelName">Crown Plaza</span> — <span id="aRole">Admin</span></h1>
+<h1>👑 <span id="aHotelName">Inaya</span> — <span id="aRole">Admin</span></h1>
 <div class="header-right">
 <a href="#" onclick="window.location.href='/subscribe.html?hotelId=' + HID" class="logout-btn" style="text-decoration:none;background:rgba(255,255,255,.3)">💳 Subscription</a>
 <span class="clock-badge" id="aClock"></span>
@@ -327,7 +327,7 @@ font-size: 14px;
 </div>
 <div id="guestDash" class="hidden">
 <div class="header">
-<h1>🏨 <span id="gHotelName">Crown Plaza</span></h1>
+<h1>🏨 <span id="gHotelName">Inaya</span></h1>
 <div class="header-right">
 <span class="clock-badge" id="gClock"></span>
 <span id="gInfo" class="clock-badge"></span>
@@ -352,7 +352,7 @@ font-size: 14px;
 // ============================================================
 const T = {
 en: {
-hotelName: 'Crown Plaza Hotel',
+hotelName: 'Inaya Hotel',
 welcomeSubtitle: 'Complete Management System',
 connecting: 'Connecting to server…',
 hotelIdLbl: 'Hotel ID',
@@ -2691,7 +2691,7 @@ let highContrast = false;
 let currentUser = null;
 let isOnline = true;
 let isSessionChecked = false;
-let HotelCfg = { _id: null, name: 'Crown Plaza Hotel', currency: 'SAR', wifi: 'CrownPlaza@2024', airportPrice: 115, localPrice: 60, _version: 1 };
+let HotelCfg = { _id: null, name: 'Inaya Hotel', currency: 'SAR', wifi: 'Inaya@2024', airportPrice: 115, localPrice: 60, _version: 1 };
 let rooms = [];
 let guests = [];
 let food = [];
@@ -3251,7 +3251,7 @@ if (cachedCfg.currencies) Object.assign(CURRENCIES, cachedCfg.currencies);
 if (cachedCfg.enabledCurrencies) Object.assign(enabledCurrencies, cachedCfg.enabledCurrencies);
 if (cachedCfg.customCurrencies) Object.assign(customSubCurrencies, cachedCfg.customCurrencies);
 } else {
-HotelCfg = { _id: null, name: 'Crown Plaza Hotel', currency: 'SAR', wifi: 'CrownPlaza@2024', airportPrice: 115, localPrice: 60, _version: 1 };
+HotelCfg = { _id: null, name: 'Inaya Hotel', currency: 'SAR', wifi: 'Inaya@2024', airportPrice: 115, localPrice: 60, _version: 1 };
 }
 }
 try {
@@ -3301,7 +3301,7 @@ if (cachedCfg.currencies) Object.assign(CURRENCIES, cachedCfg.currencies);
 if (cachedCfg.enabledCurrencies) Object.assign(enabledCurrencies, cachedCfg.enabledCurrencies);
 if (cachedCfg.customCurrencies) Object.assign(customSubCurrencies, cachedCfg.customCurrencies);
 } else {
-HotelCfg = { _id: null, name: 'Crown Plaza Hotel', currency: 'SAR', wifi: 'CrownPlaza@2024', airportPrice: 115, localPrice: 60, _version: 1 };
+HotelCfg = { _id: null, name: 'Inaya Hotel', currency: 'SAR', wifi: 'Inaya@2024', airportPrice: 115, localPrice: 60, _version: 1 };
 }
 renderAll();
 }
