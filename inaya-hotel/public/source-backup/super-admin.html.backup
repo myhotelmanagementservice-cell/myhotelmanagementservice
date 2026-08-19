@@ -1294,13 +1294,24 @@
             <!-- SECTION: EMAIL TEMPLATES -->
             <section id="emailTemplates" class="section-content hidden fade-in">
                 <div class="flex justify-between items-center mb-6">
-                    <div class="flex gap-3"><select id="templateCategory" onchange="filterTemplates()" class="p-2 rounded-lg bg-white dark:bg-darkCard border border-gray-300 dark:border-gray-600"><option value="all">All Categories</option><option value="onboarding">Onboarding</option><option value="billing">Billing</option><option value="marketing">Marketing</option><option value="system">System</option></select></div>
+                    <div class="flex gap-3"><input type="text" id="templateSearch" oninput="filterTemplates()" placeholder="Search templates..." class="p-2 rounded-lg bg-white dark:bg-darkCard border border-gray-300 dark:border-gray-600"></div>
                     <button onclick="openTemplateModal()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-plus mr-2"></i>New Template</button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="templatesGrid">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><div class="flex justify-between items-start mb-3"><span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs">Onboarding</span><div class="flex gap-2"><button onclick="previewTemplate('welcome')" class="text-gray-400 hover:text-primary"><i class="fas fa-eye"></i></button><button onclick="editTemplate('welcome')" class="text-gray-400 hover:text-primary"><i class="fas fa-edit"></i></button></div></div><h3 class="font-bold mb-2">Welcome Email</h3><p class="text-sm text-gray-500 mb-4">Sent to new hotel admins after registration</p><div class="flex items-center justify-between text-xs text-gray-400"><span>Last edited: 2 days ago</span><span class="text-green-500"><i class="fas fa-check-circle"></i> Active</span></div></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><div class="flex justify-between items-start mb-3"><span class="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs">Billing</span><div class="flex gap-2"><button onclick="previewTemplate('invoice')" class="text-gray-400 hover:text-primary"><i class="fas fa-eye"></i></button><button onclick="editTemplate('invoice')" class="text-gray-400 hover:text-primary"><i class="fas fa-edit"></i></button></div></div><h3 class="font-bold mb-2">Monthly Invoice</h3><p class="text-sm text-gray-500 mb-4">Subscription billing reminder with payment link</p><div class="flex items-center justify-between text-xs text-gray-400"><span>Last edited: 1 week ago</span><span class="text-green-500"><i class="fas fa-check-circle"></i> Active</span></div></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"><div class="flex justify-between items-start mb-3"><span class="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded text-xs">Marketing</span><div class="flex gap-2"><button onclick="previewTemplate('promo')" class="text-gray-400 hover:text-primary"><i class="fas fa-eye"></i></button><button onclick="editTemplate('promo')" class="text-gray-400 hover:text-primary"><i class="fas fa-edit"></i></button></div></div><h3 class="font-bold mb-2">Promotional Offer</h3><p class="text-sm text-gray-500 mb-4">Seasonal discount campaign for all hotels</p><div class="flex items-center justify-between text-xs text-gray-400"><span>Last edited: 3 days ago</span><span class="text-yellow-500"><i class="fas fa-pause-circle"></i> Draft</span></div></div>
+                <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                                <th class="p-4 text-left text-sm font-semibold">Name</th>
+                                <th class="p-4 text-left text-sm font-semibold">Subject</th>
+                                <th class="p-4 text-left text-sm font-semibold">Status</th>
+                                <th class="p-4 text-left text-sm font-semibold">Updated</th>
+                                <th class="p-4 text-left text-sm font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="emailTemplatesTableBody">
+                            <tr><td colspan="5" class="p-4 text-center text-gray-500">Loading...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
 
@@ -2384,10 +2395,12 @@
     <div id="templateModal" class="modal-overlay" onclick="if(event.target===this)closeModal('templateModal')">
         <div class="modal-box" style="max-width: 700px;">
             <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg" id="templateModalTitle">Email Template</h3><button onclick="closeModal('templateModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
-            <form id="templateForm" class="space-y-4">
+            <form id="templateForm" class="space-y-4" onsubmit="saveTemplate(event)">
+                <input type="hidden" id="templateId" value="">
                 <div><label class="block text-sm font-medium mb-1">Template Name</label><input type="text" id="templateName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" required></div>
                 <div><label class="block text-sm font-medium mb-1">Subject Line</label><input type="text" id="templateSubject" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" required></div>
                 <div><label class="block text-sm font-medium mb-1">Body (HTML)</label><textarea id="templateBody" rows="6" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 font-mono text-sm" placeholder="<p>Hello {{name}},</p>"></textarea></div>
+                <div class="flex items-center gap-2"><input type="checkbox" id="templateActive" class="w-4 h-4" checked><label for="templateActive" class="text-sm font-medium">Active</label></div>
                 <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save Template</button><button type="button" onclick="closeModal('templateModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
             </form>
         </div>
@@ -2786,7 +2799,7 @@
             if (sectionId === 'supportTickets') loadTicketsFromServer();
             if (sectionId === 'revenueForecast') renderForecastCharts();
             if (sectionId === 'integrations') renderIntegrations();
-            if (sectionId === 'emailTemplates') filterTemplates();
+            if (sectionId === 'emailTemplates') loadEmailTemplates();
             if (sectionId === 'logViewer') loadLogs();
             if (sectionId === 'compliance') loadCompliance();
             if (sectionId === 'advancedAnalytics') loadAdvancedAnalytics();

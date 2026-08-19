@@ -4531,6 +4531,82 @@ app.delete('/api/scheduler/tasks/:id', superAdminMiddleware, async (req, res) =>
   }
 });
 
+// ✅ EMAIL TEMPLATES
+app.get('/api/email-templates', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const templates = await db.collection('emailTemplates').find({}).sort({ updatedAt: -1 }).toArray();
+    res.json({ success: true, data: templates.map(t => ({ ...t, _id: t._id.toString() })) });
+  } catch (err) {
+    console.error('Get email templates error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/email-templates', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, subject, body, isActive } = req.body;
+    if (!name || !subject) return res.status(400).json({ success: false, error: 'name and subject are required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      name: String(name).trim(),
+      subject: String(subject).trim(),
+      body: body || '',
+      isActive: isActive !== false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    const result = await db.collection('emailTemplates').insertOne(doc);
+    doc._id = result.insertedId.toString();
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create email template error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/email-templates/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const template = await db.collection('emailTemplates').findOne({ _id: new ObjectId(id) });
+    if (!template) return res.status(404).json({ success: false, error: 'Template not found' });
+    template._id = template._id.toString();
+    res.json({ success: true, data: template });
+  } catch (err) {
+    console.error('Get email template error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/email-templates/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, subject, body, isActive } = req.body;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const update = { name, subject, body: body || '', isActive: isActive !== false, updatedAt: new Date() };
+    const result = await db.collection('emailTemplates').updateOne({ _id: new ObjectId(id) }, { $set: update });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Template not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update email template error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/email-templates/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('emailTemplates').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Template not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete email template error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;
