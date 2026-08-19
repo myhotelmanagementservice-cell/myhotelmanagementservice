@@ -2797,7 +2797,7 @@
             if (sectionId === 'compliance') loadCompliance();
             if (sectionId === 'advancedAnalytics') loadAdvancedAnalytics();
             if (sectionId === 'backupRestore') loadBackupFromServer();
-            if (sectionId === 'bulkOps') loadBulkOpsFromServer();
+            if (sectionId === 'bulkOps') loadBulkOperations();
             if (sectionId === 'aiAssistant') loadAiAssistantFromServer();
             if (sectionId === 'database') renderQueryEditor();
             if (sectionId === 'webhooks') { loadWebhooks(); loadWebhookLogs(); }
