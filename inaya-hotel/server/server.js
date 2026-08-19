@@ -4434,6 +4434,103 @@ app.delete('/api/files', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ TASK SCHEDULER
+app.get('/api/scheduler/tasks', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const tasks = await db.collection('scheduledTasks').find({}).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, data: tasks.map(t => ({ ...t, _id: t._id.toString() })) });
+  } catch (err) {
+    console.error('Get scheduled tasks error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/scheduler/tasks', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, schedule, action, isActive } = req.body;
+    if (!name) return res.status(400).json({ success: false, error: 'name is required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      name: String(name).trim(),
+      schedule: schedule || '',
+      action: action || '',
+      isActive: isActive !== false,
+      lastRun: null,
+      nextRun: null,
+      createdAt: new Date()
+    };
+    const result = await db.collection('scheduledTasks').insertOne(doc);
+    doc._id = result.insertedId.toString();
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create scheduled task error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/scheduler/tasks/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const task = await db.collection('scheduledTasks').findOne({ _id: new ObjectId(id) });
+    if (!task) return res.status(404).json({ success: false, error: 'Task not found' });
+    task._id = task._id.toString();
+    res.json({ success: true, data: task });
+  } catch (err) {
+    console.error('Get scheduled task error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/scheduler/tasks/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, schedule, action, isActive } = req.body;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const update = { name, schedule: schedule || '', action: action || '', isActive: isActive !== false, updatedAt: new Date() };
+    const result = await db.collection('scheduledTasks').updateOne({ _id: new ObjectId(id) }, { $set: update });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Task not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update scheduled task error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/scheduler/tasks/:id/run', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const task = await db.collection('scheduledTasks').findOne({ _id: new ObjectId(id) });
+    if (!task) return res.status(404).json({ success: false, error: 'Task not found' });
+
+    const knownActions = ['revenueReport', 'dbCleanup', 'subscriptionReminder', 'analyticsExport'];
+    if (!knownActions.includes(task.action)) {
+      return res.status(501).json({ success: false, error: `Action "${task.action}" has no automation logic wired up yet.` });
+    }
+
+    await db.collection('scheduledTasks').updateOne({ _id: new ObjectId(id) }, { $set: { lastRun: new Date() } });
+    res.json({ success: true, message: `Task "${task.name}" marked as run. (Note: this triggers a log entry — full automated execution of "${task.action}" is not yet implemented.)` });
+  } catch (err) {
+    console.error('Run task error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/scheduler/tasks/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('scheduledTasks').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Task not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete scheduled task error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;

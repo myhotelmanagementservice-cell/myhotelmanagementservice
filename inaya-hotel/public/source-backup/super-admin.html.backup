@@ -1549,21 +1549,24 @@
 
             <!-- SECTION: TASK SCHEDULER -->
             <section id="scheduler" class="section-content hidden fade-in">
-                <div class="flex justify-between items-center mb-6">
-                    <div><h3 class="font-bold text-xl">Scheduled Tasks</h3><p class="text-sm text-gray-500">Automate recurring operations</p></div>
-                    <button onclick="openTaskModal()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition"><i class="fas fa-plus mr-2"></i>New Task</button>
-                </div>
-                <div class="bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-4 text-left text-sm font-semibold">Task Name</th><th class="p-4 text-left text-sm font-semibold">Schedule</th><th class="p-4 text-left text-sm font-semibold">Last Run</th><th class="p-4 text-left text-sm font-semibold">Next Run</th><th class="p-4 text-left text-sm font-semibold">Status</th><th class="p-4 text-left text-sm font-semibold">Actions</th></tr></thead>
-                    <tbody>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4"><p class="font-medium text-sm">Daily Revenue Report</p><p class="text-xs text-gray-500">Generate and email revenue summary</p></td><td class="p-4 text-sm">Daily at 6:00 AM</td><td class="p-4 text-sm text-gray-500">Today 6:00 AM</td><td class="p-4 text-sm text-gray-500">Tomorrow 6:00 AM</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">Active</span></td><td class="p-4"><button class="text-gray-400 hover:text-primary"><i class="fas fa-edit"></i></button></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4"><p class="font-medium text-sm">Database Cleanup</p><p class="text-xs text-gray-500">Remove expired sessions and temp data</p></td><td class="p-4 text-sm">Weekly (Sun 2:00 AM)</td><td class="p-4 text-sm text-gray-500">Jun 28 2:00 AM</td><td class="p-4 text-sm text-gray-500">Jul 5 2:00 AM</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">Active</span></td><td class="p-4"><button class="text-gray-400 hover:text-primary"><i class="fas fa-edit"></i></button></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4"><p class="font-medium text-sm">Subscription Renewal Reminder</p><p class="text-xs text-gray-500">Send reminder emails 7 days before expiry</p></td><td class="p-4 text-sm">Daily at 9:00 AM</td><td class="p-4 text-sm text-gray-500">Today 9:00 AM</td><td class="p-4 text-sm text-gray-500">Tomorrow 9:00 AM</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">Active</span></td><td class="p-4"><button class="text-gray-400 hover:text-primary"><i class="fas fa-edit"></i></button></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4"><p class="font-medium text-sm">Weekly Analytics Export</p><p class="text-xs text-gray-500">Export analytics to Google Sheets</p></td><td class="p-4 text-sm">Weekly (Mon 8:00 AM)</td><td class="p-4 text-sm text-gray-500">Jun 30 8:00 AM</td><td class="p-4 text-sm text-gray-500">Jul 7 8:00 AM</td><td class="p-4"><span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-bold">Paused</span></td><td class="p-4"><button class="text-gray-400 hover:text-primary"><i class="fas fa-play"></i></button></td></tr>
-                    </tbody>
-                </table>
+                <div id="schedulerContainer">
+                    <p class="text-sm text-gray-500 text-center py-8">Loading...</p>
                 </div>
             </section>
+
+            <div id="taskModal" class="modal-overlay" onclick="if(event.target===this)closeModal('taskModal')">
+                <div class="modal-box">
+                    <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg" id="taskModalTitle">Add Task</h3><button onclick="closeModal('taskModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+                    <form id="taskForm" class="space-y-4" onsubmit="saveTask(event)">
+                        <input type="hidden" id="taskId" value="">
+                        <div><label class="block text-sm font-medium mb-1">Task Name</label><input type="text" id="taskName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Daily Revenue Report" required></div>
+                        <div><label class="block text-sm font-medium mb-1">Schedule (cron or description)</label><input type="text" id="taskSchedule" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Daily at 6:00 AM"></div>
+                        <div><label class="block text-sm font-medium mb-1">Action</label><select id="taskAction" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="">Select action...</option><option value="revenueReport">Generate Revenue Report</option><option value="dbCleanup">Database Cleanup</option><option value="subscriptionReminder">Subscription Renewal Reminder</option><option value="analyticsExport">Analytics Export</option></select></div>
+                        <div class="flex items-center gap-2"><input type="checkbox" id="taskIsActive" class="w-4 h-4" checked><label for="taskIsActive" class="text-sm font-medium">Active</label></div>
+                        <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('taskModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
+                    </form>
+                </div>
+            </div>
 
             <!-- SECTION: FILE MANAGER -->
             <section id="fileManager" class="section-content hidden fade-in">
