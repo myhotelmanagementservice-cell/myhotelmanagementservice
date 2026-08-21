@@ -4789,6 +4789,57 @@ app.delete('/api/load-testing/clear', superAdminMiddleware, async (req, res) => 
   }
 });
 
+// ✅ ADVANCED ANALYTICS
+app.get('/api/advanced-analytics', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: {} });
+
+    const totalHotels = await db.collection('tenants').countDocuments({});
+    const activeHotels = await db.collection('tenants').countDocuments({ active: { $ne: false } });
+
+    const revenueAgg = await db.collection('bookings').aggregate([
+      { $match: { status: { $ne: 'cancelled' } } },
+      { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', 0] } } } }
+    ]).toArray();
+    const totalRevenue = revenueAgg[0]?.total || 0;
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000);
+    const recentRevenueAgg = await db.collection('bookings').aggregate([
+      { $match: { status: { $ne: 'cancelled' }, createdAt: { $gte: thirtyDaysAgo } } },
+      { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', 0] } } } }
+    ]).toArray();
+    const prevRevenueAgg = await db.collection('bookings').aggregate([
+      { $match: { status: { $ne: 'cancelled' }, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } } },
+      { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', 0] } } } }
+    ]).toArray();
+    const recentRevenue = recentRevenueAgg[0]?.total || 0;
+    const prevRevenue = prevRevenueAgg[0]?.total || 0;
+    const growthPct = prevRevenue > 0 ? (((recentRevenue - prevRevenue) / prevRevenue) * 100).toFixed(1) : '0.0';
+
+    const retentionPct = totalHotels > 0 ? ((activeHotels / totalHotels) * 100).toFixed(0) : '0';
+    const churnPct = totalHotels > 0 ? (((totalHotels - activeHotels) / totalHotels) * 100).toFixed(1) : '0.0';
+
+    const totalBookings = await db.collection('bookings').countDocuments({});
+    const avgBookingValue = totalBookings > 0 ? Math.round(totalRevenue / totalBookings) : 0;
+
+    res.json({
+      success: true,
+      data: {
+        revenue: '$' + totalRevenue.toLocaleString(),
+        growth: (growthPct >= 0 ? '+' : '') + growthPct + '%',
+        retentionRate: retentionPct + '%',
+        acquisitionCost: 'N/A',
+        ltv: '$' + avgBookingValue.toLocaleString(),
+        churn: churnPct + '%'
+      }
+    });
+  } catch (err) {
+    console.error('Advanced analytics error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;

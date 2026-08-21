@@ -1379,6 +1379,14 @@
 
             <!-- SECTION: ADVANCED ANALYTICS -->
             <section id="advancedAnalytics" class="section-content hidden fade-in">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                    <div class="bg-white dark:bg-darkCard p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><p class="text-xs text-gray-500 mb-1">Revenue</p><p id="analyticsRevenue" class="text-lg font-bold">--</p></div>
+                    <div class="bg-white dark:bg-darkCard p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><p class="text-xs text-gray-500 mb-1">Growth</p><p id="analyticsGrowth" class="text-lg font-bold">--</p></div>
+                    <div class="bg-white dark:bg-darkCard p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><p class="text-xs text-gray-500 mb-1">Retention</p><p id="analyticsRetention" class="text-lg font-bold">--</p></div>
+                    <div class="bg-white dark:bg-darkCard p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><p class="text-xs text-gray-500 mb-1">Acquisition Cost</p><p id="analyticsAcquisition" class="text-lg font-bold">--</p></div>
+                    <div class="bg-white dark:bg-darkCard p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><p class="text-xs text-gray-500 mb-1">LTV</p><p id="analyticsLtv" class="text-lg font-bold">--</p></div>
+                    <div class="bg-white dark:bg-darkCard p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><p class="text-xs text-gray-500 mb-1">Churn</p><p id="analyticsChurn" class="text-lg font-bold">--</p></div>
+                </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <h3 class="font-bold mb-4">Customer Funnel</h3>
