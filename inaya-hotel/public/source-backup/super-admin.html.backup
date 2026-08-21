@@ -1401,7 +1401,7 @@
                     </div>
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <h3 class="font-bold mb-4">Cohort Retention</h3>
-                        <canvas id="cohortChart" height="200"></canvas>
+                        <div style="position: relative; height: 250px;"><canvas id="cohortChart"></canvas></div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -1423,7 +1423,7 @@
                     </div>
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <h3 class="font-bold mb-4">Geographic Distribution</h3>
-                        <canvas id="geoChart" height="200"></canvas>
+                        <div style="position: relative; height: 250px;"><canvas id="geoChart"></canvas></div>
                     </div>
                 </div>
             </section>
