@@ -4793,16 +4793,13 @@ app.delete('/api/load-testing/clear', superAdminMiddleware, async (req, res) => 
 app.get('/api/advanced-analytics', superAdminMiddleware, async (req, res) => {
   try {
     if (!dbConnected) return res.json({ success: true, data: {} });
-
     const totalHotels = await db.collection('tenants').countDocuments({});
     const activeHotels = await db.collection('tenants').countDocuments({ active: { $ne: false } });
-
     const revenueAgg = await db.collection('bookings').aggregate([
       { $match: { status: { $ne: 'cancelled' } } },
       { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', 0] } } } }
     ]).toArray();
     const totalRevenue = revenueAgg[0]?.total || 0;
-
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
     const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000);
     const recentRevenueAgg = await db.collection('bookings').aggregate([
@@ -4816,12 +4813,37 @@ app.get('/api/advanced-analytics', superAdminMiddleware, async (req, res) => {
     const recentRevenue = recentRevenueAgg[0]?.total || 0;
     const prevRevenue = prevRevenueAgg[0]?.total || 0;
     const growthPct = prevRevenue > 0 ? (((recentRevenue - prevRevenue) / prevRevenue) * 100).toFixed(1) : '0.0';
-
     const retentionPct = totalHotels > 0 ? ((activeHotels / totalHotels) * 100).toFixed(0) : '0';
     const churnPct = totalHotels > 0 ? (((totalHotels - activeHotels) / totalHotels) * 100).toFixed(1) : '0.0';
-
     const totalBookings = await db.collection('bookings').countDocuments({});
     const avgBookingValue = totalBookings > 0 ? Math.round(totalRevenue / totalBookings) : 0;
+
+    const churnBreakdown = {
+      highRisk: totalHotels - activeHotels,
+      lowRisk: activeHotels
+    };
+
+    const topHotelsAgg = await db.collection('bookings').aggregate([
+      { $match: { status: { $ne: 'cancelled' } } },
+      { $group: { _id: '$hotelId', revenue: { $sum: { $ifNull: ['$totalAmount', 0] } } } },
+      { $sort: { revenue: -1 } },
+      { $limit: 3 }
+    ]).toArray();
+    const topHotelIds = topHotelsAgg.map(h => h._id).filter(Boolean);
+    const topHotelDocs = await db.collection('tenants').find({ hotelId: { $in: topHotelIds } }).toArray();
+    const hotelNameMap = {};
+    topHotelDocs.forEach(h => { hotelNameMap[h.hotelId] = h.hotelName || h.hotelId; });
+    const topHotels = topHotelsAgg.map(h => ({
+      hotelName: hotelNameMap[h._id] || h._id || 'Unknown',
+      revenue: h.revenue
+    }));
+
+    const geoAgg = await db.collection('tenants').aggregate([
+      { $group: { _id: { $ifNull: ['$country', 'Unknown'] }, count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 6 }
+    ]).toArray();
+    const geo = { labels: geoAgg.map(g => g._id), data: geoAgg.map(g => g.count) };
 
     res.json({
       success: true,
@@ -4831,7 +4853,10 @@ app.get('/api/advanced-analytics', superAdminMiddleware, async (req, res) => {
         retentionRate: retentionPct + '%',
         acquisitionCost: 'N/A',
         ltv: '$' + avgBookingValue.toLocaleString(),
-        churn: churnPct + '%'
+        churn: churnPct + '%',
+        churnBreakdown,
+        topHotels,
+        geo
       }
     });
   } catch (err) {
