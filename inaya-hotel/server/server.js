@@ -4607,6 +4607,99 @@ app.delete('/api/email-templates/:id', superAdminMiddleware, async (req, res) =>
   }
 });
 
+// ✅ CUSTOM DOMAIN & SSL
+app.get('/api/domains', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const domains = await db.collection('customDomains').find({}).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, data: domains.map(d => ({ ...d, _id: d._id.toString() })) });
+  } catch (err) {
+    console.error('Get domains error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/domains', superAdminMiddleware, async (req, res) => {
+  try {
+    const { domain, hotelId, isActive } = req.body;
+    if (!domain) return res.status(400).json({ success: false, error: 'domain is required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const doc = {
+      domain: String(domain).trim().toLowerCase(),
+      hotelId: hotelId || '',
+      isActive: isActive !== false,
+      sslStatus: 'pending',
+      sslExpiry: null,
+      createdAt: new Date()
+    };
+    const result = await db.collection('customDomains').insertOne(doc);
+    doc._id = result.insertedId.toString();
+    res.status(201).json({ success: true, data: doc });
+  } catch (err) {
+    console.error('Create domain error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/domains/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const domain = await db.collection('customDomains').findOne({ _id: new ObjectId(id) });
+    if (!domain) return res.status(404).json({ success: false, error: 'Domain not found' });
+    domain._id = domain._id.toString();
+    res.json({ success: true, data: domain });
+  } catch (err) {
+    console.error('Get domain error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/domains/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { domain, hotelId, isActive } = req.body;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const update = { domain, hotelId: hotelId || '', isActive: isActive !== false, updatedAt: new Date() };
+    const result = await db.collection('customDomains').updateOne({ _id: new ObjectId(id) }, { $set: update });
+    if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Domain not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update domain error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/domains/:id/renew-ssl', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const domain = await db.collection('customDomains').findOne({ _id: new ObjectId(id) });
+    if (!domain) return res.status(404).json({ success: false, error: 'Domain not found' });
+
+    res.status(501).json({
+      success: false,
+      error: 'Automated SSL certificate issuance is not set up yet. This requires a Let\'s Encrypt / ACME integration with DNS verification, which is a separate infrastructure task.'
+    });
+  } catch (err) {
+    console.error('Renew SSL error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/domains/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('customDomains').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Domain not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete domain error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;

@@ -1627,22 +1627,23 @@
 
             <!-- SECTION: DOMAINS & SSL -->
             <section id="customDomain" class="section-content hidden fade-in">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-lock text-2xl text-green-600"></i></div><h3 class="font-bold text-lg">SSL Status</h3><p class="text-sm text-gray-500 mt-2">47 domains secured</p><span class="inline-block mt-3 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full text-xs font-bold">All Active</span></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-globe text-2xl text-blue-600"></i></div><h3 class="font-bold text-lg">Custom Domains</h3><p class="text-sm text-gray-500 mt-2">32 active domains</p><span class="inline-block mt-3 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs font-bold">32/50</span></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-exclamation-triangle text-2xl text-yellow-600"></i></div><h3 class="font-bold text-lg">Expiring Soon</h3><p class="text-sm text-gray-500 mt-2">3 SSL certs expire in 30 days</p><span class="inline-block mt-3 px-3 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 rounded-full text-xs font-bold">Action Needed</span></div>
-                </div>
-                <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold mb-4">Domain List</h3>
-                    <table class="w-full"><thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="p-4 text-left text-sm font-semibold">Domain</th><th class="p-4 text-left text-sm font-semibold">Hotel</th><th class="p-4 text-left text-sm font-semibold">SSL Expiry</th><th class="p-4 text-left text-sm font-semibold">Status</th><th class="p-4 text-left text-sm font-semibold">Actions</th></tr></thead>
-                    <tbody>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">grandplaza.com</td><td class="p-4 text-sm">Grand Plaza Dubai</td><td class="p-4 text-sm text-gray-500">2026-12-15</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">Active</span></td><td class="p-4"><button class="text-blue-500 hover:text-blue-700 text-sm">Renew SSL</button></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">seasideresort.net</td><td class="p-4 text-sm">Seaside Resort</td><td class="p-4 text-sm text-red-500">2026-07-28</td><td class="p-4"><span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-bold">Expiring</span></td><td class="p-4"><button class="text-blue-500 hover:text-blue-700 text-sm">Renew SSL</button></td></tr>
-                        <tr class="border-b border-gray-200 dark:border-gray-700"><td class="p-4 text-sm font-medium">royalorchid.in</td><td class="p-4 text-sm">Royal Orchid</td><td class="p-4 text-sm text-gray-500">2027-03-10</td><td class="p-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">Active</span></td><td class="p-4"><button class="text-blue-500 hover:text-blue-700 text-sm">Renew SSL</button></td></tr>
-                    </tbody>
-                </table>
+                <div id="domainsContainer">
+                    <p class="text-sm text-gray-500 text-center py-8">Loading...</p>
                 </div>
             </section>
+
+            <div id="domainModal" class="modal-overlay" onclick="if(event.target===this)closeModal('domainModal')">
+                <div class="modal-box">
+                    <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg" id="domainModalTitle">Add Domain</h3><button onclick="closeModal('domainModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
+                    <form id="domainForm" class="space-y-4" onsubmit="saveDomain(event)">
+                        <input type="hidden" id="domainId" value="">
+                        <div><label class="block text-sm font-medium mb-1">Domain</label><input type="text" id="domainName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="grandplaza.com" required></div>
+                        <div><label class="block text-sm font-medium mb-1">Hotel ID</label><input type="text" id="domainHotel" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Hotel ID this domain belongs to"></div>
+                        <div class="flex items-center gap-2"><input type="checkbox" id="domainIsActive" class="w-4 h-4" checked><label for="domainIsActive" class="text-sm font-medium">Active</label></div>
+                        <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('domainModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
+                    </form>
+                </div>
+            </div>
 
             <!-- SECTION: FIREWALL & WAF -->
             <section id="firewall" class="section-content hidden fade-in">
@@ -2811,7 +2812,7 @@
             if (sectionId === 'scheduler') loadScheduler();
             if (sectionId === 'fileManager') loadFileManager();
             if (sectionId === 'apiDocs') renderApiDocs();
-            if (sectionId === 'customDomain') loadCustomDomainFromServer();
+            if (sectionId === 'customDomain') loadDomains();
             if (sectionId === 'firewall') loadFirewall();
             if (sectionId === 'loadTesting') loadLoadTesting();
             if (sectionId === 'abTesting') loadABTesting();
