@@ -1668,14 +1668,8 @@
 
             <!-- SECTION: LOAD TESTING -->
             <section id="loadTesting" class="section-content hidden fade-in">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-tachometer-alt text-2xl text-blue-600"></i></div><h3 class="font-bold text-lg">Concurrent Users</h3><p class="text-sm text-gray-500 mt-2">Test up to 10,000 users</p><button onclick="startLoadTest('users')" class="mt-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition text-sm">Run Test</button></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-bolt text-2xl text-green-600"></i></div><h3 class="font-bold text-lg">API Stress Test</h3><p class="text-sm text-gray-500 mt-2">Test API endpoints at scale</p><button onclick="startLoadTest('api')" class="mt-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition text-sm">Run Test</button></div>
-                    <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center"><div class="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-database text-2xl text-purple-600"></i></div><h3 class="font-bold text-lg">Database Load</h3><p class="text-sm text-gray-500 mt-2">Test database query performance</p><button onclick="startLoadTest('db')" class="mt-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition text-sm">Run Test</button></div>
-                </div>
-                <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold mb-4">Load Test Results</h3>
-                    <div id="loadTestResults"><p class="text-gray-500 text-center py-8">Run a load test to see results</p></div>
+                <div id="loadTestingContainer">
+                    <p class="text-sm text-gray-500 text-center py-8">Loading...</p>
                 </div>
             </section>
 

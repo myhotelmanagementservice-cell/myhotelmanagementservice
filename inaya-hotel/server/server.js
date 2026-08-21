@@ -4700,6 +4700,95 @@ app.delete('/api/domains/:id', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ LOAD TESTING — bounded, safe internal checks (no external traffic)
+const LOAD_TEST_CONFIG = {
+  users: { count: 50, label: 'Concurrent Users' },
+  api: { count: 30, label: 'API Stress Test' },
+  db: { count: 20, label: 'Database Load' }
+};
+
+async function runLoadTestOperation(type) {
+  const start = process.hrtime.bigint();
+  try {
+    if (type === 'db') {
+      await db.command({ ping: 1 });
+    } else if (type === 'api') {
+      await db.collection('tenants').findOne({});
+    } else {
+      await db.collection('tenants').countDocuments({});
+    }
+    const ms = Number(process.hrtime.bigint() - start) / 1e6;
+    return { ok: true, ms };
+  } catch (e) {
+    const ms = Number(process.hrtime.bigint() - start) / 1e6;
+    return { ok: false, ms };
+  }
+}
+
+app.get('/api/load-testing/results', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const results = await db.collection('loadTestResults').find({}).sort({ createdAt: 1 }).toArray();
+    res.json({ success: true, data: results.map(r => ({ ...r, _id: r._id.toString() })) });
+  } catch (err) {
+    console.error('Get load test results error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/load-testing/start', superAdminMiddleware, async (req, res) => {
+  try {
+    const { type } = req.body;
+    const config = LOAD_TEST_CONFIG[type];
+    if (!config) return res.status(400).json({ success: false, error: 'Invalid test type' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+
+    const overallStart = process.hrtime.bigint();
+    const outcomes = [];
+    for (let i = 0; i < config.count; i++) {
+      outcomes.push(await runLoadTestOperation(type));
+    }
+    const overallMs = Number(process.hrtime.bigint() - overallStart) / 1e6;
+
+    const latencies = outcomes.map(o => o.ms).sort((a, b) => a - b);
+    const errors = outcomes.filter(o => !o.ok).length;
+    const avgLatency = Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length);
+    const p95 = Math.round(latencies[Math.floor(latencies.length * 0.95)] || latencies[latencies.length - 1] || 0);
+    const rps = Math.round((config.count / (overallMs / 1000)) * 10) / 10;
+    const errorRatePct = ((errors / config.count) * 100).toFixed(1);
+    const status = errors === 0 ? 'Passed' : 'Failed';
+
+    const doc = {
+      type: config.label,
+      requests: config.count,
+      rps,
+      avgLatency: avgLatency + 'ms',
+      p95: p95 + 'ms',
+      errorRate: errorRatePct + '%',
+      status,
+      duration: Math.round(overallMs) + 'ms',
+      createdAt: new Date()
+    };
+    await db.collection('loadTestResults').insertOne(doc);
+
+    res.json({ success: true, data: { ...doc, label: config.label } });
+  } catch (err) {
+    console.error('Load test error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/load-testing/clear', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    await db.collection('loadTestResults').deleteMany({});
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Clear load tests error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;
