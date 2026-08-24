@@ -1,6 +1,6 @@
 {
-  "name": "Crown Plaza Hotel - Ultimate Management System",
-  "short_name": "Crown Plaza",
+  "name": "Inaya - Hotel Management System",
+  "short_name": "Inaya",
   "description": "Complete hotel management system for guests and staff with multi-language support",
   "start_url": "/index.html",
   "display": "standalone",
@@ -42,14 +42,14 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Login Page - Crown Plaza Hotel"
+      "label": "Login Page - Inaya"
     },
     {
       "src": "/icons/screenshot-dashboard.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Admin Dashboard - Crown Plaza Hotel"
+      "label": "Admin Dashboard - Inaya"
     }
   ],
   "shortcuts": [
