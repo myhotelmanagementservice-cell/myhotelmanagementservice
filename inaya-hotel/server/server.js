@@ -1555,14 +1555,23 @@ app.get('/api/super/tenants', superAdminMiddleware, async (req, res) => {
 
     const tenants = await db.collection('tenants').find(filter).sort({ createdAt: -1 }).toArray();
 
+    const globalConfigForRevenue = await db.collection('globalConfig').findOne({ _id: 'main' });
+    const fxRates = (globalConfigForRevenue && globalConfigForRevenue.exchangeRates) || { USD: 1 };
+    function convertToUSD(amount, currencyCode) {
+      const rate = fxRates[currencyCode];
+      if (!rate || rate <= 0) return amount;
+      return amount / rate;
+    }
+
     const tenantsWithStats = await Promise.all(tenants.map(async (t) => {
-      const [rooms, guests, requests, bookings] = await Promise.all([
+      const [rooms, guests, requests, bookingDocs] = await Promise.all([
         db.collection('rooms').countDocuments({ hotelId: t.hotelId }),
         db.collection('guests').countDocuments({ hotelId: t.hotelId }),
         db.collection('requests').countDocuments({ hotelId: t.hotelId, status: 'open' }),
-        db.collection('bookings').countDocuments({ hotelId: t.hotelId })
+        db.collection('bookings').find({ hotelId: t.hotelId, status: { $ne: 'cancelled' } }, { projection: { totalPriceSAR: 1 } }).toArray()
       ]);
-      return { ...t, stats: { rooms, guests, openRequests: requests, totalBookings: bookings } };
+      const revenueUSD = bookingDocs.reduce((sum, b) => sum + convertToUSD(b.totalPriceSAR || 0, t.currency || 'USD'), 0);
+      return { ...t, revenue: Math.round(revenueUSD), stats: { rooms, guests, openRequests: requests, totalBookings: bookingDocs.length } };
     }));
 
     res.json({ success: true, data: tenantsWithStats, count: tenantsWithStats.length });
@@ -4793,66 +4802,78 @@ app.delete('/api/load-testing/clear', superAdminMiddleware, async (req, res) => 
 app.get('/api/advanced-analytics', superAdminMiddleware, async (req, res) => {
   try {
     if (!dbConnected) return res.json({ success: true, data: {} });
-    const totalHotels = await db.collection('tenants').countDocuments({});
-    const activeHotels = await db.collection('tenants').countDocuments({ active: { $ne: false } });
-    const revenueAgg = await db.collection('bookings').aggregate([
-      { $match: { status: { $ne: 'cancelled' } } },
-      { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', 0] } } } }
-    ]).toArray();
-    const totalRevenue = revenueAgg[0]?.total || 0;
+
+    const globalConfig = await db.collection('globalConfig').findOne({ _id: 'main' });
+    const rates = (globalConfig && globalConfig.exchangeRates) || { USD: 1 };
+
+    const allTenants = await db.collection('tenants').find({}, { projection: { hotelId: 1, hotelName: 1, currency: 1, country: 1, active: 1 } }).toArray();
+    const hotelCurrencyMap = {};
+    const hotelNameMap = {};
+    allTenants.forEach(t => {
+      hotelCurrencyMap[t.hotelId] = t.currency || 'USD';
+      hotelNameMap[t.hotelId] = t.hotelName || t.hotelId;
+    });
+
+    function toUSD(amount, currencyCode) {
+      const rate = rates[currencyCode];
+      if (!rate || rate <= 0) return amount; // unknown currency: pass through rather than guess
+      return amount / rate; // rates are "1 USD = X currency", so amount / rate = USD
+    }
+
+    const totalHotels = allTenants.length;
+    const activeHotels = allTenants.filter(t => t.active !== false).length;
+
+    const allBookings = await db.collection('bookings').find(
+      { status: { $ne: 'cancelled' } },
+      { projection: { hotelId: 1, totalPriceSAR: 1, createdAt: 1 } }
+    ).toArray();
+
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
     const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000);
-    const recentRevenueAgg = await db.collection('bookings').aggregate([
-      { $match: { status: { $ne: 'cancelled' }, createdAt: { $gte: thirtyDaysAgo } } },
-      { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', 0] } } } }
-    ]).toArray();
-    const prevRevenueAgg = await db.collection('bookings').aggregate([
-      { $match: { status: { $ne: 'cancelled' }, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } } },
-      { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', 0] } } } }
-    ]).toArray();
-    const recentRevenue = recentRevenueAgg[0]?.total || 0;
-    const prevRevenue = prevRevenueAgg[0]?.total || 0;
-    const growthPct = prevRevenue > 0 ? (((recentRevenue - prevRevenue) / prevRevenue) * 100).toFixed(1) : '0.0';
+
+    let totalRevenueUSD = 0, recentRevenueUSD = 0, prevRevenueUSD = 0;
+    const revenueByHotelUSD = {};
+
+    allBookings.forEach(b => {
+      const raw = b.totalPriceSAR || 0;
+      const currency = hotelCurrencyMap[b.hotelId] || 'USD';
+      const usd = toUSD(raw, currency);
+      totalRevenueUSD += usd;
+      revenueByHotelUSD[b.hotelId] = (revenueByHotelUSD[b.hotelId] || 0) + usd;
+
+      const created = b.createdAt ? new Date(b.createdAt) : null;
+      if (created && created >= thirtyDaysAgo) recentRevenueUSD += usd;
+      else if (created && created >= sixtyDaysAgo && created < thirtyDaysAgo) prevRevenueUSD += usd;
+    });
+
+    const growthPct = prevRevenueUSD > 0 ? (((recentRevenueUSD - prevRevenueUSD) / prevRevenueUSD) * 100).toFixed(1) : '0.0';
     const retentionPct = totalHotels > 0 ? ((activeHotels / totalHotels) * 100).toFixed(0) : '0';
     const churnPct = totalHotels > 0 ? (((totalHotels - activeHotels) / totalHotels) * 100).toFixed(1) : '0.0';
-    const totalBookings = await db.collection('bookings').countDocuments({});
-    const avgBookingValue = totalBookings > 0 ? Math.round(totalRevenue / totalBookings) : 0;
+    const avgBookingValueUSD = allBookings.length > 0 ? Math.round(totalRevenueUSD / allBookings.length) : 0;
 
-    const churnBreakdown = {
-      highRisk: totalHotels - activeHotels,
-      lowRisk: activeHotels
-    };
+    const churnBreakdown = { highRisk: totalHotels - activeHotels, lowRisk: activeHotels };
 
-    const topHotelsAgg = await db.collection('bookings').aggregate([
-      { $match: { status: { $ne: 'cancelled' } } },
-      { $group: { _id: '$hotelId', revenue: { $sum: { $ifNull: ['$totalAmount', 0] } } } },
-      { $sort: { revenue: -1 } },
-      { $limit: 3 }
-    ]).toArray();
-    const topHotelIds = topHotelsAgg.map(h => h._id).filter(Boolean);
-    const topHotelDocs = await db.collection('tenants').find({ hotelId: { $in: topHotelIds } }).toArray();
-    const hotelNameMap = {};
-    topHotelDocs.forEach(h => { hotelNameMap[h.hotelId] = h.hotelName || h.hotelId; });
-    const topHotels = topHotelsAgg.map(h => ({
-      hotelName: hotelNameMap[h._id] || h._id || 'Unknown',
-      revenue: h.revenue
-    }));
+    const topHotels = Object.entries(revenueByHotelUSD)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([hotelId, revenue]) => ({ hotelName: hotelNameMap[hotelId] || hotelId, revenue: Math.round(revenue) }));
 
-    const geoAgg = await db.collection('tenants').aggregate([
-      { $group: { _id: { $ifNull: ['$country', 'Unknown'] }, count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 6 }
-    ]).toArray();
-    const geo = { labels: geoAgg.map(g => g._id), data: geoAgg.map(g => g.count) };
+    const geoCounts = {};
+    allTenants.forEach(t => {
+      const c = t.country || 'Unknown';
+      geoCounts[c] = (geoCounts[c] || 0) + 1;
+    });
+    const geoSorted = Object.entries(geoCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const geo = { labels: geoSorted.map(g => g[0]), data: geoSorted.map(g => g[1]) };
 
     res.json({
       success: true,
       data: {
-        revenue: '$' + totalRevenue.toLocaleString(),
+        revenue: '$' + Math.round(totalRevenueUSD).toLocaleString() + ' USD',
         growth: (growthPct >= 0 ? '+' : '') + growthPct + '%',
         retentionRate: retentionPct + '%',
         acquisitionCost: 'N/A',
-        ltv: '$' + avgBookingValue.toLocaleString(),
+        ltv: '$' + avgBookingValueUSD.toLocaleString() + ' USD',
         churn: churnPct + '%',
         churnBreakdown,
         topHotels,
@@ -4861,6 +4882,75 @@ app.get('/api/advanced-analytics', superAdminMiddleware, async (req, res) => {
     });
   } catch (err) {
     console.error('Advanced analytics error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ✅ AI ASSISTANT — Google Gemini API
+app.get('/api/ai/chat/history', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const history = await db.collection('aiChatHistory').find({}).sort({ createdAt: 1 }).limit(50).toArray();
+    res.json({ success: true, data: history.map(m => ({ ...m, _id: m._id.toString() })) });
+  } catch (err) {
+    console.error('Get AI chat history error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/ai/chat', superAdminMiddleware, async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message || !message.trim()) return res.status(400).json({ success: false, error: 'message is required' });
+
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (!GEMINI_API_KEY) {
+      return res.status(503).json({ success: false, error: 'AI Assistant is not configured. Add GEMINI_API_KEY to environment variables.' });
+    }
+
+    const userMsg = { role: 'user', content: message.trim(), createdAt: new Date() };
+    if (dbConnected) await db.collection('aiChatHistory').insertOne({ ...userMsg });
+
+    const systemContext = 'You are an AI assistant embedded in a hotel management SaaS platform\'s super-admin dashboard. Answer concisely and helpfully about hotel business operations, revenue, bookings, and platform management. Keep responses under 150 words unless asked for detail.';
+
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: message.trim() }] }],
+          systemInstruction: { parts: [{ text: systemContext }] }
+        })
+      }
+    );
+
+    if (!geminiRes.ok) {
+      const errBody = await geminiRes.text();
+      console.error('Gemini API error:', geminiRes.status, errBody);
+      return res.status(502).json({ success: false, error: 'AI provider error (status ' + geminiRes.status + ')' });
+    }
+
+    const geminiData = await geminiRes.json();
+    const replyText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not generate a response.';
+
+    const aiMsg = { role: 'assistant', content: replyText, createdAt: new Date() };
+    if (dbConnected) await db.collection('aiChatHistory').insertOne({ ...aiMsg });
+
+    res.json({ success: true, data: aiMsg });
+  } catch (err) {
+    console.error('AI chat error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/ai/chat/clear', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true });
+    await db.collection('aiChatHistory').deleteMany({});
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Clear AI chat error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -7321,4 +7411,3 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason) => {
   console.error('💥 Unhandled Rejection:', reason);
 });
-

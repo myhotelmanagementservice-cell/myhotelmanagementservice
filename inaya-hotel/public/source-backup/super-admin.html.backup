@@ -2783,6 +2783,7 @@
             if (pageTitleEl) pageTitleEl.textContent = titles[sectionId] || sectionId;
             if (sectionId === 'hotels') renderHotelsTable();
             if (sectionId === 'subscriptions') { renderSubscriptionPlanCards(); }
+            if (sectionId === 'revenue') { loadHotelsFromServer().then(() => { loadStats(); renderRevenueByHotelChart(); }); loadTransactions(); }
             if (sectionId === 'currencies') { renderCurrenciesTable(); renderCurrencyToggles(); }
             if (sectionId === 'subPlans') { renderPlanEditor(); loadGlobalSubSettings(); }
             if (sectionId === 'settings') { loadGlobalConfig(); }
@@ -2804,7 +2805,7 @@
             if (sectionId === 'advancedAnalytics') loadAdvancedAnalytics();
             if (sectionId === 'backupRestore') loadBackupFromServer();
             if (sectionId === 'bulkOps') loadBulkOperations();
-            if (sectionId === 'aiAssistant') loadAiAssistantFromServer();
+            if (sectionId === 'aiAssistant') loadAiChat();
             if (sectionId === 'database') renderQueryEditor();
             if (sectionId === 'webhooks') { loadWebhooks(); loadWebhookLogs(); }
             if (sectionId === 'scheduler') loadScheduler();
@@ -3255,6 +3256,21 @@
                     options: { responsive: true, maintainAspectRatio: false }
                 });
             }
+        }
+
+        function renderRevenueByHotelChart() {
+            const ctx = document.getElementById('revenueByHotelChart');
+            if (!ctx) return;
+            if (revenueByHotelChartInstance) revenueByHotelChartInstance.destroy();
+            const sorted = [...hotels].sort((a, b) => (b.revenue || 0) - (a.revenue || 0)).slice(0, 8);
+            revenueByHotelChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(h => h.hotelName || h.name || 'N/A'),
+                    datasets: [{ label: 'Revenue (USD)', data: sorted.map(h => h.revenue || 0), backgroundColor: '#3b82f6', borderRadius: 4 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
         }
 
         function renderAnalyticsCharts() {
