@@ -1,0 +1,60 @@
+TASK: Split one large file into 3 separate files (HTML, CSS, JS).
+
+TARGET FILE (ONLY this file, nothing else):
+inaya-hotel/public/source-backup/index.html.backup
+
+STEPS (follow in exact order, fast but careful):
+
+1. Read inaya-hotel/public/source-backup/index.html.backup completely.
+
+2. Create a NEW file: inaya-hotel/public/source-backup/style.css.backup
+   - Copy ONLY the content that is between the <style> and </style> tags 
+     found inside index.html.backup.
+   - Do NOT include the <style> and </style> tags themselves in this new 
+     file — only the CSS rules between them.
+
+3. Create a NEW file: inaya-hotel/public/source-backup/script.js.backup
+   - Copy ONLY the content that is between the <script> and </script> tags 
+     found inside index.html.backup (the large bare <script> tag with no 
+     src attribute — the one containing thousands of lines of JavaScript).
+   - Do NOT include the <script> and </script> tags themselves — only the 
+     JavaScript code between them.
+
+4. Modify index.html.backup itself (do not create a new HTML file, edit 
+   this same file):
+   - Replace the entire <style>...</style> block with this single line, 
+     placed in the same spot:
+     <link rel="stylesheet" href="style.css">
+   - Replace the entire <script>...</script> block (the large bare one) 
+     with this single line, placed in the same spot:
+     <script src="script.js"></script>
+   - Do NOT touch any other <script> tags that have a src attribute 
+     already (like CDN links for fonts, socket.io, etc.) — leave those 
+     exactly as they are.
+
+5. Verify your work before finishing:
+   - Confirm style.css.backup is not empty and contains real CSS.
+   - Confirm script.js.backup is not empty and contains real JavaScript 
+     (it should start with things like translation objects, function 
+     declarations, etc.)
+   - Confirm index.html.backup still has exactly one <html> tag and one 
+     </html> tag (use grep -c "</html>" to check — it must equal 1).
+   - Confirm index.html.backup now references style.css and script.js 
+     correctly.
+
+6. Report back the final line counts of all 3 files 
+   (index.html.backup, style.css.backup, script.js.backup) so I can 
+   review before anything else happens.
+
+CRITICAL RULES:
+- Do NOT touch, edit, rename, or delete ANY other file in this project. 
+  Only these 3 outcomes are allowed: index.html.backup is modified, 
+  style.css.backup is created, script.js.backup is created.
+- Do NOT touch inaya-hotel/public/index.html (the live/obfuscated file) — 
+  only work on the .backup version in source-backup folder.
+- Do NOT delete index.html.backup or any part of its content beyond what 
+  step 4 describes — it should still be a complete, valid HTML file after 
+  this, just referencing external CSS/JS instead of having them inline.
+- Work fast, but do not skip the verification in step 5.
+- Stop after step 6 and report results — do not proceed to deploy, 
+  build, or push anything.
