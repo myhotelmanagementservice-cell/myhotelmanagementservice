@@ -14,6 +14,31 @@ const CSS_FILES = [
   'public/style.css'
 ];
 
+const JS_FILES = [
+  'public/script.js'
+];
+
+const MANIFEST_SOURCE = 'manifest.json';
+const MANIFEST_TARGET = 'public/manifest.json';
+
+function obfuscateJavaScript(path) {
+  if (!fs.existsSync(path)) {
+    console.log(`⏭️  Skip (not found): ${path}`);
+    return;
+  }
+  const jsCode = fs.readFileSync(path, 'utf8');
+  const obfuscated = JavaScriptObfuscator.obfuscate(jsCode, {
+    compact: true,
+    controlFlowFlattening: false,
+    stringArray: true,
+    stringArrayEncoding: ['base64'],
+    identifierNamesGenerator: 'hexadecimal',
+    selfDefending: false
+  }).getObfuscatedCode();
+  fs.writeFileSync(path, obfuscated);
+  console.log(`✅ Obfuscated JavaScript: ${path}`);
+}
+
 async function obfuscateHtmlFile(path) {
   if (!fs.existsSync(path)) { console.log(`⏭️  Skip (not found): ${path}`); return; }
   let html = fs.readFileSync(path, 'utf8');
@@ -61,8 +86,15 @@ async function build() {
   for (const file of HTML_FILES) {
     await obfuscateHtmlFile(file);
   }
+  for (const file of JS_FILES) {
+    obfuscateJavaScript(file);
+  }
   for (const file of CSS_FILES) {
     minifyCssFile(file);
+  }
+  if (fs.existsSync(MANIFEST_SOURCE)) {
+    fs.copyFileSync(MANIFEST_SOURCE, MANIFEST_TARGET);
+    console.log(`✅ Copied manifest: ${MANIFEST_TARGET}`);
   }
   console.log('🎉 Build complete');
 }
