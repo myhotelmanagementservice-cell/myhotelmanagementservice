@@ -459,6 +459,31 @@ async function createIndexes() {
         await collection.createIndex({ roomNumber: 1, hotelId: 1 }, { background: true });
       }
     }
+
+    const additionalIndexes = [
+      ['chat_history', { hotel_id: 1, guest_id: 1 }, 'chat_history_hotel_guest_idx'],
+      ['chat_history', { hotel_id: 1, created_at: -1 }, 'chat_history_hotel_created_idx'],
+      ['payments', { hotel_id: 1, guest_id: 1 }, 'payments_hotel_guest_idx'],
+      ['payments', { hotel_id: 1, created_at: -1 }, 'payments_hotel_created_idx'],
+      ['bills', { hotel_id: 1, guest_id: 1 }, 'bills_hotel_guest_idx'],
+      ['bills', { hotel_id: 1, status: 1 }, 'bills_hotel_status_idx'],
+      ['support_tickets', { hotel_id: 1, guest_id: 1 }, 'support_tickets_hotel_guest_idx'],
+      ['support_tickets', { hotel_id: 1, created_at: -1 }, 'support_tickets_hotel_created_idx'],
+      ['weather', { city: 1, hotelId: 1, updatedAt: -1 }, 'weather_city_hotel_updated_idx'],
+      ['guestCRM', { isDeleted: 1, createdAt: -1 }, 'guest_crm_deleted_created_idx']
+    ];
+
+    for (const [collectionName, keys, name] of additionalIndexes) {
+      try {
+        const collection = db.collection(collectionName);
+        const existingIndexes = await collection.listIndexes().toArray();
+        const exists = existingIndexes.some(index => JSON.stringify(index.key) === JSON.stringify(keys));
+        if (!exists) await collection.createIndex(keys, { background: true, name });
+      } catch (error) {
+        console.warn(`Index verification skipped for ${collectionName}: ${error.message}`);
+      }
+    }
+
     console.log('✅ All indexes verified/created successfully');
   } catch (e) {
     console.log(`ℹ️ Index setup note: ${e.message}`);
@@ -926,6 +951,295 @@ const superAdminMiddleware = async (req, res, next) => {
   }
 };
 
+const superAdminExportTokens = new Map();
+const SUPER_ADMIN_EXPORT_TTL_MS = 5 * 60 * 1000;
+
+function escapeExportValue(value) {
+  const text = value === undefined || value === null ? '' : String(value);
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function buildExportCsv(headers, rows) {
+  return [
+    headers.map(escapeExportValue).join(','),
+    ...rows.map(row => row.map(escapeExportValue).join(','))
+  ].join('\n');
+}
+
+function createSuperAdminExport(content, contentType, filename) {
+  const token = require('crypto').randomBytes(24).toString('hex');
+  superAdminExportTokens.set(token, {
+    content,
+    contentType,
+    filename,
+    expiresAt: Date.now() + SUPER_ADMIN_EXPORT_TTL_MS
+  });
+  return `/api/export/download/${token}`;
+}
+
+function pdfEscape(value) {
+  return String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)');
+}
+
+function createSimplePdf(lines) {
+  const stream = [
+    'BT',
+    '/F1 10 Tf',
+    '50 760 Td',
+    ...lines.slice(0, 42).map((line, index) => `${index ? '0 -16 Td ' : ''}(${pdfEscape(line).slice(0, 110)}) Tj`),
+    'ET'
+  ].join('\n');
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
+    `<< /Length ${Buffer.byteLength(stream, 'utf8')} >>\nstream\n${stream}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+  ];
+  let pdf = '%PDF-1.4\n%\xFF\xFF\xFF\xFF\n';
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets[index + 1] = Buffer.byteLength(pdf, 'utf8');
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = Buffer.byteLength(pdf, 'utf8');
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach(offset => {
+    pdf += `${String(offset).padStart(10, '0')} 00000 n \n`;
+  });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  return Buffer.from(pdf, 'binary');
+}
+
+app.get('/api/ab-testing', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: [] });
+    const tests = await db.collection('abTests').find({}).sort({ createdAt: -1 }).limit(500).toArray();
+    const data = tests.map(test => ({ ...test, _id: test._id.toString() }));
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('A/B test list error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to load A/B tests' });
+  }
+});
+
+app.post('/api/ab-testing', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, description, variants, status } = req.body || {};
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ success: false, error: 'A/B test name is required' });
+    }
+    if (!Array.isArray(variants) || variants.length < 2) {
+      return res.status(400).json({ success: false, error: 'At least two variants are required' });
+    }
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const now = new Date();
+    const test = {
+      name: String(name).trim(),
+      description: String(description || '').trim(),
+      variants: variants.slice(0, 10).map(variant => ({
+        name: String(variant?.name || '').trim(),
+        value: String(variant?.value || '').trim()
+      })),
+      status: ['draft', 'active', 'paused'].includes(status) ? status : 'draft',
+      createdAt: now,
+      updatedAt: now,
+      createdBy: req.user?.email ? 'super_admin' : 'system'
+    };
+    const result = await db.collection('abTests').insertOne(test);
+    test._id = result.insertedId.toString();
+    res.status(201).json({ success: true, data: test });
+  } catch (error) {
+    console.error('A/B test create error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to create A/B test' });
+  }
+});
+
+app.get('/api/ab-testing/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const test = await db.collection('abTests').findOne({ _id: parseId(req.params.id) });
+    if (!test) return res.status(404).json({ success: false, error: 'A/B test not found' });
+    res.json({ success: true, data: { ...test, _id: test._id.toString() } });
+  } catch (error) {
+    console.error('A/B test fetch error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to load A/B test' });
+  }
+});
+
+app.put('/api/ab-testing/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, description, variants, status } = req.body || {};
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ success: false, error: 'A/B test name is required' });
+    }
+    if (!Array.isArray(variants) || variants.length < 2) {
+      return res.status(400).json({ success: false, error: 'At least two variants are required' });
+    }
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const id = parseId(req.params.id);
+    const update = {
+      name: String(name).trim(),
+      description: String(description || '').trim(),
+      variants: variants.slice(0, 10).map(variant => ({
+        name: String(variant?.name || '').trim(),
+        value: String(variant?.value || '').trim()
+      })),
+      status: ['draft', 'active', 'paused'].includes(status) ? status : 'draft',
+      updatedAt: new Date()
+    };
+    const result = await db.collection('abTests').updateOne({ _id: id }, { $set: update });
+    if (!result.matchedCount) return res.status(404).json({ success: false, error: 'A/B test not found' });
+    res.json({ success: true, data: { _id: String(req.params.id), ...update } });
+  } catch (error) {
+    console.error('A/B test update error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to update A/B test' });
+  }
+});
+
+app.patch('/api/ab-testing/:id/toggle', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const id = parseId(req.params.id);
+    const test = await db.collection('abTests').findOne({ _id: id });
+    if (!test) return res.status(404).json({ success: false, error: 'A/B test not found' });
+    const status = test.status === 'active' ? 'paused' : 'active';
+    await db.collection('abTests').updateOne({ _id: id }, { $set: { status, updatedAt: new Date() } });
+    res.json({ success: true, data: { ...test, _id: test._id.toString(), status } });
+  } catch (error) {
+    console.error('A/B test toggle error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to toggle A/B test' });
+  }
+});
+
+app.delete('/api/ab-testing/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const result = await db.collection('abTests').deleteOne({ _id: parseId(req.params.id) });
+    if (!result.deletedCount) return res.status(404).json({ success: false, error: 'A/B test not found' });
+    res.json({ success: true, data: { id: req.params.id } });
+  } catch (error) {
+    console.error('A/B test delete error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to delete A/B test' });
+  }
+});
+
+app.get('/api/export/hotels', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const tenants = await db.collection('tenants').find({}, {
+      projection: { hotelName: 1, adminEmail: 1, subscriptionType: 1, active: 1, revenue: 1, hotelId: 1, phone: 1, address: 1 }
+    }).sort({ createdAt: -1 }).limit(10000).toArray();
+    const rows = tenants.map(hotel => [
+      hotel.hotelName || hotel.hotelId || '',
+      hotel.adminEmail || '',
+      hotel.subscriptionType || 'N/A',
+      hotel.active !== false ? 'Active' : 'Inactive',
+      hotel.revenue || 0,
+      hotel.hotelId || '',
+      hotel.phone || '',
+      hotel.address || ''
+    ]);
+    const csv = buildExportCsv(['Name', 'Email', 'Plan', 'Status', 'Revenue', 'Hotel ID', 'Phone', 'Address'], rows);
+    const url = createSuperAdminExport(csv, 'text/csv; charset=utf-8', 'hotels.csv');
+    res.json({ success: true, data: { url }, url });
+  } catch (error) {
+    console.error('Hotel export error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to export hotels' });
+  }
+});
+
+app.get('/api/export/revenue', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const tenants = await db.collection('tenants').find({}, {
+      projection: { hotelId: 1, hotelName: 1, subscriptionType: 1, active: 1, createdAt: 1, currency: 1 }
+    }).sort({ createdAt: -1 }).limit(10000).toArray();
+    const rows = tenants.filter(tenant => tenant.subscriptionType && tenant.createdAt).map(tenant => {
+      const plan = String(tenant.subscriptionType).toLowerCase();
+      const amount = plan === 'enterprise' ? 499 : plan === 'pro' ? 99 : 0;
+      return [
+        tenant.hotelId || '',
+        tenant.hotelName || tenant.hotelId || '',
+        amount ? 'subscription' : 'trial',
+        amount,
+        tenant.currency || 'USD',
+        new Date(tenant.createdAt).toISOString(),
+        tenant.active !== false ? 'completed' : 'cancelled'
+      ];
+    });
+    const csv = buildExportCsv(['Hotel ID', 'Hotel', 'Type', 'Amount', 'Currency', 'Date', 'Status'], rows);
+    const url = createSuperAdminExport(csv, 'text/csv; charset=utf-8', 'revenue.csv');
+    res.json({ success: true, data: { url }, url });
+  } catch (error) {
+    console.error('Revenue export error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to export revenue' });
+  }
+});
+
+app.get('/api/export/audit', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const logs = await db.collection('activityLogs').find({}, {
+      projection: { timestamp: 1, user: 1, action: 1, target: 1, ip: 1 }
+    }).sort({ timestamp: -1 }).limit(10000).toArray();
+    const rows = logs.map(log => [
+      log.timestamp || '',
+      log.user || 'System',
+      log.action || '',
+      log.target || '',
+      log.ip || ''
+    ]);
+    const csv = buildExportCsv(['Timestamp', 'User', 'Action', 'Target', 'IP'], rows);
+    const url = createSuperAdminExport(csv, 'text/csv; charset=utf-8', 'audit.csv');
+    res.json({ success: true, data: { url }, url });
+  } catch (error) {
+    console.error('Audit export error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to export audit logs' });
+  }
+});
+
+app.get('/api/export/hotels/pdf', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const tenants = await db.collection('tenants').find({}, {
+      projection: { hotelName: 1, hotelId: 1, subscriptionType: 1, active: 1 }
+    }).sort({ createdAt: -1 }).limit(10000).toArray();
+    const lines = [
+      'Inaya Hotel Management - Hotel Export',
+      `Generated: ${new Date().toISOString()}`,
+      '',
+      ...tenants.map(hotel => [
+        hotel.hotelName || hotel.hotelId || 'Unnamed hotel',
+        hotel.hotelId || '',
+        hotel.subscriptionType || 'N/A',
+        hotel.active !== false ? 'Active' : 'Inactive'
+      ].join(' | '))
+    ];
+    const pdf = createSimplePdf(lines);
+    const url = createSuperAdminExport(pdf, 'application/pdf', 'hotels.pdf');
+    res.json({ success: true, data: { url }, url });
+  } catch (error) {
+    console.error('Hotel PDF export error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to export hotel PDF' });
+  }
+});
+
+app.get('/api/export/download/:token', (req, res) => {
+  const entry = superAdminExportTokens.get(req.params.token);
+  if (!entry || entry.expiresAt < Date.now()) {
+    superAdminExportTokens.delete(req.params.token);
+    return res.status(404).send('Export link expired or invalid. Please export again.');
+  }
+  superAdminExportTokens.delete(req.params.token);
+  res.setHeader('Content-Type', entry.contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="${entry.filename}"`);
+  res.send(entry.content);
+});
+
 const activeSessions = new Map();
 
 const updateSessionActivity = async (req) => {
@@ -1016,7 +1330,7 @@ io.on('connection', (socket) => {
   // ---- Join rooms ----
   socket.on('join_hotel', (hotelId) => {
     socket.join(`hotel_${hotelId}`);
-    console.log(`📡 ${socket.id} joined room: hotel_${hotelId}`);
+    console.log('Socket joined hotel room');
     socket.emit('connected', { hotelId, message: 'Connected to hotel channel' });
   });
 
@@ -1029,7 +1343,7 @@ io.on('connection', (socket) => {
   socket.on('join_admin', (hotelId) => {
     socket.join(`hotel_${hotelId}`);
     socket.join(`admin_${hotelId}`);
-    console.log(`👑 Admin ${socket.id} joined admin room: admin_${hotelId}`);
+    console.log('Admin socket joined admin room');
     socket.emit('admin_connected', { hotelId, message: 'Connected to admin channel' });
     // Notify admin about all online guests
     const roomClients = io.sockets.adapter.rooms.get(`hotel_${hotelId}`);
@@ -1046,7 +1360,7 @@ io.on('connection', (socket) => {
     socket.hotelId = hotelId;
     socket.roomNumber = roomNumber;
     socket.guestName = guestName;
-    console.log(`🏨 Guest ${guestName || 'Unknown'} (Room ${roomNumber}) joined hotel_${hotelId}`);
+    console.log('Guest socket joined hotel room');
     socket.emit('guest_connected', { hotelId, roomNumber, message: 'Connected to hotel services' });
     // Notify admins that a guest connected
     io.to(`admin_${hotelId}`).emit('guest_online', {
@@ -1181,7 +1495,7 @@ io.on('connection', (socket) => {
     socket.leave(`hotel_${hotelId}`);
     socket.leave(`admin_${hotelId}`);
     socket.leave(`guest_${hotelId}`);
-    console.log(`📡 ${socket.id} left room: hotel_${hotelId}`);
+    console.log('Socket left hotel room');
   });
 
   socket.on('disconnect', () => {
@@ -1504,7 +1818,7 @@ await db.collection('tenants').insertOne(tenant);
       delete newDept._id;
       await db.collection('departments').insertOne(newDept);
     }
-    console.log(`✅ ${defaultDepts.length} departments created for ${hotelId}`);
+  console.log(`Default departments created: ${defaultDepts.length}`);
 
     const adminUser = {
       email: adminEmail,
@@ -1775,9 +2089,9 @@ app.post('/api/super/reset-hotel-password', superAdminMiddleware, async (req, re
     }
     if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    console.log('🔍 DEBUG reset-password: searching hotelId =', JSON.stringify(hotelId));
+    console.log('Password reset lookup started');
     const allUsersForHotel = await db.collection('users').find({ hotelId }).toArray();
-    console.log('🔍 DEBUG reset-password: users found with this hotelId =', allUsersForHotel.map(u => ({ email: u.email, role: u.role, hotelId: u.hotelId })));
+    console.log('Password reset lookup completed');
     const result = await db.collection('users').updateOne(
       { hotelId, role: { $in: ['hotel_admin', 'admin'] } },
       { $set: { password: hashedPassword, updatedAt: new Date() } }
@@ -1788,7 +2102,7 @@ app.post('/api/super/reset-hotel-password', superAdminMiddleware, async (req, re
     await logActivity('Password Reset', hotelId, 'user', { user: 'Super Admin', details: `Password reset for hotel admin` });
     res.json({ success: true, message: 'Password reset successfully' });
   } catch (err) {
-    console.error('Reset hotel password error:', err);
+    console.error('Reset hotel password failed');
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -4547,7 +4861,7 @@ app.get('/api/email-templates', superAdminMiddleware, async (req, res) => {
     const templates = await db.collection('emailTemplates').find({}).sort({ updatedAt: -1 }).toArray();
     res.json({ success: true, data: templates.map(t => ({ ...t, _id: t._id.toString() })) });
   } catch (err) {
-    console.error('Get email templates error:', err);
+    console.error('Get email templates failed');
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -4569,7 +4883,7 @@ app.post('/api/email-templates', superAdminMiddleware, async (req, res) => {
     doc._id = result.insertedId.toString();
     res.status(201).json({ success: true, data: doc });
   } catch (err) {
-    console.error('Create email template error:', err);
+    console.error('Create email template failed');
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -4583,7 +4897,7 @@ app.get('/api/email-templates/:id', superAdminMiddleware, async (req, res) => {
     template._id = template._id.toString();
     res.json({ success: true, data: template });
   } catch (err) {
-    console.error('Get email template error:', err);
+    console.error('Get email template failed');
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -4598,7 +4912,7 @@ app.put('/api/email-templates/:id', superAdminMiddleware, async (req, res) => {
     if (result.matchedCount === 0) return res.status(404).json({ success: false, error: 'Template not found' });
     res.json({ success: true });
   } catch (err) {
-    console.error('Update email template error:', err);
+    console.error('Update email template failed');
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -4611,7 +4925,7 @@ app.delete('/api/email-templates/:id', superAdminMiddleware, async (req, res) =>
     if (result.deletedCount === 0) return res.status(404).json({ success: false, error: 'Template not found' });
     res.json({ success: true });
   } catch (err) {
-    console.error('Delete email template error:', err);
+    console.error('Delete email template failed');
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -5014,7 +5328,7 @@ app.post('/api/admin/login', loginLimiter || ((req, res, next) => next()), async
   const startTime = Date.now();
   try {
     const { email, password, hotelId } = req.body;
-    console.log(`🔐 [${Date.now()}] Admin login attempt: ${email} for hotel: ${hotelId}`);
+  console.log('Admin login attempt received');
 
 
     if (!dbConnected) {
@@ -5028,7 +5342,7 @@ const user = await db.collection('users').findOne({
 });
 
 if (!user) {
-  console.log(`❌ [${Date.now()}] User not found for hotel ${hotelId}: ${email}`);
+  console.log('Admin login rejected: invalid credentials');
   return res.status(401).json({ 
     success: false, 
     error: 'Invalid credentials for this hotel' 
@@ -5037,7 +5351,7 @@ if (!user) {
 
 // 🔒 EXTRA CHECK: User ka hotelId match karna zaroori hai
 if (user.hotelId && user.hotelId !== hotelId) {
-  console.log(`🚨 SECURITY: User ${email} tried to access hotel ${hotelId} but belongs to ${user.hotelId}`);
+  console.log('Admin login rejected: tenant mismatch');
   return res.status(403).json({ 
     success: false, 
     error: 'Access denied. This account belongs to a different hotel.' 
@@ -5046,7 +5360,7 @@ if (user.hotelId && user.hotelId !== hotelId) {
 
 const validPassword = await bcrypt.compare(password, user.password);
 if (!validPassword) {
-  console.log(`❌ [${Date.now()}] Wrong password for: ${email}`);
+  console.log('Admin login rejected: invalid credentials');
   return res.status(401).json({ success: false, error: 'Invalid credentials' });
 }
 if (!user.active) return res.status(403).json({ success: false, error: 'Account is inactive' });
@@ -5088,7 +5402,7 @@ req.session.user = {
   permissions: user.permissions 
 };
 
-console.log(`✅ [${Date.now()}] Login successful for hotel ${userHotelId}: ${email} in ${Date.now() - startTime}ms`);
+console.log(`Admin login succeeded in ${Date.now() - startTime}ms`);
 
 res.json({
   success: true, 
@@ -7403,11 +7717,28 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
+let fatalShutdownStarted = false;
+
+async function shutdownAfterFatalError(reason, error) {
+  if (fatalShutdownStarted) return;
+  fatalShutdownStarted = true;
+  console.error(`Fatal process error: ${reason}`);
+  if (error?.message) console.error('Fatal process error detail:', error.message);
+
+  try {
+    if (client) await client.close();
+  } catch (closeError) {
+    console.error('Fatal shutdown database close failed');
+  }
+
+  await new Promise(resolve => server.close(resolve));
+  process.exit(1);
+}
+
 process.on('uncaughtException', (err) => {
-  console.error('💥 Uncaught Exception:', err.message);
-  if (err.message.includes('EADDRINUSE')) process.exit(1);
+  void shutdownAfterFatalError('uncaught exception', err);
 });
 
 process.on('unhandledRejection', (reason) => {
-  console.error('💥 Unhandled Rejection:', reason);
+  void shutdownAfterFatalError('unhandled rejection', reason instanceof Error ? reason : new Error('Promise rejected'));
 });

@@ -130,7 +130,7 @@ exports.registerHotel = async (req, res) => {
         };
 
         const tenantResult = await db.collection('tenants').insertOne(tenant);
-        console.log('✅ Tenant created:', tenantResult.insertedId);
+        console.log('Hotel tenant created');
 
         // ✅ STEP 2: CREATE ADMIN USER (CRITICAL STEP)
         console.log('👤 Step 2: Creating admin user...');
@@ -153,10 +153,8 @@ exports.registerHotel = async (req, res) => {
 
         try {
             const userResult = await db.collection('users').insertOne(adminUser);
-            console.log('✅✅✅ ADMIN USER CREATED ✅✅✅');
-            console.log('   User ID:', userResult.insertedId);
-            console.log('   Email:', adminEmail);
-            console.log('   HotelId:', hotelId);
+            console.log('Admin user created');
+            console.log('Admin user creation completed');
         } catch (userError) {
             console.error('❌❌❌ FAILED TO CREATE ADMIN USER ❌❌❌');
             console.error('Error:', userError.message);
@@ -259,12 +257,12 @@ exports.adminLogin = async (req, res) => {
             return res.status(503).json({ success: false, error: 'Database not connected' });
         }
 
-        console.log(`🔐 Login attempt: ${email} for hotel: ${hotelId}`);
+        console.log('Admin login attempt received');
 
         // ✅ STEP 1: Verify hotel exists and is active
         const tenant = await db.collection('tenants').findOne({ hotelId });
         if (!tenant) {
-            console.log(`❌ Hotel not found: ${hotelId}`);
+            console.log('Admin login rejected: hotel not found');
             return res.status(404).json({
                 success: false,
                 error: 'Hotel not found. Please check Hotel ID.'
@@ -272,7 +270,7 @@ exports.adminLogin = async (req, res) => {
         }
 
         if (tenant.active === false) {
-            console.log(`❌ Hotel is inactive: ${hotelId}`);
+            console.log('Admin login rejected: hotel inactive');
             return res.status(403).json({
                 success: false,
                 error: 'Hotel account is inactive. Please contact support.'
@@ -288,7 +286,7 @@ exports.adminLogin = async (req, res) => {
         });
 
         if (!user) {
-            console.log(`❌ User not found for hotel ${hotelId}: ${normalizedEmail}`);
+            console.log('Admin login rejected: invalid credentials');
 
             // Helpful debug info
             const userAnyHotel = await db.collection('users').findOne({ 
@@ -297,7 +295,7 @@ exports.adminLogin = async (req, res) => {
             });
 
             if (userAnyHotel) {
-                console.log(`⚠️ User exists but belongs to different hotel: ${userAnyHotel.hotelId}`);
+                console.log('Admin login rejected: tenant mismatch');
                 return res.status(403).json({
                     success: false,
                     error: `This account belongs to hotel ${userAnyHotel.hotelId}, not ${hotelId}`
@@ -313,7 +311,7 @@ exports.adminLogin = async (req, res) => {
         // ✅ STEP 3: Verify password
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
-            console.log(`❌ Wrong password for: ${normalizedEmail}`);
+                console.log('Admin login rejected: invalid credentials');
             return res.status(401).json({
                 success: false,
                 error: 'Invalid password'
@@ -340,7 +338,7 @@ exports.adminLogin = async (req, res) => {
         // ✅ STEP 6: Generate token
         const token = generateToken(user, hotelId);
 
-        console.log(`✅ Login successful for hotel ${hotelId}: ${normalizedEmail}`);
+        console.log('Admin login succeeded');
 
         // ✅ STEP 7: Return response
         res.json({

@@ -36,7 +36,7 @@ exports.registerHotel = async (req, res) => {
             subscriptionType, theme, logo, timezone
         } = req.body;
 
-        console.log('\n🔄 Hotel registration started:', { hotelId, hotelName, adminEmail });
+        console.log('Hotel registration started');
 
         // ✅ Validation
         if (!hotelId || !hotelName || !adminEmail || !adminPassword) {
@@ -103,7 +103,7 @@ exports.registerHotel = async (req, res) => {
         };
 
         const tenantResult = await db.collection('tenants').insertOne(tenant);
-        console.log('✅ Tenant created:', tenantResult.insertedId);
+        console.log('Hotel tenant created');
 
         // ✅ STEP 2: Create admin user
         const adminUser = {
@@ -125,7 +125,7 @@ exports.registerHotel = async (req, res) => {
 
         try {
             const userResult = await db.collection('users').insertOne(adminUser);
-            console.log('✅ Admin user created:', userResult.insertedId);
+            console.log('Admin user created');
         } catch (userError) {
             console.error('❌ Failed to create admin user:', userError.message);
             // Rollback tenant
@@ -165,7 +165,7 @@ exports.registerHotel = async (req, res) => {
             console.warn('⚠️ Config creation failed (non-critical):', configError.message);
         }
 
-        console.log('✅✅✅ Hotel registration complete:', hotelId, '\n');
+        console.log('Hotel registration complete');
 
         return created(res, {
             hotelId,
@@ -340,7 +340,7 @@ exports.deleteHotel = async (req, res) => {
             console.warn('⚠️ Socket notification failed:', socketErr.message);
         }
 
-        console.log(`✅ Hotel and all data deleted: ${hotelId}`);
+        console.log('Hotel and all data deleted');
         return success(res, null, 'Hotel and all data deleted');
 
     } catch (err) {

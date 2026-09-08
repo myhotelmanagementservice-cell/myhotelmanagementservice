@@ -2787,7 +2787,6 @@ async function loadSubscriptionStatus() {
     try {
         const token = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
         if (!token) {
-            console.log('No token, skipping subscription load');
             return;
         }
 
@@ -5313,7 +5312,6 @@ buildGuestPanes();
 }
 function renderDashboardAnalytics() {
 const el = id => document.getElementById(id);
-console.log('ALL BOOKING STATUSES:', bookings.map(b => b.status));
 const totalRooms = rooms.length;
 const occupiedRooms = rooms.filter(r => r.status === 'Occupied').length;
 const availableRooms = rooms.filter(r => r.status === 'Vacant').length;

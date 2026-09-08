@@ -3,6 +3,8 @@ let currentLang = 'en';
 let currentTab = 'payments';
 let hotelId = 'HOTEL002';
 let guestId = null;
+let guestName = '';
+let guestRoomNumber = '';
 let hubSocket = null;
 let hubChatMessages = [];
 
@@ -18,6 +20,8 @@ async function initializeGuestHub() {
     const room = urlParams.get('room') || '';
     const name = urlParams.get('name') || '';
     guestId = urlParams.get('guestId') || (room ? `room_${room}` : null) || sessionStorage.getItem('guestId');
+    guestName = name || sessionStorage.getItem('guestName') || guestId || 'Guest';
+    guestRoomNumber = room || sessionStorage.getItem('roomNumber') || guestId?.replace(/^room_/, '') || '';
 
     if (!guestId) {
         showToast('Guest ID not found', 'error');
@@ -537,8 +541,10 @@ async function submitServiceRequest(event) {
     event.preventDefault();
 
     const serviceData = {
-        hotelId,
-        guestId,
+        guestName,
+        roomNumber: guestRoomNumber,
+        department: document.getElementById('serviceType').value,
+        category: 'Guest Service',
         type: document.getElementById('serviceType').value,
         description: document.getElementById('serviceDescription').value,
         priority: document.getElementById('servicePriority').value
@@ -546,9 +552,12 @@ async function submitServiceRequest(event) {
 
     try {
         showLoading(true);
-        const response = await fetch('/api/services/request', {
+        const token = localStorage.getItem('hotel_token') || sessionStorage.getItem('hotel_token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const response = await fetch('/api/requests', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify(serviceData)
         });
 

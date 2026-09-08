@@ -34,12 +34,7 @@ router.use(superAdminMiddleware);
 
 // ======================== HOTEL REGISTER - FIXED VERSION ========================
 router.post('/tenants/register', async (req, res) => {
-    console.log('\n========================================');
-    console.log('🔄 NEW HOTEL REGISTRATION REQUEST');
-    console.log('========================================');
-    console.log('📦 Request body keys:', Object.keys(req.body));
-    console.log('📧 adminEmail received:', req.body.adminEmail || '❌ MISSING');
-    console.log('🏨 hotelId:', req.body.hotelId);
+    console.log('Hotel registration request received');
 
     const db = getDb(req);
     if (!db) {
@@ -58,7 +53,6 @@ router.post('/tenants/register', async (req, res) => {
             return res.status(400).json({ success: false, error: 'hotelId and hotelName are required' });
         }
         if (!adminEmail || !adminPassword) {
-            console.error('❌ VALIDATION FAILED: adminEmail or adminPassword missing!');
             return res.status(400).json({ 
                 success: false, 
                 error: 'Admin email and password are required. Please fill all fields.' 
@@ -82,7 +76,7 @@ router.post('/tenants/register', async (req, res) => {
         else subscriptionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
         // ✅ STEP 1: CREATE TENANT
-        console.log('📝 Step 1: Creating tenant...');
+        console.log('Hotel tenant creation started');
         const tenant = {
             hotelId,
             hotelName,
@@ -103,12 +97,10 @@ router.post('/tenants/register', async (req, res) => {
         };
 
         const tenantResult = await db.collection('tenants').insertOne(tenant);
-        console.log('✅ Tenant created:', tenantResult.insertedId);
+        console.log('Hotel tenant created');
 
         // ✅ STEP 2: CREATE ADMIN USER (IMPROVED LOGIC)
-        console.log('👤 Step 2: Creating admin user...');
-        console.log('   Email:', adminEmail);
-        console.log('   HotelId:', hotelId);
+        console.log('Hotel admin creation started');
 
         let createdUserEmail = adminEmail;
         let userCreated = false;
@@ -117,12 +109,11 @@ router.post('/tenants/register', async (req, res) => {
         const existingUserByEmail = await db.collection('users').findOne({ email: adminEmail });
 
         if (existingUserByEmail) {
-            console.warn('⚠️ User with this email already exists:', adminEmail);
-            console.warn('   Existing hotelId:', existingUserByEmail.hotelId);
+            console.log('Existing admin account found');
 
             if (existingUserByEmail.hotelId === hotelId) {
                 // Same hotel - update password
-                console.log('🔄 Updating existing user for same hotel...');
+                console.log('Existing admin account updated');
                 await db.collection('users').updateOne(
                     { email: adminEmail, hotelId: hotelId },
                     { 
@@ -154,10 +145,10 @@ router.post('/tenants/register', async (req, res) => {
 
                 try {
                     const userResult = await db.collection('users').insertOne(adminUser);
-                    console.log('✅ User created with modified email:', createdUserEmail, 'ID:', userResult.insertedId);
+                console.log('Admin user created with fallback email');
                     userCreated = true;
                 } catch (insertError) {
-                    console.error('❌ Failed to create user with modified email:', insertError.message);
+                    console.error('Fallback admin user creation failed');
                     throw insertError;
                 }
             }
@@ -176,10 +167,7 @@ router.post('/tenants/register', async (req, res) => {
 
             try {
                 const userResult = await db.collection('users').insertOne(adminUser);
-                console.log('✅✅✅ ADMIN USER CREATED ✅✅✅');
-                console.log('   User ID:', userResult.insertedId);
-                console.log('   Email:', adminEmail);
-                console.log('   HotelId:', hotelId);
+                console.log('Admin user created');
                 userCreated = true;
             } catch (userError) {
                 console.error('❌ USER CREATION FAILED:', userError.message);
@@ -201,7 +189,7 @@ router.post('/tenants/register', async (req, res) => {
 
                     try {
                         const userResult = await db.collection('users').insertOne(adminUser2);
-                        console.log('✅ User created with modified email:', createdUserEmail);
+                        console.log('Admin user created with fallback email');
                         userCreated = true;
                     } catch (retryError) {
                         console.error('❌ Retry also failed:', retryError.message);
@@ -239,8 +227,7 @@ router.post('/tenants/register', async (req, res) => {
         const verifyUser = await db.collection('users').findOne({ hotelId });
         console.log('   Tenant exists:', verifyTenant ? '✅' : '❌');
         console.log('   User exists:', verifyUser ? '✅' : '❌');
-        console.log('   User email:', verifyUser?.email);
-        console.log('   User hotelId:', verifyUser?.hotelId);
+                console.log('Admin user verification completed');
         console.log('========================================\n');
 
         if (!userCreated) {
@@ -450,7 +437,7 @@ router.delete('/tenants/:hotelId', async (req, res) => {
 
         await db.collection('tenants').deleteOne({ hotelId });
 
-        console.log(`✅ Hotel deleted: ${hotelId}`);
+        console.log('Hotel deleted');
 
         res.json({ success: true, message: 'Hotel and all data deleted permanently' });
     } catch (error) {
