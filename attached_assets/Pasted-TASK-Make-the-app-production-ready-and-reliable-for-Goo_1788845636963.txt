@@ -1,0 +1,60 @@
+TASK: Make the app production-ready and reliable for Google Play Store 
+submission. DO NOT add any new features or modules. DO NOT change any 
+existing UI/UX design. Focus ONLY on fixing bugs, improving speed, and 
+reliability.
+
+SCOPE OF WORK:
+
+1. AUDIT (report findings before fixing anything):
+   - Search all of public/script.js and server/*.js for any 
+     Math.random() usage that generates fake/placeholder data instead 
+     of calling the real backend API — list every instance found with 
+     file name and line number.
+   - Search for any leftover debug console.log() statements that print 
+     data unnecessarily (like status arrays, user data) on every page 
+     load or every API call — list them.
+   - Check for any broken/dead API endpoints — routes defined in 
+     server/routes/ that are never called from public/script.js, or 
+     API calls in public/script.js that don't match any route in 
+     server/routes/.
+
+2. PWA READINESS (required for Play Store TWA submission):
+   - Confirm public/manifest.json is correctly linked inside 
+     public/index.html's <head> section (add the <link rel="manifest" 
+     href="manifest.json"> tag if missing).
+   - Check if public/icons/icon-192.png and public/icons/icon-512.png 
+     exist. If they don't exist, report this — do not generate fake 
+     placeholder icons, just report they're missing.
+   - Create a basic service worker file at public/sw.js that caches 
+     static assets (index.html, style.css, script.js) for offline 
+     support, and register it in public/index.html.
+
+3. PERFORMANCE:
+   - Report the current file sizes of public/index.html, 
+     public/style.css, and public/script.js.
+   - Check server/server.js for compression middleware — confirm gzip/
+     brotli compression is enabled for all responses (not just static 
+     files).
+   - Check MongoDB queries in server/routes/*.js for any obvious 
+     missing indexes on frequently-queried fields (like hotelId, 
+     roomNumber) — report findings, do not change database indexes 
+     without asking first.
+
+4. STABILITY:
+   - Confirm there is proper error handling (try/catch) on all API 
+     routes in server/routes/ — report any route missing error 
+     handling.
+   - Check that server/server.js has a global error handler for 
+     uncaught exceptions so the server doesn't crash on unexpected 
+     errors.
+
+IMPORTANT RULES:
+- Do NOT touch inaya-hotel/public/index.html, style.css, or script.js 
+  directly if they are the LIVE files — only work on the readable 
+  copies in inaya-hotel/public/source-backup/.
+- Do NOT add any new guest-facing module or feature — only fix, clean, 
+  and optimize existing code.
+- Do NOT run git commit or git push — report all findings and proposed 
+  fixes first, wait for approval before making changes.
+- Report back a clear list: what was found, what you propose to fix, 
+  and wait for confirmation before applying fixes.
