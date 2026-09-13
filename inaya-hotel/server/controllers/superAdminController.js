@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const { getDB, isConnected } = require('../config/db');
 const { broadcast } = require('../utils/broadcast');
 const { success, error, created, notFound } = require('../utils/apiResponse');
+const { getIO } = require('../config/socket');
 
 // ============================================================
 // CONSTANTS
@@ -166,6 +167,15 @@ exports.registerHotel = async (req, res) => {
         }
 
         console.log('Hotel registration complete');
+
+        try {
+            const io = getIO();
+            io.emit('super_admin_activity', {
+                type: 'hotel',
+                message: `New hotel registered: ${hotelName}`,
+                timestamp: new Date().toISOString()
+            });
+        } catch (e) {}
 
         return created(res, {
             hotelId,

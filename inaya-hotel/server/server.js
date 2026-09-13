@@ -5269,6 +5269,103 @@ app.delete('/api/ai/chat/clear', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ ANALYTICS (Occupancy, ADR, RevPAR, Satisfaction — real data; Booking Source honestly untracked)
+app.get('/api/analytics', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.json({ success: true, data: {} });
+
+    const allRooms = await db.collection('rooms').find({}, { projection: { status: 1, hotelId: 1 } }).toArray();
+    const totalRooms = allRooms.length;
+    const occupiedRooms = allRooms.filter(r => r.status === 'Occupied').length;
+    const occupancyPct = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+
+    const globalConfigForRev = await db.collection('globalConfig').findOne({ _id: 'main' });
+    const fxRates = (globalConfigForRev && globalConfigForRev.exchangeRates) || { USD: 1 };
+    const allTenants = await db.collection('tenants').find({}, { projection: { hotelId: 1, currency: 1 } }).toArray();
+    const hotelCurrencyMap = {};
+    allTenants.forEach(t => { hotelCurrencyMap[t.hotelId] = t.currency || 'USD'; });
+    function toUSD(amount, currencyCode) {
+      const rate = fxRates[currencyCode];
+      if (!rate || rate <= 0) return amount;
+      return amount / rate;
+    }
+
+    const allBookings = await db.collection('bookings').find(
+      { status: { $ne: 'cancelled' } },
+      { projection: { hotelId: 1, totalPriceSAR: 1, createdAt: 1 } }
+    ).toArray();
+
+    let totalRevenueUSD = 0;
+    allBookings.forEach(b => {
+      totalRevenueUSD += toUSD(b.totalPriceSAR || 0, hotelCurrencyMap[b.hotelId] || 'USD');
+    });
+
+    const adr = allBookings.length > 0 ? Math.round(totalRevenueUSD / allBookings.length) : 0;
+    const revpar = totalRooms > 0 ? Math.round(totalRevenueUSD / totalRooms) : 0;
+
+    // Real bookings-per-day for last 7 days (proxy for activity trend — real daily occupancy snapshots aren't tracked)
+    const dayLabels = [];
+    const dayCounts = [];
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0); dayStart.setDate(dayStart.getDate() - i);
+      const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+      const label = dayStart.toLocaleDateString('en-US', { weekday: 'short' });
+      const count = allBookings.filter(b => b.createdAt && new Date(b.createdAt) >= dayStart && new Date(b.createdAt) < dayEnd).length;
+      dayLabels.push(label);
+      dayCounts.push(count);
+    }
+
+    // Real revenue-per-week for last 4 weeks (Expenses are not tracked anywhere in the system)
+    const weekLabels = [];
+    const weekRevenue = [];
+    for (let i = 3; i >= 0; i--) {
+      const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - (i * 7 + 6));
+      const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 7);
+      const weekTotal = allBookings
+        .filter(b => b.createdAt && new Date(b.createdAt) >= weekStart && new Date(b.createdAt) < weekEnd)
+        .reduce((sum, b) => sum + toUSD(b.totalPriceSAR || 0, hotelCurrencyMap[b.hotelId] || 'USD'), 0);
+      weekLabels.push(`Week ${4 - i}`);
+      weekRevenue.push(Math.round(weekTotal));
+    }
+
+    // Real guest satisfaction from reviews (global aggregate across all hotels)
+    const reviewAgg = await db.collection('reviews').aggregate([
+      { $match: { isDeleted: { $ne: true }, status: 'approved' } },
+      {
+        $group: {
+          _id: null,
+          avgOverall: { $avg: '$overall' },
+          avgService: { $avg: '$service' },
+          avgCleanliness: { $avg: '$cleanliness' },
+          avgValue: { $avg: '$value' },
+          avgLocation: { $avg: '$location' }
+        }
+      }
+    ]).toArray();
+    const rv = reviewAgg[0] || {};
+    const hasSatisfactionData = reviewAgg.length > 0;
+
+    res.json({
+      success: true,
+      data: {
+        occupancyPct,
+        adr,
+        revpar,
+        bookingActivity: { labels: dayLabels, data: dayCounts },
+        weeklyRevenue: { labels: weekLabels, data: weekRevenue },
+        satisfaction: hasSatisfactionData ? {
+          labels: ['Cleanliness', 'Service', 'Value', 'Location', 'Overall'],
+          data: [rv.avgCleanliness || 0, rv.avgService || 0, rv.avgValue || 0, rv.avgLocation || 0, rv.avgOverall || 0]
+        } : null,
+        bookingSourceTracked: false
+      }
+    });
+  } catch (err) {
+    console.error('Analytics error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;

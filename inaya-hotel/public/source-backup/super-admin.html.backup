@@ -136,6 +136,7 @@
         }
         .inp::placeholder { color: #9ca3af; }
     </style>
+<script src="/socket.io/socket.io.js"></script>
 </head>
 <body class="bg-gray-100 dark:bg-darkBg text-gray-800 dark:text-gray-200 transition-colors duration-300 font-sans">
 
@@ -2791,7 +2792,7 @@
             if (sectionId === 'users') renderUsersTable();
             if (sectionId === 'rooms') renderRoomsTable();
             if (sectionId === 'bookings') renderBookingsTable();
-            if (sectionId === 'analytics') renderAnalyticsCharts();
+            if (sectionId === 'analytics') loadAnalytics();
             if (sectionId === 'auditLogs') renderAuditTable();
             if (sectionId === 'reports') renderReportsList();
             if (sectionId === 'apiKeys') renderApiKeysTable();
@@ -3273,40 +3274,62 @@
             });
         }
 
-        function renderAnalyticsCharts() {
-            const occ = Math.floor(Math.random() * 40) + 60;
-            document.getElementById('occupancyRate').textContent = occ + '%';
-            document.getElementById('occupancyBar').style.width = occ + '%';
-            document.getElementById('adrRate').textContent = '$' + (Math.floor(Math.random() * 100) + 150);
-            document.getElementById('revparRate').textContent = '$' + (Math.floor(Math.random() * 80) + 100);
+        async function loadAnalytics() {
+            try {
+                const res = await fetch(`${API_BASE}/analytics`, {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    renderAnalyticsCharts(data.data);
+                } else {
+                    showToast('Failed to load analytics', 'error');
+                }
+            } catch (e) {
+                showToast('Network error loading analytics', 'error');
+            }
+        }
+        function renderAnalyticsCharts(analyticsData) {
+            const d = analyticsData || {};
+            document.getElementById('occupancyRate').textContent = (d.occupancyPct || 0) + '%';
+            document.getElementById('occupancyBar').style.width = (d.occupancyPct || 0) + '%';
+            document.getElementById('adrRate').textContent = '$' + (d.adr || 0).toLocaleString();
+            document.getElementById('revparRate').textContent = '$' + (d.revpar || 0).toLocaleString();
 
             const ctx1 = document.getElementById('occupancyChart');
             if (ctx1) {
                 if (occupancyChartInstance) occupancyChartInstance.destroy();
+                const activity = d.bookingActivity || { labels: [], data: [] };
                 occupancyChartInstance = new Chart(ctx1, {
                     type: 'bar',
-                    data: { labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], datasets: [{ label: 'Occupancy %', data: [65, 72, 68, 85, 90, 95, 88], backgroundColor: '#3b82f6', borderRadius: 4 }] },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { max: 100 } } }
+                    data: { labels: activity.labels, datasets: [{ label: 'Bookings per day', data: activity.data, backgroundColor: '#3b82f6', borderRadius: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
                 });
             }
             const ctx2 = document.getElementById('revenueExpensesChart');
             if (ctx2) {
                 if (revenueExpensesChartInstance) revenueExpensesChartInstance.destroy();
+                const weekly = d.weeklyRevenue || { labels: [], data: [] };
                 revenueExpensesChartInstance = new Chart(ctx2, {
                     type: 'line',
-                    data: { labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'], datasets: [{ label: 'Revenue', data: [25000, 28000, 32000, 35000], borderColor: '#10b981', tension: 0.4 }, { label: 'Expenses', data: [15000, 16000, 18000, 17000], borderColor: '#ef4444', tension: 0.4 }] },
+                    data: { labels: weekly.labels, datasets: [{ label: 'Revenue (USD)', data: weekly.data, borderColor: '#10b981', tension: 0.4 }] },
                     options: { responsive: true, maintainAspectRatio: false }
                 });
             }
             const ctx3 = document.getElementById('satisfactionChart');
             if (ctx3) {
                 if (satisfactionChartInstance) satisfactionChartInstance.destroy();
-                satisfactionChartInstance = new Chart(ctx3, { type: 'radar', data: { labels: ['Cleanliness', 'Service', 'Amenities', 'Location', 'Value', 'Comfort'], datasets: [{ label: 'Rating', data: [4.5, 4.2, 4.0, 4.8, 3.9, 4.3], backgroundColor: 'rgba(139,92,246,0.2)', borderColor: '#8b5cf6' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { r: { max: 5 } } } });
+                if (d.satisfaction) {
+                    satisfactionChartInstance = new Chart(ctx3, { type: 'radar', data: { labels: d.satisfaction.labels, datasets: [{ label: 'Rating', data: d.satisfaction.data, backgroundColor: 'rgba(139,92,246,0.2)', borderColor: '#8b5cf6' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { r: { max: 5 } } } });
+                } else {
+                    const wrap = ctx3.parentElement;
+                    if (wrap) wrap.innerHTML = '<p class="text-sm text-gray-500 text-center py-8">No reviews yet — satisfaction data will appear once guests submit reviews.</p>';
+                }
             }
             const ctx4 = document.getElementById('bookingSourceChart');
             if (ctx4) {
-                if (bookingSourceChartInstance) bookingSourceChartInstance.destroy();
-                bookingSourceChartInstance = new Chart(ctx4, { type: 'pie', data: { labels: ['Direct', 'OTA', 'Walk-in', 'Phone', 'Corporate'], datasets: [{ data: [35, 30, 15, 12, 8], backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }] }, options: { responsive: true, maintainAspectRatio: false } });
+                const wrap = ctx4.parentElement;
+                if (wrap) wrap.innerHTML = '<p class="text-sm text-gray-500 text-center py-8">Booking source is not tracked yet.</p>';
             }
         }
 
@@ -3319,8 +3342,7 @@
             INR: { symbol: '₹', name: 'Indian Rupee', rate: 74.5, flag: '🇮🇳' },
             AED: { symbol: 'د.إ', name: 'UAE Dirham', rate: 3.67, flag: '🇦🇪' },
             SAR: { symbol: '﷼', name: 'Saudi Riyal', rate: 3.75, flag: '🇸🇦' },
-            KWD: { symbol: 'KD', name: 'Kuwaiti Dinar', rate: 0.31, flag: '🇰🇼' },
-            USDT: { symbol: '₮', name: 'Tether (USDT)', rate: 1, flag: '💲' }
+            KWD: { symbol: 'KD', name: 'Kuwaiti Dinar', rate: 0.31, flag: '🇰🇼' }
         };
 
         function getCustomCurrencies() { try { return JSON.parse(localStorage.getItem('customCurrencies') || '{}'); } catch (e) { return {}; } }
@@ -10106,22 +10128,31 @@ async function toggleLandingPage() {
             showNotifications();
         }
 
-        // ================= ACTIVITY SIMULATION =================
+        // ================= REAL-TIME ACTIVITY (Socket.io) =================
         function startActivitySimulation() {
-            const events = [
-                { type: 'booking', message: 'New booking received at Grand Plaza', icon: 'calendar-plus' },
-                { type: 'checkin', message: 'Guest checked in at Seaside Resort', icon: 'sign-in-alt' },
-                { type: 'request', message: 'Room service request from Room 302', icon: 'concierge-bell' },
-                { type: 'payment', message: 'Payment received: $450 from Mountain Lodge', icon: 'credit-card' },
-                { type: 'hotel', message: 'Hotel settings updated: City Center Inn', icon: 'hotel' }
-            ];
-            setInterval(() => {
-                const event = events[Math.floor(Math.random() * events.length)];
-                addActivityLog(event);
-            }, 8000);
-            document.getElementById('socketStatusText').textContent = 'Live';
-            document.getElementById('socketDot').classList.remove('bg-gray-400');
-            document.getElementById('socketDot').classList.add('bg-green-500');
+            const iconMap = { hotel: 'hotel', booking: 'calendar-plus', checkin: 'sign-in-alt', request: 'concierge-bell', payment: 'credit-card' };
+            try {
+                const socket = io();
+                socket.on('connect', () => {
+                    document.getElementById('socketStatusText').textContent = 'Live';
+                    document.getElementById('socketDot').classList.remove('bg-gray-400');
+                    document.getElementById('socketDot').classList.add('bg-green-500');
+                });
+                socket.on('disconnect', () => {
+                    document.getElementById('socketStatusText').textContent = 'Disconnected';
+                    document.getElementById('socketDot').classList.remove('bg-green-500');
+                    document.getElementById('socketDot').classList.add('bg-gray-400');
+                });
+                socket.on('super_admin_activity', (event) => {
+                    addActivityLog({
+                        type: event.type || 'hotel',
+                        message: event.message,
+                        icon: iconMap[event.type] || 'bell'
+                    });
+                });
+            } catch (e) {
+                document.getElementById('socketStatusText').textContent = 'Unavailable';
+            }
         }
 
         function addActivityLog(event) {
