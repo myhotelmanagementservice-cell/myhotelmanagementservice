@@ -157,7 +157,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1" data-i18n="password">Password</label>
-                    <input type="password" id="saPass" placeholder="Enter password" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary outline-none transition" required autocomplete="current-password">
+                    <div class="relative"><input type="password" id="saPass" placeholder="Enter password" class="w-full p-3 pr-10 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary outline-none transition" required autocomplete="current-password"><button type="button" onclick="togglePasswordVisibility('saPass', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i class="fas fa-eye"></i></button></div>
                 </div>
                 <button type="submit" id="loginBtn" class="w-full bg-primary hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2">
                     <i class="fas fa-sign-in-alt mr-2"></i> <span data-i18n="login">Login</span>
@@ -1174,11 +1174,11 @@
                     </div>
                     <div class="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                         <h3 class="font-bold mb-4">Admin Credentials</h3>
-                        <form id="adminSettingsForm" class="space-y-4">
-                            <div><label class="block text-sm font-medium mb-1">Current Email</label><input type="email" id="currentEmail" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" value="admin@example.com" readonly></div>
+                        <form id="adminSettingsForm" class="space-y-4" onsubmit="updateCredentials(event)">
+                            <div><label class="block text-sm font-medium mb-1">Current Email</label><input type="email" id="currentEmail" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" readonly></div>
                             <div><label class="block text-sm font-medium mb-1">New Email</label><input type="email" id="newEmail" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Enter new email"></div>
-                            <div><label class="block text-sm font-medium mb-1">Current Password</label><input type="password" id="currentPassword" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Current password"></div>
-                            <div><label class="block text-sm font-medium mb-1">New Password</label><input type="password" id="newPassword" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="New password (min 8 chars)"></div>
+                            <div><label class="block text-sm font-medium mb-1">Current Password</label><div class="relative"><input type="password" id="currentPassword" class="w-full p-2 pr-10 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Current password" required><button type="button" onclick="togglePasswordVisibility('currentPassword', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i class="fas fa-eye"></i></button></div></div>
+                            <div><label class="block text-sm font-medium mb-1">New Password</label><div class="relative"><input type="password" id="newPassword" class="w-full p-2 pr-10 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="New password (min 8 chars)"><button type="button" onclick="togglePasswordVisibility('newPassword', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i class="fas fa-eye"></i></button></div></div>
                             <button type="submit" class="w-full py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Update Credentials</button>
                         </form>
                         <hr class="my-6 border-gray-200 dark:border-gray-700">
@@ -2059,7 +2059,7 @@
                 <div><label class="block text-sm font-medium mb-1">Hotel ID</label><input type="text" id="hotelId" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="HOTEL001" required></div>
                 <div><label class="block text-sm font-medium mb-1">Hotel Name</label><input type="text" id="hotelName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Grand Plaza" required></div>
                 <div><label class="block text-sm font-medium mb-1">Admin Email</label><input type="email" id="adminEmail" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="admin@hotel.com" required></div>
-                <div><label class="block text-sm font-medium mb-1">Admin Password <span id="pwdRequired" class="text-red-500">*</span></label><input type="password" id="adminPassword" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Min 8 characters" required><p class="text-xs text-gray-500 mt-1" id="pwdHint">Minimum 8 characters</p></div>
+                <div><label class="block text-sm font-medium mb-1">Admin Password <span id="pwdRequired" class="text-red-500">*</span></label><div class="relative"><input type="password" id="adminPassword" class="w-full p-2 pr-10 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Min 8 characters" required><button type="button" onclick="togglePasswordVisibility('adminPassword', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i class="fas fa-eye"></i></button></div><p class="text-xs text-gray-500 mt-1" id="pwdHint">Minimum 8 characters</p></div>
                 <div><label class="block text-sm font-medium mb-1">Currency</label><select id="hotelCurrency" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"></select></div>
                 <div><label class="block text-sm font-medium mb-1">Subscription Plan</label><select id="hotelPlan" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="basic">Basic (Free)</option><option value="pro">Pro ($99/mo)</option><option value="enterprise">Enterprise ($499/mo)</option></select></div>
                 <div><label class="block text-sm font-medium mb-1">Address</label><input type="text" id="hotelAddress" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Hotel address"></div>
@@ -2078,7 +2078,7 @@
     <div id="adminModal" class="modal-overlay" onclick="if(event.target===this)closeModal('adminModal')">
         <div class="modal-box">
             <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg">Update Admin Credentials</h3><button onclick="closeModal('adminModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
-            <form id="adminForm" class="space-y-4"><input type="hidden" id="adminHotelId"><div><label class="block text-sm font-medium mb-1">New Admin Email</label><input type="email" id="newAdminEmail" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="newadmin@hotel.com" required></div><div><label class="block text-sm font-medium mb-1">New Password</label><input type="password" id="newAdminPassword" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Leave blank to keep current"></div><div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Update</button><button type="button" onclick="closeModal('adminModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div></form>
+            <form id="adminForm" class="space-y-4"><input type="hidden" id="adminHotelId"><div><label class="block text-sm font-medium mb-1">New Admin Email</label><input type="email" id="newAdminEmail" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="newadmin@hotel.com" required></div><div><label class="block text-sm font-medium mb-1">New Password</label><div class="relative"><input type="password" id="newAdminPassword" class="w-full p-2 pr-10 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Leave blank to keep current"><button type="button" onclick="togglePasswordVisibility('newAdminPassword', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i class="fas fa-eye"></i></button></div></div><div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Update</button><button type="button" onclick="closeModal('adminModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div></form>
         </div>
     </div>
 
@@ -2153,8 +2153,8 @@
                 <div><label class="block text-sm font-medium mb-1">Mode</label><select id="gatewayMode" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="test">Test</option><option value="live">Live</option></select></div>
                 <div><label class="block text-sm font-medium mb-1">Currency</label><input type="text" id="gatewayCurrency" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="USD"></div>
                 <div><label class="block text-sm font-medium mb-1">Fee (%)</label><input type="number" id="gatewayFee" min="0" step="0.01" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="2.9"></div>
-                <div><label class="block text-sm font-medium mb-1">API Key</label><input type="password" id="gatewayApiKey" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Enter API key"></div>
-                <div><label class="block text-sm font-medium mb-1">API Secret</label><input type="password" id="gatewayApiSecret" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Enter API secret"></div>
+                <div><label class="block text-sm font-medium mb-1">API Key</label><div class="relative"><input type="password" id="gatewayApiKey" class="w-full p-2 pr-10 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Enter API key"><button type="button" onclick="togglePasswordVisibility('gatewayApiKey', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i class="fas fa-eye"></i></button></div></div>
+                <div><label class="block text-sm font-medium mb-1">API Secret</label><div class="relative"><input type="password" id="gatewayApiSecret" class="w-full p-2 pr-10 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Enter API secret"><button type="button" onclick="togglePasswordVisibility('gatewayApiSecret', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i class="fas fa-eye"></i></button></div></div>
                 <div><label class="block text-sm font-medium mb-1">Icon (emoji)</label><input type="text" id="gatewayIcon" maxlength="4" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="💳"></div>
                 <div class="flex items-center gap-2"><input type="checkbox" id="gatewayIsActive" class="w-4 h-4"><label for="gatewayIsActive" class="text-sm font-medium">Active</label></div>
                 <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('gatewayModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div>
@@ -2273,7 +2273,7 @@
     <div id="userModal" class="modal-overlay" onclick="if(event.target===this)closeModal('userModal')">
         <div class="modal-box">
             <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg" id="userModalTitle">Add User</h3><button onclick="closeModal('userModal')" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-xl"></i></button></div>
-            <form id="userForm" class="space-y-4"><input type="hidden" id="editUserId"><div><label class="block text-sm font-medium mb-1">Name</label><input type="text" id="userName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" required></div><div><label class="block text-sm font-medium mb-1">Email</label><input type="email" id="userEmail" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" required></div><div><label class="block text-sm font-medium mb-1">Hotel</label><select id="userHotel" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"></select></div><div><label class="block text-sm font-medium mb-1">Role</label><select id="userRole" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="admin">Admin</option><option value="manager">Manager</option><option value="receptionist">Receptionist</option><option value="housekeeping">Housekeeping</option></select></div><div><label class="block text-sm font-medium mb-1">Password</label><input type="password" id="userPassword" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Min 8 chars"></div><div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('userModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div></form>
+            <form id="userForm" class="space-y-4"><input type="hidden" id="editUserId"><div><label class="block text-sm font-medium mb-1">Name</label><input type="text" id="userName" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" required></div><div><label class="block text-sm font-medium mb-1">Email</label><input type="email" id="userEmail" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" required></div><div><label class="block text-sm font-medium mb-1">Hotel</label><select id="userHotel" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"></select></div><div><label class="block text-sm font-medium mb-1">Role</label><select id="userRole" class="w-full p-2 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600"><option value="admin">Admin</option><option value="manager">Manager</option><option value="receptionist">Receptionist</option><option value="housekeeping">Housekeeping</option></select></div><div><label class="block text-sm font-medium mb-1">Password</label><div class="relative"><input type="password" id="userPassword" class="w-full p-2 pr-10 rounded-lg bg-gray-50 dark:bg-darkBg border border-gray-300 dark:border-gray-600" placeholder="Min 8 chars"><button type="button" onclick="togglePasswordVisibility('userPassword', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><i class="fas fa-eye"></i></button></div></div><div class="flex gap-3 pt-2"><button type="submit" class="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">Save</button><button type="button" onclick="closeModal('userModal')" class="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button></div></form>
         </div>
     </div>
 
@@ -3516,7 +3516,56 @@
                 }
 
             } catch (e) { console.warn('loadGlobalConfig:', e); }
+
+            try {
+                const emailRes = await fetch('/api/super/current-email', { headers: { 'Authorization': 'Bearer ' + authToken } });
+                const emailData = await emailRes.json();
+                const emailEl = document.getElementById('currentEmail');
+                if (emailEl && emailData.success && emailData.email) emailEl.value = emailData.email;
+            } catch (e) { console.warn('loadGlobalConfig email:', e); }
         }
+
+        async function updateCredentials(event) {
+            event.preventDefault();
+            const newEmail = document.getElementById('newEmail').value.trim();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            if (!currentPassword) { showToast('Current password is required', 'error'); return; }
+            try {
+                const res = await fetch('/api/super/update-credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({ newEmail, currentPassword, newPassword })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✅ Credentials updated successfully', 'success');
+                    document.getElementById('newEmail').value = '';
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('currentEmail').value = data.email;
+                } else {
+                    showToast('❌ ' + (data.error || 'Failed to update credentials'), 'error');
+                }
+            } catch (e) {
+                showToast('❌ Network error', 'error');
+            }
+        }
+
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }        
 
         async function saveDefaultHotelId() {
             const val = (document.getElementById('defaultHotelIdInput')?.value || '').trim().toUpperCase();
@@ -8498,11 +8547,11 @@ async function toggleLandingPage() {
                             </div>
                             <div class="form-row">
                                 <label class="lbl">API Key</label>
-                                <input class="inp" id="smsApiKey" type="password" value="${config?.apiKey || ''}" placeholder="Enter API key">
+                                <div class="relative"><input class="inp" id="smsApiKey" type="password" value="${config?.apiKey || ''}" placeholder="Enter API key" style="padding-right:2.5rem"><button type="button" onclick="togglePasswordVisibility('smsApiKey', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" style="transform:translateY(-50%)"><i class="fas fa-eye"></i></button></div>
                             </div>
                             <div class="form-row">
                                 <label class="lbl">API Secret</label>
-                                <input class="inp" id="smsApiSecret" type="password" value="${config?.apiSecret || ''}" placeholder="Enter API secret">
+                                <div class="relative"><input class="inp" id="smsApiSecret" type="password" value="${config?.apiSecret || ''}" placeholder="Enter API secret" style="padding-right:2.5rem"><button type="button" onclick="togglePasswordVisibility('smsApiSecret', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" style="transform:translateY(-50%)"><i class="fas fa-eye"></i></button></div>
                             </div>
                             <div class="form-row">
                                 <label class="lbl">Sender ID</label>

@@ -1759,16 +1759,107 @@ app.post('/api/tenant', authMiddleware, async (req, res) => {
 app.post('/api/super/login', async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    const SA_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'admin@inaya.com';
-    const SA_PASS  = process.env.SUPER_ADMIN_PASSWORD || 'admin123';
     if (!email || !password) return res.status(400).json({ success: false, error: 'Email and password required' });
-    if (email.toLowerCase().trim() !== SA_EMAIL.toLowerCase() || password !== SA_PASS) {
+
+    let storedRecord = null;
+    if (dbConnected) {
+      storedRecord = await db.collection('superAdminCredentials').findOne({ _id: 'main' });
+    }
+
+    let isValid = false;
+    let effectiveEmail = null;
+
+    if (storedRecord) {
+      // Database record is authoritative once credentials have been set/changed
+      effectiveEmail = storedRecord.email;
+      if (email.toLowerCase().trim() === storedRecord.email.toLowerCase()) {
+        isValid = await bcrypt.compare(password, storedRecord.passwordHash);
+      }
+    } else {
+      // No database record yet — this server has never had its super-admin credentials set.
+      // Fall back ONLY to whatever the operator configured in environment variables (no built-in default).
+      const ENV_EMAIL = process.env.SUPER_ADMIN_EMAIL;
+      const ENV_PASS  = process.env.SUPER_ADMIN_PASSWORD;
+      if (!ENV_EMAIL || !ENV_PASS) {
+        return res.status(503).json({ success: false, error: 'Super admin credentials have not been configured yet. Set SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD environment variables to log in the first time.' });
+      }
+      effectiveEmail = ENV_EMAIL;
+      if (email.toLowerCase().trim() === ENV_EMAIL.toLowerCase() && password === ENV_PASS) {
+        isValid = true;
+      }
+    }
+
+    if (!isValid) {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
-    const token = generateToken({ email: SA_EMAIL, role: 'super_admin' }, '30d');
+
+    const token = generateToken({ email: effectiveEmail, role: 'super_admin' }, '30d');
     res.json({ success: true, token });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/super/update-credentials', superAdminMiddleware, async (req, res) => {
+  try {
+    const { newEmail, currentPassword, newPassword } = req.body || {};
+    if (!currentPassword) return res.status(400).json({ success: false, error: 'Current password is required' });
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+
+    let storedRecord = await db.collection('superAdminCredentials').findOne({ _id: 'main' });
+
+    let currentValid = false;
+    let existingEmail = null;
+    if (storedRecord) {
+      existingEmail = storedRecord.email;
+      currentValid = await bcrypt.compare(currentPassword, storedRecord.passwordHash);
+    } else {
+      const ENV_EMAIL = process.env.SUPER_ADMIN_EMAIL;
+      const ENV_PASS  = process.env.SUPER_ADMIN_PASSWORD;
+      if (!ENV_EMAIL || !ENV_PASS) {
+        return res.status(503).json({ success: false, error: 'No credentials configured yet.' });
+      }
+      existingEmail = ENV_EMAIL;
+      currentValid = (currentPassword === ENV_PASS);
+    }
+    if (!currentValid) {
+      return res.status(401).json({ success: false, error: 'Current password is incorrect' });
+    }
+
+    const finalEmail = (newEmail && newEmail.trim()) ? newEmail.trim() : existingEmail;
+    let finalPasswordHash;
+    if (newPassword && newPassword.trim()) {
+      if (newPassword.trim().length < 8) {
+        return res.status(400).json({ success: false, error: 'New password must be at least 8 characters' });
+      }
+      finalPasswordHash = await bcrypt.hash(newPassword.trim(), 10);
+    } else if (storedRecord) {
+      finalPasswordHash = storedRecord.passwordHash;
+    } else {
+      finalPasswordHash = await bcrypt.hash(currentPassword, 10);
+    }
+
+    await db.collection('superAdminCredentials').updateOne(
+      { _id: 'main' },
+      { $set: { email: finalEmail, passwordHash: finalPasswordHash, updatedAt: new Date() } },
+      { upsert: true }
+    );
+
+    res.json({ success: true, email: finalEmail });
+  } catch (err) {
+    console.error('Update super admin credentials error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/super/current-email', superAdminMiddleware, async (req, res) => {
+  try {
+    if (!dbConnected) return res.status(503).json({ success: false, error: 'Database not connected' });
+    const storedRecord = await db.collection('superAdminCredentials').findOne({ _id: 'main' });
+    const email = storedRecord ? storedRecord.email : (process.env.SUPER_ADMIN_EMAIL || null);
+    res.json({ success: true, email });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
