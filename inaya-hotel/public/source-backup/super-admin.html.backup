@@ -5006,7 +5006,7 @@ async function toggleLandingPage() {
 
         async function loadLogs() {
             try {
-                const res = await fetch(`${API_BASE}/logs`, {
+                const res = await fetch(`${API_BASE}/logs/super`, {
                     headers: { 'Authorization': 'Bearer ' + authToken }
                 });
                 const data = await res.json();
@@ -5084,7 +5084,7 @@ async function toggleLandingPage() {
         async function clearLogs() {
             if (!confirm('⚠️ Clear all logs? This action cannot be undone.')) return;
             try {
-                const res = await fetch(`${API_BASE}/logs/clear`, {
+                const res = await fetch(`${API_BASE}/logs/super/clear`, {
                     method: 'DELETE',
                     headers: { 'Authorization': 'Bearer ' + authToken }
                 });
@@ -5104,7 +5104,7 @@ async function toggleLandingPage() {
         async function deleteLog(id) {
             if (!confirm('Delete this log entry?')) return;
             try {
-                const res = await fetch(`${API_BASE}/logs/${id}`, {
+                const res = await fetch(`${API_BASE}/logs/super/${id}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': 'Bearer ' + authToken }
                 });

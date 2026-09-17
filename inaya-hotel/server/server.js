@@ -5457,6 +5457,66 @@ app.get('/api/analytics', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// ✅ LOG VIEWER — real system logs from in-memory tracker
+app.get('/api/logs/super', superAdminMiddleware, async (req, res) => {
+  try {
+    const sorted = [...systemLogs].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    res.json({ success: true, data: sorted });
+  } catch (err) {
+    console.error('Get system logs error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/logs/export', superAdminMiddleware, async (req, res) => {
+  try {
+    const sorted = [...systemLogs].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const header = 'Timestamp,Level,Source,Message\n';
+    const rows = sorted.map(l => `"${new Date(l.timestamp).toISOString()}","${l.level}","${l.source}","${(l.message || '').replace(/"/g, '""')}"`).join('\n');
+    const csv = header + rows;
+    const token = jwt.sign({ csvData: csv, purpose: 'log-export' }, JWT_SECRET, { expiresIn: '5m' });
+    res.json({ success: true, url: `/api/logs/export/download?token=${token}` });
+  } catch (err) {
+    console.error('Export logs error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/logs/export/download', async (req, res) => {
+  try {
+    const decoded = jwt.verify(req.query.token, JWT_SECRET);
+    if (decoded.purpose !== 'log-export') return res.status(403).json({ success: false, error: 'Invalid token' });
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="system-logs.csv"');
+    res.send(decoded.csvData);
+  } catch (err) {
+    res.status(403).json({ success: false, error: 'Invalid or expired link' });
+  }
+});
+
+app.delete('/api/logs/super/clear', superAdminMiddleware, async (req, res) => {
+  try {
+    systemLogs.length = 0;
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Clear system logs error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/logs/super/:id', superAdminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const idx = systemLogs.findIndex(l => l._id === id);
+    if (idx === -1) return res.status(404).json({ success: false, error: 'Log not found' });
+    systemLogs.splice(idx, 1);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete system log error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ✅ NEW: Guest Login Route to generate real JWT for guests
 app.post('/api/guest/login', (req, res) => {
     const { name, room, hotelId } = req.body;
